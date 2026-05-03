@@ -1,0 +1,45 @@
+{
+    "name": "@ahegyes/wordpress-plugins",
+    "private": true,
+    "description": "DWS WordPress plugins monorepo — wp-env + Playwright tooling for cross-plugin work.",
+    "license": "GPL-2.0-or-later",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ahegyes/wordpress-plugins.git"
+    },
+    "bugs": "https://github.com/ahegyes/wordpress-plugins/issues",
+    "engines": {
+        "node": ">=24"
+    },
+    "devDependencies": {
+        "@ahegyes/wordpress-configs": "github:ahegyes/wordpress-configs",
+        "@wordpress/e2e-test-utils-playwright": "^1",
+        "@wordpress/env": "^11",
+        "@wordpress/scripts": "^32"
+    },
+    "scripts": {
+        "setup": "npm run install:all && npm run wp-env:start",
+        "install:all": "composer plugins:install && composer packages-install && npm install && npm run plugins:install",
+        "update:all": "composer plugins:update && composer packages-update && npm update && npm run plugins:update",
+
+        "plugins:install": "npm install --prefix=plugins/internal-comments && npm install --prefix=plugins/linked-orders-for-woocommerce && npm install --prefix=plugins/locked-payment-methods-for-woocommerce",
+        "plugins:update": "npm update --prefix=plugins/internal-comments && npm update --prefix=plugins/linked-orders-for-woocommerce && npm update --prefix=plugins/locked-payment-methods-for-woocommerce",
+
+        "wp-env": "wp-env",
+        "wp-env:start": "wp-env --config .wp-env.tests.json start",
+        "wp-env:stop": "wp-env --config .wp-env.tests.json stop",
+        "wp-env:update": "wp-env --config .wp-env.tests.json start --update",
+        "wp-env:destroy": "wp-env --config .wp-env.tests.json destroy",
+
+        "audit": "composer audit && npm audit",
+        "audit:fix": "npm audit fix",
+
+        "test:integration:internal-comments": "wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/internal-comments vendor/bin/phpunit --testsuite=Integration",
+        "test:integration:linked-orders-for-woocommerce": "wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/linked-orders-for-woocommerce vendor/bin/phpunit --testsuite=Integration",
+        "test:integration:locked-payment-methods-for-woocommerce": "wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/locked-payment-methods-for-woocommerce vendor/bin/phpunit --testsuite=Integration",
+        "test:integration": "npm run test:integration:internal-comments && npm run test:integration:linked-orders-for-woocommerce && npm run test:integration:locked-payment-methods-for-woocommerce",
+        "test:e2e": "playwright test --config=playwright.config.js",
+
+        "plugins:test:e2e": "npm run test:e2e --prefix=plugins/internal-comments && npm run test:e2e --prefix=plugins/linked-orders-for-woocommerce && npm run test:e2e --prefix=plugins/locked-payment-methods-for-woocommerce"
+    }
+}

@@ -1,0 +1,91 @@
+name: Bug report
+description: Report a defect in one of the monorepo plugins or the shared scaffold.
+labels: [bug, triage]
+body:
+  - type: dropdown
+    id: plugin
+    attributes:
+      label: Affected plugin (or scaffold)
+      options:
+        - internal-comments
+        - linked-orders-for-woocommerce
+        - locked-payment-methods-for-woocommerce
+        - Monorepo scaffold (root composer/npm scripts, wp-env, CI workflows)
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Plugin runtime (Plugin singleton, components, framework wiring)
+        - Composer scoping pipeline (scoper.inc.php, post-autoload-dump)
+        - Changelog tooling (composer changelog:* scripts)
+        - CI workflows (quality.yml, tests.yml, split-plugins.yml)
+        - wp-env / integration / E2E test infrastructure
+        - Cross-plugin interactions (multiple plugins active together)
+        - Documentation / readme
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Monorepo commit / SHA
+      placeholder: 'trunk@<sha>'
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      placeholder: '8.5.0'
+    validations:
+      required: true
+
+  - type: input
+    id: wp-version
+    attributes:
+      label: WordPress version
+      placeholder: '7.0'
+
+  - type: input
+    id: wc-version
+    attributes:
+      label: WooCommerce version (if applicable)
+      placeholder: '10.7.0'
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. `git clone … && cd wordpress-plugins`
+        2. `npm run install:all && npm run wp-env:start`
+        3. Observe Z
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / stack traces / CI run URL
+      render: text

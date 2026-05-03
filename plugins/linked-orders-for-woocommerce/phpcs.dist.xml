@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
+	<!-- Extend the shared ruleset from wordpress-configs (covers vendor/, node_modules/, tests/, index.php, etc.). -->
+	<rule ref="./vendor/ahegyes/wordpress-configs/php/quality-assurance/phpcs.dist.xml"/>
+
+	<!-- Skip generated php-scoper output. -->
+	<exclude-pattern>*/dependencies/*</exclude-pattern>
+
+	<!-- Validate every gettext call uses the plugin's text domain. -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="linked-orders-for-woocommerce"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

@@ -1,0 +1,150 @@
+{
+  "name": "ahegyes/linked-orders-for-woocommerce",
+  "description": "Adds parent/child relationships between WooCommerce orders for splits, refunds, returns, and renewals.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wc-linked-orders",
+  "authors": [
+    {
+      "name": "Contributors",
+      "homepage": "https://github.com/ahegyes/wc-linked-orders/graphs/contributors"
+    }
+  ],
+
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-bootstrap"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-core"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    },
+    {
+      "type": "composer",
+      "url": "https://repo.wp-packages.org",
+      "only": ["wp-plugin/*", "wp-theme/*"]
+    }
+  ],
+
+  "require": {
+    "php": ">=8.5",
+    "psr/container": "^2"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
+    "ahegyes/wp-framework-core": "^2.0@dev",
+    "automattic/jetpack-changelogger": "^6",
+    "humbug/php-scoper": "^0.18",
+    "johnpbloch/wordpress-core": "^7.0@dev",
+    "php-di/php-di": "^7",
+    "phpunit/phpunit": "^13",
+    "pronamic/changelog-md-to-wordpress-plugin-readme-txt": "^1.0"
+  },
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "autoload": {
+    "psr-4": {
+      "DeepWebSolutions\\LinkedOrders\\": "src/",
+
+      "DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\": "dependencies/ahegyes/wp-framework-core/src",
+      "DeepWebSolutions\\LinkedOrders\\Scoped\\DI\\": "dependencies/php-di/php-di/src",
+      "DeepWebSolutions\\LinkedOrders\\Scoped\\Invoker\\": "dependencies/php-di/invoker/src",
+      "DeepWebSolutions\\LinkedOrders\\Scoped\\Laravel\\SerializableClosure\\": "dependencies/laravel/serializable-closure/src"
+    },
+    "files": [
+      "dependencies/ahegyes/wp-framework-bootstrap/check-requirements.php",
+      "dependencies/php-di/php-di/src/functions.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "DeepWebSolutions\\LinkedOrders\\Tests\\": "tests/"
+    }
+  },
+
+  "scripts": {
+    "pre-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::preAutoloadDump"
+    ],
+    "post-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\CollectScopingStubs::postAutoloadDump",
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
+    ],
+
+    "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
+    "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
+    "packages-update": [
+      "@composer clear-cache",
+      "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+    ],
+
+    "scope-php-dependencies": [
+      "@php vendor/bin/php-scoper add-prefix --prefix='DeepWebSolutions\\LinkedOrders\\Scoped' --output-dir=./dependencies --config=./scoper.inc.php --force --quiet"
+    ],
+
+    "format:php": "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "lint:php": [
+      "@lint:php:phpcs",
+      "@lint:php:phpstan"
+    ],
+    "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
+
+    "test": "@php vendor/bin/phpunit",
+    "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
+    "test:integration": "npm --prefix=. run test:integration",
+
+    "quality-check": [
+      "@lint:php",
+      "@test:unit"
+    ],
+
+    "changelog:add": "@php vendor/bin/changelogger add",
+    "changelog:validate": "@php vendor/bin/changelogger validate",
+    "changelog:write": [
+      "@php vendor/bin/changelogger write",
+      "@php vendor/bin/pronamic-changelog-md-to-wordpress-plugin-readme-txt"
+    ]
+  },
+
+  "extra": {
+    "text-domain": "linked-orders-for-woocommerce",
+    "installer-paths": {
+      "vendor/{$vendor}/{$name}/": [
+        "type:wordpress-plugin",
+        "type:wordpress-theme"
+      ]
+    },
+    "changelogger": {
+      "versioning": "semver",
+      "changelog": "CHANGELOG.md",
+      "changes-dir": "changelog",
+      "default-type": "changed",
+      "types": {
+        "added": "Added",
+        "changed": "Changed",
+        "deprecated": "Deprecated",
+        "removed": "Removed",
+        "fixed": "Fixed",
+        "security": "Security"
+      }
+    }
+  },
+
+  "config": {
+    "allow-plugins": {
+      "composer/*": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  }
+}

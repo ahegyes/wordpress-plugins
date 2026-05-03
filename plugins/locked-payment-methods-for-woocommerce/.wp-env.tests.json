@@ -1,0 +1,17 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/wp-env.schema.json",
+    "core": "https://wordpress.org/nightly-builds/wordpress-latest.zip",
+    "phpVersion": "8.5",
+    "port": 8823,
+    "testsEnvironment": false,
+    "mappings": {
+        "wp-content/plugins/locked-payment-methods-for-woocommerce": "."
+    },
+    "lifecycleScripts": {
+        "afterStart": "wp-env --config .wp-env.tests.json run cli wp plugin activate locked-payment-methods-for-woocommerce || true"
+    },
+    "config": {
+        "WP_DEBUG": true,
+        "SCRIPT_DEBUG": true
+    }
+}

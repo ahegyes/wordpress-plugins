@@ -1,0 +1,120 @@
+version: 2
+updates:
+  # Root tooling
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      php-dev-deps-root:
+        patterns: ['*']
+        dependency-type: development
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      npm-dev-deps-root:
+        patterns: ['*']
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  # Per-plugin Composer
+  - package-ecosystem: composer
+    directory: /plugins/internal-comments
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      php-dev-deps-internal-comments:
+        patterns: ['*']
+        dependency-type: development
+
+  - package-ecosystem: composer
+    directory: /plugins/linked-orders-for-woocommerce
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      php-dev-deps-linked-orders-for-woocommerce:
+        patterns: ['*']
+        dependency-type: development
+
+  - package-ecosystem: composer
+    directory: /plugins/locked-payment-methods-for-woocommerce
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      php-dev-deps-locked-payment-methods-for-woocommerce:
+        patterns: ['*']
+        dependency-type: development
+
+  # Per-plugin npm
+  - package-ecosystem: npm
+    directory: /plugins/internal-comments
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      npm-dev-deps-internal-comments:
+        patterns: ['*']
+        dependency-type: development
+
+  - package-ecosystem: npm
+    directory: /plugins/linked-orders-for-woocommerce
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      npm-dev-deps-linked-orders-for-woocommerce:
+        patterns: ['*']
+        dependency-type: development
+
+  - package-ecosystem: npm
+    directory: /plugins/locked-payment-methods-for-woocommerce
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      npm-dev-deps-locked-payment-methods-for-woocommerce:
+        patterns: ['*']
+        dependency-type: development

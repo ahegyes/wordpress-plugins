@@ -1,0 +1,64 @@
+name: Feature request
+description: Propose a new capability for one of the monorepo plugins or the shared scaffold.
+labels: [enhancement, triage]
+body:
+  - type: dropdown
+    id: plugin
+    attributes:
+      label: Target plugin (or scaffold)
+      options:
+        - internal-comments
+        - linked-orders-for-woocommerce
+        - locked-payment-methods-for-woocommerce
+        - Monorepo scaffold (root composer/npm scripts, wp-env, CI workflows)
+        - New plugin proposal
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Target area
+      options:
+        - Plugin runtime (components, framework wiring, settings, hooks)
+        - Composer scoping pipeline
+        - Changelog tooling
+        - CI workflows
+        - wp-env / integration / E2E test infrastructure
+        - Documentation
+        - New area / unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user- or developer-facing problem would this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you imagine this looking? Code or YAML samples welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you weigh? Why this one?
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Breaking change for existing installs / mirrors?
+      options:
+        - 'No (additive — existing installs can ignore the new feature)'
+        - 'Yes (existing installs / mirror consumers need to adapt)'
+        - 'Unsure'
+    validations:
+      required: true

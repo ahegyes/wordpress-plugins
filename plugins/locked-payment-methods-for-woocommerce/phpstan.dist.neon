@@ -1,0 +1,16 @@
+includes:
+    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+
+parameters:
+    paths:
+        - locked-payment-methods-for-woocommerce.php
+        - functions.php
+        - uninstall.php
+        - src
+        - config
+        - tests
+    excludePaths:
+        - dependencies/*
+        - vendor/*
+        - node_modules/*
+        - tests/bootstrap.php

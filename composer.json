@@ -1,0 +1,108 @@
+{
+  "name": "ahegyes/wordpress-plugins",
+  "description": "Monorepo of DWS WordPress plugins. Each plugin under plugins/<name> is split-published to its own mirror repo via splitsh-lite.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wordpress-plugins",
+  "authors": [
+    {
+      "name": "Contributors",
+      "homepage": "https://github.com/ahegyes/wordpress-plugins/graphs/contributors"
+    }
+  ],
+
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    }
+  ],
+
+  "require": {
+    "php": ">=8.5"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "automattic/jetpack-changelogger": "^6"
+  },
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "scripts": {
+    "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
+    "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
+    "packages-update": [
+      "@composer clear-cache",
+      "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+    ],
+
+    "plugins:install": [
+      "@composer --working-dir=plugins/internal-comments packages-install",
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-install",
+      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce packages-install"
+    ],
+    "plugins:update": [
+      "@composer --working-dir=plugins/internal-comments packages-update",
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-update",
+      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce packages-update"
+    ],
+
+    "plugins:format": [
+      "@composer --working-dir=plugins/internal-comments format:php",
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce format:php",
+      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce format:php"
+    ],
+    "plugins:lint": [
+      "@composer --working-dir=plugins/internal-comments lint:php",
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce lint:php",
+      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce lint:php"
+    ],
+
+    "plugins:test:unit": [
+      "@composer --working-dir=plugins/internal-comments test:unit",
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:unit",
+      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce test:unit"
+    ],
+    "plugins:test:integration": [
+      "@composer --working-dir=plugins/internal-comments test:integration",
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:integration",
+      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce test:integration"
+    ],
+
+    "plugins:quality-check": [
+      "@plugins:lint",
+      "@plugins:test:unit"
+    ],
+
+    "changelog:add": "@php vendor/bin/changelogger add",
+    "changelog:validate": "@php vendor/bin/changelogger validate",
+    "changelog:write": "@php vendor/bin/changelogger write"
+  },
+
+  "extra": {
+    "changelogger": {
+      "versioning": "semver",
+      "changelog": "CHANGELOG.md",
+      "changes-dir": "changelog",
+      "default-type": "changed",
+      "types": {
+        "added": "Added",
+        "changed": "Changed",
+        "deprecated": "Deprecated",
+        "removed": "Removed",
+        "fixed": "Fixed",
+        "security": "Security"
+      }
+    }
+  },
+
+  "config": {
+    "allow-plugins": {
+      "composer/*": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  }
+}

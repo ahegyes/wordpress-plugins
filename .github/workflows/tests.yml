@@ -1,0 +1,70 @@
+name: Tests
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+
+jobs:
+  unit:
+    name: Unit (${{ matrix.plugin }})
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin:
+          - internal-comments
+          - linked-orders-for-woocommerce
+          - locked-payment-methods-for-woocommerce
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+      - uses: ramsey/composer-install@v4
+        with:
+          working-directory: plugins/${{ matrix.plugin }}
+      - run: composer test:unit
+        working-directory: plugins/${{ matrix.plugin }}
+
+  integration:
+    name: Integration (${{ matrix.plugin }} / ${{ matrix.wp.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin:
+          - internal-comments
+          - linked-orders-for-woocommerce
+          - locked-payment-methods-for-woocommerce
+        wp:
+          - { label: 'WP nightly (compatible)', core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip' }
+          - { label: 'WP 6.9.4 (below floor)',  core: 'WordPress/WordPress#tags/6.9.4' }
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@trunk
+    with:
+      plugin-path: plugins/${{ matrix.plugin }}
+      php-version: '8.5'
+      wp-env-core: ${{ matrix.wp.core }}
+      composer-script: 'test:integration'
+      node-version: '24'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  e2e:
+    name: E2E (${{ matrix.plugin }})
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin:
+          - internal-comments
+          - linked-orders-for-woocommerce
+          - locked-payment-methods-for-woocommerce
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@trunk
+    with:
+      plugin-path: plugins/${{ matrix.plugin }}
+      plugin-slug: ${{ matrix.plugin }}
+      php-version: '8.5'
+      node-version: '24'
+      composer-options: '--prefer-dist'
+      build-script: ''
+      wp-env-config-file: '.wp-env.tests.json'

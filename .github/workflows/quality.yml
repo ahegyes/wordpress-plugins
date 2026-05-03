@@ -1,0 +1,70 @@
+name: Quality
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+
+jobs:
+  php-qa:
+    name: PHP QA (${{ matrix.plugin }})
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin:
+          - internal-comments
+          - linked-orders-for-woocommerce
+          - locked-payment-methods-for-woocommerce
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-qa.yml@trunk
+    with:
+      php-version: '8.5'
+      plugin-path: plugins/${{ matrix.plugin }}
+
+  changelog:
+    name: Changelog fragments (${{ matrix.scope }})
+    strategy:
+      fail-fast: false
+      matrix:
+        scope:
+          - root
+          - internal-comments
+          - linked-orders-for-woocommerce
+          - locked-payment-methods-for-woocommerce
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+      - name: Resolve working directory
+        id: dir
+        run: |
+          if [ "${{ matrix.scope }}" = "root" ]; then
+            echo "path=." >> "$GITHUB_OUTPUT"
+          else
+            echo "path=plugins/${{ matrix.scope }}" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: ramsey/composer-install@v4
+        with:
+          working-directory: ${{ steps.dir.outputs.path }}
+      - run: composer changelog:validate
+        working-directory: ${{ steps.dir.outputs.path }}
+
+  readme-lint:
+    name: readme.txt lint (${{ matrix.plugin }})
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin:
+          - internal-comments
+          - linked-orders-for-woocommerce
+          - locked-payment-methods-for-woocommerce
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: thetwopct/wporg-plugin-readme-linter@v1
+        with:
+          path: plugins/${{ matrix.plugin }}/readme.txt
+          fail-on: error
