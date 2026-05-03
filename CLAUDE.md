@@ -46,6 +46,16 @@ Two distinct testing axes at root, both intentional:
 
 Composer is canonical entry for `test:integration` (PHPUnit is PHP); npm is canonical entry for `test:e2e` (Playwright is npm). Per-plugin mirrors this asymmetry — root respects it.
 
+## v1 successor policy
+
+The 3 plugins are v2 successors to existing v1 plugins published under the same wp.org slugs. Initial monorepo release is **2.0.0**, not 1.0.0.
+
+When migrating v1 features into `plugins/<slug>/src/`:
+- **Preserve v1's public contract by default** — hook names (`dws_…` prefix), option keys, capability names, REST routes, shortcodes, comment-type slugs, order-meta keys, settings page slugs, gateway-locking rule formats. Existing v1 installations must keep working without config changes.
+- **PHP namespaces are not part of the public contract.** v1 used `DeepWebSolutions\WC_Plugins\<Plugin>\…` (or `DeepWebSolutions\Plugins\<Plugin>\…`). v2 uses the flat `DeepWebSolutions\<Plugin>\…`. Sites that imported v1 internals must update; this is documented in each plugin's `Upgrade Notice` section.
+- **PHP 8.5+ / WP 7.0+ / current WC (HPOS) are mandatory floors** — these are documented as deliberate breaks in each plugin's `## 2.0.0 - unreleased` Changed block.
+- **If a public-contract break is unavoidable**, document it in the per-plugin CHANGELOG `### Removed` or `### Changed` block AND in the `Upgrade Notice` section of `readme.txt` so wp.org auto-update users see the warning.
+
 ## Substitution map (when adding a new plugin)
 
 Copy `wordpress-plugin-template` into `plugins/<slug>/`, strip duplicated root files (`.editorconfig`, `LICENSE`, `.gitignore`, `.github/`, `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CLAUDE.md`, `AGENTS.md` — those live at monorepo root only), then sed-substitute:
@@ -57,7 +67,7 @@ Copy `wordpress-plugin-template` into `plugins/<slug>/`, strip duplicated root f
 - `DWS Plugin Template` → display name (WC plugins: `X for WooCommerce`)
 - `wordpress-plugin-template` → mirror repo (e.g., `wp-internal-comments`)
 - port `8811` → assigned port (882X)
-- version `2.0.0` → `1.0.0` (entry header `Version`, `_VERSION` constant, readme.txt `Stable tag`, all `@since`/`@version`)
+- version `2.0.0` → starting version for the new plugin (entry header `Version`, `_VERSION` constant, readme.txt `Stable tag`, all `@since`/`@version`). For brand-new plugins start at `1.0.0`. For v1 successors that ship under an existing wp.org slug, start at `2.0.0` (or the next major after v1's last release).
 
 Restore per-plugin `package.json` + `playwright.config.js` from template after strip (so split-published mirrors are runnable standalone).
 

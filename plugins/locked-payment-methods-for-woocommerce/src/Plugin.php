@@ -13,8 +13,8 @@ use Psr\Container\ContainerInterface;
  * Boot runs on `plugins_loaded` priority 15 so plugins hooking at the default
  * priority 10 (e.g. WooCommerce) are already initialized.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  */
 final class Plugin {
 	// region FIELDS AND CONSTANTS
@@ -22,8 +22,8 @@ final class Plugin {
 	/**
 	 * Singleton instance.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @var     self|null
 	 */
@@ -32,8 +32,8 @@ final class Plugin {
 	/**
 	 * PSR-11 container resolving registered components.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @var     ContainerInterface
 	 */
@@ -42,8 +42,8 @@ final class Plugin {
 	/**
 	 * Lifecycle dispatcher resolved from the container.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @var     PluginKernel
 	 */
@@ -56,8 +56,8 @@ final class Plugin {
 	/**
 	 * Builds the container, resolves the kernel, and registers components.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 */
 	private function __construct() {
 		$builder = new ContainerBuilder();
@@ -76,8 +76,8 @@ final class Plugin {
 	/**
 	 * Returns the plugin's singleton instance, creating it on first call.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @return  self
 	 */
@@ -92,8 +92,8 @@ final class Plugin {
 	/**
 	 * Runs the kernel's two-pass component lifecycle. Idempotent.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @return  void
 	 */
@@ -104,8 +104,8 @@ final class Plugin {
 	/**
 	 * Plugin activation hook — install-time setup.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @return  void
 	 */
@@ -115,8 +115,8 @@ final class Plugin {
 	/**
 	 * Plugin deactivation hook — install-time teardown.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @return  void
 	 */

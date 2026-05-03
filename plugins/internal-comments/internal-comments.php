@@ -4,7 +4,7 @@
  * Plugin Name:       Internal Comments
  * Plugin URI:        https://github.com/ahegyes/wp-internal-comments
  * Description:       Internal, staff-only comment threads on WordPress and WooCommerce content. Independent of public comments.
- * Version:           1.0.0
+ * Version:           2.0.0
  * Requires PHP:      8.5
  * Requires at least: 7.0
  * Author:            Contributors
@@ -14,8 +14,8 @@
  * Text Domain:       internal-comments
  * Domain Path:       /languages
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @package DeepWebSolutions\InternalComments
  */
@@ -30,7 +30,7 @@ if ( ! defined( 'DWS_IC_FILE' ) ) {
 	define( 'DWS_IC_FILE', __FILE__ );
 }
 if ( ! defined( 'DWS_IC_VERSION' ) ) {
-	define( 'DWS_IC_VERSION', '1.0.0' );
+	define( 'DWS_IC_VERSION', '2.0.0' );
 }
 
 require_once __DIR__ . '/vendor/autoload.php';

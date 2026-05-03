@@ -3,8 +3,8 @@
 /**
  * Plugin facade for theme / snippet developers — thin delegators only, no business logic.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @package DeepWebSolutions\LockedPaymentMethods
  */
@@ -14,8 +14,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Returns the plugin's singleton instance.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @return  \DeepWebSolutions\LockedPaymentMethods\Plugin
  */
@@ -26,8 +26,8 @@ function dws_lpmwc_instance(): \DeepWebSolutions\LockedPaymentMethods\Plugin {
 /**
  * Boots the plugin — invoked on `plugins_loaded` priority 15.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @return  void
  */
@@ -38,8 +38,8 @@ function dws_lpmwc_boot(): void {
 /**
  * Plugin activation hook callback.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @return  void
  */
@@ -50,8 +50,8 @@ function dws_lpmwc_activate(): void {
 /**
  * Plugin deactivation hook callback.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @return  void
  */

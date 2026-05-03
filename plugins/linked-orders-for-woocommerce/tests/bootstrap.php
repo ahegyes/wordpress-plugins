@@ -3,8 +3,8 @@
 /**
  * PHPUnit bootstrap. Inside wp-env's `cli` container, also loads WP and the plugin entry.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';

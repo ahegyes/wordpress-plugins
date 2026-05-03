@@ -4,7 +4,7 @@
  * Plugin Name:       Linked Orders for WooCommerce
  * Plugin URI:        https://github.com/ahegyes/wc-linked-orders
  * Description:       Adds parent/child relationships between WooCommerce orders for splits, refunds, returns, and renewals.
- * Version:           1.0.0
+ * Version:           2.0.0
  * Requires PHP:      8.5
  * Requires at least: 7.0
  * Author:            Contributors
@@ -14,8 +14,8 @@
  * Text Domain:       linked-orders-for-woocommerce
  * Domain Path:       /languages
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @package DeepWebSolutions\LinkedOrders
  */
@@ -30,7 +30,7 @@ if ( ! defined( 'DWS_LOWC_FILE' ) ) {
 	define( 'DWS_LOWC_FILE', __FILE__ );
 }
 if ( ! defined( 'DWS_LOWC_VERSION' ) ) {
-	define( 'DWS_LOWC_VERSION', '1.0.0' );
+	define( 'DWS_LOWC_VERSION', '2.0.0' );
 }
 
 require_once __DIR__ . '/vendor/autoload.php';

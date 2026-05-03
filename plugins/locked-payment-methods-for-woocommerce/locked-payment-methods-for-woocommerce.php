@@ -4,7 +4,7 @@
  * Plugin Name:       Locked Payment Methods for WooCommerce
  * Plugin URI:        https://github.com/ahegyes/wc-locked-payment-methods
  * Description:       Restricts WooCommerce payment methods based on cart contents — products, categories, shipping methods.
- * Version:           1.0.0
+ * Version:           2.0.0
  * Requires PHP:      8.5
  * Requires at least: 7.0
  * Author:            Contributors
@@ -14,8 +14,8 @@
  * Text Domain:       locked-payment-methods-for-woocommerce
  * Domain Path:       /languages
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @package DeepWebSolutions\LockedPaymentMethods
  */
@@ -30,7 +30,7 @@ if ( ! defined( 'DWS_LPMWC_FILE' ) ) {
 	define( 'DWS_LPMWC_FILE', __FILE__ );
 }
 if ( ! defined( 'DWS_LPMWC_VERSION' ) ) {
-	define( 'DWS_LPMWC_VERSION', '1.0.0' );
+	define( 'DWS_LPMWC_VERSION', '2.0.0' );
 }
 
 require_once __DIR__ . '/vendor/autoload.php';

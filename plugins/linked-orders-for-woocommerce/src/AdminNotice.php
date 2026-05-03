@@ -8,8 +8,8 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Contrac
  * Demo component — renders an info notice in the WordPress admin to confirm
  * the plugin booted and the framework's HookableInterface dispatch works.
  *
- * @since   1.0.0
- * @version 1.0.0
+ * @since   2.0.0
+ * @version 2.0.0
  */
 final class AdminNotice implements HookableInterface {
 	// region INHERITED METHODS
@@ -17,8 +17,8 @@ final class AdminNotice implements HookableInterface {
 	/**
 	 * {@inheritDoc}
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 */
 	public function register_hooks(): void {
 		add_action( 'admin_notices', array( $this, 'render' ) );
@@ -31,8 +31,8 @@ final class AdminNotice implements HookableInterface {
 	/**
 	 * Renders the admin notice. Hooked on `admin_notices`.
 	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @return  void
 	 */
