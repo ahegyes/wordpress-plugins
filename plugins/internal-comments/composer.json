@@ -6,6 +6,10 @@
   "homepage": "https://github.com/ahegyes/wp-internal-comments",
   "authors": [
     {
+      "name": "Antonius Hegyes",
+      "homepage": "https://github.com/ahegyes"
+    },
+    {
       "name": "Contributors",
       "homepage": "https://github.com/ahegyes/wp-internal-comments/graphs/contributors"
     }

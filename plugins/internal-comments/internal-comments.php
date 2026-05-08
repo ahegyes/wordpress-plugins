@@ -7,7 +7,7 @@
  * Version:           2.0.0
  * Requires PHP:      8.5
  * Requires at least: 7.0
- * Author:            Contributors
+ * Author:            Antonius Hegyes
  * Author URI:        https://github.com/ahegyes
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html

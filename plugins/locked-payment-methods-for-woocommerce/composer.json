@@ -6,6 +6,10 @@
   "homepage": "https://github.com/ahegyes/wc-locked-payment-methods",
   "authors": [
     {
+      "name": "Antonius Hegyes",
+      "homepage": "https://github.com/ahegyes"
+    },
+    {
       "name": "Contributors",
       "homepage": "https://github.com/ahegyes/wc-locked-payment-methods/graphs/contributors"
     }
