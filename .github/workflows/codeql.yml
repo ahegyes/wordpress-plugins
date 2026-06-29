@@ -23,7 +23,7 @@ jobs:
         # PHP scanning will be added once CodeQL's PHP support stabilizes.
         # Track at https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: github/codeql-action/init@v4
         with:

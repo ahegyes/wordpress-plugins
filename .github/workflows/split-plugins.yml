@@ -22,7 +22,7 @@ jobs:
           - { dir: 'linked-orders-for-woocommerce',           repo: 'wc-linked-orders' }
           - { dir: 'locked-payment-methods-for-woocommerce',  repo: 'wc-locked-payment-methods' }
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           # Don't install the credential helper that auths as github-actions[bot].
