@@ -5,9 +5,12 @@ on:
     branches: [trunk]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  php-qa:
-    name: PHP QA (${{ matrix.plugin }})
+  lint-php:
+    name: PHP Lint (${{ matrix.plugin }})
     strategy:
       fail-fast: false
       matrix:
@@ -15,10 +18,11 @@ jobs:
           - internal-comments
           - linked-orders-for-woocommerce
           - locked-payment-methods-for-woocommerce
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-qa.yml@trunk
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@0a9f3152853200fbdcbe3fa8d5073aae24fb05c3
     with:
       php-version: '8.5'
-      plugin-path: plugins/${{ matrix.plugin }}
+      project-path: plugins/${{ matrix.plugin }}
+      scripts: '["lint:php:phpcs", "lint:php:phpstan"]'
 
   changelog:
     name: Changelog fragments (${{ matrix.scope }})
@@ -32,8 +36,10 @@ jobs:
           - locked-payment-methods-for-woocommerce
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
         with:
           php-version: '8.5'
           coverage: none
@@ -46,7 +52,7 @@ jobs:
           else
             echo "path=plugins/${{ matrix.scope }}" >> "$GITHUB_OUTPUT"
           fi
-      - uses: ramsey/composer-install@v4
+      - uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
         with:
           working-directory: ${{ steps.dir.outputs.path }}
       - run: composer changelog:validate
@@ -63,8 +69,10 @@ jobs:
           - locked-payment-methods-for-woocommerce
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: thetwopct/wporg-plugin-readme-linter@v1
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+      - uses: thetwopct/wporg-plugin-readme-linter@1f869aba959265ecc90935b2380c6569d56646ac
         with:
           path: plugins/${{ matrix.plugin }}/readme.txt
           fail-on: error
