@@ -1,14 +1,10 @@
 {
-  "name": "ahegyes/linked-orders-for-woocommerce",
-  "description": "Adds parent/child relationships between WooCommerce orders for splits, refunds, returns, and renewals.",
+  "name": "ahegyes/wc-linked-orders",
+  "description": "A WooCommerce extension for creating orders that are logically connected to existing ones.",
   "type": "wordpress-plugin",
-  "license": "GPL-2.0-or-later",
+  "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/ahegyes/wc-linked-orders",
   "authors": [
-    {
-      "name": "Antonius Hegyes",
-      "homepage": "https://github.com/ahegyes"
-    },
     {
       "name": "Contributors",
       "homepage": "https://github.com/ahegyes/wc-linked-orders/graphs/contributors"
@@ -22,7 +18,19 @@
     },
     {
       "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-shared"
+    },
+    {
+      "type": "vcs",
       "url": "https://github.com/ahegyes/wp-framework-core"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-settings"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-woocommerce"
     },
     {
       "type": "vcs",
@@ -36,19 +44,24 @@
   ],
 
   "require": {
-    "php": ">=8.5",
-    "psr/container": "^2"
+    "php": ">=8.5"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
-    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
-    "ahegyes/wp-framework-core": "^2.0@dev",
-    "automattic/jetpack-changelogger": "^6",
+    "ahegyes/wp-framework-bootstrap": "^2.0",
+    "ahegyes/wp-framework-core": "^2.0",
+    "ahegyes/wp-framework-settings": "^2.0",
+    "ahegyes/wp-framework-shared": "^2.0",
+    "ahegyes/wp-framework-woocommerce": "^2.0",
+    "automattic/jetpack-changelogger": "^7",
     "humbug/php-scoper": "^0.18",
-    "johnpbloch/wordpress-core": "^7.0@dev",
-    "php-di/php-di": "^7",
+    "johnpbloch/wordpress-core": "^7.1",
+    "laravel/serializable-closure": "^2.1",
+    "php-di/php-di": "^7.1.1",
+    "php-stubs/woocommerce-stubs": "^11.2",
     "phpunit/phpunit": "^13",
-    "pronamic/changelog-md-to-wordpress-plugin-readme-txt": "^1.0"
+    "pronamic/changelog-md-to-wordpress-plugin-readme-txt": "^1.0",
+    "wp-plugin/woocommerce": "^11.2"
   },
 
   "minimum-stability": "dev",
@@ -56,16 +69,13 @@
 
   "autoload": {
     "psr-4": {
-      "DeepWebSolutions\\LinkedOrders\\": "src/",
-
-      "DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\": "dependencies/ahegyes/wp-framework-core/src",
-      "DeepWebSolutions\\LinkedOrders\\Scoped\\DI\\": "dependencies/php-di/php-di/src",
-      "DeepWebSolutions\\LinkedOrders\\Scoped\\Invoker\\": "dependencies/php-di/invoker/src",
-      "DeepWebSolutions\\LinkedOrders\\Scoped\\Laravel\\SerializableClosure\\": "dependencies/laravel/serializable-closure/src"
+      "DeepWebSolutions\\LinkedOrders\\": "src/"
     },
+    "classmap": [
+      "models/"
+    ],
     "files": [
-      "dependencies/ahegyes/wp-framework-bootstrap/check-requirements.php",
-      "dependencies/php-di/php-di/src/functions.php"
+      "vendor-prefixed/scoper-autoload.php"
     ]
   },
   "autoload-dev": {
@@ -75,40 +85,51 @@
   },
 
   "scripts": {
-    "pre-autoload-dump": [
-      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::preAutoloadDump"
-    ],
     "post-autoload-dump": [
-      "DeepWebSolutions\\Config\\Composer\\CollectScopingStubs::postAutoloadDump",
       "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
     ],
 
-    "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
-    "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
+    "generate-autoloader": "@composer dump-autoload -o",
+    "packages-install": "@composer install --ignore-platform-req=php+ --no-interaction",
     "packages-update": [
       "@composer clear-cache",
-      "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
-    ],
-
-    "scope-php-dependencies": [
-      "@php vendor/bin/php-scoper add-prefix --prefix='DeepWebSolutions\\LinkedOrders\\Scoped' --output-dir=./dependencies --config=./scoper.inc.php --force --quiet"
+      "@composer update --prefer-stable --ignore-platform-req=php+ --no-interaction"
     ],
 
     "format:php": "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "format:php:tests": "phpcbf --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
     "lint:php": [
       "@lint:php:phpcs",
+      "@lint:php:phpcs:tests",
       "@lint:php:phpstan"
     ],
     "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "lint:php:phpcs:tests": "phpcs --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
     "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
 
-    "test": "@php vendor/bin/phpunit",
+    "test": [
+      "@test:unit",
+      "@test:integration"
+    ],
     "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
-    "test:integration": "npm --prefix=. run test:integration",
+    "test:integration": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:tests:start",
+      "@test:integration:run"
+    ],
+    "test:integration:run": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run build",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/linked-orders-for-woocommerce vendor/bin/phpunit --testsuite=Integration"
+    ],
 
     "quality-check": [
+      "@composer validate --strict",
+      "@changelog:validate",
       "@lint:php",
-      "@test:unit"
+      "@test"
     ],
 
     "changelog:add": "@php vendor/bin/changelogger add",
@@ -121,10 +142,18 @@
 
   "extra": {
     "text-domain": "linked-orders-for-woocommerce",
+    "scoping-prefix": "DeepWebSolutions\\LinkedOrders\\Scoped",
     "installer-paths": {
       "vendor/{$vendor}/{$name}/": [
         "type:wordpress-plugin",
         "type:wordpress-theme"
+      ]
+    },
+    "phpstan/extension-installer": {
+      "ignore": [
+        "johnbillion/wp-compat",
+        "swissspidy/phpstan-no-private",
+        "szepeviktor/phpstan-wordpress"
       ]
     },
     "changelogger": {
@@ -145,10 +174,11 @@
 
   "config": {
     "allow-plugins": {
-      "composer/*": true,
+      "composer/installers": true,
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "phpstan/extension-installer": true
     },
+    "platform-check": false,
     "sort-packages": true
   }
 }

@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+The autocompletion and data-removal settings are checkboxes rather than yes-or-no selects, storing the same values.

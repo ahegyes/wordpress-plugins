@@ -1,82 +1,38 @@
-# DWS WordPress Plugins
+# DWS WordPress plugins
 
-Monorepo for the v2 DWS WordPress plugins. Each plugin under `plugins/<name>/` is fully self-contained (own `composer.json`, scoping prefix, scoped framework + PHP-DI) and is split-published to its own GitHub mirror via `splitsh-lite`.
+Plugins built on the wp-framework packages are developed side by side here, so a change that crosses plugins lands and is tested in one place, while each plugin still ships from a mirror of its own.
 
-| Plugin                                                                                       | Mirror                                                                              | Status |
-|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|--------|
-| [`internal-comments`](./plugins/internal-comments)                                           | [`wp-internal-comments`](https://github.com/ahegyes/wp-internal-comments)           | shell  |
-| [`linked-orders-for-woocommerce`](./plugins/linked-orders-for-woocommerce)                   | [`wc-linked-orders`](https://github.com/ahegyes/wc-linked-orders)                   | shell  |
-| [`locked-payment-methods-for-woocommerce`](./plugins/locked-payment-methods-for-woocommerce) | [`wc-locked-payment-methods`](https://github.com/ahegyes/wc-locked-payment-methods) | shell  |
+| Plugin | Mirror | Distribution |
+| --- | --- | --- |
+| [Linked Orders for WooCommerce](./plugins/linked-orders-for-woocommerce) | [`wc-linked-orders`](https://github.com/ahegyes/wc-linked-orders) | wordpress.org |
 
-## Layout
+Each plugin under `plugins/<slug>/` is a complete plugin repository, started from [wordpress-plugin-template](https://github.com/ahegyes/wordpress-plugin-template): its own Composer and npm manifests, prefixed framework, test environments, CI and release workflows. Every push to `trunk` splits it to its mirror, which runs the plugin's own CI and releases it.
 
-```
-wordpress-plugins/
-├── composer.json                # Monorepo orchestration scripts (plugins:install, plugins:lint, ...)
-├── package.json                 # Cross-plugin wp-env + Playwright tooling
-├── playwright.config.js         # Cross-plugin E2E config (port 8820)
-├── .wp-env.tests.json           # Cross-plugin WordPress (port 8820, all 3 + WC mounted)
-├── plugins/
-│   ├── internal-comments/                          (port 8821)
-│   ├── linked-orders-for-woocommerce/              (port 8822)
-│   └── locked-payment-methods-for-woocommerce/     (port 8823)
-├── tests/
-│   ├── e2e/                     # Cross-plugin Playwright specs
-│   └── Fixtures/multi-plugin-smoke/   # Fixture mounted into wp-env for smoke testing
-├── changelog/                   # Monorepo-level changelog fragments
-└── .github/workflows/           # quality, tests, split-plugins, codeql
-```
+## Working on one plugin
 
-## Working on a single plugin
-
-The split-published mirrors are runnable standalone — clone a mirror and you have the full plugin with no monorepo dependencies. The same workflow works in-monorepo from the plugin's directory:
+Work from the plugin's directory, as its `README.md` describes:
 
 ```sh
-cd plugins/internal-comments
-composer packages-install   # deps + scoping → dependencies/
-npm install                 # wp-env + Playwright
-npm run wp-env:start        # WordPress on the plugin's own port
+cd plugins/linked-orders-for-woocommerce
+npm run setup
+composer quality-check
+```
 
-composer test:unit
+## Working across the plugins
+
+The root installs and builds every plugin, runs each one's checks, and starts a shared WordPress on <http://localhost:8820> in which every plugin is active beside the others:
+
+```sh
+npm run setup
+composer plugins:quality-check
 composer test:integration
 npm run test:e2e
-
-npm run wp-env:stop
 ```
 
-## Working across all plugins
-
-```sh
-# From the monorepo root
-npm run install:all                   # composer + npm install across root + all 3 plugins
-npm run wp-env:start                  # WordPress with all 3 plugins + WC mounted (port 8820)
-
-# Shared env — all 3 plugins active together (catches cross-plugin pollution)
-npm run test:integration              # PHPUnit Integration across all 3 in shared env
-npm run test:e2e                      # Cross-plugin Playwright suite (tests/e2e/)
-
-# Fan-out — each plugin in its own isolated env (mirrors what split-published mirrors run in CI)
-composer plugins:test:integration     # PHPUnit Integration, per-plugin isolated env
-npm run plugins:test:e2e              # Playwright, per-plugin isolated env
-
-composer plugins:quality-check        # lint:php + test:unit across all 3 (no Docker)
-
-npm run wp-env:stop
-```
-
-## Port scheme
-
-Workspace-wide convention (880X = framework, 881X = plugin templates, 882X = real plugins; 8888 + 8889 reserved for wp-env defaults):
-
-- `8801` — `wordpress-framework` monorepo
-- `8811` — `wordpress-plugin-template`
-- `8820` — `wordpress-plugins` monorepo (cross-plugin shared env)
-- `8821` — `internal-comments`
-- `8822` — `linked-orders-for-woocommerce`
-- `8823` — `locked-payment-methods-for-woocommerce`
+`composer test:integration` runs each plugin's Integration suite in the shared environment, and `npm run test:e2e` its smoke check.
 
 ## Releases
 
-Per-plugin releases use `composer changelog:write` inside the plugin's directory; the next splitsh-lite run propagates the tag to the mirror, where `release.yml` (deferred) will publish to wp.org. Monorepo-level changelog tracks scaffold-only changes.
+A plugin's release commit writes its changelog and sets its version, as its `CONTRIBUTING.md` describes. The tag `<slug>/v<version>` on that commit reaches the plugin's mirror as `v<version>`, where the plugin's own release workflow publishes it.
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full workflow.
+`AGENTS.md` holds the monorepo's conventions, and `CONTRIBUTING.md` how changes land.

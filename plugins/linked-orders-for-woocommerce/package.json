@@ -1,37 +1,54 @@
 {
     "name": "@ahegyes/linked-orders-for-woocommerce",
     "private": true,
-    "description": "Linked Orders for WooCommerce — wp-env + Playwright tooling.",
-    "license": "GPL-2.0-or-later",
+    "description": "A WooCommerce extension for creating orders that are logically connected to existing ones.",
+    "license": "GPL-3.0-or-later",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ahegyes/wc-linked-orders.git"
     },
     "bugs": "https://github.com/ahegyes/wc-linked-orders/issues",
     "engines": {
-        "node": ">=24"
+        "node": ">=26",
+        "npm": ">=11"
     },
     "devDependencies": {
-        "@ahegyes/wordpress-configs": "github:ahegyes/wordpress-configs",
-        "@wordpress/e2e-test-utils-playwright": "^1",
-        "@wordpress/env": "^11",
-        "@wordpress/scripts": "^32"
+        "@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#8d53efd292e4abee4a9c57b0e379434f54bedbe9",
+        "@axe-core/playwright": "^4.14.0",
+        "@playwright/test": "^1.64.1",
+        "@types/node": "^26.6.5",
+        "@wordpress/e2e-test-utils-playwright": "^3.1.0",
+        "@wordpress/env": "^12.0.0",
+        "@wordpress/scripts": "^37.0.0",
+        "typescript": "^6.0.3"
     },
     "scripts": {
-        "setup": "npm run install:all && npm run wp-env:start",
-        "install:all": "composer packages-install && npm install",
-        "update:all": "composer packages-update && npm update",
-
+        "setup": "npm run packages-install:all && npm run build && npm run wp-env:start",
+        "packages-install:all": "composer packages-install && npm run packages-install",
+        "packages-update:all": "composer packages-update && npm run packages-update && npm run packages-update:wp",
+        "packages-install": "npm install",
+        "packages-update": "npm update",
+        "packages-update:wp": "wp-scripts packages-update",
         "wp-env": "wp-env",
-        "wp-env:start": "wp-env --config .wp-env.tests.json start",
-        "wp-env:stop": "wp-env --config .wp-env.tests.json stop",
-        "wp-env:update": "wp-env --config .wp-env.tests.json start --update",
-        "wp-env:destroy": "wp-env --config .wp-env.tests.json destroy",
-
+        "wp-env:start": "wp-env start",
+        "wp-env:stop": "wp-env stop",
+        "wp-env:update": "wp-env start --update",
+        "wp-env:destroy": "wp-env destroy",
+        "wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
+        "wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
+        "wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
+        "wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
+        "build": "npm run build:assets",
+        "build:assets": "wp-scripts build orders-list-table=./assets/src/orders-list-table.ts orders-list-table-icons=./assets/src/orders-list-table-icons.scss --output-path=assets/build",
+        "start": "npm run start:assets",
+        "start:assets": "wp-scripts start orders-list-table=./assets/src/orders-list-table.ts orders-list-table-icons=./assets/src/orders-list-table-icons.scss --output-path=assets/build",
+        "lint:scripts": "wp-scripts lint-js assets/src tests/e2e",
+        "lint:styles": "wp-scripts lint-style 'assets/src/**/*.scss'",
+        "lint:types": "tsc",
         "audit": "composer audit && npm audit",
         "audit:fix": "npm audit fix",
-
-        "test:integration": "wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/linked-orders-for-woocommerce vendor/bin/phpunit --testsuite=Integration",
+        "check:engines": "wp-scripts check-engines",
+        "check:licenses": "wp-scripts check-licenses",
         "test:e2e": "playwright test --config=playwright.config.js"
     }
 }

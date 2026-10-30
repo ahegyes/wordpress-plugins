@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+dws_lowc_initialized and dws_lowc_initialization_failure fire deprecated, after dws_lowc/boot/succeeded and dws_lowc/boot/failed; the failure hook passes the Throwable that failed the boot.

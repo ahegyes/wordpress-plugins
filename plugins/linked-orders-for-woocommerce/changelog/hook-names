@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+Every hook moves from linked_orders_for_woocommerce/ to dws_lowc/, and each v1 name still fires first, deprecated: post_type/supported_order_types, post_type/valid_statuses_for_new_child, create_linked_order_args (now linked_order/creation_args), created_linked_order (now linked_order/created), node/status_name, node/get_formatted_name (now node/formatted_name), node/can_create_child, autocompletion/should_autocomplete, autocompletion/completed_status, metabox_output/after_add_new_child_button (now meta_box/after_add_new_child_button), list_table_output/column/insert_after (now list_table/preceding_column), list_table_output/column/content (now list_table/column_content), the general and plugin groups' get_group_fields (now settings/general_fields and settings/plugin_fields) and the get_validated_option_value filters (now settings/validated_value).

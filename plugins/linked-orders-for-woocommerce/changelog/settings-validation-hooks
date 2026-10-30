@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The settings, general_settings and plugin_settings validate_option_value filters; use woocommerce_admin_settings_sanitize_option_{$option} on save, or dws_lowc/settings/validated_value on read.

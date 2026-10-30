@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+A child whose parent order was deleted shows as its own root, rather than failing the screens that show its tree.

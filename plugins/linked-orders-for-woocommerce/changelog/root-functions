@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+dws_lowc_name(), dws_lowc_version(), dws_lowc_path(), dws_lowc_min_php(), dws_lowc_min_wp(), dws_lowc_get_hook_tag() and dws_lowc_get_component_hook_tag(); use dws_lowc_get_plugin_name() and dws_lowc_get_plugin_version() for the first two.

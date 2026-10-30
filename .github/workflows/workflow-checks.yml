@@ -1,0 +1,27 @@
+name: Workflow Checks
+
+on:
+  push:
+    branches: [trunk]
+    paths: ['.github/workflows/**']
+  pull_request:
+    paths: ['.github/workflows/**']
+  schedule:
+    # Weekly Monday 06:00 UTC. Keeps zizmor's online audits (e.g.
+    # known-vulnerable-actions) fresh between workflow changes.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  checks:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-workflow-checks.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9

@@ -1,0 +1,14 @@
+.wc_actions {
+
+	.wc-action-button-view-all-customer-orders::after {
+		content: "\f536";
+	}
+
+	.wc-action-button-view-all-linked-orders::after {
+		content: "\f533";
+	}
+
+	.wc-action-button-create-empty-linked-child::after {
+		content: "\f10f";
+	}
+}

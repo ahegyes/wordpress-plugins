@@ -1,14 +1,10 @@
 {
   "name": "ahegyes/wordpress-plugins",
-  "description": "Monorepo of DWS WordPress plugins. Each plugin under plugins/<name> is split-published to its own mirror repo via splitsh-lite.",
+  "description": "Plugins built on the wp-framework packages are developed side by side here, so a change that crosses plugins lands and is tested in one place, while each plugin still ships from a mirror of its own.",
   "type": "project",
-  "license": "GPL-2.0-or-later",
+  "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-plugins",
   "authors": [
-    {
-      "name": "Antonius Hegyes",
-      "homepage": "https://github.com/ahegyes"
-    },
     {
       "name": "Contributors",
       "homepage": "https://github.com/ahegyes/wordpress-plugins/graphs/contributors"
@@ -19,6 +15,11 @@
     {
       "type": "vcs",
       "url": "https://github.com/ahegyes/wordpress-configs"
+    },
+    {
+      "type": "composer",
+      "url": "https://repo.wp-packages.org",
+      "only": ["wp-plugin/*", "wp-theme/*"]
     }
   ],
 
@@ -27,56 +28,71 @@
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
-    "automattic/jetpack-changelogger": "^6"
+    "automattic/jetpack-changelogger": "^7",
+    "wp-plugin/woocommerce": "^11.2"
   },
 
   "minimum-stability": "dev",
   "prefer-stable": true,
 
   "scripts": {
-    "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
-    "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
+    "packages-install": "@composer install --ignore-platform-req=php+ --no-interaction",
     "packages-update": [
       "@composer clear-cache",
-      "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+      "@composer update --prefer-stable --ignore-platform-req=php+ --no-interaction"
     ],
 
-    "plugins:install": [
-      "@composer --working-dir=plugins/internal-comments packages-install",
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-install",
-      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce packages-install"
+    "test:integration": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:tests:start",
+      "@test:integration:run"
     ],
-    "plugins:update": [
-      "@composer --working-dir=plugins/internal-comments packages-update",
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-update",
-      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce packages-update"
+    "test:integration:ci": [
+      "Composer\\Config::disableProcessTimeout",
+      "@plugins:packages-install",
+      "npm --prefix=. run plugins:packages-install",
+      "@test:integration:run"
     ],
-
-    "plugins:format": [
-      "@composer --working-dir=plugins/internal-comments format:php",
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce format:php",
-      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce format:php"
-    ],
-    "plugins:lint": [
-      "@composer --working-dir=plugins/internal-comments lint:php",
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce lint:php",
-      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce lint:php"
+    "test:integration:run": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run plugins:build",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/linked-orders-for-woocommerce vendor/bin/phpunit --testsuite=Integration"
     ],
 
+    "quality-check": [
+      "@composer validate --strict",
+      "@changelog:validate",
+      "@test:integration"
+    ],
+
+    "plugins:packages-install": [
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-install"
+    ],
+    "plugins:packages-update": [
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-update"
+    ],
+
+    "plugins:format:php": [
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce format:php"
+    ],
+    "plugins:lint:php": [
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce lint:php"
+    ],
+
+    "plugins:test": [
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test"
+    ],
     "plugins:test:unit": [
-      "@composer --working-dir=plugins/internal-comments test:unit",
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:unit",
-      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce test:unit"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:unit"
     ],
     "plugins:test:integration": [
-      "@composer --working-dir=plugins/internal-comments test:integration",
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:integration",
-      "@composer --working-dir=plugins/locked-payment-methods-for-woocommerce test:integration"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:integration"
     ],
 
     "plugins:quality-check": [
-      "@plugins:lint",
-      "@plugins:test:unit"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce quality-check"
     ],
 
     "changelog:add": "@php vendor/bin/changelogger add",
@@ -85,6 +101,12 @@
   },
 
   "extra": {
+    "installer-paths": {
+      "vendor/{$vendor}/{$name}/": [
+        "type:wordpress-plugin",
+        "type:wordpress-theme"
+      ]
+    },
     "changelogger": {
       "versioning": "semver",
       "changelog": "CHANGELOG.md",
@@ -103,10 +125,11 @@
 
   "config": {
     "allow-plugins": {
-      "composer/*": true,
+      "composer/installers": true,
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "phpstan/extension-installer": true
     },
+    "platform-check": false,
     "sort-packages": true
   }
 }

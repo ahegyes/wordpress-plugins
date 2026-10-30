@@ -1,0 +1,4 @@
+{
+  "extends": "@ahegyes/wordpress-configs/node/tsconfig.base.json",
+  "include": ["assets/src/**/*", "tests/e2e/**/*"]
+}

@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+dws_lowc_link_orders() returns false for a child that has children of its own, whose descendants would otherwise keep their old depths past the maximum; link a tree's root only before it has children.

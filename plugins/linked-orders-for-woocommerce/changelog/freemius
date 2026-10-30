@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+Freemius: its SDK, its opt-in screens and the dws_lowc_fs_loaded action.

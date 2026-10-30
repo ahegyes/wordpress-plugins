@@ -1,10 +1,19 @@
 <?xml version="1.0"?>
 <ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
-	<!-- Extend the shared ruleset from wordpress-configs (covers vendor/, node_modules/, tests/, index.php, etc.). -->
+	<!-- Extend the shared ruleset from wordpress-configs. -->
 	<rule ref="./vendor/ahegyes/wordpress-configs/php/quality-assurance/phpcs.dist.xml"/>
 
-	<!-- Skip generated php-scoper output. -->
-	<exclude-pattern>*/dependencies/*</exclude-pattern>
+	<!-- wp-scripts generates the build tree. -->
+	<exclude-pattern>*/assets/build/*</exclude-pattern>
+
+	<!-- WooCommerce registers the order capabilities the plugin checks. -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="edit_shop_orders"/>
+			</property>
+		</properties>
+	</rule>
 
 	<!-- Validate every gettext call uses the plugin's text domain. -->
 	<rule ref="WordPress.WP.I18n">

@@ -1,0 +1,45 @@
+name: Tests (nightly)
+
+# WordPress trunk changes daily without a commit here, so this runs on a schedule instead of blocking pull requests.
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plugins:
+    name: Plugins
+    uses: ./.github/workflows/plugins.yml
+
+  integration:
+    name: Integration (${{ matrix.plugin }})
+    needs: plugins
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: plugins/${{ matrix.plugin }}
+      php-version: '8.5'
+      wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+      composer-script: 'test:integration:run'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  e2e:
+    name: E2E (${{ matrix.plugin }})
+    needs: plugins
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: plugins/${{ matrix.plugin }}
+      artifact-slug: ${{ matrix.plugin }}-nightly
+      php-version: '8.5'
+      wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+      wp-env-config-file: '.wp-env.tests.json'
