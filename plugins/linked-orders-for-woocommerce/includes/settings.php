@@ -11,25 +11,17 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The option of each v1 field id, by v1 group, in the order the plugin's section shows them.
+ * The ids of v1's settings groups, in the order the plugin's section shows them; a field of a group lives in the option `dws-lowc_{group}_{field}`.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @var     array<string, array<string, string>>
+ * @var     list<string>
  */
-const DWS_LOWC_SETTINGS_GROUPS = array(
-	'general' => array(
-		'max-depth'                => DWS_LOWC_OPTION_MAX_DEPTH,
-		'autocomplete-descendants' => DWS_LOWC_OPTION_AUTOCOMPLETE,
-	),
-	'plugin'  => array(
-		'remove-data-uninstall' => DWS_LOWC_OPTION_DELETE_DATA,
-	),
-);
+const DWS_LOWC_SETTINGS_GROUPS = array( 'general', 'plugin' );
 
 /**
- * Returns the stored value of a setting, or null for a field the group does not hold.
+ * Returns the stored value of a setting, or null for a setting that is not stored or a group v1 did not have.
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -46,7 +38,7 @@ function dws_lowc_get_raw_setting( string $field_id, ?string $group = null ) {
 }
 
 /**
- * Returns the validated value of a setting, filtered, or null for a field the group does not hold.
+ * Returns the validated value of a setting, filtered, or null for a group v1 did not have.
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -104,7 +96,7 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
 }
 
 /**
- * Returns a value validated as the given setting stores it, or the value itself for a field the group does not hold.
+ * Returns a value validated as the given built-in setting stores it, or the value itself for any other field.
  *
  * @since   1.1.0
  * @version 2.0.0
@@ -141,9 +133,9 @@ function dws_lowc_get_max_depth(): int {
 }
 
 /**
- * Returns a setting's group, field id and option, or null for a field the group does not hold.
+ * Returns a setting's group, field id and option, or null for a group v1 did not have.
  *
- * As in v1, a read without a group names the group in the field id, such as 'general/max-depth'.
+ * As in v1, a read without a group names the group in the field id, such as 'general/max-depth', and a field an extension adds to a group lives in the option WooCommerce saves it under, `dws-lowc_{group}_{field}`.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -166,7 +158,5 @@ function dws_lowc_find_setting( string $field_id, ?string $group ): ?array {
 		$group = substr( $group, 0, -9 );
 	}
 
-	$key = DWS_LOWC_SETTINGS_GROUPS[ $group ][ $field_id ] ?? null;
-
-	return null === $key ? null : array( $group, $field_id, $key );
+	return in_array( $group, DWS_LOWC_SETTINGS_GROUPS, true ) ? array( $group, $field_id, "dws-lowc_{$group}_{$field_id}" ) : null;
 }

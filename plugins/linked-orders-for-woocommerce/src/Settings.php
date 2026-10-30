@@ -57,7 +57,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	#[\Override]
 	public function get_section_fields( string $tab_id, string $section_id ): array {
 		$fields = array();
-		foreach ( \array_keys( DWS_LOWC_SETTINGS_GROUPS ) as $group ) {
+		foreach ( DWS_LOWC_SETTINGS_GROUPS as $group ) {
 			/**
 			 * Filters a group's fields, keyed by their v1 ids.
 			 *
