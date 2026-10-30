@@ -17,7 +17,7 @@ test.describe( 'Meta box', () => {
 
 	test.beforeAll( async ( { requestUtils } ) => {
 		storeSettings( {
-			'post-types': [ 'post' ],
+			'post-types': [ 'post', 'shop_order' ],
 			'enable-private-comments': 'yes',
 		} );
 		post = (
@@ -105,5 +105,39 @@ test.describe( 'Meta box', () => {
 			'You cannot post an empty internal comment.'
 		);
 		await expect( box.getByLabel( 'New internal comment' ) ).toBeFocused();
+	} );
+
+	// The tests environment stores orders in WooCommerce's order tables, whose edit screen is not a post's.
+	test( 'a comment is posted on an order', async ( {
+		page,
+		requestUtils,
+	} ) => {
+		const order = await requestUtils.rest< { id: number } >( {
+			method: 'POST',
+			path: '/wc/v3/orders',
+			data: { status: 'pending' },
+		} );
+
+		try {
+			await page.goto(
+				`/wp-admin/admin.php?page=wc-orders&action=edit&id=${ order.id }`
+			);
+			const box = page.locator( '#dws-internal-comments' );
+			await box
+				.getByRole( 'textbox', { name: 'New internal comment' } )
+				.fill( 'About the order' );
+			await box.getByRole( 'button', { name: 'Post comment' } ).click();
+
+			await expect( box.getByRole( 'status' ) ).toHaveText(
+				'Internal comment posted.'
+			);
+			await expect( box ).toContainText( 'About the order' );
+		} finally {
+			await requestUtils.rest( {
+				method: 'DELETE',
+				path: `/wc/v3/orders/${ order.id }`,
+				params: { force: true },
+			} );
+		}
 	} );
 } );
