@@ -53,9 +53,13 @@ final class LinkingTest extends TestCase {
 	}
 
 	// The parent's children are one meta value that every link reads and rewrites, so a link must not write back a list another request changed after this one loaded the parent.
-	#[DataProvider( 'storages' )]
-	public function test_a_link_keeps_a_child_another_request_linked_after_the_parent_was_loaded( bool $hpos, bool $sync ): void {
+	#[DataProvider( 'storages_and_data_caching' )]
+	public function test_a_link_keeps_a_child_another_request_linked_after_the_parent_was_loaded( bool $hpos, bool $sync, bool $caching = false ): void {
 		$this->use_storage( $hpos, $sync );
+		if ( $caching ) {
+			$this->storage_filters['pre_option_woocommerce_hpos_datastore_caching_enabled'] = static fn (): string => 'yes';
+			add_filter( 'pre_option_woocommerce_hpos_datastore_caching_enabled', $this->storage_filters['pre_option_woocommerce_hpos_datastore_caching_enabled'] );
+		}
 		$parent = $this->create_order();
 		$first  = $this->create_order();
 		$second = $this->create_order();
@@ -313,6 +317,11 @@ final class LinkingTest extends TestCase {
 		$error = new \WP_Error( 'failed', 'Failed.' );
 
 		self::assertSame( $error, dws_lowc_create_linked_child( $this->create_order()->get_id(), array( 'create_function' => static fn (): \WP_Error => $error ) ) );
+	}
+
+	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
+	public static function storages_and_data_caching(): array {
+		return self::storages() + array( 'hpos-with-data-caching' => array( true, false, true ) );
 	}
 
 	// The other request runs on the row's storage, as the shared tests site stores orders on the order tables.
