@@ -12,7 +12,6 @@
  * Author URI:           https://github.com/ahegyes
  * License:              GPL-3.0-or-later
  * License URI:          https://www.gnu.org/licenses/gpl-3.0.html
- * Update URI:           https://github.com/ahegyes/wp-internal-comments
  * Text Domain:          internal-comments
  * Domain Path:          /languages
  *
@@ -25,7 +24,6 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Bootstra
 defined( 'ABSPATH' ) || exit;
 
 define( 'DWS_IC_FILE', __FILE__ );
-load_plugin_textdomain( 'internal-comments', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ); // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- WordPress registers languages/ itself only for plugins it does not network-activate.
 
 $dws_ic_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
 if ( is_readable( $dws_ic_bootstrap ) ) {
