@@ -55,11 +55,7 @@ final class LinkingTest extends TestCase {
 	// The parent's children are one meta value that every link reads and rewrites, so a link must not write back a list another request changed after this one loaded the parent.
 	#[DataProvider( 'storages_and_data_caching' )]
 	public function test_a_link_keeps_a_child_another_request_linked_after_the_parent_was_loaded( bool $hpos, bool $sync, bool $caching = false ): void {
-		$this->use_storage( $hpos, $sync );
-		if ( $caching ) {
-			$this->storage_filters['pre_option_woocommerce_hpos_datastore_caching_enabled'] = static fn (): string => 'yes';
-			add_filter( 'pre_option_woocommerce_hpos_datastore_caching_enabled', $this->storage_filters['pre_option_woocommerce_hpos_datastore_caching_enabled'] );
-		}
+		$this->use_storage( $hpos, $sync, $caching );
 		$parent = $this->create_order();
 		$first  = $this->create_order();
 		$second = $this->create_order();
@@ -68,8 +64,28 @@ final class LinkingTest extends TestCase {
 		$this->link_in_another_request( $hpos, $sync, $parent->get_id(), $first->get_id() );
 		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $second->get_id() ) );
 
+		// Once as this request reads it after the saves, then as a new request reads it.
+		$children = static fn (): array => \array_map( static fn ( \DWS_Order_Node $child ): int => $child->get_order()->get_id(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() ?? array() );
+		self::assertSame( array( $first->get_id(), $second->get_id() ), $children() );
 		wp_cache_flush();
-		self::assertSame( array( $first->get_id(), $second->get_id() ), \array_map( static fn ( \DWS_Order_Node $child ): int => $child->get_order()->get_id(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() ?? array() ) );
+		self::assertSame( array( $first->get_id(), $second->get_id() ), $children() );
+	}
+
+	// A child another request linked after this one loaded it must be refused, so the child's meta is read past the caches too.
+	#[DataProvider( 'storages_and_data_caching' )]
+	public function test_a_link_is_refused_for_a_child_another_request_linked_after_the_child_was_loaded( bool $hpos, bool $sync, bool $caching = false ): void {
+		$this->use_storage( $hpos, $sync, $caching );
+		$parent = $this->create_order();
+		$other  = $this->create_order();
+		$child  = $this->create_order();
+		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
+
+		$this->link_in_another_request( $hpos, $sync, $other->get_id(), $child->get_id() );
+		self::assertFalse( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+
+		wp_cache_flush();
+		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+		self::assertSame( $other->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_order()->get_id() );
 	}
 
 	public function test_a_link_is_refused_while_another_request_links_orders(): void {

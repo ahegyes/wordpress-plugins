@@ -4,7 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\After;
 
-// WooCommerce reads both options on every order load, so a pre_option filter moves this process to another storage without migrating the tests site.
+// WooCommerce reads these options on every order load, so pre_option filters move this process to another storage, with or without the order tables' data caching, without changing the tests site.
 trait OrderStorage {
 	protected array $orders = array();
 
@@ -19,10 +19,11 @@ trait OrderStorage {
 		);
 	}
 
-	protected function use_storage( bool $hpos, bool $sync ): void {
+	protected function use_storage( bool $hpos, bool $sync, bool $caching = false ): void {
 		$this->storage_filters = array(
 			'pre_option_woocommerce_custom_orders_table_enabled'           => static fn (): string => $hpos ? 'yes' : 'no',
 			'pre_option_woocommerce_custom_orders_table_data_sync_enabled' => static fn (): string => $sync ? 'yes' : 'no',
+			'pre_option_woocommerce_hpos_datastore_caching_enabled'        => static fn (): string => $caching ? 'yes' : 'no',
 		);
 		foreach ( $this->storage_filters as $hook => $filter ) {
 			add_filter( $hook, $filter );
