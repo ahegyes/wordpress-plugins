@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+REST routes under dws_ic/v1 that list, post, read, edit and trash internal comments, each checking the user's access to the comment and its post.

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\MetaBox;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -18,6 +19,17 @@ final class MetaBoxTest extends TestCase {
 	protected mixed $stored;
 
 	protected array $deprecated = array();
+
+	// WordPress reports a deprecated hook only when something listens on it.
+	protected const array V1_HOOKS = array(
+		'internal_comments/metabox_output/comment_classes',
+		'internal_comments/metabox_output/single_comment/actions/start',
+		'internal_comments/metabox_output/single_comment/actions/end',
+		'internal_comments/metabox_output/inline_actions',
+		'internal_comments/metabox_output/inline_actions/insert',
+		'internal_comments/metabox_output/inline_actions/edit',
+		'internal_comments/metabox_output/reply',
+	);
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -65,6 +77,9 @@ final class MetaBoxTest extends TestCase {
 		}
 		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
 		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
+		foreach ( self::V1_HOOKS as $hook ) {
+			add_filter( $hook, array( $this, 'listen' ) );
+		}
 	}
 
 	#[After]
@@ -75,10 +90,17 @@ final class MetaBoxTest extends TestCase {
 		wp_delete_post( $this->page, true );
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
 		wp_set_current_user( 0 );
-		wp_dequeue_script( 'dws-ic-meta-box' );
-		wp_dequeue_style( 'dws-ic-meta-box' );
+		wp_dequeue_script( 'internal-comments-meta-box' );
+		wp_dequeue_style( 'internal-comments-meta-box' );
 		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
 		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
+		foreach ( self::V1_HOOKS as $hook ) {
+			remove_filter( $hook, array( $this, 'listen' ) );
+		}
+	}
+
+	public function listen( mixed $value = null ): mixed {
+		return $value;
 	}
 
 	public function record_deprecated_hook( string $hook, string $replacement ): void {
@@ -105,7 +127,8 @@ final class MetaBoxTest extends TestCase {
 		self::assertNotNull( $admin->querySelector( '[role="status"]' ) );
 		self::assertSame( array( 'edit', 'reply', 'trash' ), $this->actions( $admin, $comment ) );
 		self::assertSame( array( 'reply' ), $this->actions( $editor, $comment ) );
-		self::assertNull( $editor->querySelector( '#dws-ic-new-comment-private' ) );
+		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		self::assertNull( $this->render( 'administrator' )->querySelector( '#dws-ic-new-comment-private' ) );
 	}
 
 	public function test_a_reply_the_user_cannot_see_is_left_out_of_its_thread(): void {
@@ -155,17 +178,18 @@ final class MetaBoxTest extends TestCase {
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
-			do_action( 'admin_enqueue_scripts', 'post.php' );
+			( new MetaBox() )->enqueue_assets( 'post.php' );
 		} finally {
 			unset( $GLOBALS['post'] );
 		}
 
-		self::assertTrue( wp_script_is( 'dws-ic-meta-box' ) );
-		self::assertTrue( wp_style_is( 'dws-ic-meta-box' ) );
+		self::assertTrue( wp_script_is( 'internal-comments-meta-box' ) );
+		self::assertTrue( wp_style_is( 'internal-comments-meta-box' ) );
 	}
 
 	protected function registers( string $role, int $post ): bool {
 		global $wp_meta_boxes;
+		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Each check registers the meta boxes anew.
 		wp_set_current_user( self::$users[ $role ] );
 		$type = (string) get_post_type( $post );
 		do_action( 'add_meta_boxes', $type, get_post( $post ) );

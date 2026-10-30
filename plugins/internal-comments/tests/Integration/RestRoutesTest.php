@@ -19,6 +19,14 @@ final class RestRoutesTest extends TestCase {
 
 	protected array $seen = array();
 
+	// WordPress reports a deprecated hook only when something listens on it.
+	protected const array V1_HOOKS = array(
+		'internal_comments/ajax/before_insert_comment',
+		'internal_comments/ajax/update_internal_comment_data',
+		'internal_comments/ajax/before_update_comment',
+		'internal_comments/ajax/before_trash_comment',
+	);
+
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
@@ -63,6 +71,9 @@ final class RestRoutesTest extends TestCase {
 		}
 		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
 		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
+		foreach ( self::V1_HOOKS as $hook ) {
+			add_filter( $hook, array( $this, 'listen' ) );
+		}
 	}
 
 	#[After]
@@ -73,6 +84,13 @@ final class RestRoutesTest extends TestCase {
 		wp_set_current_user( 0 );
 		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
 		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
+		foreach ( self::V1_HOOKS as $hook ) {
+			remove_filter( $hook, array( $this, 'listen' ) );
+		}
+	}
+
+	public function listen( mixed $value = null ): mixed {
+		return $value;
 	}
 
 	public function record_deprecated_hook( string $hook ): void {

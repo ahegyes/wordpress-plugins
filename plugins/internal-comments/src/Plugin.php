@@ -59,6 +59,8 @@ final class Plugin {
 		Settings::class,
 		Permissions::class,
 		Comments::class,
+		MetaBox::class,
+		RestRoutes::class,
 	);
 
 	/**

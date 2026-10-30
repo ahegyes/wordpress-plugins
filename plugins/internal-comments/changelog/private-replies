@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+A private reply no longer shows in its thread to users who cannot see it.
