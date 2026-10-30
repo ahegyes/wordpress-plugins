@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
+use DeepWebSolutions\LinkedOrders\ListTable;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -248,6 +249,34 @@ final class ListTableTest extends TestCase {
 		self::assertSame( 'View all linked Orders', $actions['view_all_linked_orders']['name'] );
 		self::assertSame( 'Create empty linked Order', $actions['create_empty_linked_child']['name'] );
 		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
+	}
+
+	// v1 Quote Requests boots before this plugin and resets a quote row's actions at priority 999, keeping this plugin's only where its settings allow, so they must be in place by then.
+	public function test_the_row_actions_are_in_place_before_a_plugin_that_booted_first_resets_them_at_999(): void {
+		global $wp_filter;
+		$order = $this->create_order( array( 'customer_id' => 1 ) );
+		$this->open_list();
+		$own      = null;
+		$priority = 0;
+		foreach ( $wp_filter['woocommerce_admin_order_actions']->callbacks as $at => $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				if ( \is_array( $callback['function'] ) && $callback['function'][0] instanceof ListTable && 'add_row_actions' === $callback['function'][1] ) {
+					$own      = $callback['function'];
+					$priority = $at;
+				}
+			}
+		}
+		self::assertNotNull( $own );
+		$reset = static fn (): array => array();
+		remove_filter( 'woocommerce_admin_order_actions', $own, $priority );
+		add_filter( 'woocommerce_admin_order_actions', $reset, 999 );
+		add_filter( 'woocommerce_admin_order_actions', $own, $priority, 2 );
+
+		try {
+			self::assertSame( array(), apply_filters( 'woocommerce_admin_order_actions', array(), $order ) );
+		} finally {
+			remove_filter( 'woocommerce_admin_order_actions', $reset, 999 );
+		}
 	}
 
 	#[DataProvider( 'storages' )]
