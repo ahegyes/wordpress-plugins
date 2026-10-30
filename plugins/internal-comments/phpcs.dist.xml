@@ -6,6 +6,17 @@
 	<!-- wp-scripts generates the build trees. -->
 	<exclude-pattern>*/assets/build/*</exclude-pattern>
 
+	<!-- The plugin maps these meta capabilities to the capabilities it grants. -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="see_dws_internal_comment"/>
+				<element value="edit_dws_internal_comment"/>
+				<element value="trash_dws_internal_comment"/>
+			</property>
+		</properties>
+	</rule>
+
 	<!-- Validate every gettext call uses the plugin's text domain. -->
 	<rule ref="WordPress.WP.I18n">
 		<properties>

@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -73,5 +74,52 @@ final class MigrationsTest extends TestCase {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
 		}
+	}
+
+	public function test_the_second_step_converts_v1s_internal_comments_in_batches_and_recounts_their_posts(): void {
+		global $wpdb;
+		$post   = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Converted',
+				'post_status' => 'publish',
+			)
+		);
+		$insert = static function ( string $type, string $status ) use ( $wpdb, $post ): int {
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
+				$wpdb->comments,
+				array(
+					'comment_post_ID'  => $post,
+					'comment_type'     => $type,
+					'comment_approved' => $status,
+					'comment_content'  => "$type $status",
+					'comment_date'     => \current_time( 'mysql' ),
+					'comment_date_gmt' => \current_time( 'mysql', true ),
+				)
+			);
+			return (int) $wpdb->insert_id;
+		};
+		$approved = $insert( DWS_IC_COMMENT_TYPE, '1' );
+		$pending  = $insert( DWS_IC_COMMENT_TYPE, '0' );
+		$trashed  = $insert( DWS_IC_COMMENT_TYPE, 'trash' );
+		$public   = $insert( 'comment', '1' );
+		$note     = $insert( 'order_note', '1' );
+		$wpdb->update( $wpdb->posts, array( 'comment_count' => 4 ), array( 'ID' => $post ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Stands in for v1's count.
+		clean_post_cache( $post );
+
+		self::assertInstanceOf( BatchedMigrationStepInterface::class, dws_ic_get_migration_steps()[1] ?? null );
+		$batches = 0;
+		while ( dws_ic_convert_v1_comments() ) {
+			self::assertLessThan( 10000, ++$batches );
+		}
+
+		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $approved )?->comment_approved );
+		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $pending )?->comment_approved );
+		self::assertSame( 'trash', get_comment( $trashed )?->comment_approved );
+		self::assertSame( '1', get_comment( $public )?->comment_approved );
+		self::assertSame( '1', get_comment( $note )?->comment_approved );
+		self::assertSame( '2', get_post( $post )?->comment_count );
+		self::assertFalse( get_option( 'dws_ic_v1_comments_cursor' ) );
+
+		wp_delete_post( $post, true );
 	}
 }
