@@ -31,7 +31,7 @@ final class Autocompletion implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Sets each of the order's descendants to completed, with a note, unless a filter keeps it or names another status.
+	 * Sets the order and each of its descendants, the order first, to completed, with a note, unless a filter keeps one or names another status; the order itself, already completed, changes only through a filter.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -45,7 +45,7 @@ final class Autocompletion implements ComponentInterface {
 			return;
 		}
 
-		foreach ( \array_slice( dws_lowc_get_orders_tree( $order_id ) ?? array(), 1 ) as $descendant_id ) {
+		foreach ( dws_lowc_get_orders_tree( $order_id ) ?? array() as $descendant_id ) {
 			/**
 			 * Filters whether a descendant of a completed order is completed too.
 			 *
