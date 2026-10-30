@@ -88,17 +88,47 @@ final class LinkingTest extends TestCase {
 		self::assertSame( $other->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_order()->get_id() );
 	}
 
-	public function test_a_link_is_refused_while_another_request_links_orders(): void {
+	// v1 callers never check whether a link worked, so a link waits for another one to finish rather than refusing at once.
+	public function test_a_link_waits_for_another_request_to_finish_linking(): void {
+		global $wpdb;
+		$parent = $this->create_order();
+		$child  = $this->create_order();
+		$php    = '$lock = new DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\Storage\\Lock( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
+		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
+
+		$held = static fn (): bool => null !== $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'dws_lowc_linking'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Watches the other request's lock row past the options cache.
+		$tries = 0;
+		while ( ! $held() && $tries++ < 300 ) {
+			\usleep( 50000 );
+		}
+
+		try {
+			self::assertTrue( $held() );
+			self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+			self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_order()->get_id() );
+		} finally {
+			// The other request releases the lock on its own, and the next row must not find it held.
+			$tries = 0;
+			while ( $held() && $tries++ < 100 ) {
+				\usleep( 50000 );
+			}
+		}
+	}
+
+	public function test_a_link_is_refused_once_another_request_has_held_the_lock_for_five_seconds(): void {
 		$parent = $this->create_order();
 		$child  = $this->create_order();
 		$lock   = new Lock( 'dws_lowc_linking', 30 );
 		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
 
+		$started = \microtime( true );
 		try {
 			self::assertFalse( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
 		} finally {
 			$lock->release( 'another-request' );
 		}
+
+		self::assertGreaterThanOrEqual( 5.0, \microtime( true ) - $started );
 
 		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
 		self::assertFalse( dws_lowc_link_orders( $child->get_id(), $child->get_id() ) );
