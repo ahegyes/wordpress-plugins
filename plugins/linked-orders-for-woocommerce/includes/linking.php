@@ -49,9 +49,9 @@ function dws_lowc_is_root_order( $order ): ?bool {
 }
 
 /**
- * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, or while another request links orders, and null when either order has no node.
+ * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, or when another request still links orders after five seconds, and null when either order has no node.
  *
- * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock.
+ * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock. A link holds it for milliseconds, so the next one waits rather than refusing callers that, as in v1, never check the result.
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -68,10 +68,15 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 		return null;
 	}
 
-	$lock  = new Lock( Plugin::PREFIX . '_linking', 30 );
-	$owner = wp_generate_uuid4();
-	if ( LockClaim::Busy === $lock->acquire( $owner ) ) {
-		return false;
+	$lock     = new Lock( Plugin::PREFIX . '_linking', 30 );
+	$owner    = wp_generate_uuid4();
+	$deadline = microtime( true ) + 5;
+	while ( LockClaim::Busy === $lock->acquire( $owner ) ) {
+		if ( microtime( true ) >= $deadline ) {
+			return false;
+		}
+
+		usleep( 50000 );
 	}
 
 	try {
