@@ -158,6 +158,22 @@ final class AdminScreensTest extends TestCase {
 		self::assertArrayHasKey( DWS_IC_COMMENT_TYPE, $screens->add_comment_type( array() ) );
 	}
 
+	public function test_the_comments_screen_leaves_out_the_rows_its_reader_cannot_see(): void {
+		$open    = get_comment( $this->comment( 'Open' ) );
+		$private = get_comment( $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) ) );
+		$public  = get_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
+		get_role( 'editor' )?->add_cap( DWS_IC_CAP_SEE_TABLE );
+		wp_set_current_user( self::$users['editor'] );
+
+		try {
+			$rows = ( new AdminScreens() )->filter_list_table_comments( array( $open, $private, $public ) );
+		} finally {
+			get_role( 'editor' )?->remove_cap( DWS_IC_CAP_SEE_TABLE );
+		}
+
+		self::assertSame( array( $open, $public ), $rows );
+	}
+
 	public function test_the_comments_screen_offers_only_the_actions_an_internal_comment_supports(): void {
 		$comment = get_comment( $this->comment( 'Row' ) );
 		$actions = array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
@@ -168,6 +184,13 @@ final class AdminScreensTest extends TestCase {
 
 	public function test_the_edit_screen_of_an_internal_comment_shows_its_revisions_and_its_author_its_privacy(): void {
 		global $wp_meta_boxes;
+		update_option(
+			DWS_IC_OPTION_GENERAL,
+			array(
+				DWS_IC_SETTING_POST_TYPES       => array( 'post' ),
+				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
+			)
+		);
 		$comment = $this->comment( 'Before' );
 		wp_update_comment(
 			array(
