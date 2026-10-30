@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The meta box's jQuery script, its JavaScript hooks and the dws_ic_metabox_vars object it read; the meta box prints its forms as HTML templates and talks to the dws_ic/v1 REST routes.

@@ -201,7 +201,7 @@ function dws_ic_print_comment( DWS_Internal_Comment $comment ): void {
 				<button type="button" class="button-link" data-action="reply" data-comment-id="<?php echo esc_attr( (string) $comment_id ); ?>"><?php esc_html_e( 'Reply', 'internal-comments' ); ?></button>
 			<?php endif; ?>
 			<?php if ( $comment->can_trash() ) : ?>
-				<button type="button" class="button-link button-link-delete" data-action="trash" data-comment-id="<?php echo esc_attr( (string) $comment_id ); ?>"><?php 0 !== EMPTY_TRASH_DAYS ? esc_html_e( 'Move to Trash', 'internal-comments' ) : esc_html_e( 'Delete permanently', 'internal-comments' ); ?></button>
+				<button type="button" class="button-link button-link-delete" data-action="trash" data-comment-id="<?php echo esc_attr( (string) $comment_id ); ?>"<?php echo 0 === EMPTY_TRASH_DAYS ? ' data-confirm="' . esc_attr__( 'Delete this internal comment permanently? This cannot be undone.', 'internal-comments' ) . '"' : ''; ?>><?php 0 !== EMPTY_TRASH_DAYS ? esc_html_e( 'Move to Trash', 'internal-comments' ) : esc_html_e( 'Delete permanently', 'internal-comments' ); ?></button>
 			<?php endif; ?>
 			<?php
 			/**

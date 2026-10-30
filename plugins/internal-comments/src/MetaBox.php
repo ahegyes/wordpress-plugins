@@ -108,9 +108,9 @@ final class MetaBox implements ComponentInterface {
 			<div class="dws-internal-comments__comments">
 				<?php dws_ic_print_comments_list( $post->ID ); ?>
 			</div>
-			<p class="dws-internal-comments__status screen-reader-text" role="status"></p>
+			<p class="dws-internal-comments__status" role="status"></p>
 			<?php if ( $can_post ) : ?>
-				<div class="dws-add-internal-comment dws-internal-comments-inline-action" role="group" aria-label="<?php esc_attr_e( 'New internal comment', 'internal-comments' ); ?>" data-form="new">
+				<div class="dws-add-internal-comment dws-internal-comments-inline-action" data-form="new">
 					<p class="dws-internal-comments-inline-action__textarea">
 						<label for="dws-ic-new-comment"><?php esc_html_e( 'New internal comment', 'internal-comments' ); ?></label>
 						<textarea id="dws-ic-new-comment" name="content" rows="4"></textarea>
@@ -127,7 +127,7 @@ final class MetaBox implements ComponentInterface {
 					</p>
 				</div>
 				<template id="dws-ic-reply-form">
-					<div class="dws-internal-comments-inline-action" role="group" aria-label="<?php esc_attr_e( 'Reply', 'internal-comments' ); ?>" data-form="reply">
+					<div class="dws-internal-comments-inline-action" data-form="reply">
 						<p class="dws-internal-comments-inline-action__textarea">
 							<label><?php esc_html_e( 'Reply', 'internal-comments' ); ?> <textarea name="content" rows="3"></textarea></label>
 						</p>
@@ -138,7 +138,7 @@ final class MetaBox implements ComponentInterface {
 				</template>
 			<?php endif; ?>
 			<template id="dws-ic-edit-form">
-				<div class="dws-internal-comments-inline-action" role="group" aria-label="<?php esc_attr_e( 'Edit internal comment', 'internal-comments' ); ?>" data-form="edit">
+				<div class="dws-internal-comments-inline-action" data-form="edit">
 					<p class="dws-internal-comments-inline-action__textarea">
 						<label><?php esc_html_e( 'Edit internal comment', 'internal-comments' ); ?> <textarea name="content" rows="4"></textarea></label>
 					</p>

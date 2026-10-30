@@ -1,18 +1,27 @@
 #dws-internal-comments {
 	overflow: hidden;
 
+	.dws-internal-comments__list,
+	.dws-internal-comments-replies__list {
+		margin: 0;
+	}
+
 	.dws-internal-comment {
 		padding: 0 10px;
 
 		&__content {
-			background-color: #efefef;
+			background-color: #f0f0f1;
 			padding: 10px;
 			position: relative;
 
 			p {
-				margin: 0;
+				margin: 0 0 0.5em;
 				padding: 0;
 				overflow-wrap: break-word;
+
+				&:last-child {
+					margin-bottom: 0;
+				}
 			}
 
 			&::after {
@@ -25,27 +34,48 @@
 				height: 0;
 				border-width: 10px 10px 0 0;
 				border-style: solid;
-				border-color: #efefef transparent;
+				border-color: #f0f0f1 transparent;
 			}
 		}
 
 		&__other {
 			display: flex;
+			flex-wrap: wrap;
+			gap: 5px 15px;
 			justify-content: space-between;
 			padding: 10px;
 			margin: 0;
-			font-size: 11px;
+			font-size: 12px;
 		}
 
 		&__meta {
-			color: #999;
+			margin: 0;
+			color: #646970;
 		}
 
-		&__actions a {
-			display: inline-block;
+		&__private {
+			margin-right: 5px;
+			padding: 0 5px;
+			border-radius: 2px;
+			background-color: #fcf0f1;
+			color: #8a2424;
+			font-weight: 600;
+		}
 
-			&:not(:first-of-type) {
-				margin-left: 15px;
+		&__actions {
+			display: flex;
+			gap: 15px;
+
+			.button-link {
+				font-size: inherit;
+			}
+		}
+
+		&.is-private > .dws-internal-comment__content {
+			background-color: #fcf0f1;
+
+			&::after {
+				border-color: #fcf0f1 transparent;
 			}
 		}
 	}
@@ -54,31 +84,48 @@
 		padding-left: 15px;
 	}
 
-	.dws-internal-comments-inline-action {
+	.dws-internal-comments__status {
+		margin: 0;
 
-		> div {
-			margin: 1em 0;
+		&:not(:empty) {
+			margin: 1em 10px;
 		}
+
+		&.is-error {
+			color: #d63638;
+		}
+	}
+
+	.dws-internal-comments-inline-action {
+		margin: 1em 0;
 
 		label {
 			display: block;
 			padding: 0;
 			margin: 0 0 7px;
-			font-weight: 700;
+			font-weight: 600;
+		}
+
+		input[type="checkbox"] + label {
+			display: inline;
 		}
 
 		textarea {
+			display: block;
 			width: 100%;
-			margin: 0;
+			margin: 7px 0 0;
 			padding: 4px 8px;
 			box-sizing: border-box;
 			font-size: 14px;
+			font-weight: 400;
 			line-height: 1.4;
 			resize: vertical;
 		}
 
 		&__actions {
-			text-align: right;
+			display: flex;
+			gap: 8px;
+			justify-content: flex-end;
 		}
 	}
 }
