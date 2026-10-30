@@ -35,7 +35,7 @@ final class AutocompletionTest extends TestCase {
 		foreach ( array( $child, $grandchild ) as $descendant ) {
 			$stored = wc_get_order( $descendant->get_id() );
 			self::assertSame( 'completed', $stored->get_status() );
-			self::assertContains( 'Child Order autocompleted.', \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ) );
+			self::assertContains( 'Child Order autocompleted. Order status changed from Pending payment to Completed.', \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ) );
 		}
 	}
 

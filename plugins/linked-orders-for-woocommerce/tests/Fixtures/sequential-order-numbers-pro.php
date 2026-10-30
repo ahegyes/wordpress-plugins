@@ -1,24 +1,20 @@
 <?php declare( strict_types=1 );
 /**
- * Stands in for WooCommerce Sequential Order Numbers Pro's accessor, recording the orders it numbers.
+ * Stands in for WooCommerce Sequential Order Numbers Pro's accessor; PHPStan reads it as the plugin's API.
  *
  * @package DeepWebSolutions\LinkedOrders
  */
 
-/**
- * Returns the stand-in plugin, which records each order it is asked to number.
- *
- * @return  object
- */
-function wc_seq_order_number_pro(): object {
-	static $plugin = null;
-	$plugin      ??= new class() {
-		public array $numbered = array();
+require_once __DIR__ . '/class-wc-seq-order-number-pro.php';
 
-		public function set_sequential_order_number( WC_Order $order ): void {
-			$this->numbered[] = $order;
-		}
-	};
+/**
+ * Returns the stand-in plugin.
+ *
+ * @return WC_Seq_Order_Number_Pro
+ */
+function wc_seq_order_number_pro(): WC_Seq_Order_Number_Pro {
+	static $plugin = null;
+	$plugin      ??= new WC_Seq_Order_Number_Pro();
 
 	return $plugin;
 }
