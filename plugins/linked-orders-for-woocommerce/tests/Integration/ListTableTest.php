@@ -114,7 +114,7 @@ final class ListTableTest extends TestCase {
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
 	}
 
-	// v1 read the deepest depth from every order of the type, whatever its status, such as the Trash, which the list's Trash view shows, or a draft.
+	// v1 read the deepest depth from every order of the type, whatever its status: the Trash, which the list's Trash view shows, or a status another plugin registers only as a post status, as v1 Quote Requests does for its quotes.
 	#[DataProvider( 'storages' )]
 	public function test_the_depth_filter_counts_an_order_in_any_status_at_the_deepest_level( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
@@ -122,14 +122,23 @@ final class ListTableTest extends TestCase {
 		$deep->update_meta_data( '_dws_lo_depth', '5' );
 		$this->open_list();
 
-		foreach ( array( 'trash', 'draft' ) as $status ) {
-			$deep->set_status( $status );
-			$deep->save();
-			self::assertSame( $status, wc_get_order( $deep->get_id() ) ? wc_get_order( $deep->get_id() )->get_status() : null );
+		register_post_status( 'wc-dws-lowc-quoted' );
+		$accepted = static fn ( array $statuses ): array => $statuses + array( 'wc-dws-lowc-quoted' => 'Quoted' );
+		try {
+			foreach ( array( 'trash', 'dws-lowc-quoted' ) as $status ) {
+				add_filter( 'wc_order_statuses', $accepted );
+				$deep->set_status( $status );
+				$deep->save();
+				remove_filter( 'wc_order_statuses', $accepted );
+				self::assertSame( $status, wc_get_order( $deep->get_id() ) ? wc_get_order( $deep->get_id() )->get_status() : null );
 
-			$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
+				$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
 
-			self::assertSame( '5', \array_reverse( \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) ) ) )[0], $status );
+				self::assertSame( '5', \array_reverse( \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) ) ) )[0], $status );
+			}
+		} finally {
+			remove_filter( 'wc_order_statuses', $accepted );
+			unset( $GLOBALS['wp_post_statuses']['wc-dws-lowc-quoted'] );
 		}
 	}
 
