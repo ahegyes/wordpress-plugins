@@ -5,6 +5,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\LinkedOrders\Settings;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -16,7 +17,7 @@ final class PluginBootTest extends TestCase {
 		$plugin = dws_lowc_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, Settings::class ), $plugin->kernel?->resolved );
+		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class ), $plugin->kernel?->resolved );
 		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 
@@ -31,5 +32,11 @@ final class PluginBootTest extends TestCase {
 	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {
 		self::assertInstanceOf( MigrationRunner::class, dws_lowc_plugin()->migrations );
 		self::assertSame( \count( dws_lowc_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
+	}
+
+	public function test_the_plugin_declares_itself_compatible_with_woocommerces_order_tables(): void {
+		$plugins = \Automattic\WooCommerce\Utilities\FeaturesUtil::get_compatible_plugins_for_feature( 'custom_order_tables' );
+
+		self::assertContains( plugin_basename( DWS_LOWC_FILE ), $plugins['compatible'] );
 	}
 }

@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class FootprintTest extends TestCase {
 	// Prefix families a port keeps from its v1 names, which uninstall must still remove.
-	protected const array LEGACY_FAMILIES = array();
+	protected const array LEGACY_FAMILIES = array( 'dws-lowc_', '_dws_lo_', 'linked_orders_for_woocommerce_', '_linked_orders_for_woocommerce_', 'create_dws_linked_children', 'see_dws_order_links', 'see_dws_linked_orders_metabox', 'see_dws_linked_orders_column' );
 
 	public function test_the_prefix_has_one_segment_after_dws_so_no_prefix_in_its_family_starts_with_another(): void {
 		self::assertMatchesRegularExpression( '/^dws_[a-z0-9]+$/', Plugin::PREFIX );
@@ -63,6 +63,21 @@ final class FootprintTest extends TestCase {
 		foreach ( $keys as $key ) {
 			$covered = \in_array( $key, dws_lowc_get_footprint()['options'] ?? array(), true ) || \array_any( dws_lowc_get_footprint()['option_prefixes'], static fn ( string $prefix ): bool => \str_starts_with( $key, $prefix ) );
 			self::assertTrue( $covered, "The option $key is outside the footprint." );
+		}
+	}
+
+	public function test_it_covers_what_v1_stored(): void {
+		$footprint = dws_lowc_get_footprint();
+
+		self::assertContains( 'dws-lowc_', $footprint['option_prefixes'] );
+		self::assertSame( array( '_dws_lo_' ), $footprint['meta_prefixes']['order'] );
+		self::assertSame( array( 'linked_orders_for_woocommerce_version', 'linked_orders_for_woocommerce_original_version', '_linked_orders_for_woocommerce_admin_notices' ), $footprint['options'] );
+		self::assertSame( array( '_linked_orders_for_woocommerce_admin_notices' ), $footprint['user_meta_global'] );
+	}
+
+	public function test_it_covers_every_capability_the_plugin_grants(): void {
+		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $capabilities ) {
+			self::assertSame( array(), \array_diff( $capabilities, dws_lowc_get_footprint()['capabilities'] ) );
 		}
 	}
 }

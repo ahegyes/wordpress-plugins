@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 final class OptionsTest extends TestCase {
 	protected const string KEY = Plugin::PREFIX . '_options_test';
 
-	protected const array RESTORED = array( DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array RESTORED = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
 
 	protected array $stored = array();
 
@@ -42,20 +42,25 @@ final class OptionsTest extends TestCase {
 		);
 	}
 
-	public static function stored_strings(): array {
+	public static function stored_depths(): array {
 		return array(
-			'string' => array( 'kept', 'kept' ),
-			'empty'  => array( '', '' ),
-			'array'  => array( array( 'kept' ), '' ),
+			'two'      => array( '2', 2 ),
+			'zero'     => array( '0', 1 ),
+			'negative' => array( '-3', 1 ),
+			'word'     => array( 'deep', 1 ),
 		);
 	}
 
-	public static function stored_lists(): array {
+	public static function submitted_depths(): array {
 		return array(
-			'list'   => array( array( 'a', 'b' ), array( 'a', 'b' ) ),
-			'mixed'  => array( array( 'a', 7, 'b' ), array( 'a', 'b' ) ),
-			'keyed'  => array( array( 'x' => 'a' ), array( 'a' ) ),
-			'string' => array( 'a', array() ),
+			'one'      => array( '1', '1' ),
+			'padded'   => array( ' 3 ', '3' ),
+			'zero'     => array( '0', null ),
+			'negative' => array( '-3', null ),
+			'decimal'  => array( '2.5', null ),
+			'word'     => array( 'three', null ),
+			'empty'    => array( '', null ),
+			'array'    => array( array( '3' ), null ),
 		);
 	}
 
@@ -74,17 +79,27 @@ final class OptionsTest extends TestCase {
 		}
 	}
 
+	public function test_the_settings_keep_the_keys_v1_stored_them_under(): void {
+		self::assertSame( 'dws-lowc_general_max-depth', DWS_LOWC_OPTION_MAX_DEPTH );
+		self::assertSame( 'dws-lowc_general_autocomplete-descendants', DWS_LOWC_OPTION_AUTOCOMPLETE );
+		self::assertSame( 'dws-lowc_plugin_remove-data-uninstall', DWS_LOWC_OPTION_DELETE_DATA );
+	}
+
+	public function test_missing_settings_read_as_v1_defaults(): void {
+		foreach ( self::RESTORED as $key ) {
+			delete_option( $key );
+		}
+
+		self::assertSame( 1, dws_lowc_get_max_depth() );
+		self::assertFalse( dws_lowc_get_bool_option( DWS_LOWC_OPTION_AUTOCOMPLETE ) );
+		self::assertFalse( dws_lowc_get_bool_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+	}
+
 	#[DataProvider( 'stored_bools' )]
 	public function test_a_bool_reads_the_stored_checkbox_value_or_false( mixed $stored, bool $expected ): void {
 		update_option( DWS_LOWC_OPTION_DELETE_DATA, $stored );
 
 		self::assertSame( $expected, dws_lowc_get_bool_option( DWS_LOWC_OPTION_DELETE_DATA ) );
-	}
-
-	public function test_a_missing_option_reads_its_default(): void {
-		delete_option( DWS_LOWC_OPTION_DELETE_DATA );
-
-		self::assertSame( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ], dws_lowc_get_bool_option( DWS_LOWC_OPTION_DELETE_DATA ) );
 	}
 
 	#[DataProvider( 'stored_ints' )]
@@ -94,17 +109,17 @@ final class OptionsTest extends TestCase {
 		self::assertSame( $expected, dws_lowc_get_int_option( self::KEY ) );
 	}
 
-	#[DataProvider( 'stored_strings' )]
-	public function test_a_string_reads_a_stored_string_or_the_empty_string( mixed $stored, string $expected ): void {
-		update_option( self::KEY, $stored );
+	#[DataProvider( 'stored_depths' )]
+	public function test_the_maximum_depth_reads_at_least_one( string $stored, int $expected ): void {
+		update_option( DWS_LOWC_OPTION_MAX_DEPTH, $stored );
 
-		self::assertSame( $expected, dws_lowc_get_string_option( self::KEY ) );
+		self::assertSame( $expected, dws_lowc_get_max_depth() );
 	}
 
-	#[DataProvider( 'stored_lists' )]
-	public function test_a_list_reads_the_stored_strings_in_order( mixed $stored, array $expected ): void {
-		update_option( self::KEY, $stored );
+	#[DataProvider( 'submitted_depths' )]
+	public function test_a_submitted_depth_validates_as_a_whole_number_of_at_least_one( mixed $submitted, ?string $expected ): void {
+		$validated = dws_lowc_validate_max_depth( $submitted );
 
-		self::assertSame( $expected, dws_lowc_get_list_option( self::KEY ) );
+		\is_null( $expected ) ? self::assertInstanceOf( \WP_Error::class, $validated ) : self::assertSame( $expected, $validated );
 	}
 }

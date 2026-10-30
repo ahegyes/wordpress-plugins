@@ -36,6 +36,62 @@ final class UninstallTest extends TestCase {
 	}
 
 	#[RunInSeparateProcess]
+	public function test_an_uninstall_after_v1_consent_removes_the_links_on_both_storages_v1s_rows_and_the_capabilities(): void {
+		global $wpdb;
+		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( 'linked_orders_for_woocommerce_version', array( 'seeded' ) );
+		update_option( 'linked_orders_for_woocommerce_original_version', array( 'seeded' ) );
+		update_option( '_linked_orders_for_woocommerce_admin_notices', array( 'seeded' ) );
+		update_user_meta( self::USER, '_linked_orders_for_woocommerce_admin_notices', array( 'seeded' ) );
+		$linked = array();
+		foreach ( array( 'yes', 'no' ) as $hpos ) {
+			$storage = static fn (): string => $hpos;
+			add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+			add_filter( 'pre_option_woocommerce_custom_orders_table_data_sync_enabled', '__return_empty_string' );
+			$order = wc_create_order();
+			$order->update_meta_data( '_dws_lo_depth', 1 );
+			$order->update_meta_data( '_dws_lo_parent', 7 );
+			$order->save();
+			$linked[ $order->get_id() ] = $hpos;
+			remove_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+			remove_filter( 'pre_option_woocommerce_custom_orders_table_data_sync_enabled', '__return_empty_string' );
+		}
+
+		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
+		wp_cache_flush();
+		wp_roles()->for_site();
+
+		$ids = \implode( ',', \array_map( 'intval', \array_keys( $linked ) ) );
+		self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
+		self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}wc_orders_meta WHERE order_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
+		foreach ( array( DWS_LOWC_OPTION_DELETE_DATA, 'linked_orders_for_woocommerce_version', 'linked_orders_for_woocommerce_original_version', '_linked_orders_for_woocommerce_admin_notices' ) as $option ) {
+			self::assertFalse( get_option( $option ), "The option $option is still stored." );
+		}
+		self::assertSame( '', get_user_meta( self::USER, '_linked_orders_for_woocommerce_admin_notices', true ) );
+		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
+			foreach ( $capabilities as $capability ) {
+				self::assertFalse( get_role( $role )?->has_cap( $capability ), "The $role role still holds $capability." );
+			}
+		}
+
+		// The other tests share the database, so the roles get their capabilities back and the runner stores again what a new site starts with.
+		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
+			foreach ( $capabilities as $capability ) {
+				get_role( $role )?->add_cap( $capability );
+			}
+		}
+		dws_lowc_plugin()->migrations?->run();
+		foreach ( $linked as $id => $hpos ) {
+			$storage = static fn (): string => $hpos;
+			add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+			$order   = wc_get_order( $id );
+			self::assertInstanceOf( \WC_Order::class, $order );
+			$order->delete( true );
+			remove_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+		}
+	}
+
+	#[RunInSeparateProcess]
 	public function test_a_consenting_uninstall_removes_a_row_of_every_kind_the_framework_roots_store(): void {
 		$prefix = Plugin::PREFIX . '_';
 		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );

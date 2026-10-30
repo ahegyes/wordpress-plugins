@@ -4,5 +4,6 @@
 define( 'ABSPATH', __DIR__ . '/' );
 
 // WordPress's include loader is absent here, so the suite requires the declarations it reads.
+require_once dirname( __DIR__, 2 ) . '/includes/capabilities.php';
 require_once dirname( __DIR__, 2 ) . '/includes/options.php';
 require_once dirname( __DIR__, 2 ) . '/includes/footprint.php';
