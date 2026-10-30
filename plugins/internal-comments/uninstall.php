@@ -26,10 +26,14 @@ try {
 	}
 
 	require_once __DIR__ . '/vendor/autoload.php';
+	require_once __DIR__ . '/includes/capabilities.php';
 	require_once __DIR__ . '/includes/footprint.php';
 	require_once __DIR__ . '/includes/options.php';
 	$dws_ic_footprint = dws_ic_get_footprint();
-	$dws_ic_consent   = DWS_IC_OPTION_DELETE_DATA;
+	$dws_ic_consent   = array(
+		'option' => DWS_IC_OPTION_PLUGIN,
+		'key'    => DWS_IC_SETTING_DELETE_DATA,
+	);
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
@@ -46,5 +50,5 @@ try {
 Uninstaller::run(
 	$dws_ic_file,
 	$dws_ic_footprint,
-	array( 'consent' => array( 'option' => $dws_ic_consent ) )
+	array( 'consent' => $dws_ic_consent )
 );

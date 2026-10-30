@@ -25,23 +25,19 @@ function dws_ic_get_migration_steps(): array {
 }
 
 /**
- * Stores the defaults of the settings that need no translation, autoloaded, so a site that never saved them reads them without a query; a translated default is never stored, because it would keep the language the site had when the step ran.
+ * Stores each settings row a site lacks with v1's defaults, autoloaded, so a site that never saved the settings page reads them without a query, and keeps the rows a v1 site stored.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @throws  RuntimeException Thrown when a default could not be stored.
+ * @throws  RuntimeException Thrown when a row could not be stored.
  *
  * @return  void
  */
 function dws_ic_add_settings(): void {
-	$defaults = array(
-		DWS_IC_OPTION_DELETE_DATA => 'no',
-	);
-
-	foreach ( $defaults as $key => $value ) {
-		if ( false === get_option( $key ) && ! add_option( $key, $value, '', true ) ) {
-			throw new RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+	foreach ( DWS_IC_SETTING_DEFAULTS as $row => $defaults ) {
+		if ( false === get_option( $row ) && ! add_option( $row, $defaults, '', true ) ) {
+			throw new RuntimeException( "The option $row could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 	}
 }

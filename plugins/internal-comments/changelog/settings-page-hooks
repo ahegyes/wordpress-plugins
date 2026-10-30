@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The settings/registered_options_page and settings/registered_options_groups actions; use dws-internal-comments/options_page/tabs, dws_ic/settings/general_fields or dws_ic/settings/plugin_fields.

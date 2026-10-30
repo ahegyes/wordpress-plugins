@@ -5,6 +5,7 @@ namespace DeepWebSolutions\InternalComments;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
@@ -54,6 +55,8 @@ final class Plugin {
 	public const array COMPONENTS = array(
 		Scheduler::class,
 		AdminNotices::class,
+		CapabilityGrants::class,
+		Settings::class,
 	);
 
 	/**
@@ -204,6 +207,7 @@ final class Plugin {
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
 			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			CapabilityGrants::class   => static fn (): CapabilityGrants => new CapabilityGrants( self::PREFIX . '_capabilities', DWS_IC_CAPABILITY_GRANTS, $logger ),
 		);
 	}
 

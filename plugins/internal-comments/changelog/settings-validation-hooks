@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The settings, general_settings and plugin_settings validate_option_value filters; use pre_update_option_{$option} on save, or dws_ic/settings/validated_value on read.
