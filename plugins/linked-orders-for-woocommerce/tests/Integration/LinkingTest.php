@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -48,6 +50,39 @@ final class LinkingTest extends TestCase {
 		self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_id() );
 		self::assertSame( $parent->get_id(), dws_lowc_get_root_order( $child->get_id() )?->get_id() );
 		self::assertSame( array( $parent->get_id(), $child->get_id() ), dws_lowc_get_orders_tree( $parent->get_id() ) );
+	}
+
+	// The parent's children are one meta value that every link reads and rewrites, so a link must not write back a list another request changed after this one loaded the parent.
+	#[DataProvider( 'storages' )]
+	public function test_a_link_keeps_a_child_another_request_linked_after_the_parent_was_loaded( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+		$first  = $this->create_order();
+		$second = $this->create_order();
+		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+
+		$this->link_in_another_request( $hpos, $sync, $parent->get_id(), $first->get_id() );
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $second->get_id() ) );
+
+		wp_cache_flush();
+		self::assertSame( array( $first->get_id(), $second->get_id() ), \array_map( static fn ( \DWS_Order_Node $child ): int => $child->get_order()->get_id(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() ?? array() ) );
+	}
+
+	public function test_a_link_is_refused_while_another_request_links_orders(): void {
+		$parent = $this->create_order();
+		$child  = $this->create_order();
+		$lock   = new Lock( 'dws_lowc_linking', 30 );
+		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
+
+		try {
+			self::assertFalse( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		} finally {
+			$lock->release( 'another-request' );
+		}
+
+		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
+		self::assertFalse( dws_lowc_link_orders( $child->get_id(), $child->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -247,10 +282,45 @@ final class LinkingTest extends TestCase {
 	}
 
 	#[DataProvider( 'storages' )]
+	public function test_a_linked_child_whose_link_is_refused_is_deleted_and_an_error_returned( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent  = $this->create_order();
+		$created = 0;
+		$record  = function ( \WC_Order $child ) use ( &$created ): void {
+			$created = $child->get_id();
+		};
+		add_action( 'dws_lowc/linked_order/created', $record );
+		$lock = new Lock( 'dws_lowc_linking', 30 );
+		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
+
+		try {
+			$result = dws_lowc_create_linked_child( $parent->get_id() );
+		} finally {
+			$lock->release( 'another-request' );
+			remove_action( 'dws_lowc/linked_order/created', $record );
+		}
+
+		$this->orders[] = \is_int( $result ) ? $result : $created;
+		self::assertInstanceOf( \WP_Error::class, $result );
+		self::assertSame( 'dws_lowc_link_refused', $result->get_error_code() );
+		self::assertFalse( wc_get_order( $created ) );
+		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+	}
+
+	#[DataProvider( 'storages' )]
 	public function test_a_creator_error_is_returned( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$error = new \WP_Error( 'failed', 'Failed.' );
 
 		self::assertSame( $error, dws_lowc_create_linked_child( $this->create_order()->get_id(), array( 'create_function' => static fn (): \WP_Error => $error ) ) );
+	}
+
+	// The other request runs on the row's storage, as the shared tests site stores orders on the order tables.
+	protected function link_in_another_request( bool $hpos, bool $sync, int $parent_id, int $child_id ): void {
+		$php = \sprintf( 'add_filter( "pre_option_woocommerce_custom_orders_table_enabled", fn () => "%s" ); add_filter( "pre_option_woocommerce_custom_orders_table_data_sync_enabled", fn () => "%s" ); echo var_export( dws_lowc_link_orders( %d, %d ), true );', $hpos ? 'yes' : 'no', $sync ? 'yes' : 'no', $parent_id, $child_id );
+		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The race needs a second request.
+
+		self::assertSame( 0, $status, \implode( "\n", $output ) );
+		self::assertSame( 'true', (string) \end( $output ) );
 	}
 }
