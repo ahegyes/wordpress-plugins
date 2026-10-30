@@ -114,20 +114,40 @@ final class ListTableTest extends TestCase {
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
 	}
 
-	// v1 read the deepest depth from every order of the type, trashed ones included, which the list's Trash view shows.
+	// v1 read the deepest depth from every order of the type, whatever its status, such as the Trash, which the list's Trash view shows, or a draft.
 	#[DataProvider( 'storages' )]
-	public function test_the_depth_filter_counts_a_trashed_order_at_the_deepest_level( bool $hpos, bool $sync ): void {
+	public function test_the_depth_filter_counts_an_order_in_any_status_at_the_deepest_level( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$deep = $this->create_order();
 		$deep->update_meta_data( '_dws_lo_depth', '5' );
-		$deep->set_status( 'trash' );
-		$deep->save();
-		self::assertSame( 'trash', wc_get_order( $deep->get_id() ) ? wc_get_order( $deep->get_id() )->get_status() : null );
 		$this->open_list();
 
-		$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
+		foreach ( array( 'trash', 'draft' ) as $status ) {
+			$deep->set_status( $status );
+			$deep->save();
+			self::assertSame( $status, wc_get_order( $deep->get_id() ) ? wc_get_order( $deep->get_id() )->get_status() : null );
 
-		self::assertSame( '5', \array_reverse( \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) ) ) )[0] );
+			$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
+
+			self::assertSame( '5', \array_reverse( \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) ) ) )[0], $status );
+		}
+	}
+
+	// WooCommerce counts the order tables' list from its cache only when the query holds no argument beyond its own.
+	#[DataProvider( 'storages' )]
+	public function test_an_unfiltered_list_keeps_its_query_as_it_came( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$this->open_list();
+
+		$args = array(
+			'type'   => 'shop_order',
+			'status' => array( 'wc-pending' ),
+			'limit'  => 20,
+			'page'   => 1,
+		);
+		$hook = $hpos ? 'woocommerce_order_list_table_prepare_items_query_args' : 'request';
+
+		self::assertSame( $args, apply_filters( $hook, $args ) );
 	}
 
 	#[DataProvider( 'storages' )]
