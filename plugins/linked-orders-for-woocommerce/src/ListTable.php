@@ -205,8 +205,10 @@ final class ListTable implements ComponentInterface {
 			);
 		}
 
-		$query_vars['meta_query'] = self::add_meta_clauses( $query_vars['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
-		$tree                     = self::get_tree_filter( $query_vars['post__in'] ?? null );
+		if ( array() !== $clauses ) {
+			$query_vars['meta_query'] = self::add_meta_clauses( $query_vars['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
+		}
+		$tree = self::get_tree_filter( $query_vars['post__in'] ?? null );
 		if ( null !== $tree ) {
 			$query_vars['post__in'] = $tree;
 		}
@@ -234,8 +236,12 @@ final class ListTable implements ComponentInterface {
 			$args['billing_email'] = $email;
 		}
 
-		$args['meta_query'] = self::add_meta_clauses( $args['meta_query'] ?? null, self::get_depth_clauses() ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
-		$tree               = self::get_tree_filter( $args['id'] ?? null );
+		// WooCommerce counts the list from its cache only when the query holds none but its own arguments, so an unfiltered list gets no meta query.
+		$clauses = self::get_depth_clauses();
+		if ( array() !== $clauses ) {
+			$args['meta_query'] = self::add_meta_clauses( $args['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
+		}
+		$tree = self::get_tree_filter( $args['id'] ?? null );
 		if ( null !== $tree ) {
 			$args['id'] = $tree;
 		}
@@ -353,7 +359,7 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the deepest level the depth filter offers: the maximum depth, or the deepest stored order of the type where one is deeper, trashed orders included, since the list's Trash view shows them.
+	 * Returns the deepest level the depth filter offers: the maximum depth, or the deepest stored order of the type where one is deeper, in any registered status, since the Trash view lists trashed orders and another plugin's order type may register its statuses only as post statuses.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -368,7 +374,7 @@ final class ListTable implements ComponentInterface {
 		$deepest = wc_get_orders(
 			$depth + array(
 				'type'    => $type,
-				'status'  => array( ...\array_keys( wc_get_order_statuses() ), 'trash' ),
+				'status'  => \array_values( get_post_stati() ),
 				'limit'   => 1,
 				'return'  => 'ids',
 				'orderby' => 'meta_value_num',
@@ -434,13 +440,9 @@ final class ListTable implements ComponentInterface {
 	 * @param   mixed                          $meta_query The meta query already in place, if any.
 	 * @param   list<array<int|string, mixed>> $clauses    The list's clauses.
 	 *
-	 * @return  mixed
+	 * @return  array<int|string, mixed>
 	 */
-	protected static function add_meta_clauses( mixed $meta_query, array $clauses ): mixed {
-		if ( array() === $clauses ) {
-			return $meta_query;
-		}
-
+	protected static function add_meta_clauses( mixed $meta_query, array $clauses ): array {
 		return \array_merge( array( 'relation' => 'AND' ), \is_array( $meta_query ) && array() !== $meta_query ? array( $meta_query ) : array(), $clauses );
 	}
 
