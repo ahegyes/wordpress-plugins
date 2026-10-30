@@ -114,6 +114,22 @@ final class ListTableTest extends TestCase {
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
 	}
 
+	// v1 read the deepest depth from every order of the type, trashed ones included, which the list's Trash view shows.
+	#[DataProvider( 'storages' )]
+	public function test_the_depth_filter_counts_a_trashed_order_at_the_deepest_level( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$deep = $this->create_order();
+		$deep->update_meta_data( '_dws_lo_depth', '5' );
+		$deep->set_status( 'trash' );
+		$deep->save();
+		self::assertSame( 'trash', wc_get_order( $deep->get_id() ) ? wc_get_order( $deep->get_id() )->get_status() : null );
+		$this->open_list();
+
+		$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
+
+		self::assertSame( '5', \array_reverse( \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) ) ) )[0] );
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_the_list_filters_by_depth_by_guest_email_and_by_tree( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );

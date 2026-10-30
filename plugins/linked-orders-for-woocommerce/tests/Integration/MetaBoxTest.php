@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\BeforeClass;
@@ -119,17 +120,23 @@ final class MetaBoxTest extends TestCase {
 		self::assertNull( $box->querySelector( 'a.button' ) );
 	}
 
+	// The posts editor passes its post to the box and the order-tables editor its order, so a row passes what its storage's editor does.
 	protected function register( \WC_Order|\WP_Post $post_or_order, ?string $screen = null ): ?array {
 		global $wp_meta_boxes;
 		$screen ??= wc_get_page_screen_id( 'shop-order' );
+		if ( $post_or_order instanceof \WC_Order && ! OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$post_or_order = get_post( $post_or_order->get_id() );
+			self::assertInstanceOf( \WP_Post::class, $post_or_order );
+		}
 		do_action( 'add_meta_boxes', $screen, $post_or_order );
 
 		return $wp_meta_boxes[ $screen ]['side']['default']['dws-linked-orders'] ?? null;
 	}
 
 	protected function render( int $order_id ): \Dom\HTMLDocument {
-		$order = wc_get_order( $order_id );
-		$box   = $this->register( $order );
+		$order = OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_order( $order_id ) : get_post( $order_id );
+		self::assertTrue( $order instanceof \WC_Order || $order instanceof \WP_Post );
+		$box = $this->register( $order );
 		self::assertIsArray( $box );
 
 		\ob_start();
