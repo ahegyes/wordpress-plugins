@@ -39,7 +39,7 @@ if ( is_readable( $dws_lowc_bootstrap ) ) {
 
 require_once __DIR__ . '/includes/safeguards.php';
 
-if ( ! is_readable( $dws_lowc_bootstrap ) || ! is_readable( __DIR__ . '/blocks/build/blocks-manifest.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
+if ( ! is_readable( $dws_lowc_bootstrap ) || ! is_readable( __DIR__ . '/assets/build/orders-list-table.asset.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
 	add_action( 'all_admin_notices', 'dws_lowc_render_build_notice' );
 	return;
 }

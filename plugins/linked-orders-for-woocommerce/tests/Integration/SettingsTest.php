@@ -7,12 +7,11 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\WooCommerce\
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class SettingsTest extends TestCase {
-	protected const array KEYS = array( DWS_LOWC_OPTION_FEATURE, DWS_LOWC_OPTION_GREETING, DWS_LOWC_OPTION_GREETING_ORDERS, DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array KEYS = array( DWS_LOWC_OPTION_DELETE_DATA );
 
 	protected static SettingsTab $tab;
 
@@ -31,16 +30,6 @@ final class SettingsTest extends TestCase {
 		}
 	}
 
-	public static function invalid_order_counts(): array {
-		return array(
-			'zero'     => array( '0' ),
-			'negative' => array( '-2' ),
-			'decimal'  => array( '2.5' ),
-			'word'     => array( 'three' ),
-			'empty'    => array( '' ),
-		);
-	}
-
 	#[Before]
 	protected function store_rows(): void {
 		foreach ( self::KEYS as $key ) {
@@ -57,7 +46,7 @@ final class SettingsTest extends TestCase {
 		( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->setValue( null, array() );
 	}
 
-	public function test_the_tab_shows_the_greeting_and_data_fields_with_their_defaults(): void {
+	public function test_the_tab_shows_the_data_field_with_its_default(): void {
 		foreach ( self::KEYS as $key ) {
 			delete_option( $key );
 		}
@@ -65,21 +54,7 @@ final class SettingsTest extends TestCase {
 		$form = $this->render();
 
 		self::assertSame( 'Linked Orders for WooCommerce', self::$tab->get_label() );
-		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_FEATURE )?->hasAttribute( 'checked' ) );
-		self::assertSame( '', $form->getElementById( DWS_LOWC_OPTION_GREETING )?->getAttribute( 'value' ) );
-		self::assertSame( dws_lowc_get_option_text( DWS_LOWC_OPTION_GREETING ), $form->getElementById( DWS_LOWC_OPTION_GREETING )?->getAttribute( 'placeholder' ) );
-		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_GREETING_ORDERS )?->getAttribute( 'value' ) );
-		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_GREETING_ORDERS )?->getAttribute( 'min' ) );
 		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->hasAttribute( 'checked' ) );
-	}
-
-	public function test_a_save_that_leaves_the_message_untouched_stores_no_translated_text(): void {
-		delete_option( DWS_LOWC_OPTION_GREETING );
-
-		$this->save( array( DWS_LOWC_OPTION_GREETING => $this->render()->getElementById( DWS_LOWC_OPTION_GREETING )?->getAttribute( 'value' ) ) );
-
-		self::assertSame( '', get_option( DWS_LOWC_OPTION_GREETING ) );
-		self::assertSame( dws_lowc_get_option_text( DWS_LOWC_OPTION_GREETING ), dws_lowc_get_string_option( DWS_LOWC_OPTION_GREETING ) );
 	}
 
 	public function test_the_retention_opt_in_round_trips_through_woocommerces_save(): void {
@@ -93,23 +68,6 @@ final class SettingsTest extends TestCase {
 
 		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
 		self::assertFalse( dws_lowc_get_bool_option( DWS_LOWC_OPTION_DELETE_DATA ) );
-	}
-
-	#[DataProvider( 'invalid_order_counts' )]
-	public function test_an_order_count_that_is_not_a_whole_number_of_at_least_one_keeps_the_stored_count( string $posted ): void {
-		update_option( DWS_LOWC_OPTION_GREETING_ORDERS, '4' );
-
-		$this->save( array( DWS_LOWC_OPTION_GREETING_ORDERS => $posted ) );
-
-		self::assertSame( '4', get_option( DWS_LOWC_OPTION_GREETING_ORDERS ) );
-		self::assertSame( array( 'Orders before the greeting was not saved, so it keeps its previous value. Enter a whole number of 1 or more, such as 3.' ), ( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->getValue() );
-	}
-
-	public function test_a_whole_order_count_of_at_least_one_is_stored(): void {
-		$this->save( array( DWS_LOWC_OPTION_GREETING_ORDERS => ' 3 ' ) );
-
-		self::assertSame( '3', get_option( DWS_LOWC_OPTION_GREETING_ORDERS ) );
-		self::assertSame( 3, dws_lowc_get_int_option( DWS_LOWC_OPTION_GREETING_ORDERS ) );
 	}
 
 	protected function render(): \Dom\HTMLDocument {

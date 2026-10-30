@@ -9,8 +9,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PartialDeployTest extends TestCase {
-	public function test_a_missing_blocks_manifest_shows_the_build_notice_and_loads_nothing_built(): void {
-		$manifest = \dirname( DWS_LOWC_FILE ) . '/blocks/build/blocks-manifest.php';
+	public function test_a_missing_built_asset_shows_the_build_notice_and_loads_nothing_built(): void {
+		$manifest = \dirname( DWS_LOWC_FILE ) . '/assets/build/orders-list-table.asset.php';
 		\rename( $manifest, "$manifest.hidden" );
 		try {
 			$request = self::request( 'echo wp_json_encode( array( function_exists( "dws_lowc_boot" ), false !== has_action( "all_admin_notices", "dws_lowc_render_build_notice" ) ) );' );

@@ -2,8 +2,6 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
-use DeepWebSolutions\LinkedOrders\Blocks;
-use DeepWebSolutions\LinkedOrders\Feature\Feature;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
@@ -14,12 +12,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PluginBootTest extends TestCase {
-	public function test_the_plugin_boots_with_the_greeting_gated_off_until_a_site_switches_it_on(): void {
+	public function test_the_plugin_boots_every_component(): void {
 		$plugin = dws_lowc_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, Settings::class, Blocks::class ), $plugin->kernel?->resolved );
-		self::assertSame( array( Feature::class ), $plugin->kernel->skipped );
+		self::assertSame( array( Scheduler::class, AdminNotices::class, Settings::class ), $plugin->kernel?->resolved );
+		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 
 	public function test_the_entry_loads_every_include_but_those_whose_names_start_with_an_underscore(): void {

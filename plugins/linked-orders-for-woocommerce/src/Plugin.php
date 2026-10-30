@@ -56,8 +56,6 @@ final class Plugin {
 		Scheduler::class,
 		AdminNotices::class,
 		Settings::class,
-		Blocks::class,
-		Feature\Feature::class,
 	);
 
 	/**

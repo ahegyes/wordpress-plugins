@@ -36,9 +36,7 @@ function dws_lowc_get_migration_steps(): array {
  */
 function dws_lowc_add_settings(): void {
 	$defaults = array(
-		DWS_LOWC_OPTION_FEATURE         => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_FEATURE ] ),
-		DWS_LOWC_OPTION_GREETING_ORDERS => (string) DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_GREETING_ORDERS ],
-		DWS_LOWC_OPTION_DELETE_DATA     => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ] ),
+		DWS_LOWC_OPTION_DELETE_DATA => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ] ),
 	);
 
 	foreach ( $defaults as $key => $value ) {
