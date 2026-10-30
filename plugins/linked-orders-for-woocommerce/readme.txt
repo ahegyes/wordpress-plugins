@@ -33,7 +33,7 @@ This plugin requires WooCommerce 11.2 or newer to run. If you're running a lower
 ### INSTALL MANUALLY
 
 1. Download the plugin from https://wordpress.org/plugins/linked-orders-for-woocommerce/ and unzip the archive.
-1. Upload the `linked-orders-for-woocommerce` folder to the `/wp-content/plugins/` directory.
+1. Copy the unzipped `linked-orders-for-woocommerce` folder into your site's `wp-content/plugins` folder, through SFTP or your host's file manager.
 1. Activate the plugin through the `Plugins` menu in WordPress.
 
 ### AFTER ACTIVATION
