@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Linking an order as the child of itself or of one of its descendants returns false, rather than creating a loop that broke every screen showing the tree.

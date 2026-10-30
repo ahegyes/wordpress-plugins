@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+The DWS_LOWC_NAME, DWS_LOWC_VERSION, DWS_LOWC_PATH, DWS_LOWC_MIN_PHP and DWS_LOWC_MIN_WP constants; DWS_LOWC_NAME no longer carries the Deep Web Solutions prefix.

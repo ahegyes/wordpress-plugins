@@ -2,7 +2,7 @@
 /**
  * Plugin Name:          Linked Orders for WooCommerce
  * Plugin URI:           https://github.com/ahegyes/wc-linked-orders
- * Description:          WordPress plugins on the wp-framework packages start here, from one tested anatomy, so all are built alike and a fix found in one applies to all.
+ * Description:          A WooCommerce extension for creating orders that are logically connected to existing ones.
  * Version:              2.0.0
  * Requires at least:    7.1
  * Requires PHP:         8.5
@@ -13,7 +13,6 @@
  * Author URI:           https://github.com/ahegyes
  * License:              GPL-3.0-or-later
  * License URI:          https://www.gnu.org/licenses/gpl-3.0.html
- * Update URI:           https://github.com/ahegyes/wc-linked-orders
  * Text Domain:          linked-orders-for-woocommerce
  * Domain Path:          /languages
  *
@@ -26,7 +25,6 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Bootstrap\Up
 defined( 'ABSPATH' ) || exit;
 
 define( 'DWS_LOWC_FILE', __FILE__ );
-load_plugin_textdomain( 'linked-orders-for-woocommerce', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ); // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- WordPress registers languages/ itself only for plugins it does not network-activate.
 
 $dws_lowc_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
 if ( is_readable( $dws_lowc_bootstrap ) ) {

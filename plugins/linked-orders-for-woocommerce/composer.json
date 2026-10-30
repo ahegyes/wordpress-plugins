@@ -60,6 +60,7 @@
     "php-di/php-di": "^7.1.1",
     "php-stubs/woocommerce-stubs": "^11.2",
     "phpunit/phpunit": "^13",
+    "pronamic/changelog-md-to-wordpress-plugin-readme-txt": "^1.0",
     "wp-plugin/woocommerce": "^11.2"
   },
 
@@ -133,7 +134,10 @@
 
     "changelog:add": "@php vendor/bin/changelogger add",
     "changelog:validate": "@php vendor/bin/changelogger validate",
-    "changelog:write": "@php vendor/bin/changelogger write"
+    "changelog:write": [
+      "@php vendor/bin/changelogger write",
+      "@php vendor/bin/pronamic-changelog-md-to-wordpress-plugin-readme-txt"
+    ]
   },
 
   "extra": {

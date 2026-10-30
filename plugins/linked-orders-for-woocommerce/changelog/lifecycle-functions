@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+dws_lowc_plugin_activate() and dws_lowc_plugin_uninstall(); WordPress's activation and uninstall run the plugin's own.

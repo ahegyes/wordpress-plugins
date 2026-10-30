@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Uninstall, where the site consents, also removes the links on orders in WooCommerce's order tables, v1's version and notice rows, and the plugin's capabilities.

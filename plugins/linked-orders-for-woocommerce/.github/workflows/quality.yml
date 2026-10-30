@@ -55,6 +55,18 @@ jobs:
       php-versions: '["7.4"]'
       paths: ${{ format('["{0}.php", "uninstall.php", "includes"]', needs.slug.outputs.slug) }}
 
+  readme-lint:
+    name: readme.txt lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: thetwopct/wporg-plugin-readme-linter@1f869aba959265ecc90935b2380c6569d56646ac # v1.0.2
+        with:
+          path: readme.txt
+          fail-on: error
+
   changelog:
     name: Changelog fragments
     runs-on: ubuntu-latest

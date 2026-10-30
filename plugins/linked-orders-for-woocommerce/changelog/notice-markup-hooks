@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The v1 framework's sixteen notice-markup actions under dws_wp_framework/bootstrapper/requirements_error_notice, requirements_error_list, and dws_wp_framework/core/initialization_error and initialization_error_list.

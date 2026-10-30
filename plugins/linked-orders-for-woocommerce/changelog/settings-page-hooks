@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The settings/registered_options_page and settings/registered_options_groups actions; use woocommerce_settings_sections_registration and dws_lowc/settings/general_fields or dws_lowc/settings/plugin_fields.

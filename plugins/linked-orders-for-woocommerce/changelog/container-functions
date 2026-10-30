@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+dws_lowc_di_container(), dws_lowc_instance(), dws_lowc_component() and dws_lowc_instance_initialize(), which exposed v1's framework internals.

@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.2, which the v2 framework needs.
