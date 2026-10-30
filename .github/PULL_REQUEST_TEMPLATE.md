@@ -11,21 +11,13 @@
 - [ ] Documentation
 - [ ] Dependency update
 
-## Affected plugin(s)
-
-- [ ] internal-comments
-- [ ] linked-orders-for-woocommerce
-- [ ] locked-payment-methods-for-woocommerce
-- [ ] Monorepo scaffold (root scripts, wp-env, CI workflows)
-
 ## Checklist
 
-- [ ] Changelog fragment added (`composer changelog:add` at root, or in the affected plugin dir)
+- [ ] Changelog fragment added (`composer changelog:add` in the changed plugin's directory, or at the root for the monorepo itself)
 - [ ] Tests added/updated
-- [ ] `composer plugins:quality-check` (or per-plugin `composer quality-check`) passes locally
-- [ ] Plugin header + `readme.txt` updated if runtime requirements changed
+- [ ] `composer quality-check` passes locally in every changed plugin
+- [ ] Plugin header and `readme.txt` updated if runtime requirements changed
 
-## Breaking changes for mirror consumers
+## Breaking changes
 
-<!-- Fill in if this PR changes the scoping pipeline, composer scripts, CI workflow contracts, or anything that downstream consumers of the split-published mirrors (wp-internal-comments / wc-linked-orders / wc-locked-payment-methods) would notice. Otherwise delete. -->
-
+<!-- Fill in if this PR changes a plugin's public contract (hooks, functions, option or meta keys, capabilities), the scoping pipeline or the CI workflows. Otherwise delete. -->

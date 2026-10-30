@@ -7,9 +7,7 @@ body:
     attributes:
       label: Affected plugin (or scaffold)
       options:
-        - internal-comments
         - linked-orders-for-woocommerce
-        - locked-payment-methods-for-woocommerce
         - Monorepo scaffold (root composer/npm scripts, wp-env, CI workflows)
         - Other / unsure
     validations:
@@ -57,7 +55,7 @@ body:
     id: wc-version
     attributes:
       label: WooCommerce version (if applicable)
-      placeholder: '10.7.0'
+      placeholder: '11.2.1'
 
   - type: textarea
     id: reproduction
@@ -65,7 +63,7 @@ body:
       label: Steps to reproduce
       placeholder: |
         1. `git clone … && cd wordpress-plugins`
-        2. `npm run install:all && npm run wp-env:start`
+        2. `npm run setup && npm run wp-env:tests:start`
         3. Observe Z
     validations:
       required: true

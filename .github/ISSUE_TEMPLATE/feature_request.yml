@@ -7,9 +7,7 @@ body:
     attributes:
       label: Target plugin (or scaffold)
       options:
-        - internal-comments
         - linked-orders-for-woocommerce
-        - locked-payment-methods-for-woocommerce
         - Monorepo scaffold (root composer/npm scripts, wp-env, CI workflows)
         - New plugin proposal
     validations:

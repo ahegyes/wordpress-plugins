@@ -3,6 +3,8 @@ name: Split Plugins
 on:
   push:
     branches: [trunk]
+    # A plugin's release tag is <slug>/vMAJOR.MINOR.PATCH, which its mirror receives as vMAJOR.MINOR.PATCH.
+    tags: ['*/v*']
     paths:
       - 'plugins/**'
   workflow_dispatch:
@@ -10,47 +12,85 @@ on:
 permissions:
   contents: read
 
+# Splits of one ref run in order, so an older run never force-pushes over a newer split.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  plugins:
+    name: Plugins
+    # A dispatch from another branch would force-push that branch's split over the mirrors' trunk.
+    if: github.ref == 'refs/heads/trunk' || github.ref_type == 'tag'
+    uses: ./.github/workflows/plugins.yml
+
   split:
-    name: Split ${{ matrix.plugin.dir }} → ${{ matrix.plugin.repo }}
+    name: Split ${{ matrix.mirror.plugin }} → ${{ matrix.mirror.repo }}
+    needs: plugins
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        plugin:
-          - { dir: 'internal-comments',                       repo: 'wp-internal-comments' }
-          - { dir: 'linked-orders-for-woocommerce',           repo: 'wc-linked-orders' }
-          - { dir: 'locked-payment-methods-for-woocommerce',  repo: 'wc-locked-payment-methods' }
+        mirror: ${{ fromJSON(needs.plugins.outputs.mirrors) }}
     steps:
-      - uses: actions/checkout@v6
+      # A tag names one plugin, so the other plugins' jobs push nothing.
+      - name: Resolve the ref to push
+        id: ref
+        env:
+          PLUGIN: ${{ matrix.mirror.plugin }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "ref=refs/heads/trunk" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF_NAME" =~ ^${PLUGIN}/v(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){2}$ ]]; then
+            echo "ref=refs/tags/${GITHUB_REF_NAME#"$PLUGIN/"}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.ref.outputs.ref != ''
         with:
           fetch-depth: 0
-          # Don't install the credential helper that auths as github-actions[bot].
-          # We push to the split repos via PAT embedded in the URL — the helper
-          # would otherwise hijack the auth and fail with 403.
+          # The default credential helper would hijack the PAT-in-URL push auth and fail with 403.
           persist-credentials: false
 
       - name: Install splitsh-lite
+        if: steps.ref.outputs.ref != ''
         run: |
-          # v1.0.1 (2017) is the latest splitsh-lite release with a published
-          # linux/amd64 binary; v2.0.0 was tagged in 2023 with no assets attached.
-          # The tool's `--prefix` behavior hasn't materially changed since v1.
+          # v1.0.1 is the latest splitsh-lite release with a published linux/amd64 binary (v2.0.0 was tagged with no assets).
           curl -fsSL -o splitsh.tar.gz https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz
+          # sha256 computed from the v1.0.1 release asset (upstream publishes no checksums — trust-on-first-use pin).
+          echo "2539301ce5e21d0ca44b689d0dd2c1b20d9f9e996c1fe6c462afb8af4e7141cc  splitsh.tar.gz" | sha256sum -c -
           tar -xzf splitsh.tar.gz
           sudo mv splitsh-lite /usr/local/bin/
           rm splitsh.tar.gz
 
-      - name: Compute split SHA for plugins/${{ matrix.plugin.dir }}
+      - name: Compute the split SHA
         id: split
+        if: steps.ref.outputs.ref != ''
+        env:
+          PLUGIN: ${{ matrix.mirror.plugin }}
         run: |
-          SHA=$(splitsh-lite --prefix=plugins/${{ matrix.plugin.dir }})
+          SHA=$(splitsh-lite --prefix="plugins/$PLUGIN")
+          # An empty SHA would turn the force-push refspec into remote branch deletion.
+          if [ -z "$SHA" ] || ! git cat-file -e "$SHA^{commit}"; then
+            echo "::error::splitsh produced no valid commit for plugins/$PLUGIN"
+            exit 1
+          fi
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "Split SHA: $SHA"
 
-      - name: Push split to ahegyes/${{ matrix.plugin.repo }}
+      - name: Push the split to its mirror
+        if: steps.ref.outputs.ref != ''
         env:
           TOKEN: ${{ secrets.MONOREPO_SPLIT_TOKEN }}
           SPLIT_SHA: ${{ steps.split.outputs.sha }}
-          TARGET_REPO: ${{ matrix.plugin.repo }}
+          TARGET_REPO: ${{ matrix.mirror.repo }}
+          TARGET_REF: ${{ steps.ref.outputs.ref }}
         run: |
-          git push --force "https://x-access-token:${TOKEN}@github.com/ahegyes/${TARGET_REPO}.git" "${SPLIT_SHA}:refs/heads/trunk"
+          remote="https://x-access-token:${TOKEN}@github.com/ahegyes/${TARGET_REPO}.git"
+          # A release tag never moves once the mirror has released it, so it goes out without --force.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            git push "$remote" "${SPLIT_SHA}:${TARGET_REF}"
+          else
+            git push --force "$remote" "${SPLIT_SHA}:${TARGET_REF}"
+          fi

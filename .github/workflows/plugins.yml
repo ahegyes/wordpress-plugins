@@ -1,0 +1,86 @@
+name: Plugins
+
+# Every directory under plugins/ is a plugin whose main file and mirror its own files name, so a new plugin joins every lane without an edit to the workflows that call this one.
+on:
+  workflow_call:
+    outputs:
+      plugins:
+        description: 'JSON array of the plugin directories under plugins/, each named after its slug.'
+        value: ${{ jobs.list.outputs.plugins }}
+      projects:
+        description: 'JSON array of the Composer projects: the repository root, then each plugin directory.'
+        value: ${{ jobs.list.outputs.projects }}
+      readmes:
+        description: 'JSON array of the plugin directories that hold a readme.txt, which wordpress.org distribution needs.'
+        value: ${{ jobs.list.outputs.readmes }}
+      mirrors:
+        description: 'JSON array of { plugin, repo } objects, the mirror each plugin splits to, as its composer.json name gives it.'
+        value: ${{ jobs.list.outputs.mirrors }}
+      wordpress:
+        description: 'JSON array of { plugin, wp } objects: the newest WordPress release of every branch from each plugin''s Requires at least up.'
+        value: ${{ jobs.list.outputs.wordpress }}
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    name: List the plugins
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      plugins: ${{ steps.plugins.outputs.plugins }}
+      projects: ${{ steps.plugins.outputs.projects }}
+      readmes: ${{ steps.plugins.outputs.readmes }}
+      mirrors: ${{ steps.plugins.outputs.mirrors }}
+      wordpress: ${{ steps.wordpress.outputs.wordpress }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: List the plugin directories
+        id: plugins
+        run: |
+          plugins=$(find plugins -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | jq -Rsc 'split("\n") | map(select(length > 0)) | if length == 0 then error("plugins/ holds no plugin.") else . end')
+          mirrors='[]'
+          readmes='[]'
+          for plugin in $(jq -r '.[]' <<< "$plugins"); do
+            if ! [[ "$plugin" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || [ ! -f "plugins/$plugin/$plugin.php" ]; then
+              echo "::error::plugins/$plugin must be a kebab-case slug holding its main file, $plugin.php."
+              exit 1
+            fi
+            repo=$(jq -r '.name // empty' "plugins/$plugin/composer.json")
+            if ! [[ "$repo" =~ ^ahegyes/[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+              echo "::error::plugins/$plugin/composer.json's name must be its mirror, ahegyes/<repository> — got '$repo'."
+              exit 1
+            fi
+            mirrors=$(jq -c --arg plugin "$plugin" --arg repo "${repo#ahegyes/}" '. + [{ plugin: $plugin, repo: $repo }]' <<< "$mirrors")
+            if [ -f "plugins/$plugin/readme.txt" ]; then
+              readmes=$(jq -c --arg plugin "$plugin" '. + [$plugin]' <<< "$readmes")
+            fi
+          done
+          {
+            echo "plugins=$plugins"
+            echo "projects=$(jq -c '["."] + map("plugins/" + .)' <<< "$plugins")"
+            echo "readmes=$readmes"
+            echo "mirrors=$mirrors"
+          } >> "$GITHUB_OUTPUT"
+
+      # WordPress's version API offers the newest release of every branch, so new releases and raised floors join without an edit here.
+      - name: List the newest WordPress release of every branch from each plugin's floor up
+        id: wordpress
+        env:
+          PLUGINS: ${{ steps.plugins.outputs.plugins }}
+        run: |
+          offers=$(curl -fsS https://api.wordpress.org/core/version-check/1.7/)
+          pairs='[]'
+          for plugin in $(jq -r '.[]' <<< "$PLUGINS"); do
+            floor=$(sed -nE 's|^[[:space:]/*#@]*Requires at least:[[:space:]]*([0-9]+(\.[0-9]+)*).*$|\1|p' "plugins/$plugin/$plugin.php" | head -n 1)
+            if [ -z "$floor" ]; then
+              echo "::error::plugins/$plugin/$plugin.php declares no Requires at least header."
+              exit 1
+            fi
+            pairs=$(printf '%s' "$offers" | jq -c --arg floor "$floor" --arg plugin "$plugin" --argjson pairs "$pairs" '[.offers[].version | select((split(".")[0:2] | map(tonumber)) >= ($floor | split(".")[0:2] | map(tonumber)))] | unique | if length == 0 then error("No WordPress release at or above \($floor) for \($plugin).") else $pairs + map({ plugin: $plugin, wp: . }) end')
+          done
+          echo "wordpress=$pairs" >> "$GITHUB_OUTPUT"

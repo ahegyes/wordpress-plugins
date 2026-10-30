@@ -9,70 +9,98 @@ permissions:
   contents: read
 
 jobs:
+  plugins:
+    name: Plugins
+    uses: ./.github/workflows/plugins.yml
+
   lint-php:
     name: PHP Lint (${{ matrix.plugin }})
+    needs: plugins
     strategy:
       fail-fast: false
       matrix:
-        plugin:
-          - internal-comments
-          - linked-orders-for-woocommerce
-          - locked-payment-methods-for-woocommerce
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@0a9f3152853200fbdcbe3fa8d5073aae24fb05c3
+        plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
     with:
-      php-version: '8.5'
       project-path: plugins/${{ matrix.plugin }}
-      scripts: '["lint:php:phpcs", "lint:php:phpstan"]'
+      php-version: '8.5'
+      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
 
-  changelog:
-    name: Changelog fragments (${{ matrix.scope }})
+  lint-scripts-styles:
+    name: Scripts and styles lint (${{ matrix.plugin }})
+    needs: plugins
     strategy:
       fail-fast: false
       matrix:
-        scope:
-          - root
-          - internal-comments
-          - linked-orders-for-woocommerce
-          - locked-payment-methods-for-woocommerce
+        plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: plugins/${{ matrix.plugin }}
+      scripts: '["lint:scripts", "lint:styles", "lint:types"]'
+
+  block-json:
+    name: block.json schema (${{ matrix.plugin }})
+    needs: plugins
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: plugins/${{ matrix.plugin }}
+
+  php-syntax:
+    name: PHP syntax (${{ matrix.plugin }})
+    needs: plugins
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: plugins/${{ matrix.plugin }}
+      php-versions: '["7.4"]'
+      paths: ${{ format('["{0}.php", "uninstall.php", "includes"]', matrix.plugin) }}
+
+  readme-lint:
+    name: readme.txt lint (${{ matrix.plugin }})
+    needs: plugins
+    if: needs.plugins.outputs.readmes != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJSON(needs.plugins.outputs.readmes) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+      - uses: thetwopct/wporg-plugin-readme-linter@1f869aba959265ecc90935b2380c6569d56646ac # v1.0.2
+        with:
+          path: plugins/${{ matrix.plugin }}/readme.txt
+          fail-on: error
+
+  changelog:
+    name: Changelog fragments (${{ matrix.project }})
+    needs: plugins
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(needs.plugins.outputs.projects) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.5'
           coverage: none
           tools: composer:v2
-      - name: Resolve working directory
-        id: dir
-        run: |
-          if [ "${{ matrix.scope }}" = "root" ]; then
-            echo "path=." >> "$GITHUB_OUTPUT"
-          else
-            echo "path=plugins/${{ matrix.scope }}" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
+      - uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
         with:
-          working-directory: ${{ steps.dir.outputs.path }}
+          working-directory: ${{ matrix.project }}
       - run: composer changelog:validate
-        working-directory: ${{ steps.dir.outputs.path }}
-
-  readme-lint:
-    name: readme.txt lint (${{ matrix.plugin }})
-    strategy:
-      fail-fast: false
-      matrix:
-        plugin:
-          - internal-comments
-          - linked-orders-for-woocommerce
-          - locked-payment-methods-for-woocommerce
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-        with:
-          persist-credentials: false
-      - uses: thetwopct/wporg-plugin-readme-linter@1f869aba959265ecc90935b2380c6569d56646ac
-        with:
-          path: plugins/${{ matrix.plugin }}/readme.txt
-          fail-on: error
+        working-directory: ${{ matrix.project }}
