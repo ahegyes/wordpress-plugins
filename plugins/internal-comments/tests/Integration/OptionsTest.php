@@ -2,109 +2,31 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
-use DeepWebSolutions\InternalComments\Plugin;
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class OptionsTest extends TestCase {
-	protected const string KEY = Plugin::PREFIX . '_options_test';
+	public function test_the_settings_keep_the_rows_and_fields_v1_stored_them_under(): void {
+		self::assertSame( 'dws-internal-comments_general', DWS_IC_OPTION_GENERAL );
+		self::assertSame( 'dws-internal-comments_plugin', DWS_IC_OPTION_PLUGIN );
+		self::assertSame( 'post-types', DWS_IC_SETTING_POST_TYPES );
+		self::assertSame( 'enable-private-comments', DWS_IC_SETTING_PRIVATE_COMMENTS );
+		self::assertSame( 'remove-data-uninstall', DWS_IC_SETTING_DELETE_DATA );
+	}
 
-	protected const array RESTORED = array( DWS_IC_OPTION_DELETE_DATA );
-
-	protected array $stored = array();
-
-	public static function stored_bools(): array {
-		return array(
-			'yes'       => array( 'yes', true ),
-			'no'        => array( 'no', false ),
-			'one'       => array( '1', true ),
-			'zero'      => array( '0', false ),
-			'true'      => array( true, true ),
-			'empty'     => array( '', false ),
-			'malformed' => array( 'maybe', false ),
-			'array'     => array( array( 'yes' ), false ),
+	public function test_each_row_starts_with_the_values_v1_stored_as_its_defaults(): void {
+		self::assertSame(
+			array(
+				DWS_IC_OPTION_GENERAL => array(
+					DWS_IC_SETTING_POST_TYPES       => array(),
+					DWS_IC_SETTING_PRIVATE_COMMENTS => 'no',
+				),
+				DWS_IC_OPTION_PLUGIN  => array(
+					DWS_IC_SETTING_DELETE_DATA => 'no',
+				),
+			),
+			DWS_IC_SETTING_DEFAULTS
 		);
-	}
-
-	public static function stored_ints(): array {
-		return array(
-			'int'       => array( 7, 7 ),
-			'numeric'   => array( '7', 7 ),
-			'padded'    => array( ' 7 ', 7 ),
-			'negative'  => array( '-7', -7 ),
-			'float'     => array( '7.5', 0 ),
-			'malformed' => array( 'seven', 0 ),
-			'array'     => array( array( 7 ), 0 ),
-		);
-	}
-
-	public static function stored_strings(): array {
-		return array(
-			'string' => array( 'kept', 'kept' ),
-			'empty'  => array( '', '' ),
-			'array'  => array( array( 'kept' ), '' ),
-		);
-	}
-
-	public static function stored_lists(): array {
-		return array(
-			'list'   => array( array( 'a', 'b' ), array( 'a', 'b' ) ),
-			'mixed'  => array( array( 'a', 7, 'b' ), array( 'a', 'b' ) ),
-			'keyed'  => array( array( 'x' => 'a' ), array( 'a' ) ),
-			'string' => array( 'a', array() ),
-		);
-	}
-
-	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::RESTORED as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
-	}
-
-	#[After]
-	protected function restore_rows(): void {
-		delete_option( self::KEY );
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-	}
-
-	#[DataProvider( 'stored_bools' )]
-	public function test_a_bool_reads_the_stored_checkbox_value_or_false( mixed $stored, bool $expected ): void {
-		update_option( DWS_IC_OPTION_DELETE_DATA, $stored );
-
-		self::assertSame( $expected, dws_ic_get_bool_option( DWS_IC_OPTION_DELETE_DATA ) );
-	}
-
-	public function test_a_missing_option_reads_its_default(): void {
-		delete_option( DWS_IC_OPTION_DELETE_DATA );
-
-		self::assertSame( DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_DELETE_DATA ], dws_ic_get_bool_option( DWS_IC_OPTION_DELETE_DATA ) );
-	}
-
-	#[DataProvider( 'stored_ints' )]
-	public function test_an_int_reads_a_whole_number_or_zero( mixed $stored, int $expected ): void {
-		update_option( self::KEY, $stored );
-
-		self::assertSame( $expected, dws_ic_get_int_option( self::KEY ) );
-	}
-
-	#[DataProvider( 'stored_strings' )]
-	public function test_a_string_reads_a_stored_string_or_the_empty_string( mixed $stored, string $expected ): void {
-		update_option( self::KEY, $stored );
-
-		self::assertSame( $expected, dws_ic_get_string_option( self::KEY ) );
-	}
-
-	#[DataProvider( 'stored_lists' )]
-	public function test_a_list_reads_the_stored_strings_in_order( mixed $stored, array $expected ): void {
-		update_option( self::KEY, $stored );
-
-		self::assertSame( $expected, dws_ic_get_list_option( self::KEY ) );
 	}
 }
