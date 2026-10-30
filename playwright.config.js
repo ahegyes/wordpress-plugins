@@ -1,19 +1,11 @@
-// Match `port` in .wp-env.tests.json. Set BEFORE requires so @wordpress/scripts
-// picks it up (it derives use.baseURL + webServer.port + globalSetup from this).
-process.env.WP_BASE_URL = 'http://localhost:8820';
-
-// Move Playwright outputs (storage states, test-results) into tests/.cache/ so root stays clean.
-const path = require( 'path' );
-process.env.WP_ARTIFACTS_PATH = path.join( __dirname, 'tests', '.cache', 'artifacts' );
-
 const { defineConfig } = require( '@playwright/test' );
-const baseConfig = require( '@ahegyes/wordpress-configs/node/playwright.config.base.js' );
+// The shared environment's port, where every plugin runs beside the others.
+const baseConfig = require( '@ahegyes/wordpress-configs/node/playwright.config.base.js' )( { port: 8820 } );
 
 module.exports = defineConfig( {
 	...baseConfig,
-	testDir: './tests/e2e',
 	webServer: {
 		...baseConfig.webServer,
-		command: 'npm run wp-env:start',
+		command: 'npm run wp-env:tests:start',
 	},
 } );

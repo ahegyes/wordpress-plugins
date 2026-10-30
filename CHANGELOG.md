@@ -11,8 +11,6 @@ Pending entries live in [`changelog/`](./changelog) — add via `composer change
 ## 1.0.0 - unreleased
 
 ### Added
-- Initial monorepo scaffold for `internal-comments`, `linked-orders-for-woocommerce`, `locked-payment-methods-for-woocommerce`.
-- Cross-plugin wp-env config on port 8820, mounting all 3 plugins + WooCommerce.
-- splitsh-lite split-publish workflow for per-plugin GitHub mirrors.
+- Initial monorepo, which splits each plugin to its own mirror and tests the plugins side by side.
 
 <!-- End changelog -->

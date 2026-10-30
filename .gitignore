@@ -1,11 +1,4 @@
-# DWS monorepo — per-plugin generated artifacts
-plugins/*/dependencies
-plugins/*/scoping-exclusions.json
-plugins/*/vendor
-plugins/*/node_modules
-plugins/*/tests/.cache
-
-# DWS monorepo — root-level generated
+# Each plugin's own .gitignore covers its generated files.
 tests/.cache
 
 # Created by https://www.toptal.com/developers/gitignore/api/node,linux,macos,phpunit,windows,composer,phpstorm+all,visualstudiocode
