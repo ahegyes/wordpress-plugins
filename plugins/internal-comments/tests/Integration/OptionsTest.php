@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 final class OptionsTest extends TestCase {
 	protected const string KEY = Plugin::PREFIX . '_options_test';
 
-	protected const array RESTORED = array( DWS_IC_OPTION_DELETE_DATA, DWS_IC_OPTION_GREETING );
+	protected const array RESTORED = array( DWS_IC_OPTION_DELETE_DATA );
 
 	protected array $stored = array();
 
@@ -56,19 +56,6 @@ final class OptionsTest extends TestCase {
 			'mixed'  => array( array( 'a', 7, 'b' ), array( 'a', 'b' ) ),
 			'keyed'  => array( array( 'x' => 'a' ), array( 'a' ) ),
 			'string' => array( 'a', array() ),
-		);
-	}
-
-	public static function submitted_order_counts(): array {
-		return array(
-			'one'      => array( '1', '1' ),
-			'padded'   => array( ' 3 ', '3' ),
-			'zero'     => array( '0', null ),
-			'negative' => array( '-3', null ),
-			'decimal'  => array( '2.5', null ),
-			'word'     => array( 'three', null ),
-			'empty'    => array( '', null ),
-			'array'    => array( array( '3' ), null ),
 		);
 	}
 
@@ -119,31 +106,5 @@ final class OptionsTest extends TestCase {
 		update_option( self::KEY, $stored );
 
 		self::assertSame( $expected, dws_ic_get_list_option( self::KEY ) );
-	}
-
-	public function test_a_string_without_a_stored_value_reads_its_translated_default(): void {
-		delete_option( DWS_IC_OPTION_GREETING );
-
-		self::assertNotSame( '', dws_ic_get_option_text( DWS_IC_OPTION_GREETING ) );
-		self::assertSame( dws_ic_get_option_text( DWS_IC_OPTION_GREETING ), dws_ic_get_string_option( DWS_IC_OPTION_GREETING ) );
-
-		update_option( DWS_IC_OPTION_GREETING, '' );
-
-		self::assertSame( dws_ic_get_option_text( DWS_IC_OPTION_GREETING ), dws_ic_get_string_option( DWS_IC_OPTION_GREETING ) );
-
-		update_option( DWS_IC_OPTION_GREETING, 'Hello' );
-
-		self::assertSame( 'Hello', dws_ic_get_string_option( DWS_IC_OPTION_GREETING ) );
-	}
-
-	public function test_an_option_without_a_translated_default_has_no_text(): void {
-		self::assertSame( '', dws_ic_get_option_text( DWS_IC_OPTION_FEATURE ) );
-	}
-
-	#[DataProvider( 'submitted_order_counts' )]
-	public function test_an_order_count_validates_as_a_whole_number_of_at_least_one( mixed $submitted, ?string $expected ): void {
-		$validated = dws_ic_validate_greeting_orders( $submitted );
-
-		\is_null( $expected ) ? self::assertInstanceOf( \WP_Error::class, $validated ) : self::assertSame( $expected, $validated );
 	}
 }

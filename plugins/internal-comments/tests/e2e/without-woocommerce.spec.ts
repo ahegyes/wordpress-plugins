@@ -2,10 +2,6 @@
 import { execFileSync } from 'node:child_process';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
-// WordPress core's own message for a plugin whose Requires Plugins header lists an inactive plugin.
-const DEPENDENCY =
-	'Internal Comments requires 1 plugin to be installed and activated: WooCommerce.';
-
 // No page shows the boot's outcome, so the site's WP-CLI reads it.
 const bootStatus = (): string =>
 	execFileSync(
@@ -34,10 +30,10 @@ test.describe( 'Without WooCommerce', () => {
 		await requestUtils.activatePlugin( 'woocommerce' );
 	} );
 
-	test( 'the plugin stays blocked, WordPress names the missing plugin and every screen still loads', async ( {
+	test( 'the plugin boots and every screen still loads', async ( {
 		page,
 	} ) => {
-		expect( bootStatus() ).toBe( 'blocked' );
+		expect( bootStatus() ).toBe( 'booted' );
 
 		const front = await page.goto( '/' );
 		expect( front?.status() ).toBe( 200 );
@@ -45,7 +41,6 @@ test.describe( 'Without WooCommerce', () => {
 		for ( const screen of [ '/wp-admin/', '/wp-admin/plugins.php' ] ) {
 			const response = await page.goto( screen );
 			expect( response?.status() ).toBe( 200 );
-			await expect( page.getByText( DEPENDENCY ) ).toBeVisible();
 		}
 	} );
 } );

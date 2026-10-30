@@ -30,10 +30,6 @@
     },
     {
       "type": "vcs",
-      "url": "https://github.com/ahegyes/wp-framework-woocommerce"
-    },
-    {
-      "type": "vcs",
       "url": "https://github.com/ahegyes/wordpress-configs"
     },
     {
@@ -52,7 +48,6 @@
     "ahegyes/wp-framework-core": "^2.0",
     "ahegyes/wp-framework-settings": "^2.0",
     "ahegyes/wp-framework-shared": "^2.0",
-    "ahegyes/wp-framework-woocommerce": "^2.0",
     "automattic/jetpack-changelogger": "^7",
     "humbug/php-scoper": "^0.18",
     "johnpbloch/wordpress-core": "^7.1",

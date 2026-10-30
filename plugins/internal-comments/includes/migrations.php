@@ -36,9 +36,7 @@ function dws_ic_get_migration_steps(): array {
  */
 function dws_ic_add_settings(): void {
 	$defaults = array(
-		DWS_IC_OPTION_FEATURE         => wc_bool_to_string( DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_FEATURE ] ),
-		DWS_IC_OPTION_GREETING_ORDERS => (string) DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_GREETING_ORDERS ],
-		DWS_IC_OPTION_DELETE_DATA     => wc_bool_to_string( DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_DELETE_DATA ] ),
+		DWS_IC_OPTION_DELETE_DATA => 'no',
 	);
 
 	foreach ( $defaults as $key => $value ) {

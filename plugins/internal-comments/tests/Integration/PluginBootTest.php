@@ -2,24 +2,21 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
-use DeepWebSolutions\InternalComments\Blocks;
-use DeepWebSolutions\InternalComments\Feature\Feature;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
-use DeepWebSolutions\InternalComments\Settings;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PluginBootTest extends TestCase {
-	public function test_the_plugin_boots_with_the_greeting_gated_off_until_a_site_switches_it_on(): void {
+	public function test_the_plugin_boots_every_component(): void {
 		$plugin = dws_ic_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, Settings::class, Blocks::class ), $plugin->kernel?->resolved );
-		self::assertSame( array( Feature::class ), $plugin->kernel->skipped );
+		self::assertSame( array( Scheduler::class, AdminNotices::class ), $plugin->kernel?->resolved );
+		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 
 	public function test_the_entry_loads_every_include_but_those_whose_names_start_with_an_underscore(): void {

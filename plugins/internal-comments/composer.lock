@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2ef172ac99d7229b979adf02cb0ca6da",
+    "content-hash": "d1bac1fc88299907622dd05c50628548",
     "packages": [],
     "packages-dev": [
         {
@@ -12,7 +12,7 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wordpress-configs.git",
+                "url": "https://github.com/ahegyes/wordpress-configs.git",
                 "reference": "8d53efd292e4abee4a9c57b0e379434f54bedbe9"
             },
             "dist": {
@@ -146,7 +146,7 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wp-framework-bootstrap.git",
+                "url": "https://github.com/ahegyes/wp-framework-bootstrap.git",
                 "reference": "6f48ed4ed852ba35a06ef46dcfc104170732a189"
             },
             "dist": {
@@ -181,7 +181,7 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wp-framework-core.git",
+                "url": "https://github.com/ahegyes/wp-framework-core.git",
                 "reference": "6d087554f21ccc65ac52583d8d9e7de542c84cfd"
             },
             "dist": {
@@ -229,7 +229,7 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wp-framework-settings.git",
+                "url": "https://github.com/ahegyes/wp-framework-settings.git",
                 "reference": "5942e878af9f8536698c724116ceef5b50948e24"
             },
             "dist": {
@@ -271,7 +271,7 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wp-framework-shared.git",
+                "url": "https://github.com/ahegyes/wp-framework-shared.git",
                 "reference": "72568a6fd790b49926f6f74e4dd2478e31d91b8a"
             },
             "dist": {
@@ -302,54 +302,6 @@
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "support": {
                 "source": "https://github.com/ahegyes/wp-framework-shared/tree/trunk"
-            },
-            "time": "2026-10-30T10:12:55+00:00"
-        },
-        {
-            "name": "ahegyes/wp-framework-woocommerce",
-            "version": "dev-trunk",
-            "source": {
-                "type": "git",
-                "url": "git@github.com:ahegyes/wp-framework-woocommerce.git",
-                "reference": "9dd04e7c2c0e99160a231ce3a0f17a443a492631"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wp-framework-woocommerce/zipball/9dd04e7c2c0e99160a231ce3a0f17a443a492631",
-                "reference": "9dd04e7c2c0e99160a231ce3a0f17a443a492631",
-                "shasum": ""
-            },
-            "require": {
-                "ahegyes/wp-framework-settings": "^2.0",
-                "php": ">=8.5"
-            },
-            "default-branch": true,
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-trunk": "2.x-dev"
-                },
-                "scoping-stubs": [
-                    "php-stubs/woocommerce-stubs"
-                ],
-                "scoping-text-domain": "wp-framework",
-                "requires-wp": "7.1",
-                "requires-plugins": [
-                    "woocommerce"
-                ]
-            },
-            "autoload": {
-                "psr-4": {
-                    "DeepWebSolutions\\Framework\\WooCommerce\\": "src/"
-                }
-            },
-            "license": [
-                "GPL-3.0-or-later"
-            ],
-            "description": "The framework's settings, edit-screen and logging helpers carried onto WooCommerce's own screens and APIs, for plugins that extend WooCommerce.",
-            "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "support": {
-                "source": "https://github.com/ahegyes/wp-framework-woocommerce/tree/trunk"
             },
             "time": "2026-10-30T10:12:55+00:00"
         },

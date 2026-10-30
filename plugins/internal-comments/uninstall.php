@@ -10,7 +10,6 @@
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
@@ -29,9 +28,8 @@ try {
 	require_once __DIR__ . '/vendor/autoload.php';
 	require_once __DIR__ . '/includes/footprint.php';
 	require_once __DIR__ . '/includes/options.php';
-	$dws_ic_footprint  = dws_ic_get_footprint();
-	$dws_ic_consent    = DWS_IC_OPTION_DELETE_DATA;
-	$dws_ic_meta_types = MetaTypes::DEFINITIONS;
+	$dws_ic_footprint = dws_ic_get_footprint();
+	$dws_ic_consent   = DWS_IC_OPTION_DELETE_DATA;
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
@@ -48,8 +46,5 @@ try {
 Uninstaller::run(
 	$dws_ic_file,
 	$dws_ic_footprint,
-	array(
-		'consent'    => array( 'option' => $dws_ic_consent ),
-		'meta_types' => $dws_ic_meta_types,
-	)
+	array( 'consent' => array( 'option' => $dws_ic_consent ) )
 );

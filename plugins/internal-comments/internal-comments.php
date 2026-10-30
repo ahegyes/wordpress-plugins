@@ -2,11 +2,10 @@
 /**
  * Plugin Name:          Internal Comments
  * Plugin URI:           https://github.com/ahegyes/wp-internal-comments
- * Description:          WordPress plugins on the wp-framework packages start here, from one tested anatomy, so all are built alike and a fix found in one applies to all.
+ * Description:          Lets the people who run a site leave comments on its posts, pages, products and orders that only they can read.
  * Version:              2.0.0
  * Requires at least:    7.1
  * Requires PHP:         8.5
- * Requires Plugins:     woocommerce
  * WC requires at least: 11.2
  * WC tested up to:      11.2
  * Author:               Contributors
@@ -39,7 +38,7 @@ if ( is_readable( $dws_ic_bootstrap ) ) {
 
 require_once __DIR__ . '/includes/safeguards.php';
 
-if ( ! is_readable( $dws_ic_bootstrap ) || ! is_readable( __DIR__ . '/blocks/build/blocks-manifest.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
+if ( ! is_readable( $dws_ic_bootstrap ) || ! is_readable( __DIR__ . '/assets/build/meta-box.asset.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
 	add_action( 'all_admin_notices', 'dws_ic_render_build_notice' );
 	return;
 }

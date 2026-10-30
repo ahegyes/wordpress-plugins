@@ -3,13 +3,12 @@
 namespace DeepWebSolutions\InternalComments;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\WooCommerce\Logging\WooCommerceLogger;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\WooCommerce\WooCommerceRequirement;
 use DeepWebSolutions\InternalComments\Scoped\DI\ContainerBuilder;
 use DeepWebSolutions\InternalComments\Scoped\Psr\Log\LoggerInterface as PsrLoggerInterface;
 
@@ -55,9 +54,6 @@ final class Plugin {
 	public const array COMPONENTS = array(
 		Scheduler::class,
 		AdminNotices::class,
-		Settings::class,
-		Blocks::class,
-		Feature\Feature::class,
 	);
 
 	/**
@@ -71,7 +67,7 @@ final class Plugin {
 	public readonly PluginBoot $boot;
 
 	/**
-	 * The scheduler, which registers its WP-Cron schedules even while the plugin is blocked.
+	 * The scheduler, which the components and the deactivation callback share.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -121,7 +117,7 @@ final class Plugin {
 	 * @version 2.0.0
 	 */
 	public function __construct() {
-		$this->logger    = new WooCommerceLogger( self::SLUG, \defined( 'DWS_IC_DEBUG' ) && true === \constant( 'DWS_IC_DEBUG' ) ? 'debug' : null );
+		$this->logger    = new ErrorLogLogger( self::SLUG );
 		$this->scheduler = new Scheduler( self::PREFIX );
 		$this->boot      = new PluginBoot( DWS_IC_FILE, self::PREFIX, $this->logger );
 	}
@@ -173,7 +169,7 @@ final class Plugin {
 	// region HELPERS
 
 	/**
-	 * Builds the plugin and boots its components, returning false when WooCommerce is missing or too old.
+	 * Registers the scheduler and the migrations, then builds the kernel and boots the plugin's components.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -181,11 +177,7 @@ final class Plugin {
 	 * @return  bool
 	 */
 	protected function compose(): bool {
-		$this->scheduler->register_hooks(); // Before the WooCommerce check, so the plugin's recurring WP-Cron events keep their schedules while it is blocked.
-		if ( ! ( new WooCommerceRequirement( DWS_IC_FILE ) )->check() ) {
-			return false;
-		}
-
+		$this->scheduler->register_hooks();
 		$this->migrations = new MigrationRunner( DWS_IC_FILE, self::PREFIX . '_revision', dws_ic_get_migration_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
