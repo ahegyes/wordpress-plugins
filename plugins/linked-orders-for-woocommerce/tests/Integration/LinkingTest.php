@@ -96,7 +96,7 @@ final class LinkingTest extends TestCase {
 		$php    = '$lock = new DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\Storage\\Lock( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
 		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
 
-		$held = static fn (): bool => null !== $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'dws_lowc_linking'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Watches the other request's lock row past the options cache.
+		$held  = static fn (): bool => null !== $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'dws_lowc_linking'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Watches the other request's lock row past the options cache.
 		$tries = 0;
 		while ( ! $held() && $tries++ < 300 ) {
 			\usleep( 50000 );
