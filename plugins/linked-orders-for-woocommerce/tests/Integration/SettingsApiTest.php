@@ -75,6 +75,20 @@ final class SettingsApiTest extends TestCase {
 		self::assertNull( dws_lowc_get_validated_setting( 'max-depth' ) );
 	}
 
+	// v1 read any field of a known group from its option, such as one an extension adds through the group's field filter.
+	public function test_a_field_an_extension_added_to_a_group_reads_from_its_option(): void {
+		update_option( 'dws-lowc_general_extra', 'kept' );
+
+		try {
+			self::assertSame( 'kept', dws_lowc_get_raw_setting( 'extra', 'general' ) );
+			self::assertSame( 'kept', dws_lowc_get_validated_setting( 'extra', 'general-settings' ) );
+			self::assertSame( 'kept', dws_lowc_get_validated_setting( 'general/extra' ) );
+			self::assertNull( dws_lowc_get_raw_setting( 'extra', 'unknown' ) );
+		} finally {
+			delete_option( 'dws-lowc_general_extra' );
+		}
+	}
+
 	public function test_a_value_validates_against_its_fields_routine(): void {
 		self::assertSame( 1, dws_lowc_validate_setting( '-4', 'max-depth', 'general' ) );
 		self::assertSame( 7, dws_lowc_validate_setting( '7', 'general/max-depth' ) );

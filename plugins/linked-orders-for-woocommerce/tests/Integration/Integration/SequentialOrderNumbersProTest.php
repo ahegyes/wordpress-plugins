@@ -29,5 +29,6 @@ final class SequentialOrderNumbersProTest extends TestCase {
 		self::assertIsInt( $id );
 		$this->orders[] = $id;
 		self::assertSame( array( $id ), \array_map( static fn ( \WC_Order $order ): int => $order->get_id(), wc_seq_order_number_pro()->numbered ) );
+		self::assertSame( 'SOS-' . $id, wc_get_order( $id )?->get_meta( '_order_number' ) );
 	}
 }

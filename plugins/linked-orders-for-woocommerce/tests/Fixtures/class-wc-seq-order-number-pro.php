@@ -17,7 +17,7 @@ final class WC_Seq_Order_Number_Pro {
 	public array $numbered = array();
 
 	/**
-	 * Records an order the plugin would number.
+	 * Records an order the plugin would number, and numbers it as the plugin does, on the object, for its next save to store.
 	 *
 	 * @param WC_Order $order The order.
 	 *
@@ -25,5 +25,6 @@ final class WC_Seq_Order_Number_Pro {
 	 */
 	public function set_sequential_order_number( WC_Order $order ): void {
 		$this->numbered[] = $order;
+		$order->update_meta_data( '_order_number', 'SOS-' . $order->get_id() );
 	}
 }
