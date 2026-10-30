@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  slug:
+    name: Plugin slug
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      slug: ${{ steps.slug.outputs.slug }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # GitHub refuses a GITHUB_TOKEN push that changes a workflow, so the fill-in leaves workflows alone and they read the slug the plugin declares.
+      - name: Read the slug from composer.json
+        id: slug
+        run: |
+          slug=$(jq -r '.extra["text-domain"] // empty' composer.json)
+          if ! [[ "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "::error::composer.json's extra.text-domain must be the plugin's kebab-case slug — got '$slug'."
+            exit 1
+          fi
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Release
+    needs: slug
+    # A reusable workflow can't elevate above the caller's token; grant the provenance check's and the GitHub Release's scopes here.
+    permissions:
+      actions: read
+      contents: write
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-release.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: '.'
+      plugin-slug: ${{ needs.slug.outputs.slug }}
+      wp-env-config-file: '.wp-env.tests.json'
+      # Both parse every PHP file with php-parser 4, which stops at PHP 8.4 syntax such as protected(set).
+      exclude-checks: 'prefixing,direct_file_access'
+      # A pull request or a dispatch on a branch rehearses the release without publishing it.
+      publish: ${{ github.ref_type == 'tag' }}
