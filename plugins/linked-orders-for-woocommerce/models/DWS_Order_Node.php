@@ -338,11 +338,10 @@ final class DWS_Order_Node {
 		 * @param   DWS_Order_Node $node        The order's node.
 		 */
 		$status_name = apply_filters( 'dws_lowc/node/status_name', $status_name, $this->post_type, $this->order, $this );
-		$type_name   = $this->post_type->labels->singular_name ?? null;
 		$name        = sprintf(
 			/* translators: 1: The order type's singular name. 2: The order number. 3: The order status's name. */
 			__( '%1$s #%2$s - %3$s', 'linked-orders-for-woocommerce' ),
-			is_string( $type_name ) ? $type_name : $this->post_type->label,
+			dws_lowc_get_singular_name( $this->post_type ),
 			$this->order->get_order_number(),
 			$status_name
 		);

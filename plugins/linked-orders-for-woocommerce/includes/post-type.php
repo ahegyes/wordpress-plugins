@@ -44,6 +44,22 @@ function dws_lowc_get_supported_order_types(): array {
 }
 
 /**
+ * Returns an order type's singular name, or its plural name where the type registered no singular one.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   WP_Post_Type $post_type The post type object of the order type.
+ *
+ * @return  string
+ */
+function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
+	$name = $post_type->labels->singular_name ?? null;
+
+	return is_string( $name ) ? $name : $post_type->label;
+}
+
+/**
  * Returns whether an order is of a type that can be linked, or null when it is not an order.
  *
  * @since   1.0.0

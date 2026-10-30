@@ -58,6 +58,9 @@ final class Plugin {
 		AdminNotices::class,
 		CapabilityGrants::class,
 		Settings::class,
+		ChildCreation::class,
+		Autocompletion::class,
+		Integration\SequentialOrderNumbersPro::class,
 	);
 
 	/**

@@ -16,6 +16,8 @@ parameters:
     scanFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
         - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
+        - tests/Fixtures/class-wc-seq-order-number-pro.php
+        - tests/Fixtures/sequential-order-numbers-pro.php
     # The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.
     scanDirectories:
         - vendor-prefixed
