@@ -137,7 +137,11 @@ final class ChildCreationTest extends TestCase {
 			$this->request( $parent_id );
 		}
 
-		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+		$children = dws_lowc_get_order_node( $parent->get_id() )?->get_children() ?? array();
+		foreach ( $children as $child ) {
+			$this->orders[] = $child->get_order()->get_id();
+		}
+		self::assertSame( array(), $children );
 		self::assertSame( array( 'There is no order 0 to create a linked child for.' ), $this->get_messages() );
 	}
 
