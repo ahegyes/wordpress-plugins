@@ -23,6 +23,8 @@ final class DeprecatedHooksTest extends TestCase {
 			'status-name'                  => array( 'node/status_name', 'dws_lowc/node/status_name', 'format_node_name' ),
 			'formatted-name'               => array( 'node/get_formatted_name', 'dws_lowc/node/formatted_name', 'format_node_name' ),
 			'can-create-child'             => array( 'node/can_create_child', 'dws_lowc/node/can_create_child', 'check_child_creation' ),
+			'should-autocomplete'          => array( 'autocompletion/should_autocomplete', 'dws_lowc/autocompletion/should_autocomplete', 'complete_parent' ),
+			'completed-status'             => array( 'autocompletion/completed_status', 'dws_lowc/autocompletion/completed_status', 'complete_parent' ),
 		);
 	}
 
@@ -87,5 +89,18 @@ final class DeprecatedHooksTest extends TestCase {
 
 	protected function check_child_creation(): void {
 		dws_lowc_get_order_node( $this->create_order() )?->can_create_child();
+	}
+
+	protected function complete_parent(): void {
+		$parent = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $this->create_order()->get_id() ) );
+		$stored = get_option( DWS_LOWC_OPTION_AUTOCOMPLETE );
+		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
+
+		try {
+			wc_get_order( $parent->get_id() )->update_status( 'completed' );
+		} finally {
+			update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, $stored );
+		}
 	}
 }
