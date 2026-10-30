@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Wraps an order of a supported type with its place in a tree of linked orders, which it reads from the order's meta once and saves back to it.
+ * Wraps an order of a supported type with its place in a tree of linked orders, which it reads from the order's meta once and saves back to it; it loads its parent's and children's orders only when asked for them.
  *
  * It keeps v1's global name, which other plugins type-hint, and calls to it that name no method of its own reach the order.
  *
@@ -56,24 +56,44 @@ final class DWS_Order_Node {
 	protected int $depth = 0;
 
 	/**
-	 * The node of the order's parent, or null for a root or a child whose parent was deleted.
+	 * The id the order's meta names as its parent's.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     DWS_Order_Node|null
+	 * @var     int|null
 	 */
-	protected ?DWS_Order_Node $parent = null;
+	protected ?int $parent_id = null;
 
 	/**
-	 * The nodes of the order's children that still exist.
+	 * The ids the order's meta names as its children's.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     list<DWS_Order_Node>
+	 * @var     array<int|null>
 	 */
-	protected array $children = array();
+	protected array $child_ids = array();
+
+	/**
+	 * The node of the order's parent, null for a root or a child whose parent was deleted, or false until it is first asked for.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     DWS_Order_Node|false|null
+	 */
+	protected DWS_Order_Node|false|null $parent = false;
+
+	/**
+	 * The nodes of the order's children that still exist, or null until they are first asked for.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     list<DWS_Order_Node>|null
+	 */
+	protected ?array $children = null;
 
 	// endregion
 
@@ -183,6 +203,9 @@ final class DWS_Order_Node {
 	 */
 	public function get_parent(): ?DWS_Order_Node {
 		$this->maybe_read();
+		if ( false === $this->parent ) {
+			$this->parent = $this->depth > 0 ? dws_lowc_get_order_node( $this->parent_id ) : null;
+		}
 
 		return $this->parent;
 	}
@@ -209,6 +232,7 @@ final class DWS_Order_Node {
 	 */
 	public function get_children(): array {
 		$this->maybe_read();
+		$this->children ??= array_values( array_filter( array_map( static fn ( ?int $id ): ?DWS_Order_Node => dws_lowc_get_order_node( $id ), $this->child_ids ) ) );
 
 		return $this->children;
 	}
@@ -280,9 +304,9 @@ final class DWS_Order_Node {
 	// region METHODS
 
 	/**
-	 * Adds a child to the node, returning false when the child already has a parent or is this node or one of its ancestors.
+	 * Adds a child to the node, returning false unless the child is another order with neither a parent nor children.
 	 *
-	 * The child must be a root, so it is an ancestor only as the root of this node's tree, and refusing it keeps every tree free of cycles.
+	 * A lone root keeps every tree free of cycles, since an ancestor has children, and leaves no descendant with a stale depth.
 	 *
 	 * @since   1.0.0
 	 * @version 2.0.0
@@ -293,12 +317,12 @@ final class DWS_Order_Node {
 	 */
 	public function add_child( DWS_Order_Node $child ): bool {
 		$this->maybe_read();
-		if ( $child->has_parent() || $child->get_order()->get_id() === dws_lowc_get_root_order( $this->order )?->get_order()->get_id() ) {
+		if ( $child->has_parent() || $child->has_children() || $child->get_order()->get_id() === $this->order->get_id() ) {
 			return false;
 		}
 
 		$child->set_parent( $this );
-		$this->children[] = $child;
+		$this->children = array( ...$this->get_children(), $child );
 
 		return true;
 	}
@@ -434,7 +458,7 @@ final class DWS_Order_Node {
 	// region HELPERS
 
 	/**
-	 * Reads the node's depth, parent and children from the order's meta, once.
+	 * Reads the node's depth and the ids of its parent and children from the order's meta, once.
 	 *
 	 * @since   1.0.0
 	 * @version 2.0.0
@@ -446,15 +470,11 @@ final class DWS_Order_Node {
 			return;
 		}
 
-		$this->is_read = true;
-		$this->depth   = filter_var( $this->order->get_meta( '_dws_lo_depth' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
-		if ( $this->depth > 0 ) {
-			$this->parent = dws_lowc_get_order_node( filter_var( $this->order->get_meta( '_dws_lo_parent' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) );
-		}
-
-		$children       = $this->order->get_meta( '_dws_lo_children' );
-		$children       = is_array( $children ) ? filter_var( $children, FILTER_VALIDATE_INT, FILTER_REQUIRE_ARRAY | FILTER_NULL_ON_FAILURE ) : array();
-		$this->children = array_values( array_filter( array_map( static fn ( ?int $id ): ?DWS_Order_Node => dws_lowc_get_order_node( $id ), $children ) ) );
+		$this->is_read   = true;
+		$this->depth     = filter_var( $this->order->get_meta( '_dws_lo_depth' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
+		$this->parent_id = filter_var( $this->order->get_meta( '_dws_lo_parent' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
+		$children        = $this->order->get_meta( '_dws_lo_children' );
+		$this->child_ids = is_array( $children ) ? filter_var( $children, FILTER_VALIDATE_INT, FILTER_REQUIRE_ARRAY | FILTER_NULL_ON_FAILURE ) : array();
 	}
 
 	// endregion

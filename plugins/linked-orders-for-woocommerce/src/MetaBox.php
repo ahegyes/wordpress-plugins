@@ -113,9 +113,8 @@ final class MetaBox implements ComponentInterface {
 			return;
 		}
 
-		$url = wp_nonce_url( admin_url( 'admin-post.php?action=dws_lowc_create_linked_child&parent_id=' . $node->get_order()->get_id() ), 'dws_create_linked_child' );
 		?>
-		<a class="button button-alt" href="<?php echo esc_url( $url ); ?>">
+		<a class="button button-alt" href="<?php echo esc_url( dws_lowc_get_create_child_url( $node->get_order()->get_id() ) ); ?>">
 			<?php /* translators: %s: The order type's singular name. */ ?>
 			<?php echo esc_html( \sprintf( _x( 'Add new child %s', 'metabox', 'linked-orders-for-woocommerce' ), $type_name ) ); ?>
 		</a>

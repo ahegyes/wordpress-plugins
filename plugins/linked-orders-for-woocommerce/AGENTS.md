@@ -22,7 +22,7 @@ models/DWS_Order_Node.php    v1's global node class on the classmap, reading and
 includes/                    hook-free code as dws_lowc_ functions and DWS_LOWC_ constants, loaded in name order, _-prefixed files skipped
 ├── safeguards.php           restrictions that hold when the build fails; loaded by the entry before the autoloader
 ├── capabilities.php         v1's four capabilities and the roles CapabilityGrants gives them
-├── options.php              v1's option keys, their defaults, the typed readers and the depth validator
+├── options.php              v1's option keys, their defaults and the depth validator
 ├── settings.php             v1's settings API: the raw, validated and validating reads, by v1 field id and group
 ├── post-type.php            v1's order-type API and dws_lowc_create_linked_child()
 ├── linking.php              v1's linking API: nodes, links, roots and trees
@@ -65,7 +65,7 @@ Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI run
 3. **Request context.** `is_admin()` is false on REST requests and true in admin-ajax ones, so an admin-only feature decides the request context in its callbacks, never in `should_load()`.
 4. **Add-ons.** An add-on extends a base plugin only through the base plugin's documented hooks. It reads a template-built base plugin's slug, name and version only through that plugin's `{prefix}_get_plugin_*()` getters, from `plugins_loaded` on, since the add-on may load first, and behind `function_exists()`, since a base plugin below its floors or with a partial build may stay active without defining them.
 5. **Request reads.** An integer or boolean is read as `filter_var( wp_unslash( $_POST['key'] ?? '' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? $default` (`FILTER_VALIDATE_BOOL` for a boolean, where an absent key reads false, as an unchecked checkbox posts nothing), and a string through an `is_string()` guard and the field's sanitizer; never `filter_input()`, the `default` filter option or a cast on request input.
-6. **Options and data.** A setting is read through v1's API in `includes/settings.php`, so v1's filters apply, or through `includes/options.php`'s typed readers, safeguards excepted. v1's settings keep their `dws-lowc_` keys and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
+6. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-lowc_` keys and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
 7. **Order storage.** Order code goes through WC CRUD, `get_edit_order_url()` and WooCommerce's screen ids and list hooks, never the posts table, and every Integration row that touches orders runs on all four storages through `OrderStorage`: posts and the order tables, each with the sync on and off.
 8. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name, and `DeprecatedHooksTest` names the pair.
 9. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_lowc_is_relaxed()` (`docs/recipes.md`).

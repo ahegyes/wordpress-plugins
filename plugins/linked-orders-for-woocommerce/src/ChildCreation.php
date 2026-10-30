@@ -57,7 +57,14 @@ final class ChildCreation implements ComponentInterface {
 	public function create_linked_child(): never {
 		check_admin_referer( 'dws_create_linked_child' );
 
-		$parent_id = isset( $_GET['parent_id'] ) && \is_string( $_GET['parent_id'] ) ? absint( $_GET['parent_id'] ) : 0;
+		$parent_id = \filter_var(
+			wp_unslash( $_GET['parent_id'] ?? '' ),
+			\FILTER_VALIDATE_INT,
+			array(
+				'options' => array( 'min_range' => 1 ),
+				'flags'   => \FILTER_NULL_ON_FAILURE,
+			)
+		) ?? 0;
 		$node      = dws_lowc_get_order_node( $parent_id );
 		if ( null === $node ) {
 			/* translators: %d: The parent order's id. */

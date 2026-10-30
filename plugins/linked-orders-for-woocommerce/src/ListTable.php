@@ -206,7 +206,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$query_vars['meta_query'] = \array_merge( $meta_query, self::get_depth_clauses() ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
-		$tree                     = self::get_tree_filter();
+		$tree                     = self::get_tree_filter( $query_vars['post__in'] ?? null );
 		if ( null !== $tree ) {
 			$query_vars['post__in'] = $tree;
 		}
@@ -235,7 +235,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$args['meta_query'] = \array_merge( \is_array( $args['meta_query'] ?? null ) ? $args['meta_query'] : array(), self::get_depth_clauses() ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
-		$tree               = self::get_tree_filter();
+		$tree               = self::get_tree_filter( $args['id'] ?? null );
 		if ( null !== $tree ) {
 			$args['id'] = $tree;
 		}
@@ -284,7 +284,7 @@ final class ListTable implements ComponentInterface {
 
 		if ( $node->can_create_child() ) {
 			$added['create_empty_linked_child'] = array(
-				'url'    => wp_nonce_url( admin_url( 'admin-post.php?action=dws_lowc_create_linked_child&parent_id=' . $order->get_id() ), 'dws_create_linked_child' ),
+				'url'    => dws_lowc_get_create_child_url( $order->get_id() ),
 				/* translators: %s: The order type's singular name. */
 				'name'   => \sprintf( __( 'Create empty linked %s', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $type ) ),
 				'action' => 'create-empty-linked-child',
@@ -425,22 +425,30 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the ids of the tree the list is filtered by, none for an order without a node, or null when the list is not filtered by tree.
+	 * Returns the ids of the tree the list is filtered by, narrowed to the ids a search found, none for an order without a node, or null when the list is not filtered by tree.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @param   mixed $found The ids a search already narrowed the list to, if any.
+	 *
 	 * @return  list<int>|null
 	 */
-	protected static function get_tree_filter(): ?array {
+	protected static function get_tree_filter( mixed $found ): ?array {
 		$pivot = \filter_var( self::get_query_arg( '_dws_linked_order_id' ), \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
 		if ( false === $pivot ) {
 			return null;
 		}
 
-		$root = dws_lowc_get_root_order( $pivot );
+		$root  = dws_lowc_get_root_order( $pivot );
+		$tree  = null === $root ? array() : dws_lowc_get_orders_tree( $root->get_order() ) ?? array();
+		$found = \is_array( $found ) ? \filter_var( $found, \FILTER_VALIDATE_INT, \FILTER_REQUIRE_ARRAY | \FILTER_NULL_ON_FAILURE ) : null;
+		if ( \is_array( $found ) && array() !== $found ) {
+			$tree = \array_intersect( $tree, $found );
+		}
 
-		return null === $root ? array( 0 ) : \array_values( dws_lowc_get_orders_tree( $root->get_order() ) ?? array( 0 ) );
+		// An empty list would drop the filter, so an id no order has keeps the list empty.
+		return array() === $tree ? array( 0 ) : \array_values( $tree );
 	}
 
 	/**

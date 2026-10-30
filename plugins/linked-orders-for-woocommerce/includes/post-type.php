@@ -121,6 +121,20 @@ function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_o
 }
 
 /**
+ * Returns the URL that creates a linked child of an order through the plugin's admin-post action, with its nonce.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   int $parent_id The id of the parent order.
+ *
+ * @return  string
+ */
+function dws_lowc_get_create_child_url( int $parent_id ): string {
+	return wp_nonce_url( admin_url( 'admin-post.php?action=dws_lowc_create_linked_child&parent_id=' . $parent_id ), 'dws_create_linked_child' );
+}
+
+/**
  * Creates an order linked as the child of a supported order, with the parent's customer and addresses, and returns its id.
  *
  * Returns null when the parent is missing or unsupported, or when the creator is not callable or creates no supported order, and the creator's error when it fails.

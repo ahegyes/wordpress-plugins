@@ -27,6 +27,7 @@ try {
 	}
 
 	require_once __DIR__ . '/vendor/autoload.php';
+	require_once __DIR__ . '/includes/capabilities.php';
 	require_once __DIR__ . '/includes/footprint.php';
 	require_once __DIR__ . '/includes/options.php';
 	$dws_lowc_footprint  = dws_lowc_get_footprint();

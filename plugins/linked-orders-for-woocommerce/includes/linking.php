@@ -45,7 +45,7 @@ function dws_lowc_is_root_order( $order ): ?bool {
 }
 
 /**
- * Links one order as the child of another, returning false when the child already has a parent or is the parent or one of its ancestors, and null when either order has no node.
+ * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, and null when either order has no node.
  *
  * @since   1.0.0
  * @version 2.0.0
