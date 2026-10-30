@@ -1,0 +1,180 @@
+{
+  "name": "ahegyes/wp-internal-comments",
+  "description": "WordPress plugins on the wp-framework packages start here, from one tested anatomy, so all are built alike and a fix found in one applies to all.",
+  "type": "wordpress-plugin",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/ahegyes/wp-internal-comments",
+  "authors": [
+    {
+      "name": "Contributors",
+      "homepage": "https://github.com/ahegyes/wp-internal-comments/graphs/contributors"
+    }
+  ],
+
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-bootstrap"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-shared"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-core"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-settings"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-woocommerce"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    },
+    {
+      "type": "composer",
+      "url": "https://repo.wp-packages.org",
+      "only": ["wp-plugin/*", "wp-theme/*"]
+    }
+  ],
+
+  "require": {
+    "php": ">=8.5"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "ahegyes/wp-framework-bootstrap": "^2.0",
+    "ahegyes/wp-framework-core": "^2.0",
+    "ahegyes/wp-framework-settings": "^2.0",
+    "ahegyes/wp-framework-shared": "^2.0",
+    "ahegyes/wp-framework-woocommerce": "^2.0",
+    "automattic/jetpack-changelogger": "^7",
+    "humbug/php-scoper": "^0.18",
+    "johnpbloch/wordpress-core": "^7.1",
+    "laravel/serializable-closure": "^2.1",
+    "php-di/php-di": "^7.1.1",
+    "php-stubs/woocommerce-stubs": "^11.2",
+    "phpunit/phpunit": "^13",
+    "wp-plugin/woocommerce": "^11.2"
+  },
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "autoload": {
+    "psr-4": {
+      "DeepWebSolutions\\InternalComments\\": "src/"
+    },
+    "classmap": [
+      "models/"
+    ],
+    "files": [
+      "vendor-prefixed/scoper-autoload.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "DeepWebSolutions\\InternalComments\\Tests\\": "tests/"
+    }
+  },
+
+  "scripts": {
+    "post-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
+    ],
+
+    "generate-autoloader": "@composer dump-autoload -o",
+    "packages-install": "@composer install --ignore-platform-req=php+ --no-interaction",
+    "packages-update": [
+      "@composer clear-cache",
+      "@composer update --prefer-stable --ignore-platform-req=php+ --no-interaction"
+    ],
+
+    "format:php": "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "format:php:tests": "phpcbf --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
+    "lint:php": [
+      "@lint:php:phpcs",
+      "@lint:php:phpcs:tests",
+      "@lint:php:phpstan"
+    ],
+    "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "lint:php:phpcs:tests": "phpcs --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
+    "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
+
+    "test": [
+      "@test:unit",
+      "@test:integration"
+    ],
+    "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
+    "test:integration": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:tests:start",
+      "@test:integration:run"
+    ],
+    "test:integration:run": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run build",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/internal-comments vendor/bin/phpunit --testsuite=Integration"
+    ],
+
+    "quality-check": [
+      "@composer validate --strict",
+      "@changelog:validate",
+      "@lint:php",
+      "@test"
+    ],
+
+    "changelog:add": "@php vendor/bin/changelogger add",
+    "changelog:validate": "@php vendor/bin/changelogger validate",
+    "changelog:write": "@php vendor/bin/changelogger write"
+  },
+
+  "extra": {
+    "text-domain": "internal-comments",
+    "scoping-prefix": "DeepWebSolutions\\InternalComments\\Scoped",
+    "installer-paths": {
+      "vendor/{$vendor}/{$name}/": [
+        "type:wordpress-plugin",
+        "type:wordpress-theme"
+      ]
+    },
+    "phpstan/extension-installer": {
+      "ignore": [
+        "johnbillion/wp-compat",
+        "swissspidy/phpstan-no-private",
+        "szepeviktor/phpstan-wordpress"
+      ]
+    },
+    "changelogger": {
+      "versioning": "semver",
+      "changelog": "CHANGELOG.md",
+      "changes-dir": "changelog",
+      "default-type": "changed",
+      "types": {
+        "added": "Added",
+        "changed": "Changed",
+        "deprecated": "Deprecated",
+        "removed": "Removed",
+        "fixed": "Fixed",
+        "security": "Security"
+      }
+    }
+  },
+
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "platform-check": false,
+    "sort-packages": true
+  }
+}
