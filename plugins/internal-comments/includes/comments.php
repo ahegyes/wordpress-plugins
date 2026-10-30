@@ -45,7 +45,7 @@ const DWS_IC_META_PRIVATE = 'dws_ic_is_private';
 /**
  * Returns the comment that an id, a comment or an array holding a comment_ID names, or null when there is none.
  *
- * @since   2.0.0
+ * @since   1.0.0
  * @version 2.0.0
  *
  * @param   mixed $comment The comment's id, the comment, or an array with its comment_ID.
@@ -66,7 +66,7 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
 /**
  * Returns whether a comment is internal, or null when there is no such comment.
  *
- * @since   2.0.0
+ * @since   1.0.0
  * @version 2.0.0
  *
  * @param   mixed $comment The comment's id, the comment, or an array with its comment_ID.
@@ -82,7 +82,7 @@ function dws_ic_is_internal_comment( $comment ): ?bool {
 /**
  * Returns whether a post's type, or an order's type in any of WooCommerce's storages, is one the settings select for internal comments.
  *
- * @since   2.0.0
+ * @since   1.1.0
  * @version 2.0.0
  *
  * @param   int|null $post_id Optional. The post's or order's id. Default is the current post.
@@ -118,7 +118,7 @@ function dws_ic_get_post_type( ?int $post_id = null ): ?string {
 /**
  * Stores an internal comment by an author, the current user by default, and returns its id, or null when it could not be stored.
  *
- * @since   2.0.0
+ * @since   1.1.0
  * @version 2.0.0
  *
  * @param   array<string, mixed> $args   Optional. The comment's fields, as wp_insert_comment() takes them unslashed, and its comment_meta. Default is an empty comment on the current post.
@@ -171,7 +171,7 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 /**
  * Returns a post's internal comments the current user can see, threaded by default, each wrapped in the plugin's model.
  *
- * @since   2.0.0
+ * @since   1.0.0
  * @version 2.0.0
  *
  * @param   int                  $post_id        The post's id.
@@ -204,7 +204,7 @@ function dws_ic_get_internal_comments( int $post_id, array $args = array(), bool
 /**
  * Returns the internal comments a trashed post held under a status, as WordPress recorded them when it trashed the post, which the current user can see.
  *
- * @since   2.0.0
+ * @since   1.0.0
  * @version 2.0.0
  *
  * @param   int    $post_id        The trashed post's id.
@@ -234,7 +234,7 @@ function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $sta
 /**
  * Returns whether an internal comment is private, because its author or the author of one of its ancestors marked it so, or null for a comment that is not internal.
  *
- * @since   2.0.0
+ * @since   1.0.0
  * @version 2.0.0
  *
  * @param   mixed $comment The comment's id, the comment, or an array with its comment_ID.

@@ -7,7 +7,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * It keeps v1's global name, which other plugins type-hint, and reads of the comment's fields and calls to its methods reach the wrapped comment.
  *
- * @since   2.0.0
+ * @since   1.0.0
  * @version 2.0.0
  *
  * @mixin   WP_Comment
@@ -32,7 +32,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Constructor.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   mixed $comment The comment's id, the comment, or an array with its comment_ID.
@@ -51,7 +51,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Returns a field of the wrapped comment, or null for a field it does not have.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   string $name The field's name.
@@ -79,7 +79,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Calls a method of the wrapped comment, or returns null for a method it does not have.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   string       $name The method's name.
@@ -98,7 +98,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Returns whether a user, the current one by default, wrote the comment.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   int|null $user_id Optional. The user's id. Default is the current user.
@@ -114,7 +114,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Returns whether a user, the current one by default, can edit the profile of the comment's author.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   int|null $user_id Optional. The user's id. Default is the current user.
@@ -128,7 +128,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Returns whether a user, the current one by default, can read the comment.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   int|null $user_id Optional. The user's id. Default is the current user.
@@ -142,7 +142,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Returns whether a user, the current one by default, can edit the comment.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   int|null $user_id Optional. The user's id. Default is the current user.
@@ -156,7 +156,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Returns whether a user, the current one by default, can trash the comment.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   int|null $user_id Optional. The user's id. Default is the current user.
@@ -170,7 +170,7 @@ final class DWS_Internal_Comment {
 	/**
 	 * Returns the link to the comment's edit screen, or null when the current user cannot edit it.
 	 *
-	 * @since   2.0.0
+	 * @since   1.0.0
 	 * @version 2.0.0
 	 *
 	 * @return  string|null
