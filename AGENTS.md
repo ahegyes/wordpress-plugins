@@ -7,7 +7,8 @@ The monorepo of the DWS v2 WordPress plugins, each built on the wp-framework pac
 ```
 wordpress-plugins/
 ├── plugins/
-│   └── linked-orders-for-woocommerce/    Linked Orders for WooCommerce → wc-linked-orders, ports 8822 and 8823, on wordpress.org
+│   ├── linked-orders-for-woocommerce/    Linked Orders for WooCommerce → wc-linked-orders, ports 8822 and 8823, on wordpress.org
+│   └── internal-comments/                Internal Comments → wp-internal-comments, ports 8824 and 8825, on wordpress.org
 ├── tests/
 │   ├── e2e/                              the shared environment's smoke check, over the plugins .wp-env.tests.json maps
 │   └── Fixtures/multi-plugin-smoke/      reserved for a fixture plugin the shared environment mounts
@@ -48,4 +49,4 @@ Each plugin's `AGENTS.md` states its code style, the template's. Markdown keeps 
 
 - CI runs twice per change: the root's lanes on the pull request, and the mirror's own after the split.
 - The root's workflow checks cover the root's workflows; a plugin's own are checked on its mirror after the split, and locally by the command above.
-- Until a second plugin lands, the shared environment runs its one plugin's suites a second time.
+- Each plugin's Integration suite runs twice: in the plugin's own environments and in the shared one.

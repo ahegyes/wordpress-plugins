@@ -58,7 +58,8 @@
       "Composer\\Config::disableProcessTimeout",
       "@putenv CI=1",
       "npm --prefix=. run plugins:build",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/linked-orders-for-woocommerce vendor/bin/phpunit --testsuite=Integration"
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/linked-orders-for-woocommerce vendor/bin/phpunit --testsuite=Integration",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/internal-comments vendor/bin/phpunit --testsuite=Integration"
     ],
 
     "quality-check": [
@@ -68,31 +69,39 @@
     ],
 
     "plugins:packages-install": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-install"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-install",
+      "@composer --working-dir=plugins/internal-comments packages-install"
     ],
     "plugins:packages-update": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-update"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce packages-update",
+      "@composer --working-dir=plugins/internal-comments packages-update"
     ],
 
     "plugins:format:php": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce format:php"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce format:php",
+      "@composer --working-dir=plugins/internal-comments format:php"
     ],
     "plugins:lint:php": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce lint:php"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce lint:php",
+      "@composer --working-dir=plugins/internal-comments lint:php"
     ],
 
     "plugins:test": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce test"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test",
+      "@composer --working-dir=plugins/internal-comments test"
     ],
     "plugins:test:unit": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:unit"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:unit",
+      "@composer --working-dir=plugins/internal-comments test:unit"
     ],
     "plugins:test:integration": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:integration"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce test:integration",
+      "@composer --working-dir=plugins/internal-comments test:integration"
     ],
 
     "plugins:quality-check": [
-      "@composer --working-dir=plugins/linked-orders-for-woocommerce quality-check"
+      "@composer --working-dir=plugins/linked-orders-for-woocommerce quality-check",
+      "@composer --working-dir=plugins/internal-comments quality-check"
     ],
 
     "changelog:add": "@php vendor/bin/changelogger add",
