@@ -46,22 +46,23 @@ final class MetaBox implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Adds the meta box to the edit screen of a post of a selected type, for a user who may see it and edit the post.
+	 * Adds the meta box to the edit screen of a post or order of a selected type, for a user who may see it and edit the post or order.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $post_type The edited post's type.
-	 * @param   mixed  $post      The edited post.
+	 * @param   string $screen_id The edit screen's id, which for a post is its type.
+	 * @param   mixed  $edited    The edited post, or the edited order on WooCommerce's order tables screen.
 	 *
 	 * @return  void
 	 */
-	public function add_meta_box( string $post_type, mixed $post ): void {
-		if ( ! $post instanceof \WP_Post || ! $this->is_shown_for( $post->ID ) ) {
+	public function add_meta_box( string $screen_id, mixed $edited ): void {
+		$object_id = $this->get_object_id( $edited );
+		if ( 0 === $object_id || ! $this->is_shown_for( $object_id ) ) {
 			return;
 		}
 
-		add_meta_box( self::ID, __( 'Internal Comments', 'internal-comments' ), array( $this, 'render_meta_box' ), $post_type, 'normal', 'core' );
+		add_meta_box( self::ID, __( 'Internal Comments', 'internal-comments' ), array( $this, 'render_meta_box' ), $screen_id, 'normal', 'core' );
 	}
 
 	/**
@@ -75,8 +76,9 @@ final class MetaBox implements ComponentInterface {
 	 * @return  void
 	 */
 	public function enqueue_assets( string $hook_suffix ): void {
-		$post = get_post();
-		if ( ! \in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) || ! $post instanceof \WP_Post || ! $this->is_shown_for( $post->ID ) ) {
+		// WooCommerce's order tables screen holds its edited order in a global of its own.
+		$object_id = \in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) ? $this->get_object_id( get_post() ) : $this->get_object_id( $GLOBALS['theorder'] ?? null );
+		if ( 0 === $object_id || ! $this->is_shown_for( $object_id ) ) {
 			return;
 		}
 
@@ -96,17 +98,18 @@ final class MetaBox implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_Post $post The edited post.
+	 * @param   mixed $edited The edited post or order.
 	 *
 	 * @return  void
 	 */
-	public function render_meta_box( \WP_Post $post ): void {
+	public function render_meta_box( mixed $edited ): void {
+		$object_id   = $this->get_object_id( $edited );
 		$can_post    = current_user_can( DWS_IC_CAP_INSERT );
 		$can_private = $can_post && dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE );
 		?>
-		<div class="dws-internal-comments" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
+		<div class="dws-internal-comments" data-post-id="<?php echo esc_attr( (string) $object_id ); ?>">
 			<div class="dws-internal-comments__comments">
-				<?php dws_ic_print_comments_list( $post->ID ); ?>
+				<?php dws_ic_print_comments_list( $object_id ); ?>
 			</div>
 			<p class="dws-internal-comments__status" role="status"></p>
 			<?php if ( $can_post ) : ?>
@@ -156,7 +159,25 @@ final class MetaBox implements ComponentInterface {
 	// region HELPERS
 
 	/**
-	 * Returns whether the current user may see the meta box on a post: one of a selected type that they can edit.
+	 * Returns the id of an edited post or order, or 0 for anything else.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $edited The edited post or order.
+	 *
+	 * @return  int
+	 */
+	protected function get_object_id( mixed $edited ): int {
+		if ( $edited instanceof \WP_Post ) {
+			return $edited->ID;
+		}
+
+		return $edited instanceof \WC_Abstract_Order ? $edited->get_id() : 0;
+	}
+
+	/**
+	 * Returns whether the current user may see the meta box on a post or order: one of a selected type that they can edit.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

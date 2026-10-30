@@ -391,7 +391,7 @@ final class RestRoutes implements ComponentInterface {
 	// region HELPERS
 
 	/**
-	 * Returns whether the current user may work with a post's internal comments: one of a selected type that they can edit.
+	 * Returns whether the current user may work with a post's internal comments: one of a selected type that they can edit, an order in any storage included.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -401,7 +401,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  bool
 	 */
 	protected function can_use_post( int $post_id ): bool {
-		return null !== get_post( $post_id ) && dws_ic_is_selected_post_type( $post_id ) && current_user_can( 'edit_post', $post_id );
+		return dws_ic_is_selected_post_type( $post_id ) && current_user_can( 'edit_post', $post_id );
 	}
 
 	/**

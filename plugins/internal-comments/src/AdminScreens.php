@@ -40,6 +40,11 @@ final class AdminScreens implements ComponentInterface {
 		foreach ( dws_ic_get_selected_post_types() as $post_type ) {
 			add_filter( "manage_{$post_type}_posts_columns", array( $this, 'add_posts_column' ) );
 			add_action( "manage_{$post_type}_posts_custom_column", array( $this, 'render_cell' ), 10, 2 );
+
+			// WooCommerce's order tables list an order type on a screen of its own, which other post types never reach.
+			$orders_screen = 'woocommerce_page_wc-orders' . ( 'shop_order' === $post_type ? '' : "--$post_type" );
+			add_filter( "manage_{$orders_screen}_columns", array( $this, 'add_orders_column' ) );
+			add_action( "manage_{$orders_screen}_custom_column", array( $this, 'render_order_cell' ), 10, 2 );
 		}
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_list_assets' ) );
 		add_action( 'admin_menu', array( $this, 'add_comments_view' ) );
@@ -123,6 +128,41 @@ final class AdminScreens implements ComponentInterface {
 	}
 
 	/**
+	 * Adds the internal comments column to the order tables' list of the order type whose columns hook runs.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<string, string> $columns The list's columns.
+	 *
+	 * @return  array<string, string>
+	 */
+	public function add_orders_column( array $columns ): array {
+		if ( 1 !== \preg_match( '/^manage_woocommerce_page_wc-orders(?:--(.+))?_columns$/', (string) current_filter(), $matches ) ) {
+			return $columns;
+		}
+
+		return $this->add_column( $columns, $matches[1] ?? 'shop_order' );
+	}
+
+	/**
+	 * Prints an order's cell of the internal comments column in the order tables' list.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $column The column's id.
+	 * @param   mixed  $order  The row's order.
+	 *
+	 * @return  void
+	 */
+	public function render_order_cell( string $column, mixed $order ): void {
+		if ( $order instanceof \WC_Abstract_Order ) {
+			$this->render_cell( $column, $order->get_id() );
+		}
+	}
+
+	/**
 	 * Prints a post's cell of the internal comments column: the number of its comments the user can see, linked to them on the Comments screen where the user may list them, and a button that opens their quick view.
 	 *
 	 * @since   2.0.0
@@ -188,8 +228,15 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  void
 	 */
 	public function enqueue_list_assets( string $hook_suffix ): void {
-		$screen = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( 'edit.php' !== $hook_suffix || ! \in_array( null === $screen ? 'post' : $screen->post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( DWS_IC_CAP_SEE_COLUMN ) ) {
+		$screen    = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		$post_type = null === $screen || '' === $screen->post_type ? 'post' : $screen->post_type;
+		if ( 1 === \preg_match( '/^woocommerce_page_wc-orders(?:--(.+))?$/', $hook_suffix, $matches ) && ! isset( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tells the list from the edit screen.
+			$post_type = $matches[1] ?? 'shop_order';
+		} elseif ( 'edit.php' !== $hook_suffix ) {
+			return;
+		}
+
+		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( DWS_IC_CAP_SEE_COLUMN ) ) {
 			return;
 		}
 

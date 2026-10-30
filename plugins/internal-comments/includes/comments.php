@@ -8,6 +8,8 @@
  * @package DeepWebSolutions\InternalComments
  */
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -78,17 +80,39 @@ function dws_ic_is_internal_comment( $comment ): ?bool {
 }
 
 /**
- * Returns whether a post's type is one the settings select for internal comments.
+ * Returns whether a post's type, or an order's type in any of WooCommerce's storages, is one the settings select for internal comments.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   int|null $post_id Optional. The post's id. Default is the current post.
+ * @param   int|null $post_id Optional. The post's or order's id. Default is the current post.
  *
  * @return  bool
  */
 function dws_ic_is_selected_post_type( ?int $post_id = null ): bool {
-	return in_array( get_post_type( $post_id ), dws_ic_get_selected_post_types(), true );
+	return in_array( dws_ic_get_post_type( $post_id ), dws_ic_get_selected_post_types(), true );
+}
+
+/**
+ * Returns a post's type, or an order's type where WooCommerce stores the order in its order tables, or null when there is no such post or order.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   int|null $post_id Optional. The post's or order's id. Default is the current post.
+ *
+ * @return  string|null
+ */
+function dws_ic_get_post_type( ?int $post_id = null ): ?string {
+	$post_type = get_post_type( $post_id );
+	$post_id   = $post_id ?? get_the_ID();
+
+	// An order in the order tables has no post, or only a placeholder, so WooCommerce names its type.
+	if ( ( false === $post_type || 'shop_order_placehold' === $post_type ) && is_int( $post_id ) && $post_id > 0 && class_exists( OrderUtil::class ) ) {
+		$post_type = OrderUtil::get_order_type( $post_id );
+	}
+
+	return is_string( $post_type ) && '' !== $post_type ? $post_type : null;
 }
 
 /**
