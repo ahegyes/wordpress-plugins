@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+dws_ic_name(), dws_ic_version(), dws_ic_path(), dws_ic_min_php(), dws_ic_min_wp(), dws_ic_get_hook_tag() and dws_ic_get_component_hook_tag(); use dws_ic_get_plugin_name() and dws_ic_get_plugin_version() for the first two.

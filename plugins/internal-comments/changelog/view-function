@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+dws_ic_include_view() and the views it included; the meta box's markup comes from the dws_ic/meta_box/ hooks.

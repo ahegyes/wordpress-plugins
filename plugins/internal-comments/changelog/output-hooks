@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The permissions/edit_comment_action filter, the ajax and metabox_output script_vars filters and the metabox_output and wp_table_output js_templates actions, which served v1's scripts and templates.

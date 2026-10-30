@@ -28,6 +28,8 @@ foreach ( $dws_ic_includes as $dws_ic_include ) {
 // The hooks come last, so an include that throws leaves nothing of the plugin hooked.
 add_action( 'plugins_loaded', 'dws_ic_boot', 15 );
 add_action( 'before_woocommerce_init', 'dws_ic_declare_compatibility' );
+add_action( 'dws_ic/boot/succeeded', 'dws_ic_fire_v1_initialized' );
+add_action( 'dws_ic/boot/failed', 'dws_ic_fire_v1_initialization_failure' );
 register_deactivation_hook( DWS_IC_FILE, 'dws_ic_deactivate' );
 
 /**

@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+dws_ic_initialized and dws_ic_initialization_failure fire deprecated, after dws_ic/boot/succeeded and dws_ic/boot/failed; the failure hook passes the Throwable that failed the boot.
