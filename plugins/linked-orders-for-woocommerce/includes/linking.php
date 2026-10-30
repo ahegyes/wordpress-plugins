@@ -8,6 +8,10 @@
  * @package DeepWebSolutions\LinkedOrders
  */
 
+use DeepWebSolutions\LinkedOrders\Plugin;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -45,7 +49,9 @@ function dws_lowc_is_root_order( $order ): ?bool {
 }
 
 /**
- * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, and null when either order has no node.
+ * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, or while another request links orders, and null when either order has no node.
+ *
+ * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock.
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -62,12 +68,25 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 		return null;
 	}
 
-	if ( ! $parent->add_child( $child ) ) {
+	$lock  = new Lock( Plugin::PREFIX . '_linking', 30 );
+	$owner = wp_generate_uuid4();
+	if ( LockClaim::Busy === $lock->acquire( $owner ) ) {
 		return false;
 	}
 
-	$parent->save();
-	$child->save();
+	try {
+		// This request may hold either order as loaded before another request linked it.
+		$parent->get_order()->read_meta_data( true );
+		$child->get_order()->read_meta_data( true );
+		if ( ! $parent->add_child( $child ) ) {
+			return false;
+		}
+
+		$parent->save();
+		$child->save();
+	} finally {
+		$lock->release( $owner );
+	}
 
 	return true;
 }

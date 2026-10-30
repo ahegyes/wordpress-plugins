@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Linking two orders to one parent at the same time, as two clicks on the add-child button can, no longer drops one from the parent's children: a link made while another is in progress is refused, and the add-child button reports it.

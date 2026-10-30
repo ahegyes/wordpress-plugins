@@ -137,7 +137,7 @@ function dws_lowc_get_create_child_url( int $parent_id ): string {
 /**
  * Creates an order linked as the child of a supported order, with the parent's customer and addresses, and returns its id.
  *
- * Returns null when the parent is missing or unsupported, or when the creator is not callable or creates no supported order, and the creator's error when it fails.
+ * Returns null when the parent is missing or unsupported, or when the creator is not callable or creates no supported order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -228,7 +228,11 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 	do_action( 'dws_lowc/linked_order/created', $child, $parent );
 
 	$child->save();
-	dws_lowc_link_orders( $parent_id, $child->get_id() );
+	if ( true !== dws_lowc_link_orders( $parent_id, $child->get_id() ) ) {
+		$child->delete( true );
+
+		return new WP_Error( 'dws_lowc_link_refused', __( 'another order was being linked at the same time. Please try again.', 'linked-orders-for-woocommerce' ) );
+	}
 
 	return $child->get_id();
 }
