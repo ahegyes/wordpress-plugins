@@ -15,5 +15,7 @@ register_shutdown_function(
 require_once dirname( __DIR__, 5 ) . '/wp-load.php';
 // The uninstall row runs WordPress's own uninstall_plugin().
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
+// A batched migration step runs only from the runner's scheduled hook, which the suite runs as the site's scheduler would.
+do_action( 'dws_ic_revision/migration/run' );
 
 $dws_ic_loaded = true;

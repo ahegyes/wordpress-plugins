@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+Private comments, which only their author, the authors of the comments that made them private and holders of the see_private_dws_internal_comments capability can see, edit or trash.

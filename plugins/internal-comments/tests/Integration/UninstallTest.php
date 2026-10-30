@@ -43,7 +43,7 @@ final class UninstallTest extends TestCase {
 		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' --skip-plugins=internal-comments eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The uninstall needs a request without the plugin.
 
 		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request would.
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval "" 2>&1', $restored, $restore_status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The restore needs a request with the plugin.
+		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' ) . ' 2>&1', $restored, $restore_status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The restore needs a request with the plugin.
 		wp_cache_flush();
 		wp_roles()->for_site();
 
@@ -112,7 +112,7 @@ final class UninstallTest extends TestCase {
 				get_role( $role )?->add_cap( $capability );
 			}
 		}
-		dws_ic_plugin()->migrations?->run();
+		do_action( Plugin::PREFIX . '_revision/migration/run' );
 		wp_delete_post( $post, true );
 	}
 
@@ -176,7 +176,7 @@ final class UninstallTest extends TestCase {
 				get_role( $role )?->add_cap( $capability );
 			}
 		}
-		dws_ic_plugin()->migrations?->run();
+		do_action( Plugin::PREFIX . '_revision/migration/run' );
 		self::assertSame( DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ], get_option( DWS_IC_OPTION_PLUGIN ) );
 	}
 }

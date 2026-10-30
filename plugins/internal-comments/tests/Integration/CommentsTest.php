@@ -94,7 +94,7 @@ final class CommentsTest extends TestCase {
 			remove_filter( 'dws_ic/internal_comment/creation_data', $v2 );
 		}
 
-		self::assertSame( array( 'v1', 'v2:' ), $seen );
+		self::assertSame( array( 'v1', 'v2:v1' ), $seen );
 		self::assertSame( 'v2', get_comment( (int) $id )?->comment_content );
 		self::assertSame( array( array( 'internal_comments/create_comment_data', 'dws_ic/internal_comment/creation_data' ) ), $this->deprecated );
 	}

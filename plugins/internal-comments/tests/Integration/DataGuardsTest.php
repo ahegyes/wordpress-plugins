@@ -190,7 +190,7 @@ final class DataGuardsTest extends TestCase {
 		$comment = $this->comment();
 		$public  = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
 		$php     = \sprintf(
-			'echo wp_json_encode( array( get_comments( array( "post_id" => %1$d, "fields" => "ids" ) ), get_comments( array( "post_id" => %1$d, "status" => "all", "fields" => "ids" ) ), (int) wp_count_comments( %1$d )->total_comments, (int) get_comments_number( %1$d ), rest_do_request( new WP_REST_Request( "GET", "/wp/v2/comments/%2$d" ) )->get_status(), wp_list_pluck( rest_do_request( new WP_REST_Request( "GET", "/wp/v2/comments", array( "post" => %1$d ) ) )->get_data(), "id" ) ) );',
+			'echo wp_json_encode( array( get_comments( array( "post_id" => %1$d, "fields" => "ids" ) ), get_comments( array( "post_id" => %1$d, "status" => "all", "fields" => "ids" ) ), (int) wp_count_comments( %1$d )->total_comments, (int) get_comments_number( %1$d ), rest_do_request( new WP_REST_Request( "GET", "/wp/v2/comments/%2$d" ) )->get_status(), wp_list_pluck( rest_do_request( WP_REST_Request::from_url( rest_url( "wp/v2/comments?post=%1$d" ) ) )->get_data(), "id" ) ) );',
 			$this->post,
 			$comment
 		);

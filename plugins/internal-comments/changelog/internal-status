@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+Internal comments are stored under a status of their own, so WordPress's queries, counts, feeds and REST API leave them out even while the plugin is inactive; a background migration moves the comments v1 stored.

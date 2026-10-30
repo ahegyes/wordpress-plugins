@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The comments/before_get_query and comments/after_get_query actions and the query/is_other_query filter, which served v1's query filters; internal comments are hidden by their status instead.

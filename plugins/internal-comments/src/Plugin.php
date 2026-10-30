@@ -57,6 +57,8 @@ final class Plugin {
 		AdminNotices::class,
 		CapabilityGrants::class,
 		Settings::class,
+		Permissions::class,
+		Comments::class,
 	);
 
 	/**

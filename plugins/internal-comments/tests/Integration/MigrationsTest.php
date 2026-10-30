@@ -41,7 +41,7 @@ final class MigrationsTest extends TestCase {
 		}
 		update_option( Plugin::PREFIX . '_revision', 0 );
 
-		dws_ic_plugin()->migrations?->run();
+		do_action( Plugin::PREFIX . '_revision/migration/run' ); // A batched step runs only from the runner's scheduled hook.
 
 		self::assertSame( \count( dws_ic_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 		foreach ( self::ROWS as $row ) {
@@ -78,12 +78,13 @@ final class MigrationsTest extends TestCase {
 
 	public function test_the_second_step_converts_v1s_internal_comments_in_batches_and_recounts_their_posts(): void {
 		global $wpdb;
-		$post   = (int) wp_insert_post(
+		$post = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Converted',
 				'post_status' => 'publish',
 			)
 		);
+
 		$insert = static function ( string $type, string $status ) use ( $wpdb, $post ): int {
 			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
 				$wpdb->comments,
@@ -96,8 +97,10 @@ final class MigrationsTest extends TestCase {
 					'comment_date_gmt' => \current_time( 'mysql', true ),
 				)
 			);
+
 			return (int) $wpdb->insert_id;
 		};
+
 		$approved = $insert( DWS_IC_COMMENT_TYPE, '1' );
 		$pending  = $insert( DWS_IC_COMMENT_TYPE, '0' );
 		$trashed  = $insert( DWS_IC_COMMENT_TYPE, 'trash' );
