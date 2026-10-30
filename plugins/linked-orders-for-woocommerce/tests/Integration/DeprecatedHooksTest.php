@@ -23,8 +23,8 @@ final class DeprecatedHooksTest extends TestCase {
 			'status-name'                  => array( 'node/status_name', 'dws_lowc/node/status_name', 'format_node_name' ),
 			'formatted-name'               => array( 'node/get_formatted_name', 'dws_lowc/node/formatted_name', 'format_node_name' ),
 			'can-create-child'             => array( 'node/can_create_child', 'dws_lowc/node/can_create_child', 'check_child_creation' ),
-			'should-autocomplete'          => array( 'autocompletion/should_autocomplete', 'dws_lowc/autocompletion/should_autocomplete', 'complete_parent' ),
-			'completed-status'             => array( 'autocompletion/completed_status', 'dws_lowc/autocompletion/completed_status', 'complete_parent' ),
+			'should-autocomplete'          => array( 'autocompletion/should_autocomplete', 'dws_lowc/autocompletion/should_autocomplete', 'complete_order' ),
+			'completed-status'             => array( 'autocompletion/completed_status', 'dws_lowc/autocompletion/completed_status', 'complete_order' ),
 			'after-add-new-child-button'   => array( 'metabox_output/after_add_new_child_button', 'dws_lowc/meta_box/after_add_new_child_button', 'render_meta_box' ),
 			'preceding-column'             => array( 'list_table_output/column/insert_after', 'dws_lowc/list_table/preceding_column', 'list_columns' ),
 			'column-content'               => array( 'list_table_output/column/content', 'dws_lowc/list_table/column_content', 'render_depth_cell' ),
@@ -97,9 +97,9 @@ final class DeprecatedHooksTest extends TestCase {
 		dws_lowc_get_order_node( $this->create_order() )?->can_create_child();
 	}
 
-	protected function complete_parent(): void {
+	// A lone order's tree is the order alone, so each autocompletion filter runs once.
+	protected function complete_order(): void {
 		$parent = $this->create_order();
-		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $this->create_order()->get_id() ) );
 		$stored = get_option( DWS_LOWC_OPTION_AUTOCOMPLETE );
 		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
 

@@ -39,6 +39,29 @@ final class AutocompletionTest extends TestCase {
 		}
 	}
 
+	// v1 walked the completed order's whole tree, the order first, so its filters see the order too.
+	#[DataProvider( 'storages' )]
+	public function test_the_completed_order_passes_the_filters_before_its_descendants( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		list( $root, $child ) = $this->create_tree();
+
+		$seen   = array();
+		$record = static function ( bool $should, int $order_id ) use ( &$seen ): bool {
+			$seen[] = $order_id;
+
+			return $should;
+		};
+		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
+
+		try {
+			$root->update_status( 'completed' );
+		} finally {
+			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $record );
+		}
+
+		self::assertSame( array( $root->get_id(), $child->get_id() ), \array_slice( $seen, 0, 2 ) );
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_completing_a_child_leaves_its_parent_alone( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
