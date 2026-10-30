@@ -353,7 +353,7 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the deepest level the depth filter offers: the maximum depth, or the deepest stored order of the type where one is deeper.
+	 * Returns the deepest level the depth filter offers: the maximum depth, or the deepest stored order of the type where one is deeper, trashed orders included, since the list's Trash view shows them.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -368,6 +368,7 @@ final class ListTable implements ComponentInterface {
 		$deepest = wc_get_orders(
 			$depth + array(
 				'type'    => $type,
+				'status'  => array( ...\array_keys( wc_get_order_statuses() ), 'trash' ),
 				'limit'   => 1,
 				'return'  => 'ids',
 				'orderby' => 'meta_value_num',
