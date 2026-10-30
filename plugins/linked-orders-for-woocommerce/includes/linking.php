@@ -75,7 +75,8 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 	}
 
 	try {
-		// This request may hold either order as loaded before another request linked it.
+		// This request may hold either order as loaded before another request linked it, and WooCommerce's order-tables data caching keeps the meta it loaded for the request.
+		WC_Data_Store::load( 'order' )->clear_cached_data( array( $parent_id, $child_id ) ); // @phpstan-ignore method.notFound (WC_Data_Store forwards it to the order-tables store, and to nothing on the posts store.)
 		$parent->get_order()->read_meta_data( true );
 		$child->get_order()->read_meta_data( true );
 		if ( ! $parent->add_child( $child ) ) {
