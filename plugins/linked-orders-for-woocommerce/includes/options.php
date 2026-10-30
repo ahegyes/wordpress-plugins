@@ -87,18 +87,6 @@ function dws_lowc_get_int_option( string $key ): int {
 }
 
 /**
- * Returns the deepest level a linked order can be created at, at least 1, as v1 read it.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @return  int
- */
-function dws_lowc_get_max_depth(): int {
-	return max( dws_lowc_get_int_option( DWS_LOWC_OPTION_MAX_DEPTH ), 1 );
-}
-
-/**
  * Returns the maximum depth in the form WooCommerce stores, or an error when the submission is not a whole number of at least 1.
  *
  * @since   2.0.0

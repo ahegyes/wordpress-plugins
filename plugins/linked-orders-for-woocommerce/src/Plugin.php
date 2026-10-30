@@ -59,6 +59,8 @@ final class Plugin {
 		CapabilityGrants::class,
 		Settings::class,
 		ChildCreation::class,
+		MetaBox::class,
+		ListTable::class,
 		Autocompletion::class,
 		Integration\SequentialOrderNumbersPro::class,
 	);

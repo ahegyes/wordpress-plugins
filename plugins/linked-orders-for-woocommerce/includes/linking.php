@@ -11,12 +11,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Returns an order's node, or null when the order is missing or of an unsupported type.
+ * Returns an order's node, or null when the value names no order of a supported type.
  *
  * @since   1.0.0
  * @version 2.0.0
  *
- * @param   WC_Order|WP_Post|int|string|false|null $order The order or its id.
+ * @param   mixed $order The order, its post or its id.
  *
  * @return  DWS_Order_Node|null
  */

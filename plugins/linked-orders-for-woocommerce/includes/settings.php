@@ -129,6 +129,18 @@ function dws_lowc_validate_setting( $value, string $field_id, ?string $group = n
 }
 
 /**
+ * Returns the deepest level a linked order can be created at, at least 1, from the validated setting, so v1's filters apply.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @return  int
+ */
+function dws_lowc_get_max_depth(): int {
+	return max( filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 1, 1 );
+}
+
+/**
  * Returns a setting's group, field id and option, or null for a field the group does not hold.
  *
  * As in v1, a read without a group names the group in the field id, such as 'general/max-depth'.

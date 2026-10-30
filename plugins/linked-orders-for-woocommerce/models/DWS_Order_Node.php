@@ -383,7 +383,7 @@ final class DWS_Order_Node {
 	public function can_create_child( ?int $user_id = null ): bool {
 		$user       = $user_id ?? get_current_user_id();
 		$permission = user_can( $user, DWS_LOWC_CAP_CREATE_LINKED_CHILDREN, $this->order->get_id() ) && user_can( $user, 'edit_shop_orders', $this->order->get_id() );
-		$depth      = dws_lowc_get_validated_setting( 'max-depth', 'general' ) > $this->get_depth();
+		$depth      = dws_lowc_get_max_depth() > $this->get_depth();
 		$status     = $this->order->has_status( dws_lowc_get_valid_statuses_for_new_child( $this->post_type->name, $this->order ) );
 
 		/**
