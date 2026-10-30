@@ -6,6 +6,7 @@ use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
@@ -30,6 +31,8 @@ final class MigrationsTest extends TestCase {
 		update_option( Plugin::PREFIX . '_revision', \count( dws_lowc_get_migration_steps() ) );
 	}
 
+	// The runner's time budget lasts for its request, and this process's bootstrap spends it when it migrates a new site, so the row runs as a request of its own.
+	#[RunInSeparateProcess]
 	public function test_the_runner_brings_a_new_site_to_revision_one_with_the_untranslated_defaults_autoloaded(): void {
 		global $wpdb;
 		foreach ( self::KEYS as $key ) {
