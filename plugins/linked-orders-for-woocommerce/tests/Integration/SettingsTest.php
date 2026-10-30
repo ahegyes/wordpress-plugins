@@ -42,7 +42,7 @@ final class SettingsTest extends TestCase {
 		);
 	}
 
-	public static function groups(): array {
+	public static function setting_groups(): array {
 		return array(
 			'general' => array( 'general', array( 'max-depth', 'autocomplete-descendants' ) ),
 			'plugin'  => array( 'plugin', array( 'remove-data-uninstall' ) ),
@@ -128,7 +128,7 @@ final class SettingsTest extends TestCase {
 		self::assertSame( 3, dws_lowc_get_max_depth() );
 	}
 
-	#[DataProvider( 'groups' )]
+	#[DataProvider( 'setting_groups' )]
 	public function test_a_groups_fields_pass_its_v1_filter_first_then_its_v2_filter( string $group, array $v1_ids ): void {
 		$seen     = array();
 		$v1_hook  = "linked_orders_for_woocommerce/{$group}_settings/get_group_fields";

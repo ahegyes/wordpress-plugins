@@ -36,12 +36,12 @@ final class PartialDeployTest extends TestCase {
 	}
 
 	public function test_the_peer_getters_a_partial_deploy_defines_still_answer(): void {
-		$root = \dirname( DWS_LOWC_FILE ) . '/src/Plugin.php'; // options.php reads it at include time, after metadata.php has loaded.
-		\rename( $root, "$root.hidden" );
+		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-throws.php'; // It loads after metadata.php.
+		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
 			$request = self::request( 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lowc_boot" ), dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) );' );
 		} finally {
-			\rename( "$root.hidden", $root );
+			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );

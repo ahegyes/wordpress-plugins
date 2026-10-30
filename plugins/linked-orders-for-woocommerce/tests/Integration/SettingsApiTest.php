@@ -18,13 +18,13 @@ final class SettingsApiTest extends TestCase {
 
 	public static function stored_settings(): array {
 		return array(
-			'depth'               => array( DWS_LOWC_OPTION_MAX_DEPTH, '3', 'max-depth', 'general', 3 ),
-			'depth-below-one'     => array( DWS_LOWC_OPTION_MAX_DEPTH, '0', 'max-depth', 'general', 1 ),
-			'autocomplete-on'     => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes', 'autocomplete-descendants', 'general', true ),
-			'autocomplete-off'    => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'no', 'autocomplete-descendants', 'general', false ),
-			'consent-on'          => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
-			'group-with-suffix'   => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
-			'group-from-field-id' => array( DWS_LOWC_OPTION_MAX_DEPTH, '5', 'max-depth', null, 5 ),
+			'depth'             => array( DWS_LOWC_OPTION_MAX_DEPTH, '3', 'max-depth', 'general', 3 ),
+			'depth-below-one'   => array( DWS_LOWC_OPTION_MAX_DEPTH, '0', 'max-depth', 'general', 1 ),
+			'autocomplete-on'   => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes', 'autocomplete-descendants', 'general', true ),
+			'autocomplete-off'  => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'no', 'autocomplete-descendants', 'general', false ),
+			'consent-on'        => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
+			'group-with-suffix' => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
+			'group-in-field-id' => array( DWS_LOWC_OPTION_MAX_DEPTH, '5', 'general/max-depth', null, 5 ),
 		);
 	}
 
@@ -72,16 +72,43 @@ final class SettingsApiTest extends TestCase {
 		self::assertNull( dws_lowc_get_raw_setting( 'unknown', 'general' ) );
 		self::assertNull( dws_lowc_get_validated_setting( 'unknown', 'general' ) );
 		self::assertNull( dws_lowc_get_validated_setting( 'max-depth', 'plugin' ) );
+		self::assertNull( dws_lowc_get_validated_setting( 'max-depth' ) );
 	}
 
 	public function test_a_value_validates_against_its_fields_routine(): void {
 		self::assertSame( 1, dws_lowc_validate_setting( '-4', 'max-depth', 'general' ) );
-		self::assertSame( 7, dws_lowc_validate_setting( '7', 'max-depth' ) );
+		self::assertSame( 7, dws_lowc_validate_setting( '7', 'general/max-depth' ) );
 		self::assertTrue( dws_lowc_validate_setting( 'yes', 'autocomplete-descendants', 'general' ) );
 		self::assertFalse( dws_lowc_validate_setting( 'maybe', 'remove-data-uninstall', 'plugin' ) );
 	}
 
-	public function test_a_validated_value_passes_the_v1_group_filter_then_the_v1_section_filter_then_the_v2_filter(): void {
+	public static function paths(): array {
+		return array(
+			'group'           => array(
+				'max-depth',
+				'general',
+				array(
+					array( 'group', 2, 'max-depth' ),
+					array( 'v2', 4, 'max-depth', 'general' ),
+				),
+				array( 'linked_orders_for_woocommerce/general_settings/get_validated_option_value' ),
+			),
+			'group-in-the-id' => array(
+				'general/max-depth',
+				null,
+				array(
+					array( 'group', 2, 'max-depth' ),
+					array( 'section', 4, 'general/max-depth' ),
+					array( 'v2', 5, 'max-depth', 'general' ),
+				),
+				array( 'linked_orders_for_woocommerce/general_settings/get_validated_option_value', 'linked_orders_for_woocommerce/settings/get_validated_option_value' ),
+			),
+		);
+	}
+
+	// v1 fired its section filter only for a read through the section, which names the group in the field id.
+	#[DataProvider( 'paths' )]
+	public function test_a_validated_value_passes_the_v1_filters_of_its_path_then_the_v2_filter( string $field_id, ?string $group, array $expected, array $deprecated ): void {
 		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
 		$seen    = array();
 		$filters = array(
@@ -107,7 +134,7 @@ final class SettingsApiTest extends TestCase {
 		add_filter( 'dws_lowc/settings/validated_value', $v2, 10, 3 );
 
 		try {
-			$value = dws_lowc_get_validated_setting( 'max-depth', 'general' );
+			$value = dws_lowc_get_validated_setting( $field_id, $group );
 		} finally {
 			foreach ( $filters as $hook => $filter ) {
 				remove_filter( $hook, $filter );
@@ -116,20 +143,7 @@ final class SettingsApiTest extends TestCase {
 		}
 
 		self::assertSame( 6, $value );
-		self::assertSame(
-			array(
-				array( 'group', 2, 'max-depth' ),
-				array( 'section', 4, 'max-depth' ),
-				array( 'v2', 5, 'max-depth', 'general' ),
-			),
-			$seen
-		);
-		self::assertSame(
-			array(
-				array( 'linked_orders_for_woocommerce/general_settings/get_validated_option_value', 'dws_lowc/settings/validated_value' ),
-				array( 'linked_orders_for_woocommerce/settings/get_validated_option_value', 'dws_lowc/settings/validated_value' ),
-			),
-			$this->deprecated
-		);
+		self::assertSame( $expected, $seen );
+		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'dws_lowc/settings/validated_value' ), $deprecated ), $this->deprecated );
 	}
 }
