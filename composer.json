@@ -27,7 +27,7 @@
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
-    "automattic/jetpack-changelogger": "^6"
+    "automattic/jetpack-changelogger": "^7"
   },
 
   "minimum-stability": "dev",

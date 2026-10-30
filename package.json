@@ -12,10 +12,10 @@
         "node": ">=24"
     },
     "devDependencies": {
-        "@ahegyes/wordpress-configs": "github:ahegyes/wordpress-configs",
-        "@wordpress/e2e-test-utils-playwright": "^1",
-        "@wordpress/env": "^11",
-        "@wordpress/scripts": "^32"
+        "@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#8d53efd292e4abee4a9c57b0e379434f54bedbe9",
+        "@wordpress/e2e-test-utils-playwright": "^3.1.0",
+        "@wordpress/env": "^12.0.0",
+        "@wordpress/scripts": "^37.0.0"
     },
     "scripts": {
         "setup": "npm run install:all && npm run wp-env:start",
