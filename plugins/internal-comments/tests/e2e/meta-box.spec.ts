@@ -1,28 +1,8 @@
-/// <reference types="node" />
 import AxeBuilder from '@axe-core/playwright';
-import { execFileSync } from 'node:child_process';
 import type { Page } from '@playwright/test';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
-// No REST route exposes the plugin's settings, so the site's WP-CLI stores them.
-const storeSettings = ( value: Record< string, unknown > ): void => {
-	execFileSync(
-		'node_modules/.bin/wp-env',
-		[
-			'--config',
-			'.wp-env.tests.json',
-			'run',
-			'cli',
-			'wp',
-			'option',
-			'update',
-			'dws-internal-comments_general',
-			JSON.stringify( value ),
-			'--format=json',
-		],
-		{ stdio: 'ignore' }
-	);
-};
+import { storeSettings } from './settings';
 
 // The block editor folds the classic meta boxes into a pane below the content, whose resize handle covers the middle of its toggle.
 const openMetaBoxes = async ( page: Page ): Promise< void > => {

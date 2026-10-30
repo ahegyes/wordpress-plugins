@@ -142,7 +142,7 @@ final class AdminScreensTest extends TestCase {
 		$_GET['comment_type'] = DWS_IC_COMMENT_TYPE;
 		$args                 = $screens->filter_list_table_args(
 			array(
-				'status' => 'all',
+				'status' => '',
 				'type'   => DWS_IC_COMMENT_TYPE,
 			)
 		);
@@ -159,19 +159,27 @@ final class AdminScreensTest extends TestCase {
 	}
 
 	public function test_the_comments_screen_leaves_out_the_rows_its_reader_cannot_see(): void {
-		$open    = get_comment( $this->comment( 'Open' ) );
-		$private = get_comment( $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) ) );
-		$public  = get_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
+		$open = $this->comment( 'Open' );
+		$this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
 		get_role( 'editor' )?->add_cap( DWS_IC_CAP_SEE_TABLE );
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
-			$rows = ( new AdminScreens() )->filter_list_table_comments( array( $open, $private, $public ) );
+			$args = ( new AdminScreens() )->filter_list_table_args(
+				array(
+					'post_id' => $this->post,
+					'type'    => DWS_IC_COMMENT_TYPE,
+					'status'  => 'all',
+				)
+			);
+			$rows = ( new \WP_Comment_Query( $args ) )->comments;
+			$all  = get_comments( array( 'post_id' => $this->post, 'type' => DWS_IC_COMMENT_TYPE, 'status' => DWS_IC_COMMENT_STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
 		} finally {
 			get_role( 'editor' )?->remove_cap( DWS_IC_CAP_SEE_TABLE );
 		}
 
-		self::assertSame( array( $open, $public ), $rows );
+		self::assertSame( array( (string) $open ), wp_list_pluck( $rows, 'comment_ID' ) );
+		self::assertCount( 2, $all );
 	}
 
 	public function test_the_comments_screen_offers_only_the_actions_an_internal_comment_supports(): void {

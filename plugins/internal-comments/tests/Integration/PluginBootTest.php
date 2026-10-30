@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Permissions;
@@ -21,7 +22,7 @@ final class PluginBootTest extends TestCase {
 		$plugin = dws_ic_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, Permissions::class, Comments::class, MetaBox::class, RestRoutes::class ), $plugin->kernel?->resolved );
+		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, Permissions::class, Comments::class, MetaBox::class, RestRoutes::class, AdminScreens::class ), $plugin->kernel?->resolved );
 		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 
