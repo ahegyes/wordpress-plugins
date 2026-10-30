@@ -96,7 +96,7 @@ final class LinkingTest extends TestCase {
 		self::assertNull( dws_lowc_get_orders_tree( \PHP_INT_MAX ) );
 		self::assertNull( dws_lowc_link_orders( $order->get_id(), \PHP_INT_MAX ) );
 		self::assertNull( dws_lowc_is_supported_order( 0 ) );
-		self::assertFalse( dws_lowc_is_supported_order( $refund ) );
+		self::assertNull( dws_lowc_is_supported_order( $refund ) );
 		self::assertTrue( dws_lowc_is_supported_order( $order->get_id() ) );
 	}
 
