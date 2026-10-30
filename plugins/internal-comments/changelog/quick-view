@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+A quick view of a post's internal comments from its row in the posts list, in a native popover.

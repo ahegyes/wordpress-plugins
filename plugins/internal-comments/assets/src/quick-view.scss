@@ -1,0 +1,54 @@
+.dws-ic-column .button-link {
+	display: block;
+	margin-top: 4px;
+}
+
+.dws-ic-quick-view {
+	width: min(40em, 90vw);
+	max-height: 70vh;
+	overflow: auto;
+	padding: 16px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+
+	&__close {
+		float: right;
+	}
+
+	.dws-internal-comments__list,
+	.dws-internal-comments-replies__list {
+		margin: 0;
+	}
+
+	.dws-internal-comment-replies {
+		padding-left: 15px;
+	}
+
+	.dws-internal-comment__content {
+		padding: 8px 10px;
+		background-color: #f0f0f1;
+
+		p {
+			margin: 0 0 0.5em;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+		}
+	}
+
+	.dws-internal-comment__meta {
+		margin: 4px 0 12px;
+		color: #646970;
+		font-size: 12px;
+
+		a {
+			text-decoration: underline;
+		}
+	}
+
+	.dws-internal-comment__actions {
+		display: none;
+	}
+}

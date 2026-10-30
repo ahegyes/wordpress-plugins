@@ -61,6 +61,7 @@ final class Plugin {
 		Comments::class,
 		MetaBox::class,
 		RestRoutes::class,
+		AdminScreens::class,
 	);
 
 	/**

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+The Comments screen leaves internal comments out of every view, trash included, for users who may not list them, and out of their own view where its reader cannot see them; it no longer offers to reply to, quick edit, approve or mark spam an internal comment.
