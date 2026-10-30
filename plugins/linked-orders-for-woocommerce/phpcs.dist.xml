@@ -3,8 +3,7 @@
 	<!-- Extend the shared ruleset from wordpress-configs. -->
 	<rule ref="./vendor/ahegyes/wordpress-configs/php/quality-assurance/phpcs.dist.xml"/>
 
-	<!-- wp-scripts generates the build trees. -->
-	<exclude-pattern>*/blocks/build/*</exclude-pattern>
+	<!-- wp-scripts generates the build tree. -->
 	<exclude-pattern>*/assets/build/*</exclude-pattern>
 
 	<!-- WooCommerce registers the order capabilities the plugin checks. -->

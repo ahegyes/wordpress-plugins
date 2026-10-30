@@ -6,9 +6,9 @@ This document describes the plugin's three test suites, the environments they ru
 
 | Suite | Where | Runs on | Covers |
 | --- | --- | --- | --- |
-| Unit | `tests/Unit/` | PHP alone, without WordPress | the component tree and the footprint's shape and coverage |
-| Integration | `tests/Integration/` | the tests site, with WordPress, WooCommerce and order tables loaded | the boot, every component, the options and their readers, the migrations, deactivation, uninstall, the assets and blocks, the peer getters, and a partial deploy: a missing build file or engine, or an include that throws |
-| End to end | `tests/e2e/` | the tests site, in a browser through Playwright | the settings tab by keyboard, a rejected and a corrected value, accessibility through axe, and the plugin with WooCommerce deactivated |
+| Unit | `tests/Unit/` | PHP alone, without WordPress | the component tree, the footprint's shape and coverage of v1's data, and the readme's version and floors |
+| Integration | `tests/Integration/` | the tests site, with WordPress, WooCommerce and order tables loaded | the boot, every component, v1's keys, settings API, linking API, node class, capabilities and deprecated functions and hooks, the options and their readers, the migrations, deactivation, uninstall after v1's consent, the assets, the peer getters, and a partial deploy: a missing build file or engine, or an include that throws; every row that touches orders runs on all four storages through `OrderStorage` |
+| End to end | `tests/e2e/` | the tests site, in a browser through Playwright | a child created from an order's meta box and both orders' depth in the orders list, the plugin row's link to its settings section, and the plugin with WooCommerce deactivated |
 
 PHPUnit runs both PHP suites in random order, so each row sets up what it needs and restores what it changes; its cache lives in `tests/.cache/phpunit/`, and Playwright's output in `tests/.cache/artifacts/`.
 
@@ -51,7 +51,7 @@ composer quality-check
 - **Tests** runs Unit once, and Integration and the end-to-end suite once per WordPress branch, from the entry file's `Requires at least` up to the newest release, which WordPress's version API lists, so a new release joins without an edit.
 - **Tests (nightly)** runs Integration and the end-to-end suite on WordPress trunk every day, outside pull requests.
 - **Release** builds the zip on every pull request as a tag would, runs Plugin Check and the archive checks, then activates the zip on a site and runs the end-to-end suite against it.
-- **Quality** runs PHPCS, PHPStan, the PHP 7.4 parse of the entry file, `uninstall.php` and `includes/`, the script, style and type lints, the `block.json` schema and the changelog fragments.
+- **Quality** runs PHPCS, PHPStan, the PHP 7.4 parse of the entry file, `uninstall.php` and `includes/`, the script, style and type lints, the `block.json` schema, the readme lint and the changelog fragments.
 
 ## Conventions
 

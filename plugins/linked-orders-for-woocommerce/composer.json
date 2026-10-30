@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wc-linked-orders",
-  "description": "WordPress plugins on the wp-framework packages start here, from one tested anatomy, so all are built alike and a fix found in one applies to all.",
+  "description": "A WooCommerce extension for creating orders that are logically connected to existing ones.",
   "type": "wordpress-plugin",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/ahegyes/wc-linked-orders",

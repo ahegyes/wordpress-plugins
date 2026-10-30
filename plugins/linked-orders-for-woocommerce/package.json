@@ -1,7 +1,7 @@
 {
     "name": "@ahegyes/linked-orders-for-woocommerce",
     "private": true,
-    "description": "DWS WordPress plugin template — wp-env, script and style tooling.",
+    "description": "A WooCommerce extension for creating orders that are logically connected to existing ones.",
     "license": "GPL-3.0-or-later",
     "repository": {
         "type": "git",
