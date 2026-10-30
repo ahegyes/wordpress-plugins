@@ -15,10 +15,13 @@ final class MetaBoxTest extends TestCase {
 
 	protected int $user = 0;
 
-	// WooCommerce loads its screen ids only in admin requests.
+	// WordPress and WooCommerce load these only in admin requests.
 	#[BeforeClass]
-	public static function load_screen_ids(): void {
+	public static function load_meta_box_api(): void {
 		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
+		require_once ABSPATH . 'wp-admin/includes/screen.php';
 	}
 
 	#[Before]

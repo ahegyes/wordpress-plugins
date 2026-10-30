@@ -113,6 +113,9 @@ final class DeprecatedHooksTest extends TestCase {
 	protected function render_meta_box(): void {
 		global $wp_meta_boxes;
 		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
+		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		$order  = $this->create_order();
 		$screen = wc_get_page_screen_id( 'shop-order' );
 		do_action( 'add_meta_boxes', $screen, $order );

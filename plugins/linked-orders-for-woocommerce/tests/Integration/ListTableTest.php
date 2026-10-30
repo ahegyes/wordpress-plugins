@@ -86,9 +86,13 @@ final class ListTableTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_the_depth_filter_lists_every_level_up_to_the_deepest_stored_or_allowed( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		$deep = $this->create_order();
-		$deep->update_meta_data( '_dws_lo_depth', '3' );
-		$deep->save();
+		// The shallower order is newer, so only an order by depth finds the deep one.
+		foreach ( array( 3, 1 ) as $depth ) {
+			$order = $this->create_order();
+			$order->update_meta_data( '_dws_lo_depth', (string) $depth );
+			$order->set_date_created( \time() + DAY_IN_SECONDS / $depth );
+			$order->save();
+		}
 		$this->open_list();
 		$_GET['_dws_lo_depth'] = '2';
 
