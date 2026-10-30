@@ -36,12 +36,12 @@ final class PartialDeployTest extends TestCase {
 	}
 
 	public function test_the_peer_getters_a_partial_deploy_defines_still_answer(): void {
-		$root = \dirname( DWS_IC_FILE ) . '/src/Plugin.php'; // options.php reads it at include time, after metadata.php has loaded.
-		\rename( $root, "$root.hidden" );
+		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php'; // It loads after metadata.php.
+		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
 			$request = self::request( 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_ic_boot" ), dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) );' );
 		} finally {
-			\rename( "$root.hidden", $root );
+			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
@@ -63,7 +63,7 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
-		update_option( DWS_IC_OPTION_DELETE_DATA, 'yes' );
+		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
 		\ini_set( 'error_log', $log ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- The child process's stderr would fail the test.
 		\spl_autoload_register(
@@ -77,11 +77,11 @@ final class PartialDeployTest extends TestCase {
 		);
 
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
-		self::assertSame( 'yes', get_option( DWS_IC_OPTION_DELETE_DATA ) );
+		self::assertSame( array( DWS_IC_SETTING_DELETE_DATA => 'yes' ), get_option( DWS_IC_OPTION_PLUGIN ) );
 		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
 
 		\unlink( $log );
-		update_option( DWS_IC_OPTION_DELETE_DATA, 'no' );
+		update_option( DWS_IC_OPTION_PLUGIN, DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ] );
 	}
 
 	/**
