@@ -80,7 +80,7 @@ function dws_lowc_deactivate(): void {
 }
 
 /**
- * Declares whether the plugin works with WooCommerce's order tables, which each plugin built from the template sets from its own evidence.
+ * Declares that the plugin works with WooCommerce's order tables, which its tests cover on both order storages.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -88,5 +88,5 @@ function dws_lowc_deactivate(): void {
  * @return  void
  */
 function dws_lowc_declare_compatibility(): void {
-	FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_LOWC_FILE, false );
+	FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_LOWC_FILE, true );
 }

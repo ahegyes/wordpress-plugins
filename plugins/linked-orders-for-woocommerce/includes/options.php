@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Holds the plugin's option keys and defaults, and reads each option as its type, guarding the stored value.
+ * Holds the plugin's option keys, which are v1's, and their defaults, and reads each option as its type, guarding the stored value.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -8,9 +8,27 @@
  * @package DeepWebSolutions\LinkedOrders
  */
 
-use DeepWebSolutions\LinkedOrders\Plugin;
-
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * The option that holds the deepest level a linked order can be created at, where root orders are level 0.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_OPTION_MAX_DEPTH = 'dws-lowc_general_max-depth';
+
+/**
+ * The option that holds 'yes' where completing an order completes its descendants.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_OPTION_AUTOCOMPLETE = 'dws-lowc_general_autocomplete-descendants';
 
 /**
  * The option that holds 'yes' where the site consents to uninstall removing the plugin's data.
@@ -20,7 +38,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @var     string
  */
-const DWS_LOWC_OPTION_DELETE_DATA = Plugin::PREFIX . '_delete_data';
+const DWS_LOWC_OPTION_DELETE_DATA = 'dws-lowc_plugin_remove-data-uninstall';
 
 /**
  * The value each option reads as while nothing valid is stored.
@@ -28,10 +46,12 @@ const DWS_LOWC_OPTION_DELETE_DATA = Plugin::PREFIX . '_delete_data';
  * @since   2.0.0
  * @version 2.0.0
  *
- * @var     array<string, bool|int|string|list<string>>
+ * @var     array<string, bool|int>
  */
 const DWS_LOWC_OPTION_DEFAULTS = array(
-	DWS_LOWC_OPTION_DELETE_DATA => false,
+	DWS_LOWC_OPTION_MAX_DEPTH    => 1,
+	DWS_LOWC_OPTION_AUTOCOMPLETE => false,
+	DWS_LOWC_OPTION_DELETE_DATA  => false,
 );
 
 /**
@@ -67,59 +87,31 @@ function dws_lowc_get_int_option( string $key ): int {
 }
 
 /**
- * Returns an option as a string, reading a missing or empty value of an option with a translated default as that default, only after init.
+ * Returns the deepest level a linked order can be created at, at least 1, as v1 read it.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   string $key The option's key.
- *
- * @return  string
+ * @return  int
  */
-function dws_lowc_get_string_option( string $key ): string {
-	$text    = dws_lowc_get_option_text( $key );
-	$default = dws_lowc_get_option_default( $key ) ?? $text;
-	$stored  = get_option( $key, $default );
-	if ( '' === $stored ) {
-		return $text; // The field shows a translated default as its placeholder, so an untouched field stores an empty value.
-	}
-
-	return is_string( $stored ) ? $stored : ( is_string( $default ) ? $default : '' );
+function dws_lowc_get_max_depth(): int {
+	return max( dws_lowc_get_int_option( DWS_LOWC_OPTION_MAX_DEPTH ), 1 );
 }
 
 /**
- * Returns an option as a list of strings, keeping the stored strings in order.
+ * Returns the maximum depth in the form WooCommerce stores, or an error when the submission is not a whole number of at least 1.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   string $key The option's key.
+ * @param   mixed $submitted The submitted value.
  *
- * @return  list<string>
+ * @return  string|WP_Error
  */
-function dws_lowc_get_list_option( string $key ): array {
-	$default = dws_lowc_get_option_default( $key );
-	$stored  = get_option( $key, $default );
-	$stored  = is_array( $stored ) ? $stored : $default;
+function dws_lowc_validate_max_depth( $submitted ) {
+	$depth = is_string( $submitted ) ? filter_var( $submitted, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) : false;
 
-	return is_array( $stored ) ? array_values( array_filter( $stored, 'is_string' ) ) : array();
-}
-
-/**
- * Returns an option's translated default, which exists only after init, or an empty string for an option without one.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string $key The option's key.
- *
- * @return  string
- */
-function dws_lowc_get_option_text( string $key ): string {
-	switch ( $key ) {
-		default:
-			return '';
-	}
+	return false === $depth ? new WP_Error( 'invalid_number', __( 'Enter a whole number of 1 or more, such as 2.', 'linked-orders-for-woocommerce' ) ) : (string) $depth;
 }
 
 /**

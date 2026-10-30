@@ -25,7 +25,7 @@ function dws_lowc_get_migration_steps(): array {
 }
 
 /**
- * Stores the defaults of the settings that need no translation, autoloaded, so a site that never saved them reads them without a query; a translated default is never stored, because it would keep the language the site had when the step ran.
+ * Stores the settings' defaults, autoloaded, so a site that never saved them reads them without a query, and keeps every value a v1 site stored.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -36,7 +36,9 @@ function dws_lowc_get_migration_steps(): array {
  */
 function dws_lowc_add_settings(): void {
 	$defaults = array(
-		DWS_LOWC_OPTION_DELETE_DATA => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ] ),
+		DWS_LOWC_OPTION_MAX_DEPTH    => (string) DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_MAX_DEPTH ],
+		DWS_LOWC_OPTION_AUTOCOMPLETE => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_AUTOCOMPLETE ] ),
+		DWS_LOWC_OPTION_DELETE_DATA  => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ] ),
 	);
 
 	foreach ( $defaults as $key => $value ) {
