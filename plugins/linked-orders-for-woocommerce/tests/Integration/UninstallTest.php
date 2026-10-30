@@ -35,6 +35,26 @@ final class UninstallTest extends TestCase {
 		\unlink( $log );
 	}
 
+	// WordPress uninstalls an inactive plugin, so the request loads uninstall.php alone, never the entry file or functions.php.
+	public function test_an_uninstall_in_a_request_that_skips_the_plugin_removes_its_data(): void {
+		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		$php = 'uninstall_plugin( "linked-orders-for-woocommerce/linked-orders-for-woocommerce.php" ); echo wp_json_encode( array( defined( "DWS_LOWC_FILE" ), get_option( "' . DWS_LOWC_OPTION_DELETE_DATA . '" ) ) );';
+
+		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' --skip-plugins=linked-orders-for-woocommerce eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The uninstall needs a request without the plugin.
+		wp_cache_flush();
+
+		// The other tests share the database, so the roles get their capabilities back and the runner stores again what a new site starts with.
+		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
+			foreach ( $capabilities as $capability ) {
+				get_role( $role )?->add_cap( $capability );
+			}
+		}
+		dws_lowc_plugin()->migrations?->run();
+
+		self::assertSame( 0, $status, \implode( "\n", $output ) );
+		self::assertSame( '[false,false]', (string) \end( $output ) );
+	}
+
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_after_v1_consent_removes_the_links_on_both_storages_v1s_rows_and_the_capabilities(): void {
 		global $wpdb;

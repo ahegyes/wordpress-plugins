@@ -67,9 +67,9 @@ final class LinkingTest extends TestCase {
 		self::assertSame( $root->get_id(), dws_lowc_get_root_order( $grandchild->get_id() )?->get_id() );
 	}
 
-	// A cycle would send every tree walk into endless recursion, so an order never becomes the child of itself or of its own descendant.
+	// A cycle would send every tree walk into endless recursion, and a linked subtree would keep its old depths, so a child is always a lone root.
 	#[DataProvider( 'storages' )]
-	public function test_a_link_is_refused_for_a_child_with_a_parent_for_the_order_itself_and_for_an_ancestor( bool $hpos, bool $sync ): void {
+	public function test_a_link_is_refused_for_a_child_with_a_parent_or_children_and_for_the_order_itself( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$root  = $this->create_order();
 		$child = $this->create_order();
@@ -79,6 +79,7 @@ final class LinkingTest extends TestCase {
 		self::assertFalse( dws_lowc_link_orders( $other->get_id(), $child->get_id() ) );
 		self::assertFalse( dws_lowc_link_orders( $other->get_id(), $other->get_id() ) );
 		self::assertFalse( dws_lowc_link_orders( $child->get_id(), $root->get_id() ) );
+		self::assertFalse( dws_lowc_link_orders( $other->get_id(), $root->get_id() ) );
 		self::assertSame( array( $root->get_id(), $child->get_id() ), dws_lowc_get_orders_tree( $root->get_id() ) );
 		self::assertSame( array( $other->get_id() ), dws_lowc_get_orders_tree( $other->get_id() ) );
 	}

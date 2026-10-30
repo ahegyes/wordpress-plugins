@@ -130,6 +130,17 @@ final class ChildCreationTest extends TestCase {
 		self::assertSame( array( 'The linked child of order ' . $parent->get_id() . ' could not be created: The &lt;b&gt;store&lt;/b&gt; is closed.' ), $this->get_messages() );
 	}
 
+	public function test_a_parent_id_that_is_not_a_whole_number_names_no_order(): void {
+		$parent = $this->create_order();
+
+		foreach ( array( '-' . $parent->get_id(), $parent->get_id() . 'abc' ) as $parent_id ) {
+			$this->request( $parent_id );
+		}
+
+		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+		self::assertSame( array( 'There is no order 0 to create a linked child for.' ), $this->get_messages() );
+	}
+
 	protected function request( string $parent_id ): string {
 		$_GET['parent_id']     = $parent_id;
 		$_REQUEST['parent_id'] = $parent_id;

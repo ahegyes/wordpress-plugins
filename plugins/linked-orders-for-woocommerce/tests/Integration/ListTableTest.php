@@ -144,6 +144,18 @@ final class ListTableTest extends TestCase {
 	}
 
 	#[DataProvider( 'storages' )]
+	public function test_the_tree_filter_narrows_the_orders_a_search_found_rather_than_replacing_them( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$root  = $this->create_order();
+		$child = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		$this->open_list();
+		$_GET['_dws_linked_order_id'] = (string) $child->get_id();
+
+		self::assertSame( array( $child->get_id() ), $this->query( array( $child->get_id(), $this->create_order()->get_id() ) ) );
+	}
+
+	#[DataProvider( 'storages' )]
 	public function test_an_order_row_offers_its_customers_orders_its_tree_and_a_new_child( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$root  = $this->create_order( array( 'customer_id' => 1 ) );
@@ -225,11 +237,12 @@ final class ListTableTest extends TestCase {
 		return \trim( (string) \ob_get_clean() );
 	}
 
-	protected function query(): array {
+	// The found ids stand in for the orders a search narrowed the list to, under the key each storage's search sets.
+	protected function query( ?array $found = null ): array {
 		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$args = apply_filters(
 				'woocommerce_order_list_table_prepare_items_query_args',
-				array(
+				( null === $found ? array() : array( 'id' => $found ) ) + array(
 					'type'    => 'shop_order',
 					'status'  => 'any',
 					'limit'   => -1,
@@ -244,7 +257,7 @@ final class ListTableTest extends TestCase {
 
 		$vars = apply_filters(
 			'request',
-			array(
+			( null === $found ? array() : array( 'post__in' => $found ) ) + array(
 				'post_type'      => 'shop_order',
 				'post_status'    => 'any',
 				'posts_per_page' => -1,
