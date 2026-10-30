@@ -11,6 +11,7 @@ parameters:
         - functions.php
         - uninstall.php
         - includes
+        - models
         - src
     scanFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php

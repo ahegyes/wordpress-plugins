@@ -7,6 +7,15 @@
 	<exclude-pattern>*/blocks/build/*</exclude-pattern>
 	<exclude-pattern>*/assets/build/*</exclude-pattern>
 
+	<!-- WooCommerce registers the order capabilities the plugin checks. -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="edit_shop_orders"/>
+			</property>
+		</properties>
+	</rule>
+
 	<!-- Validate every gettext call uses the plugin's text domain. -->
 	<rule ref="WordPress.WP.I18n">
 		<properties>
