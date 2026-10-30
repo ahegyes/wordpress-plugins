@@ -28,6 +28,8 @@ foreach ( $dws_lowc_includes as $dws_lowc_include ) {
 // The hooks come last, so an include that throws leaves nothing of the plugin hooked.
 add_action( 'plugins_loaded', 'dws_lowc_boot', 15 );
 add_action( 'before_woocommerce_init', 'dws_lowc_declare_compatibility' );
+add_action( 'dws_lowc/boot/succeeded', 'dws_lowc_fire_v1_initialized' );
+add_action( 'dws_lowc/boot/failed', 'dws_lowc_fire_v1_initialization_failure' );
 register_deactivation_hook( DWS_LOWC_FILE, 'dws_lowc_deactivate' );
 
 /**
