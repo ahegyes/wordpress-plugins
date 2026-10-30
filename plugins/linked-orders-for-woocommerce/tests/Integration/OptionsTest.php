@@ -64,6 +64,18 @@ final class OptionsTest extends TestCase {
 		self::assertSame( 1, dws_lowc_get_max_depth() );
 	}
 
+	// v1 compared the filtered value as it came, so a filter could stop new children with 0.
+	public function test_a_filter_on_the_validated_depth_is_the_last_word(): void {
+		$zero = static fn ( mixed $value, string $field_id ): mixed => 'max-depth' === $field_id ? 0 : $value;
+		add_filter( 'dws_lowc/settings/validated_value', $zero, 10, 2 );
+
+		try {
+			self::assertSame( 0, dws_lowc_get_max_depth() );
+		} finally {
+			remove_filter( 'dws_lowc/settings/validated_value', $zero );
+		}
+	}
+
 	#[DataProvider( 'stored_depths' )]
 	public function test_the_maximum_depth_reads_at_least_one( string $stored, int $expected ): void {
 		update_option( DWS_LOWC_OPTION_MAX_DEPTH, $stored );

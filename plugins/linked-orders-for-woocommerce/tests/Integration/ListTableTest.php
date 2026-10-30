@@ -144,6 +144,36 @@ final class ListTableTest extends TestCase {
 	}
 
 	#[DataProvider( 'storages' )]
+	public function test_the_depth_filter_narrows_another_extensions_alternatives_rather_than_joining_them( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$root  = $this->create_order();
+		$child = $this->create_order();
+		$other = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		foreach ( array( $root, $child ) as $flagged ) {
+			$flagged = wc_get_order( $flagged->get_id() );
+			$flagged->update_meta_data( '_dws_lowc_test_flag', 'yes' );
+			$flagged->save();
+		}
+		$this->open_list();
+		$_GET['_dws_lo_depth'] = '0';
+
+		$either = array(
+			'relation' => 'OR',
+			array(
+				'key'   => '_dws_lowc_test_flag',
+				'value' => 'yes',
+			),
+			array(
+				'key'   => '_dws_lowc_test_flag',
+				'value' => 'maybe',
+			),
+		);
+
+		self::assertSame( array( $root->get_id() ), \array_values( \array_intersect( $this->query( null, $either ), array( $root->get_id(), $child->get_id(), $other->get_id() ) ) ) );
+	}
+
+	#[DataProvider( 'storages' )]
 	public function test_the_tree_filter_narrows_the_orders_a_search_found_rather_than_replacing_them( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$root  = $this->create_order();
@@ -238,11 +268,12 @@ final class ListTableTest extends TestCase {
 	}
 
 	// The found ids stand in for the orders a search narrowed the list to, under the key each storage's search sets.
-	protected function query( ?array $found = null ): array {
+	protected function query( ?array $found = null, array $meta_query = array() ): array {
+		$others = array() === $meta_query ? array() : array( 'meta_query' => $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Another extension's filter.
 		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$args = apply_filters(
 				'woocommerce_order_list_table_prepare_items_query_args',
-				( null === $found ? array() : array( 'id' => $found ) ) + array(
+				$others + ( null === $found ? array() : array( 'id' => $found ) ) + array(
 					'type'    => 'shop_order',
 					'status'  => 'any',
 					'limit'   => -1,
@@ -257,7 +288,7 @@ final class ListTableTest extends TestCase {
 
 		$vars = apply_filters(
 			'request',
-			( null === $found ? array() : array( 'post__in' => $found ) ) + array(
+			$others + ( null === $found ? array() : array( 'post__in' => $found ) ) + array(
 				'post_type'      => 'shop_order',
 				'post_status'    => 'any',
 				'posts_per_page' => -1,

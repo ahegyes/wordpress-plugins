@@ -31,7 +31,15 @@ final class PluginBootTest extends TestCase {
 
 		self::assertContains( $includes . 'safeguards.php', \get_included_files() );
 		self::assertContains( $includes . 'index.php', \get_included_files() );
-		self::assertNotContains( $includes . '_disabled-example.php', \get_included_files() );
+		\file_put_contents( $includes . '_lowc-skipped.php', "<?php\nconst DWS_LOWC_SKIPPED_INCLUDE = true;\n" );
+		try {
+			\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( 'echo defined( "DWS_LOWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped";' ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The loader runs only in a fresh request.
+		} finally {
+			\unlink( $includes . '_lowc-skipped.php' );
+		}
+
+		self::assertSame( 0, $status, \implode( "\n", $output ) );
+		self::assertSame( 'skipped', (string) \end( $output ) );
 	}
 
 	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {

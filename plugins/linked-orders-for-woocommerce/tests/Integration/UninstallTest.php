@@ -41,18 +41,17 @@ final class UninstallTest extends TestCase {
 		$php = 'uninstall_plugin( "linked-orders-for-woocommerce/linked-orders-for-woocommerce.php" ); echo wp_json_encode( array( defined( "DWS_LOWC_FILE" ), get_option( "' . DWS_LOWC_OPTION_DELETE_DATA . '" ) ) );';
 
 		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' --skip-plugins=linked-orders-for-woocommerce eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The uninstall needs a request without the plugin.
-		wp_cache_flush();
 
-		// The other tests share the database, so the roles get their capabilities back and the runner stores again what a new site starts with.
-		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
-			foreach ( $capabilities as $capability ) {
-				get_role( $role )?->add_cap( $capability );
-			}
-		}
-		dws_lowc_plugin()->migrations?->run();
+		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request would.
+		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval "" 2>&1', $restored, $restore_status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The restore needs a request with the plugin.
+		wp_cache_flush();
+		wp_roles()->for_site();
 
 		self::assertSame( 0, $status, \implode( "\n", $output ) );
 		self::assertSame( '[false,false]', (string) \end( $output ) );
+		self::assertSame( 0, $restore_status, \implode( "\n", $restored ) );
+		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+		self::assertTrue( get_role( 'shop_manager' )?->has_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN ) );
 	}
 
 	#[RunInSeparateProcess]
