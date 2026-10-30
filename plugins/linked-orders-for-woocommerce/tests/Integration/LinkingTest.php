@@ -50,7 +50,9 @@ final class LinkingTest extends TestCase {
 		self::assertSame( array( $parent->get_id(), $child->get_id() ), dws_lowc_get_orders_tree( $parent->get_id() ) );
 	}
 
-	public function test_a_tree_lists_its_root_then_each_child_before_the_next(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_tree_lists_its_root_then_each_child_before_the_next( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$root       = $this->create_order();
 		$first      = $this->create_order();
 		$grandchild = $this->create_order();
@@ -66,7 +68,9 @@ final class LinkingTest extends TestCase {
 	}
 
 	// A cycle would send every tree walk into endless recursion, so an order never becomes the child of itself or of its own descendant.
-	public function test_a_link_is_refused_for_a_child_with_a_parent_for_the_order_itself_and_for_an_ancestor(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_link_is_refused_for_a_child_with_a_parent_for_the_order_itself_and_for_an_ancestor( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$root  = $this->create_order();
 		$child = $this->create_order();
 		$other = $this->create_order();
@@ -79,7 +83,9 @@ final class LinkingTest extends TestCase {
 		self::assertSame( array( $other->get_id() ), dws_lowc_get_orders_tree( $other->get_id() ) );
 	}
 
-	public function test_an_order_that_is_missing_or_not_supported_has_no_node(): void {
+	#[DataProvider( 'storages' )]
+	public function test_an_order_that_is_missing_or_not_supported_has_no_node( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$order  = $this->create_order();
 		$refund = wc_create_refund(
 			array(
@@ -100,7 +106,9 @@ final class LinkingTest extends TestCase {
 		self::assertTrue( dws_lowc_is_supported_order( $order->get_id() ) );
 	}
 
-	public function test_a_child_whose_parent_was_deleted_is_its_own_root(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_child_whose_parent_was_deleted_is_its_own_root( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$parent = $this->create_order();
 		$child  = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
@@ -131,7 +139,9 @@ final class LinkingTest extends TestCase {
 		new \DWS_Order_Node( \PHP_INT_MAX );
 	}
 
-	public function test_a_child_can_be_created_below_the_maximum_depth_by_a_user_who_may_edit_the_order(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_child_can_be_created_below_the_maximum_depth_by_a_user_who_may_edit_the_order( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$root  = $this->create_order();
 		$child = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
@@ -159,7 +169,9 @@ final class LinkingTest extends TestCase {
 		self::assertFalse( dws_lowc_get_order_node( $root->get_id() )?->can_create_child( $this->user ) );
 	}
 
-	public function test_a_child_cannot_be_created_from_an_order_whose_status_is_not_valid_for_one(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_child_cannot_be_created_from_an_order_whose_status_is_not_valid_for_one( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$order    = $this->create_order();
 		$statuses = static fn ( array $statuses ): array => \array_values( \array_diff( $statuses, array( 'pending' ) ) );
 		add_filter( 'dws_lowc/post_type/valid_statuses_for_new_child', $statuses );
@@ -211,7 +223,9 @@ final class LinkingTest extends TestCase {
 		self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $id )?->get_parent()?->get_id() );
 	}
 
-	public function test_a_linked_child_is_not_created_for_an_unsupported_parent_or_an_uncallable_creator(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_linked_child_is_not_created_for_an_unsupported_parent_or_an_uncallable_creator( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$wrong = array();
 		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
 		$record = static function ( string $function_name ) use ( &$wrong ): void {
@@ -231,7 +245,9 @@ final class LinkingTest extends TestCase {
 		self::assertSame( array( 'dws_lowc_create_linked_child', 'dws_lowc_create_linked_child' ), $wrong );
 	}
 
-	public function test_a_creator_error_is_returned(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_creator_error_is_returned( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$error = new \WP_Error( 'failed', 'Failed.' );
 
 		self::assertSame( $error, dws_lowc_create_linked_child( $this->create_order()->get_id(), array( 'create_function' => static fn (): \WP_Error => $error ) ) );

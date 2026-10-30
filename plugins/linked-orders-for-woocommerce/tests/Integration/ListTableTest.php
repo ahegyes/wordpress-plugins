@@ -37,8 +37,14 @@ final class ListTableTest extends TestCase {
 		wp_set_current_user( 1 );
 	}
 
+	// A screen's column hooks stay for the rest of the process, as they stay for the rest of a request; WooCommerce adds its own only in admin requests, so clearing them removes none of its.
 	#[After]
 	protected function leave_screen(): void {
+		foreach ( array( 'edit-shop_order', 'woocommerce_page_wc-orders', 'admin_page_wc-orders' ) as $screen ) {
+			remove_all_filters( "manage_{$screen}_columns" );
+			remove_all_actions( "manage_{$screen}_custom_column" );
+		}
+		remove_all_actions( 'manage_shop_order_posts_custom_column' );
 		unset( $GLOBALS['current_screen'], $GLOBALS['typenow'], $_GET['_dws_lo_depth'], $_GET['_guest_customer_user'], $_GET['_dws_linked_order_id'], $_GET['_customer_user'] );
 		wp_dequeue_script( Plugin::SLUG . '-orders-list-table' );
 		wp_dequeue_style( Plugin::SLUG . '-orders-list-table-icons' );
@@ -65,7 +71,9 @@ final class ListTableTest extends TestCase {
 		self::assertSame( '', $this->render_cell( $child->get_id(), 'order_total' ) );
 	}
 
-	public function test_a_user_without_the_columns_capability_sees_the_list_unchanged(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_user_without_the_columns_capability_sees_the_list_unchanged( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$this->user = wp_insert_user(
 			array(
 				'user_login' => 'dws-lowc-list-table-editor',
@@ -155,7 +163,9 @@ final class ListTableTest extends TestCase {
 		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
 	}
 
-	public function test_a_guest_row_offers_the_orders_of_its_billing_email_unless_the_list_shows_them(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_guest_row_offers_the_orders_of_its_billing_email_unless_the_list_shows_them( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$guest = $this->create_order( array( 'customer_id' => 0 ) );
 		$guest->set_billing_email( 'guest+row@example.com' );
 		$guest->save();

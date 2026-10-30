@@ -51,7 +51,9 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( 'Linked Orders', $box['title'] ?? null );
 	}
 
-	public function test_the_box_is_not_added_for_a_user_without_its_capabilities_or_beside_other_editors(): void {
+	#[DataProvider( 'storages' )]
+	public function test_the_box_is_not_added_for_a_user_without_its_capabilities_or_beside_other_editors( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$this->user = wp_insert_user(
 			array(
 				'user_login' => 'dws-lowc-meta-box-editor',
@@ -104,7 +106,9 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( 1, wp_verify_nonce( (string) ( $query['_wpnonce'] ?? '' ), 'dws_create_linked_child' ) );
 	}
 
-	public function test_a_childless_order_at_the_maximum_depth_says_no_child_can_be_added(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_childless_order_at_the_maximum_depth_says_no_child_can_be_added( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$root  = $this->create_order();
 		$child = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );

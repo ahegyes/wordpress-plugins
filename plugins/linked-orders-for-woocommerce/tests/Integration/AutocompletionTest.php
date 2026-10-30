@@ -39,7 +39,9 @@ final class AutocompletionTest extends TestCase {
 		}
 	}
 
-	public function test_completing_a_child_leaves_its_parent_alone(): void {
+	#[DataProvider( 'storages' )]
+	public function test_completing_a_child_leaves_its_parent_alone( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		list( $root, $child, $grandchild ) = $this->create_tree();
 
 		$child->update_status( 'completed' );
@@ -48,7 +50,9 @@ final class AutocompletionTest extends TestCase {
 		self::assertSame( 'completed', wc_get_order( $grandchild->get_id() )->get_status() );
 	}
 
-	public function test_nothing_is_autocompleted_while_the_setting_is_off(): void {
+	#[DataProvider( 'storages' )]
+	public function test_nothing_is_autocompleted_while_the_setting_is_off( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'no' );
 		list( $root, $child ) = $this->create_tree();
 
@@ -57,7 +61,9 @@ final class AutocompletionTest extends TestCase {
 		self::assertSame( 'pending', wc_get_order( $child->get_id() )->get_status() );
 	}
 
-	public function test_a_filter_keeps_a_descendant_or_sets_another_status(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_filter_keeps_a_descendant_or_sets_another_status( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		list( $root, $child, $grandchild ) = $this->create_tree();
 
 		$skip   = static fn ( bool $should, int $descendant_id ): bool => $should && $descendant_id !== $child->get_id();

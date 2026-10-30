@@ -92,7 +92,9 @@ final class ChildCreationTest extends TestCase {
 		self::assertSame( array( 'There is no order ' . \PHP_INT_MAX . ' to create a linked child for.' ), $this->get_messages() );
 	}
 
-	public function test_a_user_who_may_not_create_a_child_returns_to_the_parent_with_a_notice(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_user_who_may_not_create_a_child_returns_to_the_parent_with_a_notice( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$parent     = $this->create_order();
 		$this->user = wp_insert_user(
 			array(
@@ -111,7 +113,9 @@ final class ChildCreationTest extends TestCase {
 		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
 	}
 
-	public function test_a_failed_creation_returns_to_the_parent_with_the_error(): void {
+	#[DataProvider( 'storages' )]
+	public function test_a_failed_creation_returns_to_the_parent_with_the_error( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$parent  = $this->create_order();
 		$creator = static fn ( array $args ): array => array( 'create_function' => static fn (): \WP_Error => new \WP_Error( 'failed', 'The <b>store</b> is closed.' ) ) + $args;
 		add_filter( 'dws_lowc/linked_order/creation_args', $creator );
