@@ -196,16 +196,16 @@ final class ListTable implements ComponentInterface {
 			return $query_vars;
 		}
 
-		$meta_query = \is_array( $query_vars['meta_query'] ?? null ) ? $query_vars['meta_query'] : array();
-		$email      = self::get_query_arg( '_guest_customer_user' );
+		$clauses = self::get_depth_clauses();
+		$email   = self::get_query_arg( '_guest_customer_user' );
 		if ( '' !== $email ) {
-			$meta_query[] = array(
+			$clauses[] = array(
 				'key'   => '_billing_email',
 				'value' => $email,
 			);
 		}
 
-		$query_vars['meta_query'] = \array_merge( $meta_query, self::get_depth_clauses() ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
+		$query_vars['meta_query'] = self::add_meta_clauses( $query_vars['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
 		$tree                     = self::get_tree_filter( $query_vars['post__in'] ?? null );
 		if ( null !== $tree ) {
 			$query_vars['post__in'] = $tree;
@@ -234,7 +234,7 @@ final class ListTable implements ComponentInterface {
 			$args['billing_email'] = $email;
 		}
 
-		$args['meta_query'] = \array_merge( \is_array( $args['meta_query'] ?? null ) ? $args['meta_query'] : array(), self::get_depth_clauses() ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
+		$args['meta_query'] = self::add_meta_clauses( $args['meta_query'] ?? null, self::get_depth_clauses() ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
 		$tree               = self::get_tree_filter( $args['id'] ?? null );
 		if ( null !== $tree ) {
 			$args['id'] = $tree;
@@ -422,6 +422,25 @@ final class ListTable implements ComponentInterface {
 				),
 			) : $clause,
 		);
+	}
+
+	/**
+	 * Returns a meta query that requires both the query already in place and each of the list's clauses, whatever relation the query in place uses.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed                          $meta_query The meta query already in place, if any.
+	 * @param   list<array<int|string, mixed>> $clauses    The list's clauses.
+	 *
+	 * @return  mixed
+	 */
+	protected static function add_meta_clauses( mixed $meta_query, array $clauses ): mixed {
+		if ( array() === $clauses ) {
+			return $meta_query;
+		}
+
+		return \array_merge( array( 'relation' => 'AND' ), \is_array( $meta_query ) && array() !== $meta_query ? array( $meta_query ) : array(), $clauses );
 	}
 
 	/**

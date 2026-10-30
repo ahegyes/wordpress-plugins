@@ -129,7 +129,7 @@ function dws_lowc_validate_setting( $value, string $field_id, ?string $group = n
 }
 
 /**
- * Returns the deepest level a linked order can be created at, at least 1, from the validated setting, so v1's filters apply.
+ * Returns the deepest level a linked order can be created at: the validated setting, at least 1 as stored, or what v1's and v2's filters make it.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -137,7 +137,7 @@ function dws_lowc_validate_setting( $value, string $field_id, ?string $group = n
  * @return  int
  */
 function dws_lowc_get_max_depth(): int {
-	return max( filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 1, 1 );
+	return filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 1;
 }
 
 /**

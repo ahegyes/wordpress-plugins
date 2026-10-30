@@ -68,7 +68,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.2. Every hook moves to a dws_lowc/ name and its v1 name still fires, deprecated, but for eight settings hooks and the v1 framework's notice-markup hooks, which are removed.
+Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.2. Hooks move to dws_lowc/ names and their v1 names still fire, deprecated, but eight settings hooks, the v1 framework's notice-markup hooks and its accessors, such as dws_lowc_instance(), are removed.
 
 == Changelog ==
 

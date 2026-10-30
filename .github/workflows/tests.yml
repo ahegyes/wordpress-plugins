@@ -57,3 +57,23 @@ jobs:
       php-version: '8.5'
       wp-version: ${{ matrix.wp }}
       wp-env-config-file: '.wp-env.tests.json'
+
+  # CI installs only the root, so the shared environment's jobs install and build the plugins it maps.
+  shared-integration:
+    name: Integration (shared environment)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: '.'
+      php-version: '8.5'
+      composer-script: 'test:integration:ci'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  shared-e2e:
+    name: E2E (shared environment)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      project-path: '.'
+      artifact-slug: shared-environment
+      php-version: '8.5'
+      build-script: 'setup'
+      wp-env-config-file: '.wp-env.tests.json'

@@ -48,6 +48,12 @@
       "npm --prefix=. run wp-env:tests:start",
       "@test:integration:run"
     ],
+    "test:integration:ci": [
+      "Composer\\Config::disableProcessTimeout",
+      "@plugins:packages-install",
+      "npm --prefix=. run plugins:packages-install",
+      "@test:integration:run"
+    ],
     "test:integration:run": [
       "Composer\\Config::disableProcessTimeout",
       "@putenv CI=1",
