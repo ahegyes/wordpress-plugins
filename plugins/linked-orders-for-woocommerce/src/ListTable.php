@@ -29,7 +29,7 @@ final class ListTable implements ComponentInterface {
 		add_action( 'woocommerce_order_list_table_restrict_manage_orders', array( $this, 'render_filters' ), 20 );
 		add_filter( 'request', array( $this, 'filter_posts_query' ), 999 );
 		add_filter( 'woocommerce_order_list_table_prepare_items_query_args', array( $this, 'filter_orders_query' ), 999 );
-		add_filter( 'woocommerce_admin_order_actions', array( $this, 'add_row_actions' ), 998, 2 ); // Before v1 Quote Requests' reset at 999, whichever plugin boots first.
+		add_filter( 'woocommerce_admin_order_actions', array( $this, 'add_row_actions' ), 999, 2 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 	}
 

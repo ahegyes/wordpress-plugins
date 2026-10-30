@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
-use DeepWebSolutions\LinkedOrders\ListTable;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -115,7 +114,7 @@ final class ListTableTest extends TestCase {
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
 	}
 
-	// v1 read the deepest depth from every order of the type, whatever its status: the Trash, which the list's Trash view shows, or a status another plugin registers only as a post status, as v1 Quote Requests does for its quotes.
+	// v1 read the deepest depth from every order of the type, whatever its status: the Trash, which the list's Trash view shows, or a status another plugin registers only as a post status.
 	#[DataProvider( 'storages' )]
 	public function test_the_depth_filter_counts_an_order_in_any_status_at_the_deepest_level( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
@@ -123,10 +122,10 @@ final class ListTableTest extends TestCase {
 		$deep->update_meta_data( '_dws_lo_depth', '5' );
 		$this->open_list();
 
-		register_post_status( 'wc-dws-lowc-quoted' );
-		$accepted = static fn ( array $statuses ): array => $statuses + array( 'wc-dws-lowc-quoted' => 'Quoted' );
+		register_post_status( 'wc-dws-lowc-custom' );
+		$accepted = static fn ( array $statuses ): array => $statuses + array( 'wc-dws-lowc-custom' => 'Custom' );
 		try {
-			foreach ( array( 'trash', 'dws-lowc-quoted' ) as $status ) {
+			foreach ( array( 'trash', 'dws-lowc-custom' ) as $status ) {
 				add_filter( 'wc_order_statuses', $accepted );
 				$deep->set_status( $status );
 				$deep->save();
@@ -139,7 +138,7 @@ final class ListTableTest extends TestCase {
 			}
 		} finally {
 			remove_filter( 'wc_order_statuses', $accepted );
-			unset( $GLOBALS['wp_post_statuses']['wc-dws-lowc-quoted'] );
+			unset( $GLOBALS['wp_post_statuses']['wc-dws-lowc-custom'] );
 		}
 	}
 
@@ -249,34 +248,6 @@ final class ListTableTest extends TestCase {
 		self::assertSame( 'View all linked Orders', $actions['view_all_linked_orders']['name'] );
 		self::assertSame( 'Create empty linked Order', $actions['create_empty_linked_child']['name'] );
 		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
-	}
-
-	// v1 Quote Requests boots before this plugin and resets a quote row's actions at priority 999, keeping this plugin's only where its settings allow, so they must be in place by then.
-	public function test_the_row_actions_are_in_place_before_a_plugin_that_booted_first_resets_them_at_999(): void {
-		global $wp_filter;
-		$order = $this->create_order( array( 'customer_id' => 1 ) );
-		$this->open_list();
-		$own      = null;
-		$priority = 0;
-		foreach ( $wp_filter['woocommerce_admin_order_actions']->callbacks as $at => $callbacks ) {
-			foreach ( $callbacks as $callback ) {
-				if ( \is_array( $callback['function'] ) && $callback['function'][0] instanceof ListTable && 'add_row_actions' === $callback['function'][1] ) {
-					$own      = $callback['function'];
-					$priority = $at;
-				}
-			}
-		}
-		self::assertNotNull( $own );
-		$reset = static fn (): array => array();
-		remove_filter( 'woocommerce_admin_order_actions', $own, $priority );
-		add_filter( 'woocommerce_admin_order_actions', $reset, 999 );
-		add_filter( 'woocommerce_admin_order_actions', $own, $priority, 2 );
-
-		try {
-			self::assertSame( array(), apply_filters( 'woocommerce_admin_order_actions', array(), $order ) );
-		} finally {
-			remove_filter( 'woocommerce_admin_order_actions', $reset, 999 );
-		}
 	}
 
 	#[DataProvider( 'storages' )]

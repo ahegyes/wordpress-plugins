@@ -88,7 +88,6 @@ final class LinkingTest extends TestCase {
 		self::assertSame( $other->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_order()->get_id() );
 	}
 
-	// v1 callers never check whether a link worked, so a link waits for another one to finish rather than refusing at once.
 	public function test_a_link_waits_for_another_request_to_finish_linking(): void {
 		global $wpdb;
 		$parent = $this->create_order();

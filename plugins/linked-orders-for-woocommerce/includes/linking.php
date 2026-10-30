@@ -51,7 +51,7 @@ function dws_lowc_is_root_order( $order ): ?bool {
 /**
  * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, or when another request still links orders after five seconds, and null when either order has no node.
  *
- * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock. A link holds it for milliseconds, so the next one waits rather than refusing callers that, as in v1, never check the result.
+ * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock. A link holds it for milliseconds, so the next one waits for it rather than refusing at once.
  *
  * @since   1.0.0
  * @version 2.0.0
