@@ -1,0 +1,245 @@
+<?php declare( strict_types=1 );
+
+namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
+
+use Automattic\WooCommerce\Utilities\OrderUtil;
+use DeepWebSolutions\LinkedOrders\Plugin;
+use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\Before;
+use PHPUnit\Framework\Attributes\BeforeClass;
+use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+#[CoversNothing]
+final class ListTableTest extends TestCase {
+	use OrderStorage;
+
+	protected const array COLUMNS = array(
+		'cb'           => '',
+		'order_number' => 'Order',
+		'order_total'  => 'Total',
+		'wc_actions'   => 'Actions',
+	);
+
+	protected int $user = 0;
+
+	// WordPress and WooCommerce load these only in admin requests.
+	#[BeforeClass]
+	public static function load_screen_api(): void {
+		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
+		require_once ABSPATH . 'wp-admin/includes/screen.php';
+	}
+
+	#[Before]
+	protected function log_in(): void {
+		wp_set_current_user( 1 );
+	}
+
+	#[After]
+	protected function leave_screen(): void {
+		unset( $GLOBALS['current_screen'], $GLOBALS['typenow'], $_GET['_dws_lo_depth'], $_GET['_guest_customer_user'], $_GET['_dws_linked_order_id'], $_GET['_customer_user'] );
+		wp_dequeue_script( Plugin::SLUG . '-orders-list-table' );
+		wp_dequeue_style( Plugin::SLUG . '-orders-list-table-icons' );
+		wp_set_current_user( 0 );
+		if ( 0 !== $this->user ) {
+			require_once ABSPATH . 'wp-admin/includes/user.php';
+			wp_delete_user( $this->user );
+			$this->user = 0;
+		}
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_the_depth_column_follows_the_total_and_names_each_orders_level( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$root  = $this->create_order();
+		$child = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		$screen = $this->open_list();
+
+		self::assertSame( array( 'cb', 'order_number', 'order_total', 'dws_lo_depth', 'wc_actions' ), \array_keys( apply_filters( "manage_{$screen}_columns", self::COLUMNS ) ) );
+		self::assertSame( 'Depth', apply_filters( "manage_{$screen}_columns", self::COLUMNS )['dws_lo_depth'] );
+		self::assertSame( 'Root Order', $this->render_cell( $root->get_id() ) );
+		self::assertSame( 'Child Order (level 2)', $this->render_cell( $child->get_id() ) );
+		self::assertSame( '', $this->render_cell( $child->get_id(), 'order_total' ) );
+	}
+
+	public function test_a_user_without_the_columns_capability_sees_the_list_unchanged(): void {
+		$this->user = wp_insert_user(
+			array(
+				'user_login' => 'dws-lowc-list-table-editor',
+				'user_pass'  => wp_generate_password(),
+				'role'       => 'editor',
+			)
+		);
+		self::assertIsInt( $this->user );
+		wp_set_current_user( $this->user );
+		$screen = $this->open_list();
+		$order  = $this->create_order();
+
+		self::assertSame( self::COLUMNS, apply_filters( "manage_{$screen}_columns", self::COLUMNS ) );
+		self::assertSame( array(), apply_filters( 'woocommerce_admin_order_actions', array(), $order ) );
+		self::assertSame( '', $this->render_filters() );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_the_depth_filter_lists_every_level_up_to_the_deepest_stored_or_allowed( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$deep = $this->create_order();
+		$deep->update_meta_data( '_dws_lo_depth', '3' );
+		$deep->save();
+		$this->open_list();
+		$_GET['_dws_lo_depth'] = '2';
+
+		$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
+
+		$options = \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) );
+		self::assertSame( array( '', '0', '1', '2', '3' ), \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', $options ) );
+		self::assertSame( array( 'All Order depths', 'Root Orders', 'Child Orders (level 2)', 'Child Orders (level 3)', 'Child Orders (level 4)' ), \array_map( static fn ( \Dom\Element $option ): string => \trim( $option->textContent ), $options ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertTrue( $options[3]->hasAttribute( 'selected' ) );
+		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_guest_customer_user"]' ) );
+		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_the_list_filters_by_depth_by_guest_email_and_by_tree( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$root   = $this->create_order( array( 'customer_id' => 0 ) );
+		$child  = $this->create_order();
+		$other  = $this->create_order();
+		$sister = $this->create_order( array( 'customer_id' => 0 ) );
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		foreach ( array( $root, $sister ) as $guest ) {
+			$guest = wc_get_order( $guest->get_id() );
+			$guest->set_billing_email( 'guest-' . $root->get_id() . '@example.com' );
+			$guest->save();
+		}
+		$this->open_list();
+
+		$_GET['_dws_lo_depth'] = '1';
+		self::assertSame( array( $child->get_id() ), \array_values( \array_intersect( $this->query(), array( $root->get_id(), $child->get_id(), $other->get_id() ) ) ) );
+		$_GET['_dws_lo_depth'] = '0';
+		self::assertSame( array( $root->get_id(), $other->get_id() ), \array_values( \array_intersect( $this->query(), array( $root->get_id(), $child->get_id(), $other->get_id() ) ) ) );
+		unset( $_GET['_dws_lo_depth'] );
+
+		$_GET['_guest_customer_user'] = 'guest-' . $root->get_id() . '@example.com';
+		self::assertSame( array( $root->get_id(), $sister->get_id() ), $this->query() );
+		unset( $_GET['_guest_customer_user'] );
+
+		$_GET['_dws_linked_order_id'] = (string) $child->get_id();
+		self::assertSame( array( $root->get_id(), $child->get_id() ), $this->query() );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_an_order_row_offers_its_customers_orders_its_tree_and_a_new_child( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$root  = $this->create_order( array( 'customer_id' => 1 ) );
+		$child = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		$this->open_list();
+		$list = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders' ) : admin_url( 'edit.php?post_type=shop_order' );
+
+		$actions = apply_filters( 'woocommerce_admin_order_actions', array( 'complete' => array( 'action' => 'complete' ) ), wc_get_order( $root->get_id() ) );
+
+		self::assertSame( array( 'view_all_customer_orders', 'view_all_linked_orders', 'create_empty_linked_child', 'complete' ), \array_keys( $actions ) );
+		self::assertSame( add_query_arg( '_customer_user', 1, $list ), $actions['view_all_customer_orders']['url'] );
+		self::assertSame( 'View all customer Orders', $actions['view_all_customer_orders']['name'] );
+		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), $actions['view_all_linked_orders']['url'] );
+		self::assertSame( 'View all linked Orders', $actions['view_all_linked_orders']['name'] );
+		self::assertSame( 'Create empty linked Order', $actions['create_empty_linked_child']['name'] );
+		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
+	}
+
+	public function test_a_guest_row_offers_the_orders_of_its_billing_email_unless_the_list_shows_them(): void {
+		$guest = $this->create_order( array( 'customer_id' => 0 ) );
+		$guest->set_billing_email( 'guest+row@example.com' );
+		$guest->save();
+		$this->open_list();
+		$list = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders' ) : admin_url( 'edit.php?post_type=shop_order' );
+
+		$actions = apply_filters( 'woocommerce_admin_order_actions', array(), $guest );
+		self::assertSame( add_query_arg( '_guest_customer_user', \rawurlencode( 'guest+row@example.com' ), $list ), $actions['view_all_customer_orders']['url'] );
+		self::assertArrayNotHasKey( 'view_all_linked_orders', $actions );
+
+		$_GET['_guest_customer_user'] = 'guest+row@example.com';
+		self::assertArrayNotHasKey( 'view_all_customer_orders', apply_filters( 'woocommerce_admin_order_actions', array(), $guest ) );
+	}
+
+	public function test_the_list_loads_the_script_and_the_icons_only_on_order_lists(): void {
+		$this->open_list();
+		do_action( 'admin_enqueue_scripts', 'edit.php' );
+
+		self::assertTrue( wp_script_is( Plugin::SLUG . '-orders-list-table' ) );
+		self::assertTrue( wp_style_is( Plugin::SLUG . '-orders-list-table-icons' ) );
+
+		wp_dequeue_script( Plugin::SLUG . '-orders-list-table' );
+		wp_dequeue_style( Plugin::SLUG . '-orders-list-table-icons' );
+		set_current_screen( 'edit-post' );
+		do_action( 'admin_enqueue_scripts', 'edit.php' );
+
+		self::assertFalse( wp_script_is( Plugin::SLUG . '-orders-list-table' ) );
+	}
+
+	protected function open_list(): string {
+		$screen = OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( 'shop-order' ) : 'edit-shop_order';
+		set_current_screen( $screen );
+		$GLOBALS['typenow'] = 'shop_order'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The posts list sets it from the request.
+
+		return $screen;
+	}
+
+	protected function render_cell( int $order_id, string $column = 'dws_lo_depth' ): string {
+		\ob_start();
+		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			do_action( 'manage_' . wc_get_page_screen_id( 'shop-order' ) . '_custom_column', $column, wc_get_order( $order_id ) );
+		} else {
+			do_action( 'manage_shop_order_posts_custom_column', $column, $order_id );
+		}
+
+		return \trim( (string) \ob_get_clean() );
+	}
+
+	protected function render_filters(): string {
+		\ob_start();
+		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			do_action( 'woocommerce_order_list_table_restrict_manage_orders', 'shop_order', 'top' );
+		} else {
+			do_action( 'restrict_manage_posts', 'shop_order', 'top' );
+		}
+
+		return \trim( (string) \ob_get_clean() );
+	}
+
+	protected function query(): array {
+		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$args = apply_filters(
+				'woocommerce_order_list_table_prepare_items_query_args',
+				array(
+					'type'    => 'shop_order',
+					'status'  => 'any',
+					'limit'   => -1,
+					'return'  => 'ids',
+					'orderby' => 'ID',
+					'order'   => 'ASC',
+				)
+			);
+
+			return \array_map( 'intval', wc_get_orders( $args ) );
+		}
+
+		$vars = apply_filters(
+			'request',
+			array(
+				'post_type'      => 'shop_order',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			)
+		);
+
+		return \array_map( 'intval', ( new \WP_Query( $vars ) )->posts );
+	}
+}

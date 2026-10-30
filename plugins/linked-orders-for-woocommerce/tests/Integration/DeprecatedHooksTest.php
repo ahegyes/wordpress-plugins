@@ -25,6 +25,9 @@ final class DeprecatedHooksTest extends TestCase {
 			'can-create-child'             => array( 'node/can_create_child', 'dws_lowc/node/can_create_child', 'check_child_creation' ),
 			'should-autocomplete'          => array( 'autocompletion/should_autocomplete', 'dws_lowc/autocompletion/should_autocomplete', 'complete_parent' ),
 			'completed-status'             => array( 'autocompletion/completed_status', 'dws_lowc/autocompletion/completed_status', 'complete_parent' ),
+			'after-add-new-child-button'   => array( 'metabox_output/after_add_new_child_button', 'dws_lowc/meta_box/after_add_new_child_button', 'render_meta_box' ),
+			'preceding-column'             => array( 'list_table_output/column/insert_after', 'dws_lowc/list_table/preceding_column', 'list_columns' ),
+			'column-content'               => array( 'list_table_output/column/content', 'dws_lowc/list_table/column_content', 'render_depth_cell' ),
 		);
 	}
 
@@ -37,6 +40,9 @@ final class DeprecatedHooksTest extends TestCase {
 
 	#[After]
 	protected function stop_recording(): void {
+		global $wp_meta_boxes;
+		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Resets what the rows registered.
+		unset( $GLOBALS['current_screen'] );
 		wp_set_current_user( 0 );
 		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
 		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
@@ -102,5 +108,40 @@ final class DeprecatedHooksTest extends TestCase {
 		} finally {
 			update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, $stored );
 		}
+	}
+
+	protected function render_meta_box(): void {
+		global $wp_meta_boxes;
+		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
+		$order  = $this->create_order();
+		$screen = wc_get_page_screen_id( 'shop-order' );
+		do_action( 'add_meta_boxes', $screen, $order );
+		$box = $wp_meta_boxes[ $screen ]['side']['default']['dws-linked-orders'];
+
+		\ob_start();
+		\call_user_func( $box['callback'], $order, $box );
+		\ob_end_clean();
+	}
+
+	protected function list_columns(): void {
+		$screen = $this->open_list();
+		apply_filters( "manage_{$screen}_columns", array( 'order_total' => 'Total' ) );
+	}
+
+	protected function render_depth_cell(): void {
+		$screen = $this->open_list();
+		\ob_start();
+		do_action( "manage_{$screen}_custom_column", 'dws_lo_depth', $this->create_order() );
+		\ob_end_clean();
+	}
+
+	protected function open_list(): string {
+		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
+		require_once ABSPATH . 'wp-admin/includes/screen.php';
+		$screen = wc_get_page_screen_id( 'shop-order' );
+		set_current_screen( $screen );
+
+		return $screen;
 	}
 }
