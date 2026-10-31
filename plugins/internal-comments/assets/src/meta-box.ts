@@ -48,8 +48,14 @@ if ( root ) {
 		request: () => Promise< ListResponse >,
 		done: string
 	): Promise< boolean > => {
-		const buttons = group.querySelectorAll< HTMLButtonElement >( 'button' );
-		buttons.forEach( ( button ) => ( button.disabled = true ) );
+		// The fields stay as sent until the answer clears or replaces them; read-only keeps the focus that disabling would drop.
+		const controls = group.querySelectorAll<
+			HTMLButtonElement | HTMLInputElement
+		>( 'button, input' );
+		const fields =
+			group.querySelectorAll< HTMLTextAreaElement >( 'textarea' );
+		controls.forEach( ( control ) => ( control.disabled = true ) );
+		fields.forEach( ( field ) => ( field.readOnly = true ) );
 		root.setAttribute( 'aria-busy', 'true' );
 		try {
 			const response = await request();
@@ -78,7 +84,8 @@ if ( root ) {
 			announce( errorMessage( error ), true );
 			return false;
 		} finally {
-			buttons.forEach( ( button ) => ( button.disabled = false ) );
+			controls.forEach( ( control ) => ( control.disabled = false ) );
+			fields.forEach( ( field ) => ( field.readOnly = false ) );
 			root.removeAttribute( 'aria-busy' );
 		}
 	};
