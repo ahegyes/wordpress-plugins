@@ -8,6 +8,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\LockedPaymentMethods\Settings;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +19,7 @@ final class PluginBootTest extends TestCase {
 		$plugin = dws_lpmwc_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, UserRoleStrategy::class ), $plugin->kernel?->resolved );
+		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, UserRoleStrategy::class, UserProfileStrategy::class ), $plugin->kernel?->resolved );
 		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 

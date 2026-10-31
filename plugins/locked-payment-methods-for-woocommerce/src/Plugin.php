@@ -13,6 +13,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooC
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\WooCommerceRequirement;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DI\ContainerBuilder;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\LoggerInterface as PsrLoggerInterface;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
 
 \defined( 'ABSPATH' ) || exit;
@@ -60,6 +61,7 @@ final class Plugin {
 		CapabilityGrants::class,
 		Settings::class,
 		UserRoleStrategy::class,
+		UserProfileStrategy::class,
 	);
 
 	/**

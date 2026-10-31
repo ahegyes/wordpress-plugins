@@ -21,17 +21,11 @@ final class UserProfileStrategyTest extends TestCase {
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-users-list-table.php';
-		foreach ( array( 'administrator', 'shop_manager', 'customer', 'editor' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
-				array(
-					'user_login' => "lpm-profiles-$role",
-					'user_pass'  => 'password',
-					'user_email' => "lpm-profiles-$role@example.org",
-					'role'       => $role,
-				)
-			);
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
+		require_once ABSPATH . 'wp-admin/includes/screen.php';
+		foreach ( array( 'administrator', 'shop_manager', 'editor' ) as $role ) {
+			self::$users[ $role ] = self::create_user( $role );
 		}
 		get_userdata( self::$users['editor'] )?->add_cap( 'edit_users' );
 	}
@@ -43,8 +37,10 @@ final class UserProfileStrategyTest extends TestCase {
 		}
 	}
 
+	// The form evaluates its definition and saves an object once per request, so every row edits a customer of its own.
 	#[Before]
 	protected function store_rows(): void {
+		self::$users['customer'] = self::create_user( 'customer' );
 		foreach ( self::KEYS as $key ) {
 			$this->stored[ $key ] = get_option( $key );
 		}
@@ -57,6 +53,7 @@ final class UserProfileStrategyTest extends TestCase {
 		foreach ( $this->stored as $key => $value ) {
 			false === $value ? delete_option( $key ) : update_option( $key, $value );
 		}
+		wp_delete_user( self::$users['customer'] );
 		foreach ( self::$users as $user ) {
 			delete_user_meta( $user, self::key() );
 			delete_user_meta( $user, DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS );
@@ -64,6 +61,7 @@ final class UserProfileStrategyTest extends TestCase {
 		delete_option( 'dws_lpmwc_notices' );
 		unset( $_POST[ self::FORM ], $_POST[ self::FORM . '_nonce' ], $_GET['dws_lpmwc_unlocked_for_top'], $_GET['dws_lpmwc_unlocked_for_bottom'], $_GET['bottom'] );
 		$GLOBALS['pagenow'] = 'index.php';
+		unset( $GLOBALS['current_screen'] );
 		wp_set_current_user( 0 );
 	}
 
@@ -135,12 +133,16 @@ final class UserProfileStrategyTest extends TestCase {
 		);
 	}
 
-	public function test_the_profile_shows_nothing_without_the_capability_or_with_nothing_to_offer(): void {
+	public function test_the_profile_shows_nothing_to_a_user_without_the_capability(): void {
 		wp_set_current_user( self::$users['editor'] );
-		self::assertNull( self::render( self::$users['customer'] )->querySelector( 'input' ) );
 
+		self::assertNull( self::render( self::$users['customer'] )->querySelector( 'input' ) );
+	}
+
+	public function test_the_profile_shows_nothing_while_there_is_nothing_to_offer(): void {
 		wp_set_current_user( self::$users['administrator'] );
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array() );
+
 		self::assertNull( self::render( self::$users['customer'] )->querySelector( 'input' ) );
 	}
 
@@ -148,10 +150,17 @@ final class UserProfileStrategyTest extends TestCase {
 		wp_set_current_user( self::$users['administrator'] );
 
 		self::save( self::$users['customer'], array( 'bacs' ) );
+
 		self::assertSame( array( 'bacs' ), get_user_meta( self::$users['customer'], self::key(), true ) );
 		self::assertSame( '', get_user_meta( self::$users['customer'], DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, true ) );
+	}
+
+	public function test_saving_the_profile_with_nothing_checked_stores_an_empty_list(): void {
+		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
+		wp_set_current_user( self::$users['administrator'] );
 
 		self::save( self::$users['customer'], '' );
+
 		self::assertSame( array(), get_user_meta( self::$users['customer'], self::key(), true ) );
 	}
 
@@ -208,6 +217,19 @@ final class UserProfileStrategyTest extends TestCase {
 		$_GET['dws_lpmwc_unlocked_for_bottom'] = 'bacs';
 		$_GET['bottom']                        = 'Filter';
 		self::assertSame( array( self::$users['editor'] ), self::listed_users() );
+	}
+
+	protected static function create_user( string $role ): int {
+		$login = \uniqid( "lpm-profiles-$role-" );
+
+		return (int) wp_insert_user(
+			array(
+				'user_login' => $login,
+				'user_pass'  => 'password',
+				'user_email' => "$login@example.org",
+				'role'       => $role,
+			)
+		);
 	}
 
 	protected static function key(): string {
