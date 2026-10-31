@@ -6,8 +6,8 @@ trait RunsRequestsTrait {
 	/**
 	 * @return array{status: int, output: string, last: string}
 	 */
-	protected static function request( string $php ): array {
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Each row needs a fresh request that loads the plugin.
+	protected static function request( string $php, string $flags = '' ): array {
+		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . " $flags eval " . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Each row needs a fresh request that loads the plugin.
 		$output = \array_values( \array_filter( $output, static fn ( string $line ): bool => '' !== \trim( $line ) ) );
 
 		return array(
