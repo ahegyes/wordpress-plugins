@@ -5,6 +5,7 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\LockedPaymentMethods\Settings;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -16,7 +17,7 @@ final class PluginBootTest extends TestCase {
 		$plugin = dws_lpmwc_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, Settings::class ), $plugin->kernel?->resolved );
+		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class ), $plugin->kernel?->resolved );
 		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 
