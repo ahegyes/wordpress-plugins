@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+Works with WooCommerce's order tables as well as with orders stored as posts, with or without the sync between them: the meta box on the order screen and the column and quick view in the orders list.

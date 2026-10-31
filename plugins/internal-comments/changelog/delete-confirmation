@@ -1,0 +1,4 @@
+Significance: patch
+Type: added
+
+The meta box asks before deleting an internal comment permanently, on sites that keep no trash.

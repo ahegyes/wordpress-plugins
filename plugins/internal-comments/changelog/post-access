@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+Seeing, editing and trashing an internal comment also needs access to edit its post.

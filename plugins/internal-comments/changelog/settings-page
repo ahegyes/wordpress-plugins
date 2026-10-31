@@ -1,0 +1,4 @@
+Significance: minor
+Type: fixed
+
+Clearing every post type on the settings page saves an empty selection, where v1 kept the previous one.

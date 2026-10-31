@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Uninstall, where the site consents, removes the internal comments, the settings, v1's version and notice rows and the plugin's capabilities, which v1 left to Freemius.

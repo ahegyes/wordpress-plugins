@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+The DWS_IC_NAME, DWS_IC_VERSION, DWS_IC_PATH, DWS_IC_MIN_PHP and DWS_IC_MIN_WP constants; DWS_IC_NAME no longer carries the Deep Web Solutions prefix.

@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+Each change to an internal comment's text is recorded and listed on its edit screen, which also lets its author change whether it is private.

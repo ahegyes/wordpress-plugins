@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Approving, holding or marking an internal comment as spam, through the Comments screen or the REST API, keeps it hidden and mails no one, and restoring one from the trash keeps it hidden.

@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The settings/get_option_value, settings/update_option_value and settings/delete_option_value filters; use WordPress's option_{$option}, pre_update_option_{$option} and delete_option_{$option} hooks for the dws-internal-comments_ rows.

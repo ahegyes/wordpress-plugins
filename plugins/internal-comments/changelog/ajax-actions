@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The dws_ic_insert_comment, dws_ic_get_comments, dws_ic_get_comment, dws_ic_update_comment, dws_ic_trash_comment and dws_ic_get_comments_list_output admin-ajax actions; use the dws_ic/v1 REST routes.

@@ -5,6 +5,7 @@
     "port": 8820,
     "testsEnvironment": false,
     "mappings": {
+        "wp-content/plugins/internal-comments": "./plugins/internal-comments",
         "wp-content/plugins/linked-orders-for-woocommerce": "./plugins/linked-orders-for-woocommerce",
         "wp-content/plugins/woocommerce": "./vendor/wp-plugin/woocommerce"
     },
@@ -14,6 +15,6 @@
         "WP_ENVIRONMENT_TYPE": false
     },
     "lifecycleScripts": {
-        "afterStart": "node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp plugin activate woocommerce && node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp wc hpos enable --ignore-plugin-compatibility && node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp plugin activate linked-orders-for-woocommerce"
+        "afterStart": "node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp plugin activate woocommerce && node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp wc hpos enable --ignore-plugin-compatibility && node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp plugin activate linked-orders-for-woocommerce internal-comments"
     }
 }

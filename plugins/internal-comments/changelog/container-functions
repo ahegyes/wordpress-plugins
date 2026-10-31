@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+dws_ic_di_container(), dws_ic_instance(), dws_ic_component() and dws_ic_instance_initialize(), which exposed v1's framework internals.

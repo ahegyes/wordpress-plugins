@@ -135,10 +135,6 @@
                 }
             ],
             "description": "Shared PHPCS, PHPStan and php-scoper configurations and reusable GitHub Actions workflows for WordPress projects.",
-            "support": {
-                "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
-                "issues": "https://github.com/ahegyes/wordpress-configs/issues"
-            },
             "time": "2026-10-30T11:34:20+00:00"
         },
         {
@@ -171,10 +167,7 @@
             ],
             "description": "The code a WordPress plugin runs before its autoloader. It parses on PHP 7.4, so a site below the plugin's floors gets a notice instead of a fatal error and still receives the release that fixes it.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "support": {
-                "source": "https://github.com/ahegyes/wp-framework-bootstrap/tree/trunk"
-            },
-            "time": "2026-10-30T10:32:53+00:00"
+            "time": "2026-10-30T10:27:50+00:00"
         },
         {
             "name": "ahegyes/wp-framework-core",
@@ -219,10 +212,7 @@
             ],
             "description": "The plugin kernel. A plugin is composed of small components that load only where they apply, on WordPress's own APIs, with the infrastructure WordPress leaves every plugin to rebuild.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "support": {
-                "source": "https://github.com/ahegyes/wp-framework-core/tree/trunk"
-            },
-            "time": "2026-10-30T10:32:53+00:00"
+            "time": "2026-10-30T10:27:50+00:00"
         },
         {
             "name": "ahegyes/wp-framework-settings",
@@ -261,9 +251,6 @@
             ],
             "description": "Settings screens and edit-screen fields declared as data, so WordPress's own APIs render, validate and save them and a plugin never hand-writes form handling.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "support": {
-                "source": "https://github.com/ahegyes/wp-framework-settings/tree/trunk"
-            },
             "time": "2026-10-30T10:12:55+00:00"
         },
         {
@@ -300,9 +287,6 @@
             ],
             "description": "The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "support": {
-                "source": "https://github.com/ahegyes/wp-framework-shared/tree/trunk"
-            },
             "time": "2026-10-30T10:12:55+00:00"
         },
         {
@@ -348,9 +332,6 @@
             ],
             "description": "The framework's settings, edit-screen and logging helpers carried onto WooCommerce's own screens and APIs, for plugins that extend WooCommerce.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "support": {
-                "source": "https://github.com/ahegyes/wp-framework-woocommerce/tree/trunk"
-            },
             "time": "2026-10-30T10:12:55+00:00"
         },
         {
@@ -3122,12 +3103,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "7fd2aa4f9a2f0db3e04724273d5121c1d16a6c66"
+                "reference": "8e26a62e09d971af73b5455efcc52f6d142741c9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/7fd2aa4f9a2f0db3e04724273d5121c1d16a6c66",
-                "reference": "7fd2aa4f9a2f0db3e04724273d5121c1d16a6c66",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/8e26a62e09d971af73b5455efcc52f6d142741c9",
+                "reference": "8e26a62e09d971af73b5455efcc52f6d142741c9",
                 "shasum": ""
             },
             "conflict": {
@@ -3135,6 +3116,7 @@
                 "adaptcms/adaptcms": "<=1.3",
                 "adawolfa/isdoc": "<1.4.3|>=1.5,<1.5.1|>=1.6,<1.6.1",
                 "admidio/admidio": "<=5.0.11",
+                "adminneo-org/adminneo": ">=4.6.2,<5.5",
                 "adodb/adodb-php": "<=5.22.9",
                 "aheinze/cockpit": "<2.2",
                 "aimeos/ai-admin-graphql": ">=2022.04.1,<2022.10.10|>=2023.04.1,<2023.10.6|>=2024.04.1,<2024.07.2",
@@ -4283,7 +4265,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-29T16:37:57+00:00"
+            "time": "2026-10-30T20:26:18+00:00"
         },
         {
             "name": "sebastian/cli-parser",

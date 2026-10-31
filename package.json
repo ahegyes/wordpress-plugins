@@ -28,11 +28,11 @@
         "packages-update": "npm update",
         "packages-update:wp": "wp-scripts packages-update",
 
-        "plugins:packages-install": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-install",
-        "plugins:packages-update": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update",
-        "plugins:packages-update:wp": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update:wp",
+        "plugins:packages-install": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-install && npm --prefix=plugins/internal-comments run packages-install",
+        "plugins:packages-update": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update && npm --prefix=plugins/internal-comments run packages-update",
+        "plugins:packages-update:wp": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update:wp && npm --prefix=plugins/internal-comments run packages-update:wp",
 
-        "plugins:build": "npm --prefix=plugins/linked-orders-for-woocommerce run build",
+        "plugins:build": "npm --prefix=plugins/linked-orders-for-woocommerce run build && npm --prefix=plugins/internal-comments run build",
 
         "wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
         "wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
@@ -45,7 +45,7 @@
         "check:licenses": "wp-scripts check-licenses",
 
         "test:e2e": "playwright test --config=playwright.config.js",
-        "plugins:test:e2e": "npm --prefix=plugins/linked-orders-for-woocommerce run test:e2e",
+        "plugins:test:e2e": "npm --prefix=plugins/linked-orders-for-woocommerce run test:e2e && npm --prefix=plugins/internal-comments run test:e2e",
         "test:all": "composer test:integration && npm run test:e2e",
 
         "quality-check:all": "composer quality-check && npm run test:e2e"
