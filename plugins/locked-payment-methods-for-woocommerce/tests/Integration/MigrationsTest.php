@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class MigrationsTest extends TestCase {
-	protected const array KEYS = array( DWS_LPMWC_OPTION_FEATURE, DWS_LPMWC_OPTION_GREETING, DWS_LPMWC_OPTION_GREETING_ORDERS, DWS_LPMWC_OPTION_DELETE_DATA );
+	protected const array KEYS = array( DWS_LPMWC_OPTION_DELETE_DATA );
 
 	protected array $stored = array();
 
@@ -43,23 +43,18 @@ final class MigrationsTest extends TestCase {
 		dws_lpmwc_plugin()->migrations?->run();
 
 		self::assertSame( 1, MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
-		self::assertSame( 'no', get_option( DWS_LPMWC_OPTION_FEATURE ) );
-		self::assertSame( '1', get_option( DWS_LPMWC_OPTION_GREETING_ORDERS ) );
 		self::assertSame( 'no', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
-		self::assertFalse( get_option( DWS_LPMWC_OPTION_GREETING ) );
-		foreach ( array( DWS_LPMWC_OPTION_FEATURE, DWS_LPMWC_OPTION_GREETING_ORDERS, DWS_LPMWC_OPTION_DELETE_DATA ) as $key ) {
+		foreach ( array( DWS_LPMWC_OPTION_DELETE_DATA ) as $key ) {
 			self::assertSame( 'on', $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $key ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the stored autoload flag.
 		}
 	}
 
 	public function test_the_first_step_keeps_the_values_a_site_stored(): void {
-		update_option( DWS_LPMWC_OPTION_FEATURE, 'yes' );
-		update_option( DWS_LPMWC_OPTION_GREETING_ORDERS, '5' );
+		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
 
 		dws_lpmwc_add_settings();
 
-		self::assertSame( 'yes', get_option( DWS_LPMWC_OPTION_FEATURE ) );
-		self::assertSame( '5', get_option( DWS_LPMWC_OPTION_GREETING_ORDERS ) );
+		self::assertSame( 'yes', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
 	}
 
 	public function test_the_first_step_throws_when_a_default_cannot_be_stored(): void {

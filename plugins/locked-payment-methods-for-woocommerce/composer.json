@@ -70,9 +70,6 @@
     "psr-4": {
       "DeepWebSolutions\\LockedPaymentMethods\\": "src/"
     },
-    "classmap": [
-      "models/"
-    ],
     "files": [
       "vendor-prefixed/scoper-autoload.php"
     ]

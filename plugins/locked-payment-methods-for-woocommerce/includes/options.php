@@ -23,36 +23,6 @@ defined( 'ABSPATH' ) || exit;
 const DWS_LPMWC_OPTION_DELETE_DATA = Plugin::PREFIX . '_delete_data';
 
 /**
- * The option that holds 'yes' where the site greets returning customers on their account dashboard.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LPMWC_OPTION_FEATURE = Plugin::PREFIX . '_feature';
-
-/**
- * The option that holds the greeting.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LPMWC_OPTION_GREETING = Plugin::PREFIX . '_greeting';
-
-/**
- * The option that holds the number of orders a customer places before the greeting shows.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LPMWC_OPTION_GREETING_ORDERS = Plugin::PREFIX . '_greeting_orders';
-
-/**
  * The value each option reads as while nothing valid is stored.
  *
  * @since   2.0.0
@@ -61,9 +31,7 @@ const DWS_LPMWC_OPTION_GREETING_ORDERS = Plugin::PREFIX . '_greeting_orders';
  * @var     array<string, bool|int|string|list<string>>
  */
 const DWS_LPMWC_OPTION_DEFAULTS = array(
-	DWS_LPMWC_OPTION_DELETE_DATA     => false,
-	DWS_LPMWC_OPTION_FEATURE         => false,
-	DWS_LPMWC_OPTION_GREETING_ORDERS => 1,
+	DWS_LPMWC_OPTION_DELETE_DATA => false,
 );
 
 /**
@@ -149,27 +117,9 @@ function dws_lpmwc_get_list_option( string $key ): array {
  */
 function dws_lpmwc_get_option_text( string $key ): string {
 	switch ( $key ) {
-		case DWS_LPMWC_OPTION_GREETING:
-			return __( 'Welcome back, and thank you for shopping with us again.', 'locked-payment-methods-for-woocommerce' );
 		default:
 			return '';
 	}
-}
-
-/**
- * Returns the number of orders before the greeting shows in the form WooCommerce stores, or an error when the submission is not a whole number of at least 1.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   mixed $submitted The submitted value.
- *
- * @return  string|WP_Error
- */
-function dws_lpmwc_validate_greeting_orders( $submitted ) {
-	$orders = is_string( $submitted ) ? filter_var( $submitted, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) : false;
-
-	return false === $orders ? new WP_Error( 'invalid_number', __( 'Enter a whole number of 1 or more, such as 3.', 'locked-payment-methods-for-woocommerce' ) ) : (string) $orders;
 }
 
 /**

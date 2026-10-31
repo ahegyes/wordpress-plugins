@@ -39,7 +39,7 @@ if ( is_readable( $dws_lpmwc_bootstrap ) ) {
 	}
 }
 
-if ( ! is_readable( $dws_lpmwc_bootstrap ) || ! is_readable( __DIR__ . '/blocks/build/blocks-manifest.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
+if ( ! is_readable( $dws_lpmwc_bootstrap ) ) { // The floor gate never ran, so nothing built may load.
 	add_action( 'all_admin_notices', 'dws_lpmwc_render_build_notice' );
 	return;
 }
