@@ -69,4 +69,36 @@ test.describe( 'Posts list and Comments screen', () => {
 			'Seen in the list'
 		);
 	} );
+
+	test( 'an internal comment’s edit screen shows only what saving changes', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.visitAdminPage(
+			'edit-comments.php',
+			'comment_type=dws_internal'
+		);
+		const href = await page
+			.locator( '#the-comment-list' )
+			.getByRole( 'link', { name: 'Edit this comment' } )
+			.first()
+			.getAttribute( 'href' );
+		const id = new URL( href ?? '', page.url() ).searchParams.get( 'c' );
+
+		await admin.visitAdminPage(
+			'comment.php',
+			`action=editcomment&c=${ id ?? '' }`
+		);
+
+		await expect( page.locator( '#content' ) ).toHaveValue(
+			'Seen in the list'
+		);
+		for ( const selector of [
+			'#namediv',
+			'#comment-status',
+			'.misc-pub-curtime',
+		] ) {
+			await expect( page.locator( selector ) ).toBeHidden();
+		}
+	} );
 } );

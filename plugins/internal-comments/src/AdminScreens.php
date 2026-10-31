@@ -48,6 +48,7 @@ final class AdminScreens implements ComponentInterface {
 			add_action( "manage_{$orders_screen}_custom_column", array( $this, 'render_order_cell' ), 10, 2 );
 		}
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_list_assets' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_comment_screen_style' ) );
 		add_action( 'admin_menu', array( $this, 'add_comments_view' ) );
 		add_filter( 'admin_comment_types_dropdown', array( $this, 'add_comment_type' ) );
 		add_filter( 'comments_list_table_query_args', array( $this, 'filter_list_table_args' ) );
@@ -376,6 +377,28 @@ final class AdminScreens implements ComponentInterface {
 		$type = isset( $_GET['comment_type'] ) && \is_string( $_GET['comment_type'] ) ? sanitize_key( wp_unslash( $_GET['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reads the screen's view.
 
 		return DWS_IC_COMMENT_TYPE === $type ? \array_intersect_key( $actions, \array_flip( array( 'trash', 'untrash', 'delete' ) ) ) : $actions;
+	}
+
+	/**
+	 * Hides the author, status and date of an internal comment on WordPress's comment edit screen, since saving keeps them as stored.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $hook_suffix The admin page's hook suffix.
+	 *
+	 * @return  void
+	 */
+	public function enqueue_comment_screen_style( string $hook_suffix ): void {
+		// The comment screen loads its comment before it prints the page's head.
+		$comment = $GLOBALS['comment'] ?? null;
+		if ( 'comment.php' !== $hook_suffix || ! $comment instanceof \WP_Comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+			return;
+		}
+
+		wp_register_style( Plugin::SLUG . '-comment-screen', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- A style without a file has no version to bust.
+		wp_enqueue_style( Plugin::SLUG . '-comment-screen' );
+		wp_add_inline_style( Plugin::SLUG . '-comment-screen', '#namediv, #comment-status, .misc-pub-curtime { display: none; }' );
 	}
 
 	/**
