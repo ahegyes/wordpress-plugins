@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # GitHub refuses a GITHUB_TOKEN push that changes a workflow, so the fill-in leaves workflows alone and they read the slug the plugin declares.
+      # The workflows read the slug the plugin declares, as the template's do, so a change to the template's applies here unedited.
       - name: Read the slug from composer.json
         id: slug
         run: |
@@ -49,5 +49,6 @@ jobs:
       wp-env-config-file: '.wp-env.tests.json'
       # Both parse every PHP file with php-parser 4, which stops at PHP 8.4 syntax such as protected(set).
       exclude-checks: 'prefixing,direct_file_access'
+      wp-org: true
       # A pull request or a dispatch on a branch rehearses the release without publishing it.
       publish: ${{ github.ref_type == 'tag' }}

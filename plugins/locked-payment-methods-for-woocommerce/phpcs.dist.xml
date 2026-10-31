@@ -3,8 +3,6 @@
 	<!-- Extend the shared ruleset from wordpress-configs. -->
 	<rule ref="./vendor/ahegyes/wordpress-configs/php/quality-assurance/phpcs.dist.xml"/>
 
-	<!-- wp-scripts generates the build trees. -->
-
 	<!-- Validate every gettext call uses the plugin's text domain. -->
 	<rule ref="WordPress.WP.I18n">
 		<properties>
