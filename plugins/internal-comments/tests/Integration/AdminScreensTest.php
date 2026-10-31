@@ -248,6 +248,29 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( '', $screens->add_privacy_field( '', get_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) ) ) );
 	}
 
+	// Saving keeps an internal comment's author, status and date as stored, so the edit screen does not offer them.
+	public function test_the_comment_edit_screen_hides_the_fields_an_internal_comment_keeps(): void {
+		$screens = new AdminScreens();
+		$styles  = static function ( int $comment ) use ( $screens ): string {
+			$GLOBALS['comment'] = get_comment( $comment ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Stands in for the edit screen's comment.
+			try {
+				$screens->enqueue_comment_screen_style( 'comment.php' );
+
+				return \implode( '', (array) wp_styles()->get_data( 'internal-comments-comment-screen', 'after' ) );
+			} finally {
+				unset( $GLOBALS['comment'] );
+				wp_dequeue_style( 'internal-comments-comment-screen' );
+				wp_deregister_style( 'internal-comments-comment-screen' );
+			}
+		};
+
+		$internal = $styles( $this->comment( 'Internal' ) );
+		foreach ( array( '#namediv', '#comment-status', '.misc-pub-curtime' ) as $selector ) {
+			self::assertStringContainsString( $selector, $internal );
+		}
+		self::assertSame( '', $styles( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) ) );
+	}
+
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
 		( new AdminScreens() )->enqueue_list_assets( 'edit.php' );
 
