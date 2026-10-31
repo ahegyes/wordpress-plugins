@@ -23,6 +23,76 @@ defined( 'ABSPATH' ) || exit;
 const DWS_LPMWC_OPTION_DELETE_DATA = Plugin::PREFIX . '_delete_data';
 
 /**
+ * The option that holds the ids of the payment methods locked for every customer whom no unlock strategy unlocks.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_LOCKED_METHODS = Plugin::PREFIX . '_locked_payment_methods';
+
+/**
+ * The option that holds 'yes' where users with the full-access roles may use every locked payment method.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES = Plugin::PREFIX . '_unlock_via_user_roles';
+
+/**
+ * The option that holds the roles whose users may use every locked payment method while that strategy is on.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_FULL_ACCESS_ROLES = Plugin::PREFIX . '_full_access_user_roles';
+
+/**
+ * The option that holds 'yes' where a user's profile can unlock locked payment methods for that user.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES = Plugin::PREFIX . '_unlock_via_user_profiles';
+
+/**
+ * The option that holds 'yes' where an order can unlock locked payment methods for paying that order.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS = Plugin::PREFIX . '_unlock_via_orders';
+
+/**
+ * The option that holds 'yes' where a Groups group can unlock locked payment methods for its members.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS = Plugin::PREFIX . '_unlock_via_groups';
+
+/**
+ * The option that holds 'yes' where a WooCommerce Memberships plan can unlock locked payment methods for its active members.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS = Plugin::PREFIX . '_unlock_via_wc_memberships';
+
+/**
  * The value each option reads as while nothing valid is stored.
  *
  * @since   2.0.0
@@ -31,7 +101,39 @@ const DWS_LPMWC_OPTION_DELETE_DATA = Plugin::PREFIX . '_delete_data';
  * @var     array<string, bool|int|string|list<string>>
  */
 const DWS_LPMWC_OPTION_DEFAULTS = array(
-	DWS_LPMWC_OPTION_DELETE_DATA => false,
+	DWS_LPMWC_OPTION_LOCKED_METHODS            => array(),
+	DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES     => true,
+	DWS_LPMWC_OPTION_FULL_ACCESS_ROLES         => array( 'administrator', 'shop_manager' ),
+	DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES  => true,
+	DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS         => false,
+	DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS         => false,
+	DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS => false,
+	DWS_LPMWC_OPTION_DELETE_DATA               => false,
+);
+
+/**
+ * The option each of v1's settings moved to, by v1's settings group and field id, from which v1 stored it as dws-wc-lpm_{group}_{id}.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     array<string, array<string, string>>
+ */
+const DWS_LPMWC_V1_SETTINGS = array(
+	'general'      => array(
+		'locked-payment-methods' => DWS_LPMWC_OPTION_LOCKED_METHODS,
+		'unlock-via-user-role'   => DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES,
+		'full-access-user-roles' => DWS_LPMWC_OPTION_FULL_ACCESS_ROLES,
+		'unlock-via-user-meta'   => DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES,
+		'unlock-via-order-meta'  => DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS,
+	),
+	'integrations' => array(
+		'unlock-via-groups'         => DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS,
+		'unlock-via-wc-memberships' => DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS,
+	),
+	'plugin'       => array(
+		'remove-data-uninstall' => DWS_LPMWC_OPTION_DELETE_DATA,
+	),
 );
 
 /**

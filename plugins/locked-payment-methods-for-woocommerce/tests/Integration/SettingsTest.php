@@ -36,8 +36,9 @@ final class SettingsTest extends TestCase {
 
 	public static function setting_groups(): array {
 		return array(
-			'general' => array( 'general', array( 'locked-payment-methods', 'unlock-via-user-role', 'full-access-user-roles', 'unlock-via-user-meta', 'unlock-via-order-meta' ) ),
-			'plugin'  => array( 'plugin', array( 'remove-data-uninstall' ) ),
+			'general'      => array( 'general', array( 'locked-payment-methods', 'unlock-via-user-role', 'full-access-user-roles', 'unlock-via-user-meta', 'unlock-via-order-meta' ) ),
+			'integrations' => array( 'integrations', array() ),
+			'plugin'       => array( 'plugin', array( 'remove-data-uninstall' ) ),
 		);
 	}
 
