@@ -81,7 +81,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5 and WordPress 7.1. Internal comments move to a status of their own in the background, so going back to 1.2.4 hides them. Reading one also needs access to edit its post. Hooks move to dws_ic/ names; v1's AJAX actions, accessors and framework hooks are removed.
+Requires PHP 8.5 and WordPress 7.1. Internal comments move to a status of their own, so 1.2.4 no longer shows them, and any it posts stay public after a later update. Reading one needs access to edit its post. Hooks move to dws_ic/; v1's AJAX actions, accessors and framework hooks are removed.
 
 == Changelog ==
 
