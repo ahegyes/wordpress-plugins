@@ -22,6 +22,7 @@ function dws_lpmwc_get_migration_steps(): array {
 	return array(
 		'dws_lpmwc_add_settings',
 		'dws_lpmwc_move_user_grants',
+		'dws_lpmwc_move_order_grants',
 	);
 }
 
@@ -116,6 +117,70 @@ function dws_lpmwc_move_user_grants(): void {
 			if ( ! delete_user_meta( $user_id, $meta_key ) ) {
 				throw new RuntimeException( "The v1 grant $meta_key of user $user_id could not be deleted." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
+		}
+	}
+}
+
+/**
+ * Moves v1's order grants, one 'yes' row per payment method, into each order's list beside the grants it holds, through WooCommerce's order data, so either order storage keeps them, then deletes every v1 grant row of the order.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @global  wpdb $wpdb WordPress's database access.
+ *
+ * @throws  RuntimeException Thrown when v1's order grants could not be read or an order's grants could not be stored.
+ *
+ * @return  void
+ */
+function dws_lpmwc_move_order_grants(): void {
+	global $wpdb;
+
+	$prefix = '_dws_wc_lpm_grant_access_';
+	$ids    = array();
+	$tables = array(
+		$wpdb->postmeta                  => 'post_id',
+		$wpdb->prefix . 'wc_orders_meta' => 'order_id',
+	);
+	foreach ( $tables as $table => $column ) {
+		$wpdb->flush();
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The order tables exist only once WooCommerce created them.
+			continue;
+		}
+
+		$found = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT %i FROM %i WHERE meta_key LIKE %s', $column, $table, $wpdb->esc_like( $prefix ) . '%' ) ?? '' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- v1's keys carry the payment method's id, so no order query lists them.
+		if ( '' !== $wpdb->last_error ) {
+			throw new RuntimeException( 'The v1 order grants could not be read.' );
+		}
+		$ids = array_merge( $ids, wp_parse_id_list( $found ) );
+	}
+
+	foreach ( array_unique( $ids ) as $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order ) {
+			continue;
+		}
+
+		$granted = dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id );
+		$moved   = false;
+		foreach ( $order->get_meta_data() as $meta ) {
+			$data = $meta instanceof WC_Meta_Data ? $meta->get_data() : array();
+			if ( is_string( $data['key'] ?? null ) && str_starts_with( $data['key'], $prefix ) ) {
+				if ( 'yes' === ( $data['value'] ?? null ) ) {
+					$granted[] = substr( $data['key'], strlen( $prefix ) );
+				}
+				$order->delete_meta_data( $data['key'] );
+				$moved = true;
+			}
+		}
+		if ( ! $moved ) {
+			continue;
+		}
+
+		$order->update_meta_data( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, array_values( array_unique( $granted ) ) );
+		$order->save();
+		if ( dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ) !== array_values( array_unique( $granted ) ) ) {
+			throw new RuntimeException( "The payment methods unlocked for order $order_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 	}
 }

@@ -96,20 +96,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
-		$granted = dws_lpmwc_get_user_unlocked_payment_method_ids( $object_id );
-		$locked  = dws_lpmwc_get_locked_payment_method_ids();
-
-		// A save keeps only the choices the field offers, so the user's grants outside the locked list are offered too.
-		$options = array();
-		foreach ( \array_unique( \array_merge( $locked, $granted ) ) as $id ) {
-			$options[ $id ] = match ( true ) {
-				/* translators: %s: payment method title. */
-				! \in_array( $id, $locked, true ) => \sprintf( __( '%s (not locked)', 'locked-payment-methods-for-woocommerce' ), $this->get_title( $id ) ),
-				/* translators: %s: payment method title. */
-				! \in_array( $id, $granted, true ) && ! dws_lpmwc_should_lock( true, $id, $object_id, 0 ) => \sprintf( __( '%s (unlocked by another rule)', 'locked-payment-methods-for-woocommerce' ), $this->get_title( $id ) ),
-				default => $this->get_title( $id ),
-			};
-		}
+		$options = dws_lpmwc_get_grant_choices( dws_lpmwc_get_user_unlocked_payment_method_ids( $object_id ), $object_id );
 
 		return array(
 			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
@@ -189,7 +176,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 				default                                           => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
 			};
 			/* translators: 1: payment method title, 2: the payment method's state for the user. */
-			$lines[] = esc_html( \sprintf( __( '%1$s: %2$s', 'locked-payment-methods-for-woocommerce' ), $this->get_title( $id ), $state ) );
+			$lines[] = esc_html( \sprintf( __( '%1$s: %2$s', 'locked-payment-methods-for-woocommerce' ), dws_lpmwc_get_payment_method_title( $id ), $state ) );
 		}
 
 		return \implode( '<br />', $lines );
@@ -215,7 +202,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$active = $this->get_active_filter();
 		\printf( '<label class="screen-reader-text" for="%1$s">%2$s</label><select name="%1$s" id="%1$s"><option value="">%3$s</option>', esc_attr( $name ), esc_html__( 'Filter by unlocked payment method', 'locked-payment-methods-for-woocommerce' ), esc_html__( 'Unlocked for…', 'locked-payment-methods-for-woocommerce' ) );
 		foreach ( $locked as $id ) {
-			\printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $id ), selected( $active, $id, false ), esc_html( $this->get_title( $id ) ) );
+			\printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $id ), selected( $active, $id, false ), esc_html( dws_lpmwc_get_payment_method_title( $id ) ) );
 		}
 		echo '</select>';
 		submit_button( _x( 'Filter', 'users screen', 'locked-payment-methods-for-woocommerce' ), '', $which, false, array( 'id' => "{$name}_submit" ) );
@@ -254,22 +241,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	// endregion
 
 	// region HELPERS
-
-	/**
-	 * Returns a payment method's title, or its id for a payment method no longer registered.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $gateway_id The payment method's id.
-	 *
-	 * @return  string
-	 */
-	protected function get_title( string $gateway_id ): string {
-		$gateway = WC()->payment_gateways()->payment_gateways()[ $gateway_id ] ?? null;
-
-		return $gateway instanceof \WC_Payment_Gateway ? $gateway->get_title() : $gateway_id;
-	}
 
 	/**
 	 * Returns the locked payment method the Users screen filters by, from the dropdown whose button submitted the list, or an empty string.
