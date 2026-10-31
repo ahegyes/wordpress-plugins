@@ -1,5 +1,5 @@
 {
-  "name": "ahegyes/locked-payment-methods-for-woocommerce",
+  "name": "ahegyes/wc-locked-payment-methods",
   "description": "WordPress plugins on the wp-framework packages start here, from one tested anatomy, so all are built alike and a fix found in one applies to all.",
   "type": "wordpress-plugin",
   "license": "GPL-3.0-or-later",
