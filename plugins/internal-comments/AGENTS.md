@@ -87,7 +87,7 @@ Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI run
 - Integration and end to end share the tests site, so a row that changes shared data in a separate process flushes the parent's object cache.
 - The end-to-end suite runs on the order tables only, as the tests site stores orders; the Integration rows cover the posts storage.
 - A site that returns to 1.2.4 after the upgrade stores its new internal comments approved, and the migration that moved v1's comments does not run again on the next upgrade, so those comments stay public until moved by hand.
-- Core's comment edit screen shows author, date and status fields for an internal comment, which `Comments` keeps as stored.
+- Core's comment edit screen hides an internal comment's author, status and date through a style on core's element ids, so a core release that renames them shows those fields again, and saving still keeps them as stored.
 - When a private comment is deleted permanently, its replies become private under their own authors, who then also see the replies beneath them that the deleted comment's privacy hid from them.
 - Core's comment edit screen opens for an internal comment only to a user who can both edit and trash it, because core trashes, deletes, restores and moderates on the same `edit_comment` check; a role that can only edit edits in the meta box.
 - The release zip carries the TypeScript and SCSS sources beside the built files.
