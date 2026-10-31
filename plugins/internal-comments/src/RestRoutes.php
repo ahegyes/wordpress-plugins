@@ -221,7 +221,7 @@ final class RestRoutes implements ComponentInterface {
 		// A comment its author meant to keep private is never stored for every reader instead.
 		$private = true === $request['private'];
 		if ( $private && ! ( dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) ) ) {
-			return new \WP_Error( 'dws_ic_cannot_be_private', __( 'You cannot post a private internal comment here. Clear the private option to post it for everyone who can see internal comments.', 'internal-comments' ), array( 'status' => 403 ) );
+			return new \WP_Error( 'dws_ic_cannot_be_private', __( 'This comment was not posted, because the site\'s settings no longer let you post private internal comments. Clear the private option to post it for everyone who can see internal comments.', 'internal-comments' ), array( 'status' => 403 ) );
 		}
 
 		/**
