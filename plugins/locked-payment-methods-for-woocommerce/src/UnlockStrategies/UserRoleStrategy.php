@@ -40,6 +40,34 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 
 	// endregion
 
+	// region METHODS
+
+	/**
+	 * Returns whether the user holds one of the full-access roles, which unlocks every locked payment method.
+	 *
+	 * @internal
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $user_id    The user's id, or 0 for a guest.
+	 *
+	 * @return  bool
+	 */
+	public static function unlocks( string $gateway_id, int $user_id ): bool {
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof \WP_User ) {
+			return false;
+		}
+
+		$roles = dws_lpmwc_apply_v1_setting_filter( dws_lpmwc_get_list_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), 'general', 'full-access-user-roles', 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+
+		return \is_array( $roles ) && array() !== \array_intersect( $user->roles, \array_filter( $roles, 'is_string' ) );
+	}
+
+	// endregion
+
 	// region HOOKS
 
 	/**
@@ -55,14 +83,7 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 	 * @return  bool
 	 */
 	public function unlock_for_full_access_roles( bool $lock, string $gateway_id, int $user_id ): bool {
-		$user = get_userdata( $user_id );
-		if ( ! $user instanceof \WP_User ) {
-			return $lock;
-		}
-
-		$roles = dws_lpmwc_apply_v1_setting_filter( dws_lpmwc_get_list_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), 'general', 'full-access-user-roles', 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
-
-		return \is_array( $roles ) && array() !== \array_intersect( $user->roles, \array_filter( $roles, 'is_string' ) ) ? false : $lock;
+		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
 	}
 
 	// endregion

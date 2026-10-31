@@ -115,6 +115,27 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 
 	// endregion
 
+	// region METHODS
+
+	/**
+	 * Returns whether the user's grants list on the current site holds the payment method.
+	 *
+	 * @internal
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $user_id    The user's id, or 0 for a guest.
+	 *
+	 * @return  bool
+	 */
+	public static function unlocks( string $gateway_id, int $user_id ): bool {
+		return \in_array( $gateway_id, dws_lpmwc_get_user_unlocked_payment_method_ids( $user_id ), true );
+	}
+
+	// endregion
+
 	// region HOOKS
 
 	/**
@@ -130,7 +151,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @return  bool
 	 */
 	public function unlock_granted_methods( bool $lock, string $gateway_id, int $user_id ): bool {
-		return \in_array( $gateway_id, dws_lpmwc_get_user_unlocked_payment_method_ids( $user_id ), true ) ? false : $lock;
+		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
 	}
 
 	/**
@@ -171,9 +192,9 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$lines   = array();
 		foreach ( dws_lpmwc_get_locked_payment_method_ids() as $id ) {
 			$state = match ( true ) {
-				\in_array( $id, $granted, true )                  => __( 'unlocked on the profile', 'locked-payment-methods-for-woocommerce' ),
-				! dws_lpmwc_should_lock( true, $id, $user_id, 0 ) => __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ),
-				default                                           => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
+				\in_array( $id, $granted, true )                      => __( 'unlocked on the profile', 'locked-payment-methods-for-woocommerce' ),
+				! dws_lpmwc_is_payment_method_locked( $id, $user_id ) => __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ),
+				default                                               => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
 			};
 			/* translators: 1: payment method title, 2: the payment method's state for the user. */
 			$lines[] = esc_html( \sprintf( __( '%1$s: %2$s', 'locked-payment-methods-for-woocommerce' ), dws_lpmwc_get_payment_method_title( $id ), $state ) );

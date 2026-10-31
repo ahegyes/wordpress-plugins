@@ -117,6 +117,35 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 		return \function_exists( 'wc_memberships_get_user_active_memberships' ) && \is_string( $version ) && \version_compare( $version, '1.18.0', '>=' );
 	}
 
+	/**
+	 * Returns whether a plan the user is an active member of unlocks the payment method.
+	 *
+	 * @internal
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $user_id    The user's id, or 0 for a guest.
+	 *
+	 * @return  bool
+	 */
+	public static function unlocks( string $gateway_id, int $user_id ): bool {
+		if ( 0 === $user_id ) {
+			return false;
+		}
+
+		foreach ( (array) wc_memberships_get_user_active_memberships( $user_id ) as $membership ) {
+			// Memberships sometimes returns cancelled memberships among the active ones.
+			$plan_id = \is_object( $membership ) && \method_exists( $membership, 'is_active' ) && \method_exists( $membership, 'get_plan_id' ) && true === $membership->is_active() ? $membership->get_plan_id() : null;
+			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, dws_lpmwc_get_plan_unlocked_payment_method_ids( (int) $plan_id ), true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	// endregion
 
 	// region HOOKS
@@ -134,19 +163,7 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 * @return  bool
 	 */
 	public function unlock_member_methods( bool $lock, string $gateway_id, int $user_id ): bool {
-		if ( 0 === $user_id ) {
-			return $lock;
-		}
-
-		foreach ( (array) wc_memberships_get_user_active_memberships( $user_id ) as $membership ) {
-			// Memberships sometimes returns cancelled memberships among the active ones.
-			$plan_id = \is_object( $membership ) && \method_exists( $membership, 'is_active' ) && \method_exists( $membership, 'get_plan_id' ) && true === $membership->is_active() ? $membership->get_plan_id() : null;
-			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, dws_lpmwc_get_plan_unlocked_payment_method_ids( (int) $plan_id ), true ) ) {
-				return false;
-			}
-		}
-
-		return $lock;
+		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
 	}
 
 	// endregion

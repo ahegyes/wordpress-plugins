@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Holds the keys under which payment methods are unlocked for a subject, and reads each as a list of payment method ids.
+ * Holds the keys under which payment methods are unlocked for a subject, reads each as a list of payment method ids, and tells whether a payment method is locked for a user and an order.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -114,7 +114,7 @@ function dws_lpmwc_get_grant_choices( array $granted, int $user_id ): array {
 		if ( ! in_array( $id, $locked, true ) ) {
 			/* translators: %s: payment method title. */
 			$title = sprintf( __( '%s (not locked)', 'locked-payment-methods-for-woocommerce' ), $title );
-		} elseif ( 0 !== $user_id && ! in_array( $id, $granted, true ) && ! dws_lpmwc_should_lock( true, $id, $user_id, 0 ) ) {
+		} elseif ( 0 !== $user_id && ! in_array( $id, $granted, true ) && ! dws_lpmwc_is_payment_method_locked( $id, $user_id ) ) {
 			/* translators: %s: payment method title. */
 			$title = sprintf( __( '%s (unlocked by another rule)', 'locked-payment-methods-for-woocommerce' ), $title );
 		}
@@ -168,4 +168,20 @@ function dws_lpmwc_get_plan_unlocked_payment_method_ids( int $plan_id ): array {
 	$ids = get_post_meta( $plan_id, DWS_LPMWC_META_UNLOCKED_METHODS, true );
 
 	return is_array( $ids ) ? array_values( array_filter( $ids, 'is_string' ) ) : array();
+}
+
+/**
+ * Returns whether a payment method is locked for a user and an order: whether it is on the locked list and the plugin's strategies do not unlock it.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   string $gateway_id The payment method's id.
+ * @param   int    $user_id    The user's id, or 0 for a guest.
+ * @param   int    $order_id   Optional. The order being paid, or 0 for none. Default 0.
+ *
+ * @return  bool
+ */
+function dws_lpmwc_is_payment_method_locked( string $gateway_id, int $user_id, int $order_id = 0 ): bool {
+	return in_array( $gateway_id, dws_lpmwc_get_locked_payment_method_ids(), true ) && dws_lpmwc_should_lock( true, $gateway_id, $user_id, $order_id );
 }

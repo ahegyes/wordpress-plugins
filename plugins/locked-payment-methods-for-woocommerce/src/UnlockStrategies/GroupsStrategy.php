@@ -109,6 +109,34 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		return \is_string( $version ) && \class_exists( \Groups_User::class ) && \version_compare( $version, '2.11.0', '>=' );
 	}
 
+	/**
+	 * Returns whether a group of the user, or a group above one, unlocks the payment method.
+	 *
+	 * @internal
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $user_id    The user's id, or 0 for a guest.
+	 *
+	 * @return  bool
+	 */
+	public static function unlocks( string $gateway_id, int $user_id ): bool {
+		if ( 0 === $user_id ) {
+			return false;
+		}
+
+		$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
+		foreach ( (array) ( new \Groups_User( $user_id ) )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
+			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	// endregion
 
 	// region HOOKS
@@ -126,18 +154,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @return  bool
 	 */
 	public function unlock_group_methods( bool $lock, string $gateway_id, int $user_id ): bool {
-		if ( 0 === $user_id ) {
-			return $lock;
-		}
-
-		$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
-		foreach ( (array) ( new \Groups_User( $user_id ) )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
-			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
-				return false;
-			}
-		}
-
-		return $lock;
+		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
 	}
 
 	/**

@@ -104,6 +104,27 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 
 	// endregion
 
+	// region METHODS
+
+	/**
+	 * Returns whether the order's grants list holds the payment method.
+	 *
+	 * @internal
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $order_id   The order's id, or 0 for none.
+	 *
+	 * @return  bool
+	 */
+	public static function unlocks( string $gateway_id, int $order_id ): bool {
+		return \in_array( $gateway_id, dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ), true );
+	}
+
+	// endregion
+
 	// region HOOKS
 
 	/**
@@ -120,7 +141,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 * @return  bool
 	 */
 	public function unlock_granted_methods( bool $lock, string $gateway_id, int $user_id, int $order_id ): bool {
-		return \in_array( $gateway_id, dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ), true ) ? false : $lock;
+		return self::unlocks( $gateway_id, $order_id ) ? false : $lock;
 	}
 
 	// endregion

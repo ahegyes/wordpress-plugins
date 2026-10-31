@@ -194,10 +194,11 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_v1s_order_access_check_judges_the_order_and_its_customer_after_v1s_filter(): void {
-		$order = wc_create_order( array( 'customer_id' => self::$users['shop_manager'] ) );
-		$v1    = 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order';
-		$seen  = array();
-		$spy   = static function ( mixed ...$args ) use ( &$seen ): mixed {
+		$order    = wc_create_order( array( 'customer_id' => self::$users['shop_manager'] ) );
+		$order_id = $order->get_id();
+		$v1       = 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order';
+		$seen     = array();
+		$spy      = static function ( mixed ...$args ) use ( &$seen ): mixed {
 			$seen[] = $args;
 
 			return $args[0];
@@ -205,13 +206,13 @@ final class DeprecatedApiTest extends TestCase {
 		add_filter( $v1, $spy, 10, 3 );
 
 		try {
-			self::assertFalse( dws_lpmwc_check_payment_method_access_for_wc_order( 'cod', $order->get_id() ) );
+			self::assertFalse( dws_lpmwc_check_payment_method_access_for_wc_order( 'cod', $order_id ) );
 		} finally {
 			remove_filter( $v1, $spy );
 			$order->delete( true );
 		}
 
-		self::assertSame( array( array( true, 'cod', $order->get_id() ) ), $seen );
+		self::assertSame( array( array( true, 'cod', $order_id ) ), $seen );
 		self::assertContains( array( $v1, 'dws_lpmwc/payment_method/should_lock' ), $this->deprecated );
 	}
 
@@ -240,17 +241,24 @@ final class DeprecatedApiTest extends TestCase {
 
 	public function test_v1s_setting_readers_map_v1s_ids_to_the_plugins_options_through_v1s_filters(): void {
 		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'yes' );
-		$page = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
+		$page    = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
+		$group   = 'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value';
+		$through = static fn ( mixed $value ): mixed => $value;
+		add_filter( $group, $through );
 
-		self::assertSame( array( 'cod' ), dws_lpmwc_get_validated_general_setting( 'locked-payment-methods' ) );
-		self::assertTrue( dws_lpmwc_get_validated_setting( 'unlock-via-user-role', 'general' ) );
-		self::assertSame( array( 'shop_manager' ), dws_lpmwc_get_validated_setting( 'general/full-access-user-roles' ) );
-		self::assertSame( 'yes', dws_lpmwc_get_raw_setting( 'unlock-via-user-role', 'general' ) );
-		self::assertFalse( dws_lpmwc_validate_setting( 'maybe-not', 'remove-data-uninstall', 'plugin' ) );
-		self::assertSame( array( 'bacs' ), dws_lpmwc_validate_setting( array( 'bacs', 7 ), 'locked-payment-methods', 'general' ) );
-		self::assertNull( dws_lpmwc_get_validated_setting( 'unknown', 'general' ) );
+		try {
+			self::assertSame( array( 'cod' ), dws_lpmwc_get_validated_general_setting( 'locked-payment-methods' ) );
+			self::assertTrue( dws_lpmwc_get_validated_setting( 'unlock-via-user-role', 'general' ) );
+			self::assertSame( array( 'shop_manager' ), dws_lpmwc_get_validated_setting( 'general/full-access-user-roles' ) );
+			self::assertSame( 'yes', dws_lpmwc_get_raw_setting( 'unlock-via-user-role', 'general' ) );
+			self::assertFalse( dws_lpmwc_validate_setting( 'maybe-not', 'remove-data-uninstall', 'plugin' ) );
+			self::assertSame( array( 'bacs' ), dws_lpmwc_validate_setting( array( 'bacs', 7 ), 'locked-payment-methods', 'general' ) );
+			self::assertNull( dws_lpmwc_get_validated_setting( 'unknown', 'general' ) );
+		} finally {
+			remove_filter( $group, $through );
+		}
 
-		self::assertContains( array( 'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value', 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), $this->deprecated );
+		self::assertContains( array( $group, 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), $this->deprecated );
 		self::assertNotContains( array( $page, 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), $this->deprecated ); // No callback hooks the page's filter, so it reports no deprecation.
 		self::assertContains( array( 'dws_lpmwc_get_validated_general_setting', 'get_option()' ), $this->deprecated );
 	}
