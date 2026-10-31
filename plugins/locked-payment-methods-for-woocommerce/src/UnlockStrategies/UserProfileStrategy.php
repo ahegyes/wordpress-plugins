@@ -85,7 +85,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		add_filter( 'manage_users_columns', array( $this, 'add_users_column' ) );
 		add_filter( 'manage_users_custom_column', array( $this, 'render_users_column' ), 10, 3 );
 		add_action( 'restrict_manage_users', array( $this, 'render_users_filter' ) );
-		add_action( 'pre_get_users', array( $this, 'filter_users' ) );
+		add_filter( 'users_list_table_query_args', array( $this, 'filter_users' ) );
 	}
 
 	/**
@@ -230,33 +230,31 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	}
 
 	/**
-	 * Limits the Users screen's list to the users holding the filtered payment method on the profile.
+	 * Returns the Users screen's query arguments limited to the users holding the filtered payment method on the profile.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @global  string $pagenow The admin screen's file.
+	 * @param   array<string, mixed> $args The list table's query arguments.
 	 *
-	 * @param   \WP_User_Query $query The users query.
-	 *
-	 * @return  void
+	 * @return  array<string, mixed>
 	 */
-	public function filter_users( \WP_User_Query $query ): void {
-		global $pagenow;
-
-		$active = 'users.php' === $pagenow && is_admin() ? $this->get_active_filter() : '';
+	public function filter_users( array $args ): array {
+		$active = $this->get_active_filter();
 		if ( '' === $active ) {
-			return;
+			return $args;
 		}
 
-		$meta_query   = $query->get( 'meta_query' );
-		$meta_query   = \is_array( $meta_query ) ? $meta_query : array();
-		$meta_query[] = array(
+		$meta_query         = $args['meta_query'] ?? array();
+		$meta_query         = \is_array( $meta_query ) ? $meta_query : array();
+		$meta_query[]       = array(
 			'key'     => dws_lpmwc_get_user_grants_key(),
 			'value'   => '"' . $active . '"', // Matches the id as one element of the stored, serialized list.
 			'compare' => 'LIKE',
 		);
-		$query->set( 'meta_query', $meta_query );
+		$args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filter matches a user meta value, which only a meta query reaches.
+
+		return $args;
 	}
 
 	// endregion

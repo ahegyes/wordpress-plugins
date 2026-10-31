@@ -219,6 +219,15 @@ final class UserProfileStrategyTest extends TestCase {
 		self::assertSame( array( self::$users['editor'] ), self::listed_users() );
 	}
 
+	public function test_the_users_screen_filter_leaves_other_user_queries_alone(): void {
+		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
+		$GLOBALS['pagenow']                 = 'users.php';
+		$_GET['dws_lpmwc_unlocked_for_top'] = 'cod';
+		set_current_screen( 'users' );
+
+		self::assertSame( \array_values( self::$users ), self::queried_users() );
+	}
+
 	protected static function create_user( string $role ): int {
 		$login = \uniqid( "lpm-profiles-$role-" );
 
@@ -266,14 +275,18 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	protected static function listed_users(): array {
-		$query = new \WP_User_Query(
-			array(
-				'include' => \array_values( self::$users ),
-				'fields'  => 'ID',
-				'orderby' => 'ID',
-			)
-		);
+		return self::queried_users( apply_filters( 'users_list_table_query_args', self::query_args() ) );
+	}
 
-		return \array_map( 'intval', $query->get_results() );
+	protected static function queried_users( ?array $args = null ): array {
+		return \array_map( 'intval', ( new \WP_User_Query( $args ?? self::query_args() ) )->get_results() );
+	}
+
+	protected static function query_args(): array {
+		return array(
+			'include' => \array_values( self::$users ),
+			'fields'  => 'ID',
+			'orderby' => 'ID',
+		);
 	}
 }
