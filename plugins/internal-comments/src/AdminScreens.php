@@ -310,8 +310,7 @@ final class AdminScreens implements ComponentInterface {
 	public function filter_list_table_args( array $args ): array {
 		$args['dws_ic_list_table'] = true;
 		if ( ! current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
-			$excluded             = $args['type__not_in'] ?? array();
-			$args['type__not_in'] = \array_merge( \is_array( $excluded ) ? $excluded : array( $excluded ), array( DWS_IC_COMMENT_TYPE ) );
+			$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
 
 			return $args;
 		}

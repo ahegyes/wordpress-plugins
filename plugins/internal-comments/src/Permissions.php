@@ -28,6 +28,7 @@ final class Permissions implements ComponentInterface {
 		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
 		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_comment' ), 10, 3 );
 		add_filter( 'rest_comment_query', array( $this, 'exclude_from_core_rest_collections' ) );
+		add_action( 'pre_get_comments', array( $this, 'exclude_from_xml_rpc' ) );
 	}
 
 	// endregion
@@ -116,10 +117,25 @@ final class Permissions implements ComponentInterface {
 	 * @return  array<string, mixed>
 	 */
 	public function exclude_from_core_rest_collections( array $args ): array {
-		$excluded             = $args['type__not_in'] ?? array();
-		$args['type__not_in'] = \array_merge( \is_array( $excluded ) ? $excluded : array( $excluded ), array( DWS_IC_COMMENT_TYPE ) );
+		$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
 
 		return $args;
+	}
+
+	/**
+	 * Leaves internal comments out of every comment query of an XML-RPC request, as XML-RPC's wp.getComments lists the comments of any status a user who moderates comments names.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   \WP_Comment_Query $query The comment query.
+	 *
+	 * @return  void
+	 */
+	public function exclude_from_xml_rpc( \WP_Comment_Query $query ): void {
+		if ( \defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+			$query->query_vars['type__not_in'] = dws_ic_exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
+		}
 	}
 
 	// endregion

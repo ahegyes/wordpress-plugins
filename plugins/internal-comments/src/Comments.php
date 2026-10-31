@@ -192,8 +192,7 @@ final class Comments implements ComponentInterface {
 			return;
 		}
 
-		// An empty type names the comments older WordPress stored without one, so it never joins the exclusion.
-		$query->query_vars['type__not_in'] = \array_merge( \array_filter( (array) ( $query->query_vars['type__not_in'] ?? array() ), static fn ( mixed $type ): bool => '' !== $type ), array( DWS_IC_COMMENT_TYPE ) );
+		$query->query_vars['type__not_in'] = dws_ic_exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 	}
 
 	/**

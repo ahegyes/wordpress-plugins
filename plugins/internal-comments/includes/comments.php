@@ -274,3 +274,26 @@ function dws_ic_get_private_comment_owners( $comment ): ?array {
 
 	return $owners;
 }
+
+/**
+ * Returns the types a comment query leaves out with internal comments added, keeping every type it already leaves out but the empty one, since that names the comments older WordPress stored without a type.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   mixed $excluded The query's type__not_in argument.
+ *
+ * @return  list<mixed>
+ */
+function dws_ic_exclude_internal_type( $excluded ): array {
+	$types = array();
+	foreach ( (array) $excluded as $type ) {
+		if ( '' !== $type ) {
+			$types[] = $type;
+		}
+	}
+
+	$types[] = DWS_IC_COMMENT_TYPE;
+
+	return $types;
+}
