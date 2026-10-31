@@ -38,17 +38,34 @@ function dws_lpmwc_get_locked_payment_method_ids(): array {
 	$stored = get_option( 'dws_lpmwc_locked_payment_methods' );
 	$ids    = dws_lpmwc_add_locked_ids( array(), false === $stored ? get_option( 'dws-wc-lpm_general_locked-payment-methods' ) : $stored );
 
+	return dws_lpmwc_add_locked_ids( $ids, dws_lpmwc_apply_v1_setting_filter( $ids, 'general', 'locked-payment-methods', 'dws_lpmwc/payment_method/locked_ids' ) );
+}
+
+/**
+ * Returns a setting's value after v1's value filter for its settings group, which v1 applied on every read of a setting through that group.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   mixed  $value       The setting's value.
+ * @param   string $group       v1's id of the setting's group.
+ * @param   string $field_id    v1's id of the setting.
+ * @param   string $replacement The hook that replaces v1's filter.
+ *
+ * @return  mixed
+ */
+function dws_lpmwc_apply_v1_setting_filter( $value, string $group, string $field_id, string $replacement ) {
 	/**
-	 * Filters the locked payment methods' ids as v1's settings read them.
+	 * Filters a setting's value as v1's settings group read it.
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_lpmwc/payment_method/locked_ids.
+	 * @deprecated  2.0.0 Use the hook the deprecation notice names.
 	 *
-	 * @param       string[] $ids      The locked payment methods' ids.
-	 * @param       string   $field_id v1's id of the setting.
+	 * @param       mixed  $value    The setting's value.
+	 * @param       string $field_id v1's id of the setting.
 	 */
-	return dws_lpmwc_add_locked_ids( $ids, apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value', array( $ids, 'locked-payment-methods' ), '2.0.0', 'dws_lpmwc/payment_method/locked_ids' ) );
+	return apply_filters_deprecated( "locked_payment_methods_for_woocommerce/{$group}_settings/get_validated_option_value", array( $value, $field_id ), '2.0.0', $replacement );
 }
 
 /**
