@@ -153,6 +153,22 @@ final class DataGuardsTest extends TestCase {
 		self::assertSame( '', get_comment_meta( $comment, '_wp_trash_meta_status', true ) );
 	}
 
+	// WooCommerce counts comments from a cache it adjusts on each status change, so moving a comment back under the internal status is announced as one.
+	public function test_moving_a_comment_back_under_the_internal_status_keeps_woocommerces_counts(): void {
+		$comment = $this->comment();
+		wp_trash_comment( $comment );
+		\WC_Comments::delete_comments_count_cache();
+		wp_count_comments();
+
+		wp_untrash_comment( $comment );
+		wp_set_comment_status( $comment, 'approve' );
+		$cached = (array) wp_count_comments();
+		\WC_Comments::delete_comments_count_cache();
+
+		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $comment )?->comment_approved );
+		self::assertSame( (array) wp_count_comments(), $cached );
+	}
+
 	public function test_a_restored_posts_internal_comments_restore_internal(): void {
 		$comment = $this->comment();
 		$v1      = $this->comment();

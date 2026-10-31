@@ -110,6 +110,8 @@ final class MigrationsTest extends TestCase {
 		clean_post_cache( $post );
 
 		self::assertInstanceOf( BatchedMigrationStepInterface::class, dws_ic_get_migration_steps()[1] ?? null );
+		\WC_Comments::delete_comments_count_cache();
+		wp_count_comments(); // WooCommerce caches the counts before the move, as on a store whose admin screens were open.
 		$batches = 0;
 		while ( dws_ic_convert_v1_comments() ) {
 			self::assertLessThan( 10000, ++$batches );
@@ -122,6 +124,9 @@ final class MigrationsTest extends TestCase {
 		self::assertSame( '1', get_comment( $note )?->comment_approved );
 		self::assertSame( '2', get_post( $post )?->comment_count );
 		self::assertFalse( get_option( 'dws_ic_v1_comments_cursor' ) );
+		$cached = (array) wp_count_comments();
+		\WC_Comments::delete_comments_count_cache();
+		self::assertSame( (array) wp_count_comments(), $cached );
 
 		wp_delete_post( $post, true );
 	}
