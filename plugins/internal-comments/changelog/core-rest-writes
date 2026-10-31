@@ -1,4 +1,4 @@
 Significance: patch
 Type: fixed
 
-WordPress's REST API no longer lets a user who moderates comments change or delete an internal comment that the user may not edit or trash.
+WordPress's REST API no longer lets a user read, change or delete an internal comment that the user may not see, edit or trash, and its comment lists leave internal comments out.

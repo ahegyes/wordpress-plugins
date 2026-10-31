@@ -26,7 +26,8 @@ final class Permissions implements ComponentInterface {
 	#[\Override]
 	public function register_hooks(): void {
 		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
-		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_writes' ), 10, 3 );
+		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_comment' ), 10, 3 );
+		add_filter( 'rest_comment_query', array( $this, 'exclude_from_core_rest_collections' ) );
 	}
 
 	// endregion
@@ -75,9 +76,9 @@ final class Permissions implements ComponentInterface {
 	}
 
 	/**
-	 * Refuses a write through core's REST API to an internal comment the current user may not edit, or trash where the request deletes it.
+	 * Refuses core's REST API a read, update or deletion of an internal comment the current user may not see, edit or trash.
 	 *
-	 * Core lets any user who moderates comments update or delete one before it asks about the comment itself.
+	 * Core lets a comment's author read it, and any user who moderates comments update or delete one, before it asks about the comment itself. The check names the comment core acts on, the request's id, which a query or body parameter can set apart from the route's.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -88,14 +89,37 @@ final class Permissions implements ComponentInterface {
 	 *
 	 * @return  mixed
 	 */
-	public function guard_core_rest_writes( mixed $response, mixed $handler, \WP_REST_Request $request ): mixed {
-		if ( \is_wp_error( $response ) || 'GET' === $request->get_method() || 1 !== \preg_match( '#^/wp/v2/comments/(\d+)$#', $request->get_route(), $matches ) || true !== dws_ic_is_internal_comment( (int) $matches[1] ) ) {
+	public function guard_core_rest_comment( mixed $response, mixed $handler, \WP_REST_Request $request ): mixed {
+		$callback   = \is_array( $handler ) ? ( $handler['callback'] ?? null ) : null;
+		$capability = \is_array( $callback ) && ( $callback[0] ?? null ) instanceof \WP_REST_Comments_Controller ? match ( $callback[1] ?? null ) {
+			'get_item'    => 'see_dws_internal_comment',
+			'update_item' => 'edit_dws_internal_comment',
+			'delete_item' => 'trash_dws_internal_comment',
+			default       => null,
+		} : null;
+		$comment_id = \is_numeric( $request['id'] ) ? (int) $request['id'] : 0;
+		if ( \is_wp_error( $response ) || null === $capability || true !== dws_ic_is_internal_comment( $comment_id ) || current_user_can( $capability, $comment_id ) ) {
 			return $response;
 		}
 
-		$capability = 'DELETE' === $request->get_method() ? 'trash_dws_internal_comment' : 'edit_dws_internal_comment';
+		return new \WP_Error( 'rest_forbidden', __( 'Sorry, you are not allowed to do that to this internal comment.', 'internal-comments' ), array( 'status' => rest_authorization_required_code() ) );
+	}
 
-		return current_user_can( $capability, (int) $matches[1] ) ? $response : new \WP_Error( 'rest_cannot_edit', __( 'Sorry, you are not allowed to change this internal comment.', 'internal-comments' ), array( 'status' => rest_authorization_required_code() ) );
+	/**
+	 * Leaves internal comments out of core's REST comment collections, which they reach only through the plugin's own routes.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<string, mixed> $args The collection's comment query arguments.
+	 *
+	 * @return  array<string, mixed>
+	 */
+	public function exclude_from_core_rest_collections( array $args ): array {
+		$excluded             = $args['type__not_in'] ?? array();
+		$args['type__not_in'] = \array_merge( \is_array( $excluded ) ? $excluded : array( $excluded ), array( DWS_IC_COMMENT_TYPE ) );
+
+		return $args;
 	}
 
 	// endregion
