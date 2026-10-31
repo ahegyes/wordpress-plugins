@@ -382,7 +382,7 @@ final class AdminScreens implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the Comments screen's counts without the trashed internal comments its list leaves out for a user who may not list them.
+	 * Returns the Comments screen's counts with a Trash count that leaves out the trashed internal comments its list leaves out for a user who may not list them.
 	 *
 	 * WordPress and WooCommerce cache the counts for every user, so the plugin answers with an adjusted copy and leaves their caches alone.
 	 *
@@ -410,18 +410,44 @@ final class AdminScreens implements ComponentInterface {
 			}
 		}
 
-		$trashed         = get_comments(
-			array(
-				'post_id' => $post_id,
-				'type'    => DWS_IC_COMMENT_TYPE,
-				'status'  => 'trash',
-				'count'   => true,
-			)
-		);
+		// The count names no type, so the exclusions other plugins apply to such queries, as WooCommerce's of comments on products, apply to it as they did to the count it replaces.
+		add_filter( 'comments_clauses', array( $this, 'leave_out_internal_type' ) );
+		try {
+			$listed = get_comments(
+				array(
+					'post_id' => $post_id,
+					'status'  => 'trash',
+					'count'   => true,
+				)
+			);
+		} finally {
+			remove_filter( 'comments_clauses', array( $this, 'leave_out_internal_type' ) );
+		}
+
 		$counts          = \get_object_vars( $count );
-		$counts['trash'] = \max( 0, ( \filter_var( $counts['trash'] ?? 0, \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0 ) - ( \is_int( $trashed ) ? $trashed : 0 ) );
+		$counts['trash'] = \is_int( $listed ) ? $listed : 0;
 
 		return (object) $counts;
+	}
+
+	/**
+	 * Returns a comment query's clauses with the internal type left out of its WHERE clause, for a count that must name no type.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @param   array<string, string> $clauses The query's clauses.
+	 *
+	 * @return  array<string, string>
+	 */
+	public function leave_out_internal_type( array $clauses ): array {
+		global $wpdb;
+
+		$clauses['where'] = ( $clauses['where'] ?? '' ) . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' );
+
+		return $clauses;
 	}
 
 	/**
