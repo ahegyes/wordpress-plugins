@@ -324,6 +324,33 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( $core_administrator, (int) $cached->trash );
 	}
 
+	// While v1's comments are being moved, the type exclusion already leaves internal comments out of every count.
+	public function test_the_comments_screen_counts_trashed_comments_once_while_v1s_are_moved(): void {
+		wp_trash_comment( $this->comment( 'Trashed' ) );
+		wp_trash_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
+		$revision = get_option( 'dws_ic_revision' );
+		update_option( 'dws_ic_revision', 1 );
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		\WC_Comments::delete_comments_count_cache();
+		wp_cache_delete( 'comments-0', 'counts' );
+
+		try {
+			wp_set_current_user( self::$users['administrator'] );
+			$administrator = (int) wp_count_comments()->trash;
+			wp_set_current_user( self::$users['editor'] );
+			wp_get_current_user()->get_role_caps(); // An earlier row can leave the editor current with capabilities its role has since lost.
+			$editor = (int) wp_count_comments()->trash;
+		} finally {
+			update_option( 'dws_ic_revision', $revision );
+			unset( $GLOBALS['current_screen'] );
+			\WC_Comments::delete_comments_count_cache();
+			wp_cache_delete( 'comments-0', 'counts' );
+		}
+
+		self::assertGreaterThan( 0, $administrator );
+		self::assertSame( $administrator, $editor );
+	}
+
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
 		( new AdminScreens() )->enqueue_list_assets( 'edit.php' );
 

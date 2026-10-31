@@ -76,6 +76,39 @@ final class MigrationsTest extends TestCase {
 		}
 	}
 
+	// The type exclusion leaves internal comments out of the counts cached while the move is pending, so its end has them counted afresh.
+	public function test_the_end_of_the_move_has_the_comment_counts_counted_afresh(): void {
+		$post    = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Counted',
+				'post_status' => 'publish',
+			)
+		);
+		$trashed = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ) );
+		wp_trash_comment( $trashed );
+		$revision = get_option( 'dws_ic_revision' );
+		update_option( 'dws_ic_revision', 1 );
+		delete_option( 'dws_ic_v1_comments_cursor' );
+		\WC_Comments::delete_comments_count_cache();
+		wp_cache_delete( 'comments-0', 'counts' );
+
+		try {
+			wp_count_comments();
+			while ( dws_ic_convert_v1_comments() ) {
+				continue;
+			}
+		} finally {
+			update_option( 'dws_ic_revision', $revision );
+		}
+		$cached = (array) wp_count_comments();
+		\WC_Comments::delete_comments_count_cache();
+		wp_cache_delete( 'comments-0', 'counts' );
+		$fresh = (array) wp_count_comments();
+		wp_delete_post( $post, true );
+
+		self::assertSame( $fresh, $cached );
+	}
+
 	public function test_the_second_step_converts_v1s_internal_comments_in_batches_and_recounts_their_posts(): void {
 		global $wpdb;
 		$post = (int) wp_insert_post(
