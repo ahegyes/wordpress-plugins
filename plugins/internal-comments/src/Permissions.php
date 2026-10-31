@@ -29,6 +29,8 @@ final class Permissions implements ComponentInterface {
 		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_comment' ), 10, 3 );
 		add_filter( 'rest_comment_query', array( $this, 'exclude_from_core_rest_collections' ) );
 		add_action( 'pre_get_comments', array( $this, 'exclude_from_xml_rpc' ) );
+		// Before WooCommerce's handler for product reviews at -1 and core's at 1.
+		add_action( 'wp_ajax_replyto-comment', array( $this, 'guard_core_replies' ), -10 );
 	}
 
 	// endregion
@@ -120,6 +122,21 @@ final class Permissions implements ComponentInterface {
 		$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
 
 		return $args;
+	}
+
+	/**
+	 * Refuses core's reply action an internal comment from a user without the capability to post one, as the action takes the comment's type from the request and checks only access to the post.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  void
+	 */
+	public function guard_core_replies(): void {
+		$type = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
+		if ( DWS_IC_COMMENT_TYPE === $type && ! current_user_can( DWS_IC_CAP_INSERT ) ) {
+			wp_die( -1, '', array( 'response' => 403 ) );
+		}
 	}
 
 	/**
