@@ -1,1 +1,0 @@
-(()=>{"use strict";const e=window.wp.blocks,o=window.wp.i18n;(0,e.registerBlockStyle)("locked-payment-methods-for-woocommerce/example-notice",{name:"outlined",label:(0,o.__)("Outlined","locked-payment-methods-for-woocommerce")})})();
