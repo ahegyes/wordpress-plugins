@@ -133,14 +133,14 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   bool   $lock       Whether the payment method stays locked.
+	 * @param   mixed  $lock       Whether the payment method stays locked, as earlier callbacks left it, passed on unchanged since only an explicit false unlocks.
 	 * @param   string $gateway_id The payment method's id.
 	 * @param   int    $user_id    The paying user, or 0 for a guest.
 	 * @param   int    $order_id   The order being paid, or 0 off the order-pay page.
 	 *
-	 * @return  bool
+	 * @return  mixed
 	 */
-	public function unlock_granted_methods( bool $lock, string $gateway_id, int $user_id, int $order_id ): bool {
+	public function unlock_granted_methods( mixed $lock, string $gateway_id, int $user_id, int $order_id ): mixed {
 		return self::unlocks( $gateway_id, $order_id ) ? false : $lock;
 	}
 

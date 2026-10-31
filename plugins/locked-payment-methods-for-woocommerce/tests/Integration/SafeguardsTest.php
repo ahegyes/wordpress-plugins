@@ -31,6 +31,14 @@ final class SafeguardsTest extends TestCase {
 		);
 	}
 
+	public static function early_relaxations(): array {
+		return array(
+			'null'         => array( null ),
+			'zero'         => array( 0 ),
+			'empty-string' => array( '' ),
+		);
+	}
+
 	public static function order_keys(): array {
 		return array(
 			'missing' => array( null ),
@@ -91,6 +99,28 @@ final class SafeguardsTest extends TestCase {
 			self::assertSame( $relaxed, \array_key_exists( 'cod', self::available() ) );
 		} finally {
 			remove_filter( self::FILTER, $relaxation );
+		}
+	}
+
+	#[DataProvider( 'early_relaxations' )]
+	public function test_a_callback_before_the_strategies_unlocks_nothing_without_an_explicit_false( mixed $relaxation ): void {
+		$early = static fn (): mixed => $relaxation;
+		add_filter( self::FILTER, $early, 5 );
+
+		try {
+			self::assertArrayNotHasKey( 'cod', self::available() );
+		} finally {
+			remove_filter( self::FILTER, $early, 5 );
+		}
+	}
+
+	public function test_the_lock_passes_on_a_gateways_value_that_is_not_a_list(): void {
+		add_filter( 'woocommerce_available_payment_gateways', '__return_null' );
+
+		try {
+			self::assertNull( self::available() );
+		} finally {
+			remove_filter( 'woocommerce_available_payment_gateways', '__return_null' );
 		}
 	}
 
@@ -282,7 +312,7 @@ final class SafeguardsTest extends TestCase {
 		self::assertSame( $expected, $request['last'] );
 	}
 
-	protected static function available( array $gateways = array() ): array {
+	protected static function available( array $gateways = array() ): ?array {
 		return apply_filters( 'woocommerce_available_payment_gateways', $gateways + WC()->payment_gateways()->payment_gateways() );
 	}
 

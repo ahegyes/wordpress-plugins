@@ -140,11 +140,15 @@ function dws_lpmwc_get_paid_order_id(): int {
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   array<string, mixed> $gateways The payment gateways offered, by id.
+ * @param   mixed $gateways The payment gateways offered, by id, or what an earlier callback returned in their place, which WooCommerce casts to a list.
  *
- * @return  array<string, mixed>
+ * @return  mixed
  */
-function dws_lpmwc_remove_locked_payment_methods( array $gateways ): array {
+function dws_lpmwc_remove_locked_payment_methods( $gateways ) {
+	if ( ! is_array( $gateways ) ) {
+		return $gateways;
+	}
+
 	$ids = dws_lpmwc_get_locked_payment_method_ids();
 
 	/**
@@ -154,8 +158,8 @@ function dws_lpmwc_remove_locked_payment_methods( array $gateways ): array {
 	 * @version     2.0.0
 	 * @deprecated  2.0.0 Use dws_lpmwc/payment_method/locked_ids.
 	 *
-	 * @param       string[]             $ids      The locked payment methods' ids.
-	 * @param       array<string, mixed> $gateways The payment gateways offered, by id.
+	 * @param       string[]     $ids      The locked payment methods' ids.
+	 * @param       array<mixed> $gateways The payment gateways offered, by id.
 	 */
 	$ids = dws_lpmwc_add_locked_ids( $ids, apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods', array( $ids, $gateways ), '2.0.0', 'dws_lpmwc/payment_method/locked_ids' ) );
 
@@ -165,8 +169,8 @@ function dws_lpmwc_remove_locked_payment_methods( array $gateways ): array {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string[]             $ids      The locked payment methods' ids.
-	 * @param   array<string, mixed> $gateways The payment gateways offered, by id.
+	 * @param   string[]     $ids      The locked payment methods' ids.
+	 * @param   array<mixed> $gateways The payment gateways offered, by id.
 	 */
 	$ids = dws_lpmwc_add_locked_ids( $ids, apply_filters( 'dws_lpmwc/payment_method/locked_ids', $ids, $gateways ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
 

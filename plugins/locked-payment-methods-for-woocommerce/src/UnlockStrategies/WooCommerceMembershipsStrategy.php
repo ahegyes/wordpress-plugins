@@ -156,13 +156,13 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   bool   $lock       Whether the payment method stays locked.
+	 * @param   mixed  $lock       Whether the payment method stays locked, as earlier callbacks left it, passed on unchanged since only an explicit false unlocks.
 	 * @param   string $gateway_id The payment method's id.
 	 * @param   int    $user_id    The paying user, or 0 for a guest.
 	 *
-	 * @return  bool
+	 * @return  mixed
 	 */
-	public function unlock_member_methods( bool $lock, string $gateway_id, int $user_id ): bool {
+	public function unlock_member_methods( mixed $lock, string $gateway_id, int $user_id ): mixed {
 		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
 	}
 
