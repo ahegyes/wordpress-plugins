@@ -34,6 +34,7 @@ final class Comments implements ComponentInterface {
 		add_filter( 'wp_update_comment_data', array( $this, 'filter_update_data' ), \PHP_INT_MAX, 2 );
 		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
 		add_filter( 'delete_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
+		add_action( 'delete_comment', array( $this, 'keep_replies_private' ) );
 		add_action( 'pre_get_comments', array( $this, 'hide_unmoved_comments' ) );
 		add_filter( 'comment_feed_where', array( $this, 'hide_unmoved_feed_comments' ) );
 	}
@@ -138,6 +139,41 @@ final class Comments implements ComponentInterface {
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Marks the replies of an internal comment marked private as private themselves before WordPress deletes it, as WordPress then hands them to its parent, which would drop the privacy they took from it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|string $comment_id The id of the comment WordPress deletes.
+	 *
+	 * @return  void
+	 */
+	public function keep_replies_private( int|string $comment_id ): void {
+		if ( true !== dws_ic_is_internal_comment( $comment_id ) || true !== filter_var( get_comment_meta( (int) $comment_id, DWS_IC_META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ) {
+			return;
+		}
+
+		$replies = get_comments(
+			array(
+				'parent' => (int) $comment_id,
+				'type'   => DWS_IC_COMMENT_TYPE,
+				'status' => 'any',
+				'fields' => 'ids',
+			)
+		);
+
+		// The plugin carries the privacy over, whoever deletes the comment.
+		remove_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ) );
+		try {
+			foreach ( \is_array( $replies ) ? $replies : array() as $reply ) {
+				update_comment_meta( (int) $reply, DWS_IC_META_PRIVATE, 'yes' );
+			}
+		} finally {
+			add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
+		}
 	}
 
 	/**

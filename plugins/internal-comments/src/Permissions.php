@@ -26,6 +26,7 @@ final class Permissions implements ComponentInterface {
 	#[\Override]
 	public function register_hooks(): void {
 		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
+		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_writes' ), 10, 3 );
 	}
 
 	// endregion
@@ -71,6 +72,30 @@ final class Permissions implements ComponentInterface {
 		}
 
 		return \array_values( \array_unique( \array_merge( $caps, map_meta_cap( 'edit_post', $user_id, (int) $comment->comment_post_ID ) ) ) );
+	}
+
+	/**
+	 * Refuses a write through core's REST API to an internal comment the current user may not edit, or trash where the request deletes it.
+	 *
+	 * Core lets any user who moderates comments update or delete one before it asks about the comment itself.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed                                  $response The response so far, or an error.
+	 * @param   mixed                                  $handler  The route's handler.
+	 * @param   \WP_REST_Request<array<string, mixed>> $request  The request.
+	 *
+	 * @return  mixed
+	 */
+	public function guard_core_rest_writes( mixed $response, mixed $handler, \WP_REST_Request $request ): mixed {
+		if ( \is_wp_error( $response ) || 'GET' === $request->get_method() || 1 !== \preg_match( '#^/wp/v2/comments/(\d+)$#', $request->get_route(), $matches ) || true !== dws_ic_is_internal_comment( (int) $matches[1] ) ) {
+			return $response;
+		}
+
+		$capability = 'DELETE' === $request->get_method() ? 'trash_dws_internal_comment' : 'edit_dws_internal_comment';
+
+		return current_user_can( $capability, (int) $matches[1] ) ? $response : new \WP_Error( 'rest_cannot_edit', __( 'Sorry, you are not allowed to change this internal comment.', 'internal-comments' ), array( 'status' => rest_authorization_required_code() ) );
 	}
 
 	// endregion

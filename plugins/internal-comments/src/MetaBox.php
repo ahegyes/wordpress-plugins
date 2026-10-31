@@ -93,7 +93,7 @@ final class MetaBox implements ComponentInterface {
 	/**
 	 * Prints the meta box: the post's comments, the form for a new comment where the user may post, and the templates the script clones to edit and reply.
 	 *
-	 * Its forms are groups of fields whose buttons the script handles, because the edit screen already wraps every meta box in the post's form.
+	 * Its forms are groups of unnamed fields whose buttons the script handles, because the edit screen wraps every meta box in the post's form, which would submit a named field with the post and save one named content as the post's body.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -107,7 +107,7 @@ final class MetaBox implements ComponentInterface {
 		$can_post    = current_user_can( DWS_IC_CAP_INSERT );
 		$can_private = $can_post && dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE );
 		?>
-		<div class="dws-internal-comments" data-post-id="<?php echo esc_attr( (string) $object_id ); ?>">
+		<div class="dws-internal-comments" tabindex="-1" data-post-id="<?php echo esc_attr( (string) $object_id ); ?>">
 			<div class="dws-internal-comments__comments">
 				<?php dws_ic_print_comments_list( $object_id ); ?>
 			</div>
@@ -116,11 +116,11 @@ final class MetaBox implements ComponentInterface {
 				<div class="dws-add-internal-comment dws-internal-comments-inline-action" data-form="new">
 					<p class="dws-internal-comments-inline-action__textarea">
 						<label for="dws-ic-new-comment"><?php esc_html_e( 'New internal comment', 'internal-comments' ); ?></label>
-						<textarea id="dws-ic-new-comment" name="content" rows="4"></textarea>
+						<textarea id="dws-ic-new-comment" rows="4"></textarea>
 					</p>
 					<?php if ( $can_private ) : ?>
 						<p>
-							<input type="checkbox" id="dws-ic-new-comment-private" name="private" value="1" aria-describedby="dws-ic-new-comment-private-description" />
+							<input type="checkbox" id="dws-ic-new-comment-private" aria-describedby="dws-ic-new-comment-private-description" />
 							<label for="dws-ic-new-comment-private"><?php esc_html_e( 'Mark as private', 'internal-comments' ); ?></label>
 							<span id="dws-ic-new-comment-private-description" class="description"><?php esc_html_e( 'Only you and the users allowed to read private comments will see it.', 'internal-comments' ); ?></span>
 						</p>
@@ -132,7 +132,7 @@ final class MetaBox implements ComponentInterface {
 				<template id="dws-ic-reply-form">
 					<div class="dws-internal-comments-inline-action" data-form="reply">
 						<p class="dws-internal-comments-inline-action__textarea">
-							<label><?php esc_html_e( 'Reply', 'internal-comments' ); ?> <textarea name="content" rows="3"></textarea></label>
+							<label><?php esc_html_e( 'Reply', 'internal-comments' ); ?> <textarea rows="3"></textarea></label>
 						</p>
 						<p class="dws-internal-comments-inline-action__actions">
 							<?php dws_ic_print_form_buttons( 'reply' ); ?>
@@ -143,7 +143,7 @@ final class MetaBox implements ComponentInterface {
 			<template id="dws-ic-edit-form">
 				<div class="dws-internal-comments-inline-action" data-form="edit">
 					<p class="dws-internal-comments-inline-action__textarea">
-						<label><?php esc_html_e( 'Edit internal comment', 'internal-comments' ); ?> <textarea name="content" rows="4"></textarea></label>
+						<label><?php esc_html_e( 'Edit internal comment', 'internal-comments' ); ?> <textarea rows="4"></textarea></label>
 					</p>
 					<p class="dws-internal-comments-inline-action__actions">
 						<?php dws_ic_print_form_buttons( 'edit' ); ?>

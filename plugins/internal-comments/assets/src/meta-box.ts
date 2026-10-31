@@ -156,8 +156,9 @@ if ( root ) {
 		}
 		const content = readContent( newForm );
 		const isPrivate =
-			newForm.querySelector< HTMLInputElement >( 'input[name="private"]' )
-				?.checked ?? false;
+			newForm.querySelector< HTMLInputElement >(
+				'input[type="checkbox"]'
+			)?.checked ?? false;
 		if (
 			content !== null &&
 			( await send(

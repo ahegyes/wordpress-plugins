@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+The replies of a private comment stay private when it is deleted permanently.
