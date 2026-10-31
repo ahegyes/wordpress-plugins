@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1616032afedf26ffa7ffc9d3e0fe1c56",
+    "content-hash": "daf3375aeffc7b0510f18f581f61d7df",
     "packages": [],
     "packages-dev": [
         {
@@ -7289,6 +7289,38 @@
             ],
             "time": "2026-08-20T19:54:29+00:00",
             "published-time": "2026-08-20T19:54:42+00:00"
+        },
+        {
+            "name": "wp-plugin/groups",
+            "version": "4.8.0",
+            "source": {
+                "type": "svn",
+                "url": "https://plugins.svn.wordpress.org/groups/",
+                "reference": "tags/4.8.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/plugin/groups.4.8.0.zip"
+            },
+            "require": {
+                "composer/installers": "~1.0|~2.0"
+            },
+            "type": "wordpress-plugin",
+            "notification-url": "https://wp-packages.org/downloads",
+            "authors": [
+                {
+                    "name": "itthinx"
+                }
+            ],
+            "description": "Turn your site into a powerful membership solution. Manage members, teams and access to content easily.",
+            "homepage": "https://www.itthinx.com/plugins/groups",
+            "support": {
+                "changelog": "https://wordpress.org/plugins/groups/#developers",
+                "issues": "https://wordpress.org/support/plugin/groups",
+                "source": "https://plugins.svn.wordpress.org/groups"
+            },
+            "time": "2026-09-29T13:03:58+00:00",
+            "published-time": "2026-09-29T13:03:58+00:00"
         },
         {
             "name": "wp-plugin/woocommerce",

@@ -7,6 +7,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\Setting\SectionFieldsDefinitionInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\Setting\SettingsSection;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -213,6 +214,16 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 					'desc'    => __( 'Unlock payment methods for an unpaid order from its edit screen, for that order only', 'locked-payment-methods-for-woocommerce' ),
 					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS ] ),
 				),
+			),
+			'integrations' => \array_filter(
+				array(
+					'unlock-via-groups' => GroupsStrategy::is_available() ? array(
+						'title'   => __( 'Unlock via Groups', 'locked-payment-methods-for-woocommerce' ),
+						'type'    => 'checkbox',
+						'desc'    => __( 'Unlock payment methods for the members of a Groups group from the group\'s settings', 'locked-payment-methods-for-woocommerce' ),
+						'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS ] ),
+					) : array(),
+				)
 			),
 			'plugin'  => array(
 				'remove-data-uninstall' => array(

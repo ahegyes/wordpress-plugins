@@ -22,3 +22,4 @@ parameters:
     # The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.
     scanDirectories:
         - vendor-prefixed
+        - vendor/wp-plugin/groups/lib

@@ -23,6 +23,7 @@ function dws_lpmwc_get_migration_steps(): array {
 		'dws_lpmwc_add_settings',
 		'dws_lpmwc_move_user_grants',
 		'dws_lpmwc_move_order_grants',
+		'dws_lpmwc_move_group_grants',
 	);
 }
 
@@ -181,6 +182,55 @@ function dws_lpmwc_move_order_grants(): void {
 		$order->save();
 		if ( dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ) !== array_values( array_unique( $granted ) ) ) {
 			throw new RuntimeException( "The payment methods unlocked for order $order_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+	}
+}
+
+/**
+ * Moves v1's Groups grants, one option per group, into the map of every group's grants beside the grants it holds, then deletes v1's options.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @global  wpdb $wpdb WordPress's database access.
+ *
+ * @throws  RuntimeException Thrown when v1's options could not be read, the map could not be stored or a v1 option could not be deleted.
+ *
+ * @return  void
+ */
+function dws_lpmwc_move_group_grants(): void {
+	global $wpdb;
+
+	$prefix = 'dws-wc-lpm_groups-settings_';
+	$wpdb->flush();
+	$names = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $wpdb->options, $wpdb->esc_like( $prefix ) . '%' ) ?? '' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- v1's option names carry the group's id, so no options API lists them.
+	if ( '' !== $wpdb->last_error ) {
+		throw new RuntimeException( 'The v1 Groups grants could not be read.' );
+	}
+
+	$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
+	$moved  = array();
+	foreach ( $names as $name ) {
+		if ( ! is_string( $name ) || ! str_starts_with( $name, $prefix ) || ! ctype_digit( substr( $name, strlen( $prefix ) ) ) ) {
+			continue;
+		}
+
+		$id            = (int) substr( $name, strlen( $prefix ) );
+		$stored        = get_option( $name );
+		$groups[ $id ] = array_values( array_unique( array_merge( $groups[ $id ] ?? array(), is_array( $stored ) ? array_filter( $stored, 'is_string' ) : array() ) ) );
+		$moved[]       = $name;
+	}
+	if ( array() === $moved ) {
+		return;
+	}
+
+	$groups = array_filter( $groups );
+	if ( dws_lpmwc_get_groups_unlocked_payment_method_ids() !== $groups && ! update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, $groups, true ) ) {
+		throw new RuntimeException( 'The payment methods unlocked for Groups groups could not be stored.' );
+	}
+	foreach ( $moved as $name ) {
+		if ( ! delete_option( $name ) ) {
+			throw new RuntimeException( "The v1 option $name could not be deleted." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 	}
 }

@@ -30,7 +30,7 @@ final class GroupsStrategyTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		self::$strategy = new GroupsStrategy( new AdminNotices( 'dws_lpmwc', new PsrNullLogger() ) );
 		self::$strategy->register_hooks();
-		foreach ( array( 'administrator', 'shop_manager', 'customer' ) as $role ) {
+		foreach ( array( 'administrator', 'shop_manager', 'customer', 'subscriber' ) as $role ) {
 			self::$users[ $role ] = (int) wp_insert_user(
 				array(
 					'user_login' => "lpm-groups-$role",
@@ -103,7 +103,7 @@ final class GroupsStrategyTest extends TestCase {
 		self::assertSame( array( $parent => array( 'cod' ) ), dws_lpmwc_get_groups_unlocked_payment_method_ids() );
 		self::assertFalse( self::should_lock( 'cod', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
-		self::assertTrue( self::should_lock( 'cod', self::$users['shop_manager'] ) );
+		self::assertTrue( self::should_lock( 'cod', self::$users['subscriber'] ) );
 		self::assertTrue( self::should_lock( 'cod', 0 ) );
 	}
 

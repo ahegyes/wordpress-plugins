@@ -8,6 +8,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\LockedPaymentMethods\Settings;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
@@ -21,7 +22,7 @@ final class PluginBootTest extends TestCase {
 
 		self::assertSame( 'booted', $plugin->boot->status );
 		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, UserRoleStrategy::class, UserProfileStrategy::class ), $plugin->kernel?->resolved );
-		self::assertSame( array( OrderStrategy::class ), $plugin->kernel->skipped ); // Orders are off by default, as v1's were.
+		self::assertSame( array( OrderStrategy::class, GroupsStrategy::class ), $plugin->kernel->skipped ); // Orders and Groups are off by default, as v1's were.
 	}
 
 	public function test_the_entry_loads_every_include_but_those_whose_names_start_with_an_underscore(): void {

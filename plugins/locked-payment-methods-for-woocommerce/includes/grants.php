@@ -123,3 +123,33 @@ function dws_lpmwc_get_grant_choices( array $granted, int $user_id ): array {
 
 	return $choices;
 }
+
+/**
+ * The option that maps each Groups group's id to the ids of the payment methods unlocked for its members.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS = 'dws_lpmwc_groups_unlocked_payment_methods';
+
+/**
+ * Returns the ids of the payment methods unlocked for each Groups group's members, by group id.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @return  array<int, string[]>
+ */
+function dws_lpmwc_get_groups_unlocked_payment_method_ids(): array {
+	$stored = get_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, array() );
+	$groups = array();
+	foreach ( is_array( $stored ) ? $stored : array() as $group_id => $ids ) {
+		if ( is_int( $group_id ) && is_array( $ids ) ) {
+			$groups[ $group_id ] = array_values( array_filter( $ids, 'is_string' ) );
+		}
+	}
+
+	return $groups;
+}
