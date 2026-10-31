@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class FootprintTest extends TestCase {
 	// Prefix families a port keeps from its v1 names, which uninstall must still remove.
-	protected const array LEGACY_FAMILIES = array();
+	protected const array LEGACY_FAMILIES = array( 'dws-wc-lpm_', '_dws_wc_lpm_', 'dws_wc_lpm_', 'locked_payment_methods_for_woocommerce_', '_locked_payment_methods_for_woocommerce_', 'unlock_dws_lpm_via_' );
 
 	public function test_the_prefix_has_one_segment_after_dws_so_no_prefix_in_its_family_starts_with_another(): void {
 		self::assertMatchesRegularExpression( '/^dws_[a-z0-9]+$/', Plugin::PREFIX );
@@ -64,5 +64,17 @@ final class FootprintTest extends TestCase {
 			$covered = \in_array( $key, dws_lpmwc_get_footprint()['options'] ?? array(), true ) || \array_any( dws_lpmwc_get_footprint()['option_prefixes'], static fn ( string $prefix ): bool => \str_starts_with( $key, $prefix ) );
 			self::assertTrue( $covered, "The option $key is outside the footprint." );
 		}
+	}
+
+	public function test_it_covers_what_v1_stored_and_the_grants_and_capabilities(): void {
+		$footprint = dws_lpmwc_get_footprint();
+
+		self::assertContains( 'dws-wc-lpm_', $footprint['option_prefixes'] );
+		self::assertSame( array( 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ), $footprint['options'] );
+		self::assertSame( array( '_' . Plugin::PREFIX . '_', '_dws_wc_lpm_' ), $footprint['meta_prefixes']['order'] );
+		self::assertSame( array( DWS_LPMWC_META_UNLOCKED_METHODS, '_dws_wc_lpm_unlocked_payment_methods' ), $footprint['meta']['post'] );
+		self::assertContains( 'dws_wc_lpm_', $footprint['user_meta_global_prefixes'] );
+		self::assertSame( array( '_locked_payment_methods_for_woocommerce_admin_notices' ), $footprint['user_meta_global'] );
+		self::assertSame( array( DWS_LPMWC_CAP_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_CAP_UNLOCK_VIA_ORDERS, DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS, DWS_LPMWC_CAP_UNLOCK_VIA_WC_MEMBERSHIPS ), $footprint['capabilities'] );
 	}
 }

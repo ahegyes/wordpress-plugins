@@ -72,4 +72,57 @@ final class UninstallTest extends TestCase {
 		dws_lpmwc_plugin()->migrations?->run();
 		self::assertSame( 'no', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
 	}
+
+	#[RunInSeparateProcess]
+	public function test_a_consenting_uninstall_removes_the_grants_v1s_rows_and_the_capabilities(): void {
+		global $wpdb;
+
+		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, array( 7 => array( 'cod' ) ) );
+		foreach ( array( 'dws-wc-lpm_general_locked-payment-methods', 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ) as $v1_option ) {
+			update_option( $v1_option, 'seeded' );
+		}
+		update_user_meta( self::USER, $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, array( 'cod' ) );
+		update_user_meta( self::USER, 'dws_wc_lpm_grant_access_cod', 'yes' );
+		update_user_meta( self::USER, '_locked_payment_methods_for_woocommerce_admin_notices', array( 'seeded' ) );
+		$order = wc_create_order();
+		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
+		$order->update_meta_data( '_dws_wc_lpm_grant_access_cod', 'yes' );
+		$order->save();
+		$plan = (int) wp_insert_post(
+			array(
+				'post_type'   => 'post',
+				'post_title'  => 'LPM plan',
+				'post_status' => 'draft',
+			)
+		);
+		update_post_meta( $plan, DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
+		update_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod' ) );
+		self::assertTrue( get_role( 'administrator' )?->has_cap( DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS ) );
+
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
+			wp_cache_flush();
+			wp_roles()->for_site();
+
+			self::assertFalse( get_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS ) );
+			foreach ( array( 'dws-wc-lpm_general_locked-payment-methods', 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ) as $v1_option ) {
+				self::assertFalse( get_option( $v1_option ), $v1_option );
+			}
+			self::assertSame( '', get_user_meta( self::USER, $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, true ) );
+			self::assertSame( '', get_user_meta( self::USER, 'dws_wc_lpm_grant_access_cod', true ) );
+			self::assertSame( '', get_user_meta( self::USER, '_locked_payment_methods_for_woocommerce_admin_notices', true ) );
+			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( DWS_LPMWC_META_UNLOCKED_METHODS ) );
+			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
+			self::assertSame( '', get_post_meta( $plan, DWS_LPMWC_META_UNLOCKED_METHODS, true ) );
+			self::assertSame( '', get_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
+			self::assertFalse( get_role( 'administrator' )?->has_cap( DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS ) );
+		} finally {
+			$order->delete( true );
+			wp_delete_post( $plan, true );
+			// The other tests share the database, so the runner stores again what a new site starts with, and the grants act again.
+			dws_lpmwc_plugin()->migrations?->run();
+			do_action( 'wp_loaded' );
+		}
+	}
 }
