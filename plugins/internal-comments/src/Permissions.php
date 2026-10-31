@@ -140,7 +140,7 @@ final class Permissions implements ComponentInterface {
 	}
 
 	/**
-	 * Leaves internal comments out of every comment query of an XML-RPC request, as XML-RPC's wp.getComments lists the comments of any status a user who moderates comments names.
+	 * Leaves internal comments out of the comment queries of an XML-RPC request that do not name their type, as XML-RPC's wp.getComments lists the comments of any status a user who moderates comments names.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -150,7 +150,8 @@ final class Permissions implements ComponentInterface {
 	 * @return  void
 	 */
 	public function exclude_from_xml_rpc( \WP_Comment_Query $query ): void {
-		if ( \defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+		// XML-RPC's wp.getComments takes no type from its caller, so a query naming the type is one of the plugin's own.
+		if ( \defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST && ! dws_ic_query_names_internal_type( $query->query_vars ) ) {
 			$query->query_vars['type__not_in'] = dws_ic_exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 		}
 	}

@@ -297,3 +297,17 @@ function dws_ic_exclude_internal_type( $excluded ): array {
 
 	return $types;
 }
+
+/**
+ * Returns whether a comment query names internal comments by their type, as the plugin's own queries do.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   array<mixed> $query_vars The comment query's arguments.
+ *
+ * @return  bool
+ */
+function dws_ic_query_names_internal_type( array $query_vars ): bool {
+	return in_array( DWS_IC_COMMENT_TYPE, array_merge( (array) ( $query_vars['type'] ?? array() ), (array) ( $query_vars['type__in'] ?? array() ) ), true );
+}

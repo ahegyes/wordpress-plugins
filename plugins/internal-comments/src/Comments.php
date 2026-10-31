@@ -187,8 +187,7 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function hide_unmoved_comments( \WP_Comment_Query $query ): void {
-		$types = \array_merge( (array) ( $query->query_vars['type'] ?? array() ), (array) ( $query->query_vars['type__in'] ?? array() ) );
-		if ( ! $this->is_move_pending() || \in_array( DWS_IC_COMMENT_TYPE, $types, true ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+		if ( ! $this->is_move_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
 			return;
 		}
 
