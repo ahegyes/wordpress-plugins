@@ -89,6 +89,6 @@ Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI run
 - A site that returns to 1.2.4 after the upgrade stores its new internal comments approved, and the migration that moved v1's comments does not run again on the next upgrade, so those comments stay public until moved by hand.
 - Core's comment edit screen shows author, date and status fields for an internal comment, which `Comments` keeps as stored.
 - When a private comment is deleted permanently, its replies become private under their own authors, who then also see the replies beneath them that the deleted comment's privacy hid from them.
-- Core's Comments screen and REST API trash or delete an internal comment for any user who can edit it, because core checks only `edit_comment` there and offers no hook to refuse; the meta box's route checks the trash capability.
+- Core's Comments screen trashes or deletes an internal comment for any user who can edit it, because core checks only `edit_comment` there and offers no hook to refuse; the meta box's route and core's REST API check the trash capability.
 - The release zip carries the TypeScript and SCSS sources beside the built files.
 - The bundled GitHub updater ships inert, since the entry file has no `Update URI`, and wordpress.org's reviewers may ask to remove it.
