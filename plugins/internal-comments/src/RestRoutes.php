@@ -58,6 +58,11 @@ final class RestRoutes implements ComponentInterface {
 			'required'          => true,
 			'sanitize_callback' => 'sanitize_textarea_field',
 		);
+		$post    = array(
+			'type'              => 'integer',
+			'sanitize_callback' => 'absint',
+		);
+		$id      = $post;
 
 		register_rest_route(
 			self::NAMESPACE,
@@ -67,12 +72,14 @@ final class RestRoutes implements ComponentInterface {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_post_comments' ),
 					'permission_callback' => array( $this, 'can_read_post_comments' ),
+					'args'                => array( 'post' => $post ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_comment' ),
 					'permission_callback' => array( $this, 'can_create_comment' ),
 					'args'                => array(
+						'post'    => $post,
 						'content' => $content,
 						'parent'  => array(
 							'type'    => 'integer',
@@ -95,17 +102,22 @@ final class RestRoutes implements ComponentInterface {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_comment' ),
 					'permission_callback' => array( $this, 'can_edit_comment' ),
+					'args'                => array( 'id' => $id ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::EDITABLE,
 					'callback'            => array( $this, 'update_comment' ),
 					'permission_callback' => array( $this, 'can_edit_comment' ),
-					'args'                => array( 'content' => $content ),
+					'args'                => array(
+						'id'      => $id,
+						'content' => $content,
+					),
 				),
 				array(
 					'methods'             => \WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'trash_comment' ),
 					'permission_callback' => array( $this, 'can_trash_comment' ),
+					'args'                => array( 'id' => $id ),
 				),
 			)
 		);
@@ -117,7 +129,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{post: numeric-string}> $request The request.
+	 * @param   \WP_REST_Request<array{post: int}> $request The request.
 	 *
 	 * @return  bool
 	 */
@@ -133,7 +145,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{post: numeric-string}> $request The request.
+	 * @param   \WP_REST_Request<array{post: int}> $request The request.
 	 *
 	 * @return  bool
 	 */
@@ -147,7 +159,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{id: numeric-string}> $request The request.
+	 * @param   \WP_REST_Request<array{id: int}> $request The request.
 	 *
 	 * @return  bool
 	 */
@@ -161,7 +173,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{id: numeric-string}> $request The request.
+	 * @param   \WP_REST_Request<array{id: int}> $request The request.
 	 *
 	 * @return  bool
 	 */
@@ -175,7 +187,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{post: numeric-string}> $request The request.
+	 * @param   \WP_REST_Request<array{post: int}> $request The request.
 	 *
 	 * @return  \WP_REST_Response
 	 */
@@ -189,14 +201,14 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{post: numeric-string, content: string, parent: int, private: bool}> $request The request.
+	 * @param   \WP_REST_Request<array{post: int, content: string, parent: int, private: bool}> $request The request.
 	 *
 	 * @return  \WP_REST_Response|\WP_Error
 	 */
 	public function create_comment( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$post_id   = absint( $request['post'] );
 		$parent_id = absint( $request['parent'] );
-		$content   = (string) $request['content'];
+		$content   = \is_string( $request['content'] ) ? $request['content'] : '';
 		if ( '' === \trim( $content ) ) {
 			return $this->empty_content();
 		}
@@ -249,7 +261,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{id: numeric-string}> $request The request.
+	 * @param   \WP_REST_Request<array{id: int}> $request The request.
 	 *
 	 * @return  \WP_REST_Response
 	 */
@@ -270,13 +282,13 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{id: numeric-string, content: string}> $request The request.
+	 * @param   \WP_REST_Request<array{id: int, content: string}> $request The request.
 	 *
 	 * @return  \WP_REST_Response|\WP_Error
 	 */
 	public function update_comment( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$comment_id = absint( $request['id'] );
-		$content    = (string) $request['content'];
+		$content    = \is_string( $request['content'] ) ? $request['content'] : '';
 		if ( '' === \trim( $content ) ) {
 			return $this->empty_content();
 		}
@@ -349,7 +361,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_REST_Request<array{id: numeric-string}> $request The request.
+	 * @param   \WP_REST_Request<array{id: int}> $request The request.
 	 *
 	 * @return  \WP_REST_Response|\WP_Error
 	 */

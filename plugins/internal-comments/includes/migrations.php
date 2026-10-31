@@ -13,6 +13,16 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Mig
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * The data revision from which the comments v1 stored approved are under the internal status, which the second step reaches.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     int
+ */
+const DWS_IC_REVISION_V1_COMMENTS_MOVED = 2;
+
+/**
  * Returns the migration steps, append-only, where index 0 brings the data to revision 1.
  *
  * @since   2.0.0

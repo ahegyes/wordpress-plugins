@@ -38,7 +38,8 @@ final class AdminScreens implements ComponentInterface {
 	#[\Override]
 	public function register_hooks(): void {
 		foreach ( dws_ic_get_selected_post_types() as $post_type ) {
-			add_filter( "manage_{$post_type}_posts_columns", array( $this, 'add_posts_column' ) );
+			// WooCommerce rebuilds its orders' and coupons' columns on this hook at the default priority.
+			add_filter( "manage_{$post_type}_posts_columns", array( $this, 'add_posts_column' ), 20 );
 			add_action( "manage_{$post_type}_posts_custom_column", array( $this, 'render_cell' ), 10, 2 );
 
 			// WooCommerce's order tables list an order type on a screen of its own, which other post types never reach.
@@ -179,7 +180,23 @@ final class AdminScreens implements ComponentInterface {
 		}
 
 		$is_trashed = 'trash' === get_post_status( $post_id );
-		$count      = \count( $is_trashed ? dws_ic_get_internal_comments_from_trash_meta( $post_id ) : dws_ic_get_internal_comments( $post_id, array( 'hierarchical' => false ) ) );
+		if ( $is_trashed ) {
+			$count = \count( dws_ic_get_internal_comments_from_trash_meta( $post_id ) );
+		} elseif ( current_user_can( DWS_IC_CAP_SEE ) && current_user_can( DWS_IC_CAP_SEE_PRIVATE ) && current_user_can( 'edit_post', $post_id ) ) {
+			// A user who sees every comment of the post needs no check per comment.
+			$count = \count(
+				get_comments(
+					array(
+						'post_id' => $post_id,
+						'type'    => DWS_IC_COMMENT_TYPE,
+						'status'  => DWS_IC_COMMENT_STATUS,
+						'fields'  => 'ids',
+					)
+				)
+			);
+		} else {
+			$count = \count( dws_ic_get_internal_comments( $post_id, array( 'hierarchical' => false ) ) );
+		}
 		if ( 0 === $count ) {
 			echo '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">' . esc_html__( 'No internal comments', 'internal-comments' ) . '</span>';
 
@@ -357,7 +374,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function filter_bulk_actions( array $actions ): array {
-		$type = $_GET['comment_type'] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Reads the screen's view, which only a strict comparison uses.
+		$type = isset( $_GET['comment_type'] ) && \is_string( $_GET['comment_type'] ) ? sanitize_key( wp_unslash( $_GET['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reads the screen's view.
 
 		return DWS_IC_COMMENT_TYPE === $type ? \array_intersect_key( $actions, \array_flip( array( 'trash', 'untrash', 'delete' ) ) ) : $actions;
 	}

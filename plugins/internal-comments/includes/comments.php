@@ -215,10 +215,12 @@ function dws_ic_get_internal_comments( int $post_id, array $args = array(), bool
  */
 function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $status = DWS_IC_COMMENT_STATUS, bool $include_hidden = false ): array {
 	$statuses = get_post_meta( $post_id, '_wp_trash_meta_comments_status', true );
+	// v1 recorded the internal comments of a post it trashed as approved.
+	$accepted = DWS_IC_COMMENT_STATUS === $status ? array( DWS_IC_COMMENT_STATUS, '1' ) : array( $status );
 
 	$comments = array();
 	foreach ( is_array( $statuses ) ? $statuses : array() as $comment_id => $comment_status ) {
-		if ( ( 'any' !== $status && $status !== $comment_status ) || true !== dws_ic_is_internal_comment( $comment_id ) ) {
+		if ( ( 'any' !== $status && ! in_array( $comment_status, $accepted, true ) ) || true !== dws_ic_is_internal_comment( $comment_id ) ) {
 			continue;
 		}
 

@@ -3,13 +3,14 @@
 namespace DeepWebSolutions\InternalComments;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 
 \defined( 'ABSPATH' ) || exit;
 
 /**
  * Keeps internal comments under their own status through every way WordPress changes a comment, and records each change to an internal comment's content.
  *
- * The status is what keeps them out of WordPress's queries, counts, feeds and REST API, so a comment stored, approved, held, marked spam or restored from the trash under another status is put back under it.
+ * The status is what keeps them out of WordPress's queries, counts, feeds and REST API, so a comment stored, approved, held, marked spam or restored from the trash under another status is put back under it. Until the migration has moved the comments v1 stored approved, their type keeps them out of comment queries and feeds instead.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -33,6 +34,8 @@ final class Comments implements ComponentInterface {
 		add_filter( 'wp_update_comment_data', array( $this, 'filter_update_data' ), \PHP_INT_MAX, 2 );
 		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
 		add_filter( 'delete_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
+		add_action( 'pre_get_comments', array( $this, 'hide_unmoved_comments' ) );
+		add_filter( 'comment_feed_where', array( $this, 'hide_unmoved_feed_comments' ) );
 	}
 
 	// endregion
@@ -138,6 +141,44 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
+	 * Leaves internal comments out of a comment query that names neither their type nor their status, while the migration has not yet moved the ones v1 stored approved.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   \WP_Comment_Query $query The comment query.
+	 *
+	 * @return  void
+	 */
+	public function hide_unmoved_comments( \WP_Comment_Query $query ): void {
+		$types = \array_merge( (array) ( $query->query_vars['type'] ?? array() ), (array) ( $query->query_vars['type__in'] ?? array() ) );
+		if ( ! $this->is_move_pending() || \in_array( DWS_IC_COMMENT_TYPE, $types, true ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+			return;
+		}
+
+		// An empty type names the comments older WordPress stored without one, so it never joins the exclusion.
+		$query->query_vars['type__not_in'] = \array_merge( \array_filter( (array) ( $query->query_vars['type__not_in'] ?? array() ), static fn ( mixed $type ): bool => '' !== $type ), array( DWS_IC_COMMENT_TYPE ) );
+	}
+
+	/**
+	 * Leaves internal comments out of comment feeds while the migration has not yet moved the ones v1 stored approved.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @param   string $where The feed query's WHERE clause.
+	 *
+	 * @return  string
+	 */
+	public function hide_unmoved_feed_comments( string $where ): string {
+		global $wpdb;
+
+		return $this->is_move_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
+	}
+
+	/**
 	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author.
 	 *
 	 * @since   2.0.0
@@ -157,6 +198,22 @@ final class Comments implements ComponentInterface {
 		$comment = dws_ic_get_comment( $comment_id );
 
 		return null !== $comment && get_current_user_id() !== (int) $comment->user_id ? false : $check;
+	}
+
+	// endregion
+
+	// region HELPERS
+
+	/**
+	 * Returns whether the migration has yet to move the comments v1 stored approved under the internal status.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  bool
+	 */
+	protected function is_move_pending(): bool {
+		return MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) < DWS_IC_REVISION_V1_COMMENTS_MOVED;
 	}
 
 	// endregion
