@@ -17,6 +17,7 @@ parameters:
         - includes/safeguards.php
     scanFiles:
         - includes/safeguards.php
+        - tests/PHPStan/woocommerce-memberships.php
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
         - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
     # The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.

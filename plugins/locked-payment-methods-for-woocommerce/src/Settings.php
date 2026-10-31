@@ -8,6 +8,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Sett
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\Setting\SectionFieldsDefinitionInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\Setting\SettingsSection;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -217,11 +218,17 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 			),
 			'integrations' => \array_filter(
 				array(
-					'unlock-via-groups' => GroupsStrategy::is_available() ? array(
+					'unlock-via-groups'         => GroupsStrategy::is_available() ? array(
 						'title'   => __( 'Unlock via Groups', 'locked-payment-methods-for-woocommerce' ),
 						'type'    => 'checkbox',
 						'desc'    => __( 'Unlock payment methods for the members of a Groups group from the group\'s settings', 'locked-payment-methods-for-woocommerce' ),
 						'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS ] ),
+					) : array(),
+					'unlock-via-wc-memberships' => WooCommerceMembershipsStrategy::is_available() ? array(
+						'title'   => __( 'Unlock via WooCommerce Memberships', 'locked-payment-methods-for-woocommerce' ),
+						'type'    => 'checkbox',
+						'desc'    => __( 'Unlock payment methods for the active members of a membership plan from the plan\'s data', 'locked-payment-methods-for-woocommerce' ),
+						'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS ] ),
 					) : array(),
 				)
 			),

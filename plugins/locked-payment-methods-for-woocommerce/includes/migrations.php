@@ -24,6 +24,7 @@ function dws_lpmwc_get_migration_steps(): array {
 		'dws_lpmwc_move_user_grants',
 		'dws_lpmwc_move_order_grants',
 		'dws_lpmwc_move_group_grants',
+		'dws_lpmwc_move_plan_grants',
 	);
 }
 
@@ -231,6 +232,40 @@ function dws_lpmwc_move_group_grants(): void {
 	foreach ( $moved as $name ) {
 		if ( ! delete_option( $name ) ) {
 			throw new RuntimeException( "The v1 option $name could not be deleted." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+	}
+}
+
+/**
+ * Moves v1's WooCommerce Memberships grants from each plan's v1 meta to the plugin's key beside the grants it holds, then deletes the v1 meta; it reads the post meta table itself, since Memberships may be inactive and its plan type unregistered.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @global  wpdb $wpdb WordPress's database access.
+ *
+ * @throws  RuntimeException Thrown when v1's plan meta could not be read, a plan's grants could not be stored or v1's meta could not be deleted.
+ *
+ * @return  void
+ */
+function dws_lpmwc_move_plan_grants(): void {
+	global $wpdb;
+
+	$v1_key = '_dws_wc_lpm_unlocked_payment_methods';
+	$wpdb->flush();
+	$plans = wp_parse_id_list( $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT post_id FROM %i WHERE meta_key = %s', $wpdb->postmeta, $v1_key ) ?? '' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Memberships' plan type may be unregistered, so no post query lists the plans.
+	if ( '' !== $wpdb->last_error ) {
+		throw new RuntimeException( 'The v1 plan grants could not be read.' );
+	}
+
+	foreach ( $plans as $plan_id ) {
+		$v1     = get_post_meta( $plan_id, $v1_key, true );
+		$merged = array_values( array_unique( array_merge( dws_lpmwc_get_plan_unlocked_payment_method_ids( $plan_id ), is_array( $v1 ) ? array_filter( $v1, 'is_string' ) : array() ) ) );
+		if ( dws_lpmwc_get_plan_unlocked_payment_method_ids( $plan_id ) !== $merged && false === update_post_meta( $plan_id, DWS_LPMWC_META_UNLOCKED_METHODS, wp_slash( $merged ) ) ) {
+			throw new RuntimeException( "The payment methods unlocked for plan $plan_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+		if ( ! delete_post_meta( $plan_id, $v1_key ) ) {
+			throw new RuntimeException( "The v1 grants of plan $plan_id could not be deleted." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 	}
 }

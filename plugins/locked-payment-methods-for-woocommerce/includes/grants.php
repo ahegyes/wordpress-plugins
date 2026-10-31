@@ -153,3 +153,19 @@ function dws_lpmwc_get_groups_unlocked_payment_method_ids(): array {
 
 	return $groups;
 }
+
+/**
+ * Returns the ids of the payment methods unlocked for a WooCommerce Memberships plan's active members.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   int $plan_id The plan's id.
+ *
+ * @return  string[]
+ */
+function dws_lpmwc_get_plan_unlocked_payment_method_ids( int $plan_id ): array {
+	$ids = get_post_meta( $plan_id, DWS_LPMWC_META_UNLOCKED_METHODS, true );
+
+	return is_array( $ids ) ? array_values( array_filter( $ids, 'is_string' ) ) : array();
+}

@@ -17,6 +17,7 @@ use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -66,6 +67,7 @@ final class Plugin {
 		UserProfileStrategy::class,
 		OrderStrategy::class,
 		GroupsStrategy::class,
+		WooCommerceMembershipsStrategy::class,
 	);
 
 	/**
