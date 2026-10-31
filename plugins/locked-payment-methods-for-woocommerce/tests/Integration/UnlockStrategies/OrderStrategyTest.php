@@ -24,6 +24,8 @@ final class OrderStrategyTest extends TestCase {
 
 	protected static OrderStrategy $strategy;
 
+	protected static array $hooks = array();
+
 	protected static int $admin;
 
 	protected array $stored = array();
@@ -33,6 +35,7 @@ final class OrderStrategyTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		self::$strategy = new OrderStrategy( new AdminNotices( 'dws_lpmwc', new PsrNullLogger() ) );
+		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$strategy->register_hooks();
 		self::$admin = (int) wp_insert_user(
 			array(
@@ -47,6 +50,7 @@ final class OrderStrategyTest extends TestCase {
 	#[\Override]
 	public static function tearDownAfterClass(): void {
 		wp_delete_user( self::$admin );
+		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
 	}
 
 	#[Before]

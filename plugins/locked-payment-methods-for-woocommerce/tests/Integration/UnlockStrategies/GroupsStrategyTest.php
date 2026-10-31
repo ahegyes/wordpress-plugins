@@ -18,6 +18,8 @@ final class GroupsStrategyTest extends TestCase {
 
 	protected static GroupsStrategy $strategy;
 
+	protected static array $hooks = array();
+
 	protected static array $users = array();
 
 	protected array $stored = array();
@@ -29,6 +31,7 @@ final class GroupsStrategyTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		self::$strategy = new GroupsStrategy( new AdminNotices( 'dws_lpmwc', new PsrNullLogger() ) );
+		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'shop_manager', 'customer', 'subscriber' ) as $role ) {
 			self::$users[ $role ] = (int) wp_insert_user(
@@ -47,6 +50,7 @@ final class GroupsStrategyTest extends TestCase {
 		foreach ( self::$users as $user ) {
 			wp_delete_user( $user );
 		}
+		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
 	}
 
 	#[Before]

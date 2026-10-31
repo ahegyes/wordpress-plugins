@@ -24,6 +24,8 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	protected static WooCommerceMembershipsStrategy $strategy;
 
+	protected static array $hooks = array();
+
 	protected static array $users = array();
 
 	protected array $stored = array();
@@ -36,6 +38,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		register_post_type( 'wc_membership_plan' );
 		self::$strategy = new WooCommerceMembershipsStrategy( new AdminNotices( 'dws_lpmwc', new PsrNullLogger() ) );
+		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'customer', 'subscriber' ) as $role ) {
 			self::$users[ $role ] = (int) wp_insert_user(
@@ -55,6 +58,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 			wp_delete_user( $user );
 		}
 		unregister_post_type( 'wc_membership_plan' );
+		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
 	}
 
 	// The form evaluates its definition and saves an object once per request, so every row edits a plan of its own.
