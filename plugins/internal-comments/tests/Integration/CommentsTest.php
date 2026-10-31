@@ -170,6 +170,11 @@ final class CommentsTest extends TestCase {
 		wp_trash_post( $this->post );
 
 		self::assertSame( array( (string) $internal ), \array_map( static fn ( \DWS_Internal_Comment $comment ): string => $comment->comment_ID, \array_values( dws_ic_get_internal_comments_from_trash_meta( $this->post ) ) ) );
+
+		$statuses              = get_post_meta( $this->post, '_wp_trash_meta_comments_status', true );
+		$statuses[ $internal ] = '1'; // v1 stored internal comments approved.
+		update_post_meta( $this->post, '_wp_trash_meta_comments_status', $statuses );
+		self::assertCount( 1, dws_ic_get_internal_comments_from_trash_meta( $this->post ) );
 	}
 
 	public function test_a_comment_is_private_by_its_meta_or_any_ancestors(): void {

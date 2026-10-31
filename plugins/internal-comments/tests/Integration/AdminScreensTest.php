@@ -113,6 +113,30 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( array( 'title' => 'Title' ), ( new AdminScreens() )->add_column( array( 'title' => 'Title' ), 'page' ) );
 	}
 
+	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
+	public function test_the_column_joins_a_list_after_woocommerce_rebuilds_it(): void {
+		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'shop_order' ) ) );
+		$screens = new AdminScreens();
+		$screens->register_hooks();
+
+		try {
+			$priority = has_filter( 'manage_shop_order_posts_columns', array( $screens, 'add_posts_column' ) );
+		} finally {
+			foreach ( $GLOBALS['wp_filter'] as $hook => $wp_hook ) {
+				foreach ( $wp_hook->callbacks as $level => $callbacks ) {
+					foreach ( $callbacks as $callback ) {
+						if ( \is_array( $callback['function'] ) && $screens === $callback['function'][0] ) {
+							remove_filter( $hook, $callback['function'], $level );
+						}
+					}
+				}
+			}
+		}
+
+		self::assertIsInt( $priority );
+		self::assertGreaterThan( 10, $priority );
+	}
+
 	public function test_the_cell_counts_the_comments_the_user_can_see_and_opens_their_quick_view(): void {
 		$this->comment( 'Open' );
 		$this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );

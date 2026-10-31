@@ -210,4 +210,40 @@ final class DataGuardsTest extends TestCase {
 			)
 		);
 	}
+
+	// Until the batched step has moved them, the comments v1 stored approved are left out of every comment query and feed by their type.
+	public function test_v1s_approved_comments_stay_hidden_until_the_move_finishes(): void {
+		global $wpdb;
+		$revision = get_option( 'dws_ic_revision' );
+		update_option( 'dws_ic_revision', 1 );
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
+			$wpdb->comments,
+			array(
+				'comment_post_ID'  => $this->post,
+				'comment_type'     => DWS_IC_COMMENT_TYPE,
+				'comment_approved' => '1',
+				'comment_content'  => 'v1',
+				'comment_date'     => \current_time( 'mysql' ),
+				'comment_date_gmt' => \current_time( 'mysql', true ),
+			)
+		);
+		$v1     = (int) $wpdb->insert_id;
+		$public = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+
+		try {
+			$listed = get_comments(
+				array(
+					'post_id' => $this->post,
+					'fields'  => 'ids',
+				)
+			);
+			$feed   = (string) apply_filters( 'comment_feed_where', '', new \WP_Query() );
+		} finally {
+			update_option( 'dws_ic_revision', $revision );
+		}
+
+		self::assertSame( array( $public ), $listed );
+		self::assertStringContainsString( DWS_IC_COMMENT_TYPE, $feed );
+		self::assertSame( array( $v1, $public ), get_comments( array( 'post_id' => $this->post, 'fields' => 'ids', 'orderby' => 'comment_ID', 'order' => 'ASC' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's four arguments.
+	}
 }
