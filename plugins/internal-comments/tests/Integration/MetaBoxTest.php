@@ -125,6 +125,9 @@ final class MetaBoxTest extends TestCase {
 		self::assertNotNull( $admin->querySelector( 'template#dws-ic-edit-form' ) );
 		self::assertNotNull( $admin->querySelector( 'template#dws-ic-reply-form' ) );
 		self::assertNotNull( $admin->querySelector( '[role="status"]' ) );
+		// The edit screen submits every named field inside the post's form, and WordPress saves `content` as the post's body.
+		self::assertNull( $admin->querySelector( '.dws-internal-comments [name]' ) );
+		self::assertSame( '-1', $admin->querySelector( '.dws-internal-comments' )?->getAttribute( 'tabindex' ) );
 		self::assertSame( array( 'edit', 'reply', 'trash' ), $this->actions( $admin, $comment ) );
 		self::assertSame( array( 'reply' ), $this->actions( $editor, $comment ) );
 		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );

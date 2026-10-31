@@ -149,6 +149,40 @@ final class PermissionsTest extends TestCase {
 		return $post;
 	}
 
+
+	// Core's REST API lets any user who moderates comments update or delete one, without asking about the comment itself.
+	public function test_core_rest_writes_to_an_internal_comment_need_the_plugins_capabilities(): void {
+		$private = $this->comment( $this->post( 'administrator' ), 'administrator', array( 'comment_content' => 'Secret', 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
+		wp_set_current_user( self::$users['editor'] );
+
+		$update = new \WP_REST_Request( 'PUT', "/wp/v2/comments/$private" );
+		$update->set_param( 'author_name', 'probe' );
+		$updated = rest_do_request( $update );
+		$deleted = rest_do_request( new \WP_REST_Request( 'DELETE', "/wp/v2/comments/$private" ) );
+
+		self::assertSame( 403, $updated->get_status() );
+		self::assertStringNotContainsString( 'Secret', (string) wp_json_encode( $updated->get_data() ) );
+		self::assertSame( 403, $deleted->get_status() );
+		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $private )?->comment_approved );
+		wp_set_current_user( self::$users['administrator'] );
+		$update->set_param( 'content', 'Rewritten' );
+		self::assertSame( 200, rest_do_request( $update )->get_status() );
+	}
+
+	// WordPress hands the replies of a deleted comment to its parent, which would drop the privacy they took from it.
+	public function test_the_replies_of_a_deleted_private_comment_stay_private(): void {
+		$post    = $this->post( 'author' );
+		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) );
+		$reply   = $this->comment( $post, 'administrator', array( 'comment_parent' => $private ) );
+		wp_set_current_user( self::$users['editor'] ); // A signed-in user who may not change the reply's privacy deletes the comment.
+
+		self::assertTrue( wp_delete_comment( $private, true ) );
+
+		self::assertSame( '0', get_comment( $reply )?->comment_parent );
+		self::assertTrue( dws_ic_is_private_comment( $reply ) );
+		self::assertFalse( user_can( self::$users['editor'], 'see_dws_internal_comment', $reply ) );
+	}
+
 	protected function comment( int $post, string $role, array $args = array() ): int {
 		return (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ) + $args, get_user_by( 'id', self::$users[ $role ] ) ?: null );
 	}
