@@ -52,6 +52,8 @@ final class AdminScreens implements ComponentInterface {
 		add_action( 'admin_menu', array( $this, 'add_comments_view' ) );
 		add_filter( 'admin_comment_types_dropdown', array( $this, 'add_comment_type' ) );
 		add_filter( 'comments_list_table_query_args', array( $this, 'filter_list_table_args' ) );
+		// After WooCommerce, which answers with counts of its own at the default priority.
+		add_filter( 'wp_count_comments', array( $this, 'count_listed_comments' ), 20, 2 );
 		add_filter( 'the_comments', array( $this, 'filter_list_table_comments' ), 10, 2 );
 		add_filter( 'comment_row_actions', array( $this, 'filter_row_actions' ), \PHP_INT_MAX, 2 );
 		add_filter( 'bulk_actions-edit-comments', array( $this, 'filter_bulk_actions' ), \PHP_INT_MAX );
@@ -377,6 +379,48 @@ final class AdminScreens implements ComponentInterface {
 		$type = isset( $_GET['comment_type'] ) && \is_string( $_GET['comment_type'] ) ? sanitize_key( wp_unslash( $_GET['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reads the screen's view.
 
 		return DWS_IC_COMMENT_TYPE === $type ? \array_intersect_key( $actions, \array_flip( array( 'trash', 'untrash', 'delete' ) ) ) : $actions;
+	}
+
+	/**
+	 * Returns the Comments screen's counts without the trashed internal comments its list leaves out for a user who may not list them.
+	 *
+	 * WordPress and WooCommerce cache the counts for every user, so the plugin answers with an adjusted copy and leaves their caches alone.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $count   The counts another filter answered with, or an empty array.
+	 * @param   int   $post_id The post whose comments are counted, or 0 for every post.
+	 *
+	 * @return  mixed
+	 */
+	public function count_listed_comments( mixed $count, int $post_id ): mixed {
+		$screen = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( 'edit-comments' !== $screen?->id || current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
+			return $count;
+		}
+
+		if ( ! \is_object( $count ) ) {
+			remove_filter( 'wp_count_comments', array( $this, 'count_listed_comments' ), 20 );
+			try {
+				$count = wp_count_comments( $post_id );
+			} finally {
+				add_filter( 'wp_count_comments', array( $this, 'count_listed_comments' ), 20, 2 );
+			}
+		}
+
+		$trashed         = get_comments(
+			array(
+				'post_id' => $post_id,
+				'type'    => DWS_IC_COMMENT_TYPE,
+				'status'  => 'trash',
+				'count'   => true,
+			)
+		);
+		$counts          = \get_object_vars( $count );
+		$counts['trash'] = \max( 0, ( \filter_var( $counts['trash'] ?? 0, \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0 ) - ( \is_int( $trashed ) ? $trashed : 0 ) );
+
+		return (object) $counts;
 	}
 
 	/**
