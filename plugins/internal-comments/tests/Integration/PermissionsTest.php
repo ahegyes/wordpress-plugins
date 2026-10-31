@@ -92,6 +92,29 @@ final class PermissionsTest extends TestCase {
 		self::assertTrue( user_can( self::$users['administrator'], 'edit_comment', $internal ) );
 	}
 
+	// Core trashes, deletes, restores and moderates a comment on edit_comment alone, so it asks for both capabilities, while the meta box asks for each on its own.
+	public function test_core_changes_to_an_internal_comment_need_the_edit_and_the_trash_capability(): void {
+		$internal = $this->comment( $this->post( 'author' ), 'author' );
+		$editor   = get_role( 'editor' );
+		$editor?->add_cap( DWS_IC_CAP_EDIT_OTHERS );
+
+		try {
+			$edit_only = array(
+				user_can( self::$users['editor'], 'edit_dws_internal_comment', $internal ),
+				user_can( self::$users['editor'], 'trash_dws_internal_comment', $internal ),
+				user_can( self::$users['editor'], 'edit_comment', $internal ),
+			);
+			$editor?->add_cap( DWS_IC_CAP_TRASH_OTHERS );
+			$both = user_can( self::$users['editor'], 'edit_comment', $internal );
+		} finally {
+			$editor?->remove_cap( DWS_IC_CAP_EDIT_OTHERS );
+			$editor?->remove_cap( DWS_IC_CAP_TRASH_OTHERS );
+		}
+
+		self::assertSame( array( true, false, false ), $edit_only );
+		self::assertTrue( $both );
+	}
+
 	public function test_the_meta_capabilities_refuse_a_comment_that_is_not_internal(): void {
 		$public = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post( 'administrator' ) ) );
 
