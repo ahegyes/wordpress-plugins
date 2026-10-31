@@ -67,4 +67,37 @@ final class XmlRpcTest extends TestCase {
 
 		self::assertSame( array(), $comments );
 	}
+
+	// The exclusion that keeps internal comments from XML-RPC's lists must not hide them from the plugin's own queries in the same request.
+	#[RunInSeparateProcess]
+	public function test_a_private_comment_deleted_over_xml_rpc_keeps_its_replies_private(): void {
+		$post    = (int) wp_insert_post(
+			array(
+				'post_title'  => 'XML-RPC deletion',
+				'post_status' => 'publish',
+			)
+		);
+		$private = (int) dws_ic_create_internal_comment(
+			array(
+				'comment_post_ID' => $post,
+				'comment_meta'    => array( DWS_IC_META_PRIVATE => 'yes' ),
+			)
+		);
+		$reply   = (int) dws_ic_create_internal_comment(
+			array(
+				'comment_post_ID' => $post,
+				'comment_parent'  => $private,
+			)
+		);
+		\define( 'XMLRPC_REQUEST', true );
+
+		try {
+			wp_delete_comment( $private, true );
+			$is_private = dws_ic_is_private_comment( $reply );
+		} finally {
+			wp_delete_post( $post, true );
+		}
+
+		self::assertTrue( $is_private );
+	}
 }
