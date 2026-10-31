@@ -281,6 +281,7 @@ final class AdminScreensTest extends TestCase {
 
 		$counts      = static function (): array {
 			wp_set_current_user( self::$users['editor'] );
+			wp_get_current_user()->get_role_caps(); // An earlier row can leave the editor current with capabilities its role has since lost.
 			$editor = (int) wp_count_comments()->trash;
 			wp_set_current_user( self::$users['administrator'] );
 
