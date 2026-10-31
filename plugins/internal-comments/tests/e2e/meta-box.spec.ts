@@ -107,6 +107,40 @@ test.describe( 'Meta box', () => {
 		await expect( box.getByLabel( 'New internal comment' ) ).toBeFocused();
 	} );
 
+	test( 'an open reply keeps its text when another comment changes', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.editPost( post );
+		await openMetaBoxes( page );
+		const box = page.locator( '#dws-internal-comments' );
+		const status = box.getByRole( 'status' );
+		const item = ( text: string ) =>
+			box.locator( '.dws-internal-comments__list > li', {
+				hasText: text,
+			} );
+		for ( const content of [ 'Kept note', 'Dropped note' ] ) {
+			await box.getByLabel( 'New internal comment' ).fill( content );
+			await box.getByRole( 'button', { name: 'Post comment' } ).click();
+			await expect( item( content ) ).toBeVisible();
+		}
+
+		await item( 'Kept note' )
+			.getByRole( 'button', { name: 'Reply' } )
+			.click();
+		await item( 'Kept note' ).getByRole( 'textbox' ).fill( 'Unsent reply' );
+		await item( 'Dropped note' )
+			.getByRole( 'button', { name: 'Move to Trash' } )
+			.click();
+
+		await expect( status ).toHaveText(
+			'Internal comment moved to the Trash.'
+		);
+		await expect( item( 'Kept note' ).getByRole( 'textbox' ) ).toHaveValue(
+			'Unsent reply'
+		);
+	} );
+
 	// The tests environment stores orders in WooCommerce's order tables, whose edit screen is not a post's.
 	test( 'a comment is posted on an order', async ( {
 		page,

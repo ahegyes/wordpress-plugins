@@ -128,16 +128,21 @@ final class RestRoutesTest extends TestCase {
 		}
 	}
 
+	// A request for a private comment the site no longer allows is refused rather than stored for every reader.
 	public function test_a_comment_is_private_only_where_the_site_allows_it(): void {
-		$this->create( 'administrator', $this->post, array( 'content' => 'Private', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
+		$allowed = $this->create( 'administrator', $this->post, array( 'content' => 'Private', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
-		$this->create( 'administrator', $this->post, array( 'content' => 'Disabled', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
+		$refused = $this->create( 'administrator', $this->post, array( 'content' => 'Disabled', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
+		$public  = $this->create( 'administrator', $this->post, array( 'content' => 'Public', 'private' => false ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 
 		$private = array();
 		foreach ( $this->stored_comments() as $comment ) {
 			$private[ $comment->comment_content ] = dws_ic_is_private_comment( $comment->comment_ID );
 		}
-		self::assertSame( array( 'Private' => true, 'Disabled' => false ), $private ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Two expected values.
+		self::assertSame( 201, $allowed->get_status() );
+		self::assertSame( 403, $refused->get_status() );
+		self::assertSame( 201, $public->get_status() );
+		self::assertSame( array( 'Private' => true, 'Public' => false ), $private ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Two expected values.
 	}
 
 	public function test_posting_needs_the_capability_access_to_the_post_and_a_selected_post_type(): void {
