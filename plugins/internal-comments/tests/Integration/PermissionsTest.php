@@ -183,6 +183,55 @@ final class PermissionsTest extends TestCase {
 		self::assertFalse( user_can( self::$users['editor'], 'see_dws_internal_comment', $reply ) );
 	}
 
+
+	// The REST server takes a query's id over the route's and matches routes regardless of letter case.
+	public function test_core_rest_writes_are_checked_on_the_comment_core_acts_on(): void {
+		$post    = $this->post( 'administrator' );
+		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) );
+		$public  = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
+		wp_set_current_user( self::$users['editor'] );
+
+		$overridden = new \WP_REST_Request( 'DELETE', "/wp/v2/comments/$public" );
+		$overridden->set_query_params(
+			array(
+				'id'    => $private,
+				'force' => true,
+			)
+		);
+		$cased = new \WP_REST_Request( 'DELETE', "/wp/v2/Comments/$private" );
+		$cased->set_query_params( array( 'force' => true ) );
+
+		self::assertSame( 403, rest_do_request( $overridden )->get_status() );
+		self::assertSame( 403, rest_do_request( $cased )->get_status() );
+		self::assertInstanceOf( \WP_Comment::class, get_comment( $private ) );
+	}
+
+	// Core lets a comment's author read it before it asks about the comment's post.
+	public function test_core_rest_reads_of_an_internal_comment_need_the_see_capability(): void {
+		$post    = $this->post( 'author' );
+		$comment = $this->comment( $post, 'author', array( 'comment_content' => 'Mine' ) );
+		wp_update_post(
+			array(
+				'ID'          => $post,
+				'post_author' => self::$users['administrator'],
+			)
+		);
+		wp_set_current_user( self::$users['author'] );
+
+		$listed = new \WP_REST_Request( 'GET', '/wp/v2/comments' );
+		$listed->set_query_params(
+			array(
+				'post'   => $post,
+				'type'   => DWS_IC_COMMENT_TYPE,
+				'status' => DWS_IC_COMMENT_STATUS,
+			)
+		);
+
+		self::assertFalse( user_can( self::$users['author'], 'see_dws_internal_comment', $comment ) );
+		self::assertSame( 403, rest_do_request( new \WP_REST_Request( 'GET', "/wp/v2/comments/$comment" ) )->get_status() );
+		self::assertSame( array(), wp_list_pluck( (array) rest_do_request( $listed )->get_data(), 'id' ) );
+	}
+
 	protected function comment( int $post, string $role, array $args = array() ): int {
 		return (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ) + $args, get_user_by( 'id', self::$users[ $role ] ) ?: null );
 	}
