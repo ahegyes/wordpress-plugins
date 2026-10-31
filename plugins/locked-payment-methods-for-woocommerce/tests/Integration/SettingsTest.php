@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
 use DeepWebSolutions\LockedPaymentMethods\Settings;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -37,7 +38,7 @@ final class SettingsTest extends TestCase {
 	public static function setting_groups(): array {
 		return array(
 			'general'      => array( 'general', array( 'locked-payment-methods', 'unlock-via-user-role', 'full-access-user-roles', 'unlock-via-user-meta', 'unlock-via-order-meta' ) ),
-			'integrations' => array( 'integrations', array() ),
+			'integrations' => array( 'integrations', GroupsStrategy::is_available() ? array( 'unlock-via-groups' ) : array() ),
 			'plugin'       => array( 'plugin', array( 'remove-data-uninstall' ) ),
 		);
 	}
@@ -76,7 +77,7 @@ final class SettingsTest extends TestCase {
 
 		$form = $this->render();
 
-		self::assertSame( array( 'General Settings', 'Plugin Settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( GroupsStrategy::is_available() ? array( 'General Settings', 'Integrations Settings', 'Plugin Settings' ) : array( 'General Settings', 'Plugin Settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( array(), self::selected( $form, DWS_LPMWC_OPTION_LOCKED_METHODS ) );
 		self::assertSame( array( 'administrator', 'shop_manager' ), self::selected( $form, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ) );
 		foreach ( self::CHECKBOXES as $key ) {
