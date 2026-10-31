@@ -141,6 +141,8 @@ final class RestRoutesTest extends TestCase {
 		}
 		self::assertSame( 201, $allowed->get_status() );
 		self::assertSame( 403, $refused->get_status() );
+		self::assertSame( 'dws_ic_cannot_be_private', $refused->get_data()['code'] ?? null );
+		self::assertStringContainsString( 'was not posted', $refused->get_data()['message'] ?? '' );
 		self::assertSame( 201, $public->get_status() );
 		self::assertSame( array( 'Private' => true, 'Public' => false ), $private ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Two expected values.
 	}

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+The Comments screen's Trash count leaves out the internal comments its list hides from users who may not list them.

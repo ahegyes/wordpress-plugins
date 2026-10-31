@@ -48,9 +48,12 @@ final class AdminScreens implements ComponentInterface {
 			add_action( "manage_{$orders_screen}_custom_column", array( $this, 'render_order_cell' ), 10, 2 );
 		}
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_list_assets' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_comment_screen_style' ) );
 		add_action( 'admin_menu', array( $this, 'add_comments_view' ) );
 		add_filter( 'admin_comment_types_dropdown', array( $this, 'add_comment_type' ) );
 		add_filter( 'comments_list_table_query_args', array( $this, 'filter_list_table_args' ) );
+		// After WooCommerce, which answers with counts of its own at the default priority.
+		add_filter( 'wp_count_comments', array( $this, 'count_listed_comments' ), 20, 2 );
 		add_filter( 'the_comments', array( $this, 'filter_list_table_comments' ), 10, 2 );
 		add_filter( 'comment_row_actions', array( $this, 'filter_row_actions' ), \PHP_INT_MAX, 2 );
 		add_filter( 'bulk_actions-edit-comments', array( $this, 'filter_bulk_actions' ), \PHP_INT_MAX );
@@ -379,6 +382,97 @@ final class AdminScreens implements ComponentInterface {
 	}
 
 	/**
+	 * Returns the Comments screen's counts with a Trash count that leaves out the trashed internal comments its list leaves out for a user who may not list them.
+	 *
+	 * WordPress and WooCommerce cache the counts for every user, so the plugin answers with an adjusted copy and leaves their caches alone.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $count   The counts another filter answered with, or an empty array.
+	 * @param   int   $post_id The post whose comments are counted, or 0 for every post.
+	 *
+	 * @return  mixed
+	 */
+	public function count_listed_comments( mixed $count, int $post_id ): mixed {
+		$screen = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		// While v1's comments are being moved, every count already leaves the internal type out.
+		if ( 'edit-comments' !== $screen?->id || current_user_can( DWS_IC_CAP_SEE_TABLE ) || dws_ic_is_v1_move_pending() ) {
+			return $count;
+		}
+
+		if ( ! \is_object( $count ) ) {
+			remove_filter( 'wp_count_comments', array( $this, 'count_listed_comments' ), 20 );
+			try {
+				$count = wp_count_comments( $post_id );
+			} finally {
+				add_filter( 'wp_count_comments', array( $this, 'count_listed_comments' ), 20, 2 );
+			}
+		}
+
+		// The count names no type, so the exclusions other plugins apply to such queries, as WooCommerce's of comments on products, apply to it as they did to the count it replaces.
+		add_filter( 'comments_clauses', array( $this, 'leave_out_internal_type' ) );
+		try {
+			$listed = get_comments(
+				array(
+					'post_id' => $post_id,
+					'status'  => 'trash',
+					'count'   => true,
+				)
+			);
+		} finally {
+			remove_filter( 'comments_clauses', array( $this, 'leave_out_internal_type' ) );
+		}
+
+		$counts          = \get_object_vars( $count );
+		$counts['trash'] = \is_int( $listed ) ? $listed : 0;
+
+		return (object) $counts;
+	}
+
+	/**
+	 * Returns a comment query's clauses with the internal type left out of its WHERE clause, for a count that must name no type.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @param   array<string, string> $clauses The query's clauses.
+	 *
+	 * @return  array<string, string>
+	 */
+	public function leave_out_internal_type( array $clauses ): array {
+		global $wpdb;
+
+		$clauses['where'] = ( $clauses['where'] ?? '' ) . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' );
+
+		return $clauses;
+	}
+
+	/**
+	 * Hides the author, status and date of an internal comment on WordPress's comment edit screen, since saving keeps them as stored.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $hook_suffix The admin page's hook suffix.
+	 *
+	 * @return  void
+	 */
+	public function enqueue_comment_screen_style( string $hook_suffix ): void {
+		// The comment screen loads its comment before it prints the page's head.
+		$comment = $GLOBALS['comment'] ?? null;
+		if ( 'comment.php' !== $hook_suffix || ! $comment instanceof \WP_Comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+			return;
+		}
+
+		wp_register_style( Plugin::SLUG . '-comment-screen', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- A style without a file has no version to bust.
+		wp_enqueue_style( Plugin::SLUG . '-comment-screen' );
+		wp_add_inline_style( Plugin::SLUG . '-comment-screen', '#namediv, #comment-status, .misc-pub-curtime { display: none; }' );
+	}
+
+	/**
 	 * Adds the revision history meta box to the edit screen of an internal comment the user can see.
 	 *
 	 * @since   2.0.0
@@ -460,7 +554,7 @@ final class AdminScreens implements ComponentInterface {
 			return $html;
 		}
 
-		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent );
+		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent ) && ( $is_private || ! dws_ic_has_replies( (int) $comment->comment_ID ) );
 		\ob_start();
 		?>
 		<div class="misc-pub-section misc-pub-dws-ic-private">

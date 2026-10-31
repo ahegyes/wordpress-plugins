@@ -51,8 +51,9 @@ final class Permissions implements ComponentInterface {
 	 * @return  list<string>
 	 */
 	public function map_meta_cap( array $caps, string $cap, int $user_id, array $args ): array {
+		// Core trashes, deletes, restores and moderates a comment on edit_comment alone, so it asks for both capabilities.
 		if ( 'edit_comment' === $cap ) {
-			return true === dws_ic_is_internal_comment( $args[0] ?? null ) ? \array_values( map_meta_cap( 'edit_dws_internal_comment', $user_id, ...$args ) ) : $caps;
+			return true === dws_ic_is_internal_comment( $args[0] ?? null ) ? \array_values( \array_unique( \array_merge( map_meta_cap( 'edit_dws_internal_comment', $user_id, ...$args ), map_meta_cap( 'trash_dws_internal_comment', $user_id, ...$args ) ) ) ) : $caps;
 		}
 
 		if ( ! \in_array( $cap, array( 'see_dws_internal_comment', 'edit_dws_internal_comment', 'trash_dws_internal_comment' ), true ) ) {

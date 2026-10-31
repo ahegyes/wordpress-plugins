@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\InternalComments;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -26,13 +25,15 @@ final class Comments implements ComponentInterface {
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_action( 'wp_insert_comment', array( $this, 'keep_internal' ) );
+		add_action( 'wp_insert_comment', array( $this, 'keep_inserted_internal' ) );
 		// Before wp_new_comment_notify_postauthor(), which wp_set_comment_status() hooks to mail an approved comment to the post's author.
 		add_action( 'wp_set_comment_status', array( $this, 'keep_internal' ), 1 );
+		// After every listener of WordPress's own announcement of the change the plugin undoes, such as WooCommerce's comment counts.
+		add_action( 'transition_comment_status', array( $this, 'announce_kept_internal' ), \PHP_INT_MAX, 3 );
 		add_action( 'untrash_comment', array( $this, 'prepare_restore' ) );
 		add_action( 'untrashed_post_comments', array( $this, 'keep_post_comments_internal' ) );
 		add_filter( 'wp_update_comment_data', array( $this, 'filter_update_data' ), \PHP_INT_MAX, 2 );
-		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
+		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
 		add_filter( 'delete_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
 		add_action( 'delete_comment', array( $this, 'keep_replies_private' ) );
 		add_action( 'pre_get_comments', array( $this, 'hide_unmoved_comments' ) );
@@ -44,28 +45,62 @@ final class Comments implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Puts an internal comment stored under another status that would show it, such as one imported from v1, back under the internal status.
+	 * Puts an internal comment whose status WordPress changed back under the internal status, before WordPress announces the change.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   int|string $comment_id The comment's id.
 	 *
 	 * @return  void
 	 */
 	public function keep_internal( int|string $comment_id ): void {
-		global $wpdb;
+		$this->put_back( $comment_id );
+	}
 
-		$comment = dws_ic_get_comment( $comment_id );
-		if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( DWS_IC_COMMENT_STATUS, 'trash', 'post-trashed' ), true ) ) {
+	/**
+	 * Puts an internal comment stored under another status that would show it, such as one imported from v1, back under the internal status, and announces the move as a status change, since WordPress announces none for a new comment.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|string $comment_id The comment's id.
+	 *
+	 * @return  void
+	 */
+	public function keep_inserted_internal( int|string $comment_id ): void {
+		$replaced = $this->put_back( $comment_id );
+		if ( null === $replaced ) {
 			return;
 		}
 
-		$wpdb->update( $wpdb->comments, array( 'comment_approved' => DWS_IC_COMMENT_STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
-		clean_comment_cache( (int) $comment->comment_ID );
-		wp_update_comment_count( (int) $comment->comment_post_ID );
+		$comment = dws_ic_get_comment( $comment_id );
+		if ( null !== $comment ) {
+			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, $replaced, $comment );
+		}
+	}
+
+	/**
+	 * Announces the move of an internal comment back under the internal status after WordPress announces the change the plugin undid, so whatever follows status changes, such as WooCommerce's comment counts, ends where the comment is.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|string $new_status The status WordPress announced.
+	 * @param   int|string $old_status The status the comment had before.
+	 * @param   mixed      $comment    The comment.
+	 *
+	 * @return  void
+	 */
+	public function announce_kept_internal( int|string $new_status, int|string $old_status, mixed $comment ): void {
+		if ( ! $comment instanceof \WP_Comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || DWS_IC_COMMENT_STATUS === $new_status ) {
+			return;
+		}
+
+		$stored = dws_ic_get_comment( (int) $comment->comment_ID );
+		if ( null !== $stored && DWS_IC_COMMENT_STATUS === $stored->comment_approved ) {
+			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, (string) $new_status, $stored );
+		}
 	}
 
 	/**
@@ -104,7 +139,7 @@ final class Comments implements ComponentInterface {
 			)
 		);
 		foreach ( \is_array( $comments ) ? $comments : array() as $comment_id ) {
-			$this->keep_internal( $comment_id );
+			$this->put_back( $comment_id );
 		}
 	}
 
@@ -172,7 +207,7 @@ final class Comments implements ComponentInterface {
 				update_comment_meta( (int) $reply, DWS_IC_META_PRIVATE, 'yes' );
 			}
 		} finally {
-			add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
+			add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
 		}
 	}
 
@@ -187,7 +222,7 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function hide_unmoved_comments( \WP_Comment_Query $query ): void {
-		if ( ! $this->is_move_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+		if ( ! dws_ic_is_v1_move_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
 			return;
 		}
 
@@ -209,11 +244,11 @@ final class Comments implements ComponentInterface {
 	public function hide_unmoved_feed_comments( string $where ): string {
 		global $wpdb;
 
-		return $this->is_move_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
+		return dws_ic_is_v1_move_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
 	}
 
 	/**
-	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author.
+	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author, and turning one private once anyone has replied to it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -221,11 +256,22 @@ final class Comments implements ComponentInterface {
 	 * @param   mixed  $check      Null to let the change proceed, or the result that replaces it.
 	 * @param   int    $comment_id The comment's id.
 	 * @param   string $meta_key   The meta key changed.
+	 * @param   mixed  $meta_value The value written, or null where the meta is deleted.
 	 *
 	 * @return  mixed
 	 */
-	public function guard_privacy( mixed $check, int $comment_id, string $meta_key ): mixed {
-		if ( DWS_IC_META_PRIVATE !== $meta_key || 0 === get_current_user_id() ) {
+	public function guard_privacy( mixed $check, int $comment_id, string $meta_key, mixed $meta_value = null ): mixed {
+		if ( DWS_IC_META_PRIVATE !== $meta_key ) {
+			return $check;
+		}
+
+		// A comment turns private only before anyone replies, since a reply's author would otherwise own the private thread once the comment above is deleted.
+		$turns_private = true === filter_var( $meta_value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) && true !== filter_var( get_comment_meta( $comment_id, DWS_IC_META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE );
+		if ( $turns_private && dws_ic_has_replies( $comment_id ) ) {
+			return false;
+		}
+
+		if ( 0 === get_current_user_id() ) {
 			return $check;
 		}
 
@@ -239,15 +285,30 @@ final class Comments implements ComponentInterface {
 	// region HELPERS
 
 	/**
-	 * Returns whether the migration has yet to move the comments v1 stored approved under the internal status.
+	 * Puts an internal comment stored under a status that would show it back under the internal status, and returns the status it replaced, or null where it moved nothing.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @return  bool
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @param   int|string $comment_id The comment's id.
+	 *
+	 * @return  string|null
 	 */
-	protected function is_move_pending(): bool {
-		return MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) < DWS_IC_REVISION_V1_COMMENTS_MOVED;
+	protected function put_back( int|string $comment_id ): ?string {
+		global $wpdb;
+
+		$comment = dws_ic_get_comment( $comment_id );
+		if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( DWS_IC_COMMENT_STATUS, 'trash', 'post-trashed' ), true ) ) {
+			return null;
+		}
+
+		$wpdb->update( $wpdb->comments, array( 'comment_approved' => DWS_IC_COMMENT_STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
+		clean_comment_cache( (int) $comment->comment_ID );
+		wp_update_comment_count( (int) $comment->comment_post_ID );
+
+		return $comment->comment_approved;
 	}
 
 	// endregion

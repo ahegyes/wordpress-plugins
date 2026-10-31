@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+WooCommerce's comment counts stay right when an internal comment is restored, approved, held or marked spam, and after the background move of v1's comments.

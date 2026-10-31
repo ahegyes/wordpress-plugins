@@ -1,0 +1,4 @@
+Significance: patch
+Type: changed
+
+WordPress's comment edit screen hides an internal comment's author, status and date, which saving keeps as stored.

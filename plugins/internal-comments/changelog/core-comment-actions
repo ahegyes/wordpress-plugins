@@ -1,0 +1,4 @@
+Significance: patch
+Type: changed
+
+WordPress's comment edit screen, Comments screen actions and XML-RPC need both the capability to edit an internal comment and the capability to trash it, since WordPress trashes, deletes and moderates on the same check.
