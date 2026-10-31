@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+v1's root getters, hook-tag builders, access checks, per-strategy checks and setting readers, and DWS_LPMWC_NAME, DWS_LPMWC_VERSION, DWS_LPMWC_PATH, DWS_LPMWC_MIN_PHP and DWS_LPMWC_MIN_WP; DWS_LPMWC_NAME no longer carries v1's whitelabel prefix.

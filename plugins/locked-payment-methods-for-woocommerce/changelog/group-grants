@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+A Groups group's unlocked payment methods move from v1's option per group into one dws_lpmwc_groups_unlocked_payment_methods map, which deleting the group leaves no entry of.

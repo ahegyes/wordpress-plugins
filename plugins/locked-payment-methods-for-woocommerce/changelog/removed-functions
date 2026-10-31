@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+dws_lpmwc_di_container(), dws_lpmwc_instance(), dws_lpmwc_component(), dws_lpmwc_instance_initialize(), dws_lpmwc_plugin_activate() and dws_lpmwc_plugin_uninstall(), which exposed v1's framework internals.

@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+An order's unlocked payment methods are one list under the order meta _dws_lpmwc_unlocked_payment_methods, edited in a box on the order screen on either order storage; the box is read-only on a paid order, so saving it keeps them, and the first update moves v1's _dws_wc_lpm_grant_access_{gateway} order meta into the list and deletes it.

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Saving a profile, an order, a group or a plan keeps the payment methods it unlocks that are no longer locked, which it lists marked as not locked.

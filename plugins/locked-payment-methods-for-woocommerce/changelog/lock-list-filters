@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+A filter on the locked payment methods' ids only adds ids, so a callback that removes one from locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods or locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value no longer unlocks it.

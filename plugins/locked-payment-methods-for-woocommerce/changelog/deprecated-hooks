@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+v1's lock, access, group-fields and value filters and dws_lpmwc_initialized and dws_lpmwc_initialization_failure fire deprecated, where v1 fired them and before their replacements.

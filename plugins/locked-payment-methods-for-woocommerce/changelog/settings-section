@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+The settings move from an unlisted section of WooCommerce's Payments tab to Locked Payment Methods on its Advanced tab, under dws_lpmwc_ options that the first update copies from v1's; v1's options stay until uninstall, so a downgrade to 1.3.5 still locks what it locked, and v1's settings URL no longer opens them.

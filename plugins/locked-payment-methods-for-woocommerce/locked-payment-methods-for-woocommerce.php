@@ -2,7 +2,7 @@
 /**
  * Plugin Name:          Locked Payment Methods for WooCommerce
  * Plugin URI:           https://github.com/ahegyes/wc-locked-payment-methods
- * Description:          WordPress plugins on the wp-framework packages start here, from one tested anatomy, so all are built alike and a fix found in one applies to all.
+ * Description:          Hides the payment methods you lock from customers at checkout until you unlock them for a user, a role, an order, a group or a membership plan.
  * Version:              2.0.0
  * Requires at least:    7.1
  * Requires PHP:         8.5
@@ -13,7 +13,6 @@
  * Author URI:           https://github.com/ahegyes
  * License:              GPL-3.0-or-later
  * License URI:          https://www.gnu.org/licenses/gpl-3.0.html
- * Update URI:           https://github.com/ahegyes/wc-locked-payment-methods
  * Text Domain:          locked-payment-methods-for-woocommerce
  * Domain Path:          /languages
  *
@@ -26,7 +25,6 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Boot
 defined( 'ABSPATH' ) || exit;
 
 define( 'DWS_LPMWC_FILE', __FILE__ );
-load_plugin_textdomain( 'locked-payment-methods-for-woocommerce', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ); // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- WordPress registers languages/ itself only for plugins it does not network-activate.
 
 require_once __DIR__ . '/includes/safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
 

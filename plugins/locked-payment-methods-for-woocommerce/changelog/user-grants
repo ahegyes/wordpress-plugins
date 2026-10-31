@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+A customer's unlocked payment methods are one list per site, under the user option dws_lpmwc_unlocked_payment_methods, edited on the profile behind unlock_dws_lpm_via_user_profiles; the first update moves v1's dws_wc_lpm_grant_access_{gateway} user meta into every site's list, so those keep applying network-wide, and deletes it, so a downgrade to 1.3.5 finds no customer's unlocked payment methods.

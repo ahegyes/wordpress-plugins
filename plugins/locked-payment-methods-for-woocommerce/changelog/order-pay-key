@@ -1,0 +1,4 @@
+Significance: patch
+Type: security
+
+An order unlocks its payment methods only on its own payment page and with its order key, so a checkout request naming another order's id no longer takes that order's unlocked payment methods.

@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+Uninstalling with Remove all data on uninstallation checked also deletes the unlocked payment methods of customers, orders, groups and plans, v1's options and the capabilities, on every site of a network that consents.

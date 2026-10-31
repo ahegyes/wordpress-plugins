@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+An empty list of full-access roles unlocks nothing; v1 then unlocked every locked payment method for everyone, guests included.

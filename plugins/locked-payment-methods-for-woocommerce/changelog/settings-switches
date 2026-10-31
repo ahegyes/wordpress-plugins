@@ -1,0 +1,4 @@
+Significance: patch
+Type: changed
+
+Each way of unlocking a payment method is a checkbox, and turning one off keeps what it unlocked for when it is turned on again; the Groups and WooCommerce Memberships checkboxes show only while their plugin is active.

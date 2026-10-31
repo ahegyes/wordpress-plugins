@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+Any payment method registered with WooCommerce can be locked, disabled ones marked, so a locked payment method that is disabled stays locked once it is enabled again; v1 offered only enabled ones, and saving while a locked one was disabled unlocked it.
