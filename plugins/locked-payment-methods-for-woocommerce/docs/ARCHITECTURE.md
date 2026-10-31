@@ -34,7 +34,7 @@ The request that activates the plugin does not boot it, because WordPress includ
 2. For each offered payment method on the list, it fires v1's two lock filters, then `dws_lpmwc/payment_method/should_lock` with the current user and, on an order's own payment page with that order's key, the order.
 3. It removes the payment method unless `should_lock` returns an explicit `false` after `dws_lpmwc/boot/succeeded`, so the lock binds everyone while the plugin cannot boot.
 
-Each unlock strategy in `src/UnlockStrategies/` hooks `should_lock` while its switch is on, and returns `false` when its subject unlocks the payment method: the user's roles, the user's grants on the site, the order's grants, the user's Groups groups or the plans the user is an active member of. `dws_lpmwc_is_payment_method_locked()` runs the same filter for a user and an order outside checkout.
+Each unlock strategy in `src/UnlockStrategies/` hooks `should_lock` while its switch is on, and returns `false` when its subject unlocks the payment method: the user's roles, the user's grants on the site, the order's grants, the user's Groups groups or the plans the user is an active member of. `dws_lpmwc_is_payment_method_locked()` runs the same filter for a user and an order outside checkout, over the settings' list alone, because the list filters judge the payment methods a checkout offers; the grants forms offer the same list.
 
 ## Where code lives
 
