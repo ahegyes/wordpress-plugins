@@ -1,0 +1,21 @@
+name: Supply-Chain Audit
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+  schedule:
+    # Weekly Monday at 07:00 UTC — staggered after dependabot (06:00) so PRs from
+    # dependency bumps surface audit results in the same morning batch.
+    - cron: '0 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit
+    # npm gate audits production deps only — the dev-tooling graph (wp-scripts/playwright trees) is advisory via dependabot alerts.
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-supply-chain-audit.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      npm-audit-flags: '--omit=dev --audit-level=high'
