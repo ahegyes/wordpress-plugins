@@ -8,6 +8,9 @@ includes:
 parameters:
     paths:
         - includes/safeguards.php
+    # The lock filters WooCommerce's gateways, so it calls WooCommerce too.
+    scanFiles:
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
     phpVersion: 70400
     WPCompat:
         requiresAtLeast: '5.2'
