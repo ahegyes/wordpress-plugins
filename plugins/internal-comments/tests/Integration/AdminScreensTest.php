@@ -271,6 +271,33 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( '', $styles( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) ) );
 	}
 
+	// WordPress counts the Comments screen's views apart from its list, and caches the counts for every user.
+	public function test_the_comments_screen_counts_only_the_trashed_comments_the_user_may_list(): void {
+		$internal = $this->comment( 'Trashed' );
+		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		wp_trash_comment( $internal );
+		wp_trash_comment( $public );
+		$screens = new AdminScreens();
+		add_filter( 'wp_count_comments', array( $screens, 'count_listed_comments' ), 10, 2 );
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		wp_cache_delete( 'comments-0', 'counts' );
+
+		try {
+			wp_set_current_user( self::$users['editor'] );
+			$editor = (int) wp_count_comments()->trash;
+			$cached = wp_cache_get( 'comments-0', 'counts' );
+			wp_set_current_user( self::$users['administrator'] );
+			$administrator = (int) wp_count_comments()->trash;
+		} finally {
+			remove_filter( 'wp_count_comments', array( $screens, 'count_listed_comments' ) );
+			unset( $GLOBALS['current_screen'] );
+		}
+
+		self::assertSame( $administrator - 1, $editor );
+		self::assertIsObject( $cached );
+		self::assertSame( $administrator, (int) $cached->trash );
+	}
+
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
 		( new AdminScreens() )->enqueue_list_assets( 'edit.php' );
 
