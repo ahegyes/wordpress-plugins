@@ -107,6 +107,37 @@ test.describe( 'Meta box', () => {
 		await expect( box.getByLabel( 'New internal comment' ) ).toBeFocused();
 	} );
 
+	test( 'a comment being sent stays as sent until the server answers', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.editPost( post );
+		await openMetaBoxes( page );
+		const box = page.locator( '#dws-internal-comments' );
+		const field = box.getByLabel( 'New internal comment' );
+		let answer = (): void => {};
+		const answered = new Promise< void >( ( resolve ) => {
+			answer = resolve;
+		} );
+		await page.route(
+			( url ) => url.href.includes( 'dws_ic' ),
+			async ( route ) => {
+				await answered;
+				await route.continue();
+			}
+		);
+
+		await field.fill( 'Slow note' );
+		await box.getByRole( 'button', { name: 'Post comment' } ).click();
+		await expect( field ).not.toBeEditable();
+		answer();
+
+		await expect( box.getByRole( 'status' ) ).toHaveText(
+			'Internal comment posted.'
+		);
+		await expect( field ).toBeEditable();
+	} );
+
 	test( 'an open reply keeps its text when another comment changes', async ( {
 		admin,
 		page,
