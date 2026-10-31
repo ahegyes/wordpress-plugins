@@ -527,7 +527,7 @@ final class AdminScreens implements ComponentInterface {
 			return $html;
 		}
 
-		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent );
+		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent ) && ( $is_private || ! dws_ic_has_replies( (int) $comment->comment_ID ) );
 		\ob_start();
 		?>
 		<div class="misc-pub-section misc-pub-dws-ic-private">

@@ -34,7 +34,7 @@ final class Comments implements ComponentInterface {
 		add_action( 'untrash_comment', array( $this, 'prepare_restore' ) );
 		add_action( 'untrashed_post_comments', array( $this, 'keep_post_comments_internal' ) );
 		add_filter( 'wp_update_comment_data', array( $this, 'filter_update_data' ), \PHP_INT_MAX, 2 );
-		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
+		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
 		add_filter( 'delete_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
 		add_action( 'delete_comment', array( $this, 'keep_replies_private' ) );
 		add_action( 'pre_get_comments', array( $this, 'hide_unmoved_comments' ) );
@@ -204,7 +204,7 @@ final class Comments implements ComponentInterface {
 				update_comment_meta( (int) $reply, DWS_IC_META_PRIVATE, 'yes' );
 			}
 		} finally {
-			add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
+			add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
 		}
 	}
 
@@ -245,7 +245,7 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
-	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author.
+	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author, and turning one private once anyone has replied to it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -253,11 +253,22 @@ final class Comments implements ComponentInterface {
 	 * @param   mixed  $check      Null to let the change proceed, or the result that replaces it.
 	 * @param   int    $comment_id The comment's id.
 	 * @param   string $meta_key   The meta key changed.
+	 * @param   mixed  $meta_value The value written, or null where the meta is deleted.
 	 *
 	 * @return  mixed
 	 */
-	public function guard_privacy( mixed $check, int $comment_id, string $meta_key ): mixed {
-		if ( DWS_IC_META_PRIVATE !== $meta_key || 0 === get_current_user_id() ) {
+	public function guard_privacy( mixed $check, int $comment_id, string $meta_key, mixed $meta_value = null ): mixed {
+		if ( DWS_IC_META_PRIVATE !== $meta_key ) {
+			return $check;
+		}
+
+		// A comment turns private only before anyone replies, since a reply's author would otherwise own the private thread once the comment above is deleted.
+		$turns_private = true === filter_var( $meta_value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) && true !== filter_var( get_comment_meta( $comment_id, DWS_IC_META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE );
+		if ( $turns_private && dws_ic_has_replies( $comment_id ) ) {
+			return false;
+		}
+
+		if ( 0 === get_current_user_id() ) {
 			return $check;
 		}
 

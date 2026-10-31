@@ -311,3 +311,26 @@ function dws_ic_exclude_internal_type( $excluded ): array {
 function dws_ic_query_names_internal_type( array $query_vars ): bool {
 	return in_array( DWS_IC_COMMENT_TYPE, array_merge( (array) ( $query_vars['type'] ?? array() ), (array) ( $query_vars['type__in'] ?? array() ) ), true );
 }
+
+/**
+ * Returns whether any internal comment replies to a comment, whatever its status.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   int $comment_id The comment's id.
+ *
+ * @return  bool
+ */
+function dws_ic_has_replies( int $comment_id ): bool {
+	$replies = get_comments(
+		array(
+			'parent' => $comment_id,
+			'type'   => DWS_IC_COMMENT_TYPE,
+			'status' => 'any',
+			'count'  => true,
+		)
+	);
+
+	return is_int( $replies ) && 0 < $replies;
+}

@@ -216,7 +216,8 @@ final class DataGuardsTest extends TestCase {
 		}
 		wp_set_current_user( $this->admin );
 		self::assertTrue( update_comment_meta( $private, DWS_IC_META_PRIVATE, 'no' ) );
-		self::assertTrue( update_comment_meta( $alone, DWS_IC_META_PRIVATE, 'yes' ) );
+		self::assertNotFalse( update_comment_meta( $alone, DWS_IC_META_PRIVATE, 'yes' ) );
+		self::assertTrue( dws_ic_is_private_comment( $alone ) );
 	}
 
 	public function test_only_a_comments_author_changes_whether_it_is_private(): void {

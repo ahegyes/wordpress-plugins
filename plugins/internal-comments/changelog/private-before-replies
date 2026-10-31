@@ -1,0 +1,4 @@
+Significance: patch
+Type: changed
+
+A comment can be made private only before anyone replies to it; once replied to, a private comment can still be made public.
