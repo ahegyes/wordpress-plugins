@@ -194,6 +194,31 @@ final class DataGuardsTest extends TestCase {
 		self::assertSame( '1', get_post( $this->post )?->comment_count );
 	}
 
+	// A reply written while its thread was open would otherwise make its author an owner of the private thread once the comment above it is deleted.
+	public function test_a_comment_becomes_private_only_before_anyone_replies(): void {
+		wp_set_current_user( $this->admin );
+		$reply   = fn ( int $replied_to ): int => (int) dws_ic_create_internal_comment(
+			array(
+				'comment_post_ID' => $this->post,
+				'comment_parent'  => $replied_to,
+			)
+		);
+		$replied = $this->comment( 'Replied' );
+		$private = $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$alone   = $this->comment( 'Alone' );
+		$reply( $replied );
+		$reply( $private );
+
+		foreach ( array( $this->admin, 0 ) as $user ) {
+			wp_set_current_user( $user );
+			self::assertFalse( update_comment_meta( $replied, DWS_IC_META_PRIVATE, 'yes' ) );
+			self::assertFalse( dws_ic_is_private_comment( $replied ) );
+		}
+		wp_set_current_user( $this->admin );
+		self::assertTrue( update_comment_meta( $private, DWS_IC_META_PRIVATE, 'no' ) );
+		self::assertTrue( update_comment_meta( $alone, DWS_IC_META_PRIVATE, 'yes' ) );
+	}
+
 	public function test_only_a_comments_author_changes_whether_it_is_private(): void {
 		$comment = $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
 

@@ -246,6 +246,20 @@ final class AdminScreensTest extends TestCase {
 		self::assertStringContainsString( 'name="comment_meta[dws_ic_is_private]"', $author );
 		self::assertStringNotContainsString( 'name="comment_meta[dws_ic_is_private]"', $other );
 		self::assertSame( '', $screens->add_privacy_field( '', get_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) ) ) );
+
+		// Once someone has replied, the author may still make a private comment public, but not the other way round.
+		wp_set_current_user( self::$users['administrator'] );
+		$private = $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		foreach ( array( $comment, $private ) as $replied_to ) {
+			dws_ic_create_internal_comment(
+				array(
+					'comment_post_ID' => $this->post,
+					'comment_parent'  => $replied_to,
+				)
+			);
+		}
+		self::assertStringNotContainsString( 'name="comment_meta[dws_ic_is_private]"', $screens->add_privacy_field( '', get_comment( $comment ) ) );
+		self::assertStringContainsString( 'name="comment_meta[dws_ic_is_private]"', $screens->add_privacy_field( '', get_comment( $private ) ) );
 	}
 
 	// Saving keeps an internal comment's author, status and date as stored, so the edit screen does not offer them.
