@@ -54,7 +54,23 @@ if ( root ) {
 		try {
 			const response = await request();
 			if ( list ) {
+				// The edit and reply forms open on other comments carry their drafts over to the new list.
+				const drafts = Array.from(
+					list.querySelectorAll< HTMLElement >(
+						'li[data-comment-id] > [data-form]'
+					)
+				)
+					.filter( ( form ) => form !== group )
+					.map( ( form ) => ( {
+						form,
+						id: form.parentElement?.dataset.commentId ?? '',
+					} ) );
 				list.innerHTML = response.html;
+				drafts.forEach( ( { form, id } ) =>
+					list
+						.querySelector( `li[data-comment-id="${ id }"]` )
+						?.append( form )
+				);
 			}
 			announce( done );
 			return true;

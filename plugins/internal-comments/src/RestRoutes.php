@@ -218,6 +218,12 @@ final class RestRoutes implements ComponentInterface {
 			return new \WP_Error( 'dws_ic_invalid_parent', __( 'The comment you are replying to is not one of this item\'s internal comments.', 'internal-comments' ), array( 'status' => 400 ) );
 		}
 
+		// A comment its author meant to keep private is never stored for every reader instead.
+		$private = true === $request['private'];
+		if ( $private && ! ( dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) ) ) {
+			return new \WP_Error( 'dws_ic_cannot_be_private', __( 'You cannot post a private internal comment here. Clear the private option to post it for everyone who can see internal comments.', 'internal-comments' ), array( 'status' => 403 ) );
+		}
+
 		/**
 		 * Fires before the meta box stores an internal comment.
 		 *
@@ -239,7 +245,6 @@ final class RestRoutes implements ComponentInterface {
 		 */
 		do_action( 'dws_ic/internal_comment/before_insert', $post_id );
 
-		$private    = true === $request['private'] && dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE );
 		$comment_id = dws_ic_create_internal_comment(
 			array(
 				'comment_post_ID' => $post_id,

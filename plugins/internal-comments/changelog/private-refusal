@@ -1,0 +1,4 @@
+Significance: patch
+Type: changed
+
+A comment marked private where the site no longer allows private comments is refused with a message instead of posted for everyone who can see internal comments.
