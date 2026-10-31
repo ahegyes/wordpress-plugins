@@ -47,4 +47,10 @@ final class PluginBootTest extends TestCase {
 		self::assertInstanceOf( MigrationRunner::class, dws_lpmwc_plugin()->migrations );
 		self::assertSame( \count( dws_lpmwc_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 	}
+
+	public function test_the_plugin_declares_itself_compatible_with_woocommerces_order_tables(): void {
+		$plugins = \Automattic\WooCommerce\Utilities\FeaturesUtil::get_compatible_plugins_for_feature( 'custom_order_tables' );
+
+		self::assertContains( plugin_basename( DWS_LPMWC_FILE ), $plugins['compatible'] );
+	}
 }
