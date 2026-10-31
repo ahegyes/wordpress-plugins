@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\InternalComments;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -71,8 +70,12 @@ final class Comments implements ComponentInterface {
 	 */
 	public function keep_inserted_internal( int|string $comment_id ): void {
 		$replaced = $this->put_back( $comment_id );
-		$comment  = dws_ic_get_comment( $comment_id );
-		if ( null !== $replaced && null !== $comment ) {
+		if ( null === $replaced ) {
+			return;
+		}
+
+		$comment = dws_ic_get_comment( $comment_id );
+		if ( null !== $comment ) {
 			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, $replaced, $comment );
 		}
 	}
@@ -136,7 +139,7 @@ final class Comments implements ComponentInterface {
 			)
 		);
 		foreach ( \is_array( $comments ) ? $comments : array() as $comment_id ) {
-			$this->keep_internal( $comment_id );
+			$this->put_back( $comment_id );
 		}
 	}
 
@@ -219,7 +222,7 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function hide_unmoved_comments( \WP_Comment_Query $query ): void {
-		if ( ! $this->is_move_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+		if ( ! dws_ic_is_v1_move_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
 			return;
 		}
 
@@ -241,7 +244,7 @@ final class Comments implements ComponentInterface {
 	public function hide_unmoved_feed_comments( string $where ): string {
 		global $wpdb;
 
-		return $this->is_move_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
+		return dws_ic_is_v1_move_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
 	}
 
 	/**
@@ -306,18 +309,6 @@ final class Comments implements ComponentInterface {
 		wp_update_comment_count( (int) $comment->comment_post_ID );
 
 		return $comment->comment_approved;
-	}
-
-	/**
-	 * Returns whether the migration has yet to move the comments v1 stored approved under the internal status.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  bool
-	 */
-	protected function is_move_pending(): bool {
-		return MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) < DWS_IC_REVISION_V1_COMMENTS_MOVED;
 	}
 
 	// endregion

@@ -396,7 +396,8 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function count_listed_comments( mixed $count, int $post_id ): mixed {
 		$screen = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( 'edit-comments' !== $screen?->id || current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
+		// While v1's comments are being moved, every count already leaves the internal type out.
+		if ( 'edit-comments' !== $screen?->id || current_user_can( DWS_IC_CAP_SEE_TABLE ) || dws_ic_is_v1_move_pending() ) {
 			return $count;
 		}
 

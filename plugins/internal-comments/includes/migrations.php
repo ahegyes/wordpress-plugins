@@ -9,6 +9,7 @@
  */
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,6 +22,18 @@ defined( 'ABSPATH' ) || exit;
  * @var     int
  */
 const DWS_IC_REVISION_V1_COMMENTS_MOVED = 2;
+
+/**
+ * Returns whether the migration has yet to move the comments v1 stored approved under the internal status.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @return  bool
+ */
+function dws_ic_is_v1_move_pending(): bool {
+	return MigrationRunner::get_revision( 'dws_ic_revision' ) < DWS_IC_REVISION_V1_COMMENTS_MOVED;
+}
 
 /**
  * Returns the migration steps, append-only, where index 0 brings the data to revision 1.
@@ -106,7 +119,11 @@ function dws_ic_convert_v1_comments(): bool {
 		foreach ( $posts as $post_id ) {
 			wp_update_comment_count_now( $post_id );
 		}
-		// WooCommerce answers the comment counts from a cache it adjusts only on announced status changes.
+	}
+
+	// Counts cached while the move is pending leave internal comments out, and WooCommerce adjusts its own only on announced status changes.
+	if ( array() !== $ids || $end >= $last ) {
+		wp_cache_delete( 'comments-0', 'counts' );
 		if ( class_exists( 'WC_Comments' ) ) {
 			WC_Comments::delete_comments_count_cache();
 		}
