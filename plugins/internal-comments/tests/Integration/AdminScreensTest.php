@@ -324,6 +324,38 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( $core_administrator, (int) $cached->trash );
 	}
 
+	// WooCommerce leaves comments on products out of every comment query that names no type, the counts included.
+	public function test_the_comments_screen_counts_trashed_comments_as_woocommerce_lists_them(): void {
+		$product = (int) wp_insert_post(
+			array(
+				'post_type'   => 'product',
+				'post_title'  => 'Product',
+				'post_status' => 'publish',
+			)
+		);
+		wp_trash_comment( (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $product ), get_user_by( 'id', self::$users['administrator'] ) ?: null ) );
+		wp_trash_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		\WC_Comments::delete_comments_count_cache();
+		wp_cache_delete( 'comments-0', 'counts' );
+
+		try {
+			wp_set_current_user( self::$users['administrator'] );
+			$administrator = (int) wp_count_comments()->trash;
+			wp_set_current_user( self::$users['editor'] );
+			wp_get_current_user()->get_role_caps(); // An earlier row can leave the editor current with capabilities its role has since lost.
+			$editor = (int) wp_count_comments()->trash;
+		} finally {
+			unset( $GLOBALS['current_screen'] );
+			wp_delete_post( $product, true );
+			\WC_Comments::delete_comments_count_cache();
+			wp_cache_delete( 'comments-0', 'counts' );
+		}
+
+		self::assertGreaterThan( 0, $administrator );
+		self::assertSame( $administrator, $editor );
+	}
+
 	// While v1's comments are being moved, the type exclusion already leaves internal comments out of every count.
 	public function test_the_comments_screen_counts_trashed_comments_once_while_v1s_are_moved(): void {
 		wp_trash_comment( $this->comment( 'Trashed' ) );
