@@ -87,7 +87,7 @@ final class OrderStrategyTest extends TestCase {
 	public function test_an_order_unlocks_only_the_methods_its_list_holds_when_it_is_the_order_being_paid( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$order = $this->create_order();
-		$order->update_meta_data( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, array( 'cod' ) );
+		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
 		$order->save();
 
 		self::assertSame( array( 'cod' ), dws_lpmwc_get_order_unlocked_payment_method_ids( $order->get_id() ) );
@@ -98,13 +98,13 @@ final class OrderStrategyTest extends TestCase {
 
 	public function test_the_box_offers_the_locked_methods_and_the_orders_other_grants_and_marks_each_one(): void {
 		$order = $this->create_order();
-		$order->update_meta_data( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, array( 'cod', 'cheque' ) );
+		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod', 'cheque' ) );
 		$order->save();
 
 		$form = self::$strategy->get_object_form( self::FORM, $order->get_id() );
 
 		self::assertSame( DWS_LPMWC_CAP_UNLOCK_VIA_ORDERS, $form['capability'] );
-		self::assertSame( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, $form['fields'][0]['id'] );
+		self::assertSame( DWS_LPMWC_META_UNLOCKED_METHODS, $form['fields'][0]['id'] );
 		self::assertSame(
 			array(
 				'cod'    => 'Cash on delivery',
@@ -118,7 +118,7 @@ final class OrderStrategyTest extends TestCase {
 
 	public function test_the_box_of_a_paid_order_is_disabled_so_a_save_leaves_its_grants(): void {
 		$order = $this->create_order( array( 'status' => 'processing' ) );
-		$order->update_meta_data( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, array( 'cod' ) );
+		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
 		$order->save();
 		wp_set_current_user( self::$admin );
 
@@ -141,7 +141,7 @@ final class OrderStrategyTest extends TestCase {
 
 	public function test_on_its_order_pay_page_an_order_unlocks_its_methods_given_its_key(): void {
 		$order = $this->create_order();
-		$order->update_meta_data( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, array( 'cod' ) );
+		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
 		$order->save();
 		$GLOBALS['wp']->query_vars['order-pay'] = (string) $order->get_id();
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
@@ -167,7 +167,7 @@ final class OrderStrategyTest extends TestCase {
 		$moved->save();
 		$merged = $this->create_order();
 		$merged->update_meta_data( '_dws_wc_lpm_grant_access_cod', 'yes' );
-		$merged->update_meta_data( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, array( 'cheque' ) );
+		$merged->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cheque' ) );
 		$merged->save();
 
 		dws_lpmwc_move_order_grants();
@@ -186,7 +186,7 @@ final class OrderStrategyTest extends TestCase {
 	}
 
 	protected static function save( int $order_id, array|string $methods ): void {
-		$_POST[ self::FORM ]            = array( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS => $methods );
+		$_POST[ self::FORM ]            = array( DWS_LPMWC_META_UNLOCKED_METHODS => $methods );
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . "_nonce_$order_id" );
 		do_action( 'woocommerce_process_shop_order_meta', $order_id, wc_get_order( $order_id ) );
 	}

@@ -53,14 +53,14 @@ function dws_lpmwc_get_user_unlocked_payment_method_ids( int $user_id ): array {
 }
 
 /**
- * The order meta that holds the ids of the payment methods unlocked for paying the order.
+ * The meta that holds the ids of the payment methods unlocked for paying an order, or for a WooCommerce Memberships plan's active members.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @var     string
  */
-const DWS_LPMWC_ORDER_META_UNLOCKED_METHODS = '_dws_lpmwc_unlocked_payment_methods';
+const DWS_LPMWC_META_UNLOCKED_METHODS = '_dws_lpmwc_unlocked_payment_methods';
 
 /**
  * Returns the ids of the payment methods unlocked for paying an order.
@@ -74,7 +74,7 @@ const DWS_LPMWC_ORDER_META_UNLOCKED_METHODS = '_dws_lpmwc_unlocked_payment_metho
  */
 function dws_lpmwc_get_order_unlocked_payment_method_ids( int $order_id ): array {
 	$order = 0 === $order_id ? false : wc_get_order( $order_id );
-	$ids   = $order instanceof WC_Order ? $order->get_meta( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS ) : array();
+	$ids   = $order instanceof WC_Order ? $order->get_meta( DWS_LPMWC_META_UNLOCKED_METHODS ) : array();
 
 	return is_array( $ids ) ? array_values( array_filter( $ids, 'is_string' ) ) : array();
 }

@@ -85,7 +85,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 		$order = wc_get_order( $object_id );
 		$field = array(
 			'type'    => 'checkboxes',
-			'id'      => DWS_LPMWC_ORDER_META_UNLOCKED_METHODS,
+			'id'      => DWS_LPMWC_META_UNLOCKED_METHODS,
 			'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 			'desc'    => __( 'The customer may pay for this order with these methods on its payment page.', 'locked-payment-methods-for-woocommerce' ),
 			'options' => $order instanceof \WC_Order ? dws_lpmwc_get_grant_choices( dws_lpmwc_get_order_unlocked_payment_method_ids( $object_id ), $order->get_customer_id() ) : array(),

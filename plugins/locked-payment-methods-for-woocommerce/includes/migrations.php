@@ -178,7 +178,7 @@ function dws_lpmwc_move_order_grants(): void {
 			continue;
 		}
 
-		$order->update_meta_data( DWS_LPMWC_ORDER_META_UNLOCKED_METHODS, array_values( array_unique( $granted ) ) );
+		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array_values( array_unique( $granted ) ) );
 		$order->save();
 		if ( dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ) !== array_values( array_unique( $granted ) ) ) {
 			throw new RuntimeException( "The payment methods unlocked for order $order_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
