@@ -232,6 +232,58 @@ final class PermissionsTest extends TestCase {
 		self::assertSame( array(), wp_list_pluck( (array) rest_do_request( $listed )->get_data(), 'id' ) );
 	}
 
+
+	// Core's reply action takes the comment's type from the request and checks only access to the post.
+	public function test_core_replies_post_an_internal_comment_only_for_users_who_may(): void {
+		$post   = $this->post( 'administrator' );
+		$stop   = static function (): callable {
+			return static function ( mixed $message ): void {
+				throw new \RuntimeException( 'Refused: ' . \print_r( $message, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Names the refusal.
+			};
+		};
+		$refuse = function ( string $type ) use ( $post ): bool {
+			$_POST = array(
+				'comment_post_ID' => (string) $post,
+				'comment_type'    => $type,
+				'content'         => 'Reply',
+			);
+			try {
+				do_action( 'wp_ajax_replyto-comment' );
+			} catch ( \RuntimeException ) {
+				return true;
+			} finally {
+				$_POST = array();
+			}
+
+			return false;
+		};
+		$hooked = $GLOBALS['wp_filter']['wp_ajax_replyto-comment'] ?? null;
+		remove_all_actions( 'wp_ajax_replyto-comment', -1 ); // WooCommerce's handler for product reviews refuses a request without its nonce.
+		add_filter( 'wp_doing_ajax', '__return_true' );
+		add_filter( 'wp_die_ajax_handler', $stop );
+		get_role( 'editor' )?->remove_cap( DWS_IC_CAP_INSERT );
+		wp_set_current_user( self::$users['editor'] );
+
+		try {
+			$without = $refuse( DWS_IC_COMMENT_TYPE );
+			$cased   = $refuse( ' DWS_Internal ' );
+			$public  = $refuse( 'comment' );
+			get_role( 'editor' )?->add_cap( DWS_IC_CAP_INSERT );
+			wp_get_current_user()->get_role_caps(); // The user's capabilities were read before the role changed.
+			$with = $refuse( DWS_IC_COMMENT_TYPE );
+		} finally {
+			get_role( 'editor' )?->add_cap( DWS_IC_CAP_INSERT );
+			$GLOBALS['wp_filter']['wp_ajax_replyto-comment'] = $hooked; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Puts WooCommerce's handler back.
+			remove_filter( 'wp_doing_ajax', '__return_true' );
+			remove_filter( 'wp_die_ajax_handler', $stop );
+		}
+
+		self::assertTrue( $without );
+		self::assertTrue( $cased );
+		self::assertFalse( $public );
+		self::assertFalse( $with );
+	}
+
 	protected function comment( int $post, string $role, array $args = array() ): int {
 		return (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ) + $args, get_user_by( 'id', self::$users[ $role ] ) ?: null );
 	}
