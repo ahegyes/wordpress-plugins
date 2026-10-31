@@ -106,6 +106,10 @@ function dws_ic_convert_v1_comments(): bool {
 		foreach ( $posts as $post_id ) {
 			wp_update_comment_count_now( $post_id );
 		}
+		// WooCommerce answers the comment counts from a cache it adjusts only on announced status changes.
+		if ( class_exists( 'WC_Comments' ) ) {
+			WC_Comments::delete_comments_count_cache();
+		}
 	}
 
 	if ( $end >= $last ) {

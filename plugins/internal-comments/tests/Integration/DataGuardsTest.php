@@ -162,10 +162,18 @@ final class DataGuardsTest extends TestCase {
 
 		wp_untrash_comment( $comment );
 		wp_set_comment_status( $comment, 'approve' );
-		$cached = (array) wp_count_comments();
+		$imported = (int) wp_insert_comment(
+			array(
+				'comment_post_ID'  => $this->post,
+				'comment_type'     => DWS_IC_COMMENT_TYPE,
+				'comment_approved' => '1',
+			)
+		);
+		$cached   = (array) wp_count_comments();
 		\WC_Comments::delete_comments_count_cache();
 
 		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $comment )?->comment_approved );
+		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $imported )?->comment_approved );
 		self::assertSame( (array) wp_count_comments(), $cached );
 	}
 

@@ -26,9 +26,11 @@ final class Comments implements ComponentInterface {
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_action( 'wp_insert_comment', array( $this, 'keep_internal' ) );
+		add_action( 'wp_insert_comment', array( $this, 'keep_inserted_internal' ) );
 		// Before wp_new_comment_notify_postauthor(), which wp_set_comment_status() hooks to mail an approved comment to the post's author.
 		add_action( 'wp_set_comment_status', array( $this, 'keep_internal' ), 1 );
+		// After every listener of WordPress's own announcement of the change the plugin undoes, such as WooCommerce's comment counts.
+		add_action( 'transition_comment_status', array( $this, 'announce_kept_internal' ), \PHP_INT_MAX, 3 );
 		add_action( 'untrash_comment', array( $this, 'prepare_restore' ) );
 		add_action( 'untrashed_post_comments', array( $this, 'keep_post_comments_internal' ) );
 		add_filter( 'wp_update_comment_data', array( $this, 'filter_update_data' ), \PHP_INT_MAX, 2 );
@@ -44,28 +46,58 @@ final class Comments implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Puts an internal comment stored under another status that would show it, such as one imported from v1, back under the internal status.
+	 * Puts an internal comment whose status WordPress changed back under the internal status, before WordPress announces the change.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   int|string $comment_id The comment's id.
 	 *
 	 * @return  void
 	 */
 	public function keep_internal( int|string $comment_id ): void {
-		global $wpdb;
+		$this->put_back( $comment_id );
+	}
 
-		$comment = dws_ic_get_comment( $comment_id );
-		if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( DWS_IC_COMMENT_STATUS, 'trash', 'post-trashed' ), true ) ) {
+	/**
+	 * Puts an internal comment stored under another status that would show it, such as one imported from v1, back under the internal status, and announces the move as a status change, since WordPress announces none for a new comment.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|string $comment_id The comment's id.
+	 *
+	 * @return  void
+	 */
+	public function keep_inserted_internal( int|string $comment_id ): void {
+		$replaced = $this->put_back( $comment_id );
+		$comment  = dws_ic_get_comment( $comment_id );
+		if ( null !== $replaced && null !== $comment ) {
+			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, $replaced, $comment );
+		}
+	}
+
+	/**
+	 * Announces the move of an internal comment back under the internal status after WordPress announces the change the plugin undid, so whatever follows status changes, such as WooCommerce's comment counts, ends where the comment is.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|string $new_status The status WordPress announced.
+	 * @param   int|string $old_status The status the comment had before.
+	 * @param   mixed      $comment    The comment.
+	 *
+	 * @return  void
+	 */
+	public function announce_kept_internal( int|string $new_status, int|string $old_status, mixed $comment ): void {
+		if ( ! $comment instanceof \WP_Comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || DWS_IC_COMMENT_STATUS === $new_status ) {
 			return;
 		}
 
-		$wpdb->update( $wpdb->comments, array( 'comment_approved' => DWS_IC_COMMENT_STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
-		clean_comment_cache( (int) $comment->comment_ID );
-		wp_update_comment_count( (int) $comment->comment_post_ID );
+		$stored = dws_ic_get_comment( (int) $comment->comment_ID );
+		if ( null !== $stored && DWS_IC_COMMENT_STATUS === $stored->comment_approved ) {
+			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, (string) $new_status, $stored );
+		}
 	}
 
 	/**
@@ -237,6 +269,33 @@ final class Comments implements ComponentInterface {
 	// endregion
 
 	// region HELPERS
+
+	/**
+	 * Puts an internal comment stored under a status that would show it back under the internal status, and returns the status it replaced, or null where it moved nothing.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @param   int|string $comment_id The comment's id.
+	 *
+	 * @return  string|null
+	 */
+	protected function put_back( int|string $comment_id ): ?string {
+		global $wpdb;
+
+		$comment = dws_ic_get_comment( $comment_id );
+		if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( DWS_IC_COMMENT_STATUS, 'trash', 'post-trashed' ), true ) ) {
+			return null;
+		}
+
+		$wpdb->update( $wpdb->comments, array( 'comment_approved' => DWS_IC_COMMENT_STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
+		clean_comment_cache( (int) $comment->comment_ID );
+		wp_update_comment_count( (int) $comment->comment_post_ID );
+
+		return $comment->comment_approved;
+	}
 
 	/**
 	 * Returns whether the migration has yet to move the comments v1 stored approved under the internal status.
