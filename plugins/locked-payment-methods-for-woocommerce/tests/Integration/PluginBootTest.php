@@ -13,11 +13,14 @@ use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PluginBootTest extends TestCase {
+	use RunsRequestsTrait;
+
 	public function test_the_plugin_boots_every_component_whose_switch_is_on(): void {
 		$plugin = dws_lpmwc_plugin();
 
@@ -30,7 +33,14 @@ final class PluginBootTest extends TestCase {
 		$includes = \dirname( DWS_LPMWC_FILE ) . '/includes/';
 
 		self::assertContains( $includes . 'index.php', \get_included_files() );
-		self::assertNotContains( $includes . '_disabled-example.php', \get_included_files() );
+		\file_put_contents( $includes . '_lpmwc-skipped.php', "<?php\nconst DWS_LPMWC_SKIPPED_INCLUDE = true;\n" );
+		try {
+			$request = self::request( 'echo defined( "DWS_LPMWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped";' );
+		} finally {
+			\unlink( $includes . '_lpmwc-skipped.php' );
+		}
+
+		self::assertSame( 'skipped', $request['last'], $request['output'] );
 	}
 
 	public function test_the_entry_loads_its_safeguards_before_the_bootstrap_package_and_its_floor_gate(): void {
