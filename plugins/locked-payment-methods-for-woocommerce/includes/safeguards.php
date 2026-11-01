@@ -114,6 +114,8 @@ function dws_lpmwc_should_lock( bool $lock, string $gateway_id, int $user_id, in
 /**
  * Returns the order the order-pay page pays, or 0 elsewhere or without that order's key, which WooCommerce requires before it takes the payment, so a request naming another order's id gains none of its grants.
  *
+ * AJAX and REST requests count as elsewhere, because the checkouts they run pay a new order from the cart whatever order the URL names.
+ *
  * @since   2.0.0
  * @version 2.0.0
  *
@@ -124,7 +126,7 @@ function dws_lpmwc_should_lock( bool $lock, string $gateway_id, int $user_id, in
 function dws_lpmwc_get_paid_order_id(): int {
 	global $wp;
 
-	if ( ! function_exists( 'is_checkout_pay_page' ) || ! is_checkout_pay_page() ) {
+	if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ! function_exists( 'is_checkout_pay_page' ) || ! is_checkout_pay_page() ) {
 		return 0;
 	}
 

@@ -7,6 +7,7 @@ use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
@@ -278,6 +279,32 @@ final class SafeguardsTest extends TestCase {
 
 		try {
 			self::assertSame( array( true, 'cod', 0, $order->get_id() ), self::should_lock_arguments() );
+		} finally {
+			$order->delete( true );
+		}
+	}
+
+	public function test_should_lock_judges_no_order_in_an_ajax_checkout_that_names_an_order_and_its_key(): void {
+		$order = wc_create_order();
+		self::visit_order_pay( $order->get_id(), $order->get_order_key() );
+		add_filter( 'wp_doing_ajax', '__return_true' );
+
+		try {
+			self::assertSame( array( true, 'cod', 0, 0 ), self::should_lock_arguments() );
+		} finally {
+			remove_filter( 'wp_doing_ajax', '__return_true' );
+			$order->delete( true );
+		}
+	}
+
+	#[RunInSeparateProcess]
+	public function test_should_lock_judges_no_order_in_a_rest_checkout_that_names_an_order_and_its_key(): void {
+		\define( 'REST_REQUEST', true );
+		$order = wc_create_order();
+		self::visit_order_pay( $order->get_id(), $order->get_order_key() );
+
+		try {
+			self::assertSame( array( true, 'cod', 0, 0 ), self::should_lock_arguments() );
 		} finally {
 			$order->delete( true );
 		}
