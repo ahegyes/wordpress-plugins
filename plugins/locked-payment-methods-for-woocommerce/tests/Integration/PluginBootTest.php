@@ -33,13 +33,14 @@ final class PluginBootTest extends TestCase {
 		$includes = \dirname( DWS_LPMWC_FILE ) . '/includes/';
 
 		self::assertContains( $includes . 'index.php', \get_included_files() );
-		\file_put_contents( $includes . '_lpmwc-skipped.php', "<?php\nconst DWS_LPMWC_SKIPPED_INCLUDE = true;\n" );
+		self::assertIsInt( \file_put_contents( $includes . '_lpmwc-skipped.php', "<?php\nconst DWS_LPMWC_SKIPPED_INCLUDE = true;\n" ) );
 		try {
-			$request = self::request( 'echo defined( "DWS_LPMWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped";' );
+			$request = self::request( 'echo 0 < did_action( "dws_lpmwc/boot/succeeded" ) ? ( defined( "DWS_LPMWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
 		} finally {
 			\unlink( $includes . '_lpmwc-skipped.php' );
 		}
 
+		self::assertSame( 0, $request['status'], $request['output'] );
 		self::assertSame( 'skipped', $request['last'], $request['output'] );
 	}
 
