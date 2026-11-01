@@ -121,6 +121,27 @@ final class UserProfileStrategyTest extends TestCase {
 		self::assertSame( 'Locked Payment Methods', \trim( (string) $form->querySelector( 'h2' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
 
+	public function test_the_profile_offers_the_methods_the_locked_ids_filter_adds_as_locked(): void {
+		$add = static fn ( array $ids ): array => array( ...$ids, 'cheque' );
+		add_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+		wp_set_current_user( self::$users['administrator'] );
+
+		try {
+			$form = self::render( self::$users['customer'] );
+		} finally {
+			remove_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+		}
+
+		self::assertSame(
+			array(
+				'cod'    => array( 'Cash on delivery', false ),
+				'bacs'   => array( 'Direct bank transfer', false ),
+				'cheque' => array( 'Check payments', false ),
+			),
+			self::choices( $form )
+		);
+	}
+
 	public function test_the_profile_marks_the_methods_another_rule_already_unlocks_for_the_user(): void {
 		wp_set_current_user( self::$users['administrator'] );
 

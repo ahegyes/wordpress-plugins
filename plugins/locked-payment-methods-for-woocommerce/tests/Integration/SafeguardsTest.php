@@ -197,17 +197,30 @@ final class SafeguardsTest extends TestCase {
 		self::assertArrayNotHasKey( 'bacs', $available );
 	}
 
-	public function test_v1s_list_filters_fire_as_deprecated_before_the_locked_ids_filter(): void {
+	public function test_the_lock_check_counts_the_methods_the_locked_ids_filter_adds(): void {
+		$add = static fn ( array $ids ): array => array( ...$ids, 'bacs' );
+		add_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+
+		try {
+			self::assertTrue( dws_lpmwc_is_payment_method_locked( 'bacs', 0 ) );
+		} finally {
+			remove_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+		}
+
+		self::assertFalse( dws_lpmwc_is_payment_method_locked( 'bacs', 0 ) );
+	}
+
+	public function test_the_locked_ids_filter_follows_v1s_value_filter_and_v1s_list_filter_follows_it_at_checkout(): void {
 		$seen     = array();
 		$gateways = WC()->payment_gateways()->payment_gateways();
 		$hooks    = array(
 			'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value' => 'first',
-			'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods' => 'second',
-			'dws_lpmwc/payment_method/locked_ids' => 'third',
+			'dws_lpmwc/payment_method/locked_ids' => 'second',
+			'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods' => 'third',
 		);
 		$adders   = array();
 		foreach ( $hooks as $hook => $id ) {
-			$adders[ $hook ] = static function ( array $ids, mixed $context ) use ( &$seen, $hook, $id ): array {
+			$adders[ $hook ] = static function ( array $ids, mixed $context = null ) use ( &$seen, $hook, $id ): array {
 				$seen[] = array( $hook, $ids, \is_array( $context ) ? \array_keys( $context ) : $context );
 
 				return array( ...$ids, $id );
@@ -227,12 +240,12 @@ final class SafeguardsTest extends TestCase {
 		self::assertSame(
 			array(
 				array( $hooks[0], array( 'cod' ), 'locked-payment-methods' ),
-				array( $hooks[1], array( 'cod', 'first' ), \array_keys( $gateways ) ),
+				array( $hooks[1], array( 'cod', 'first' ), null ),
 				array( $hooks[2], array( 'cod', 'first', 'second' ), \array_keys( $gateways ) ),
 			),
 			$seen
 		);
-		self::assertSame( array( array( $hooks[0], $hooks[2] ), array( $hooks[1], $hooks[2] ) ), $this->deprecated );
+		self::assertSame( array( array( $hooks[0], $hooks[1] ), array( $hooks[2], $hooks[1] ) ), $this->deprecated );
 	}
 
 	public function test_v1s_lock_filters_fire_as_deprecated_before_should_lock_under_v1s_safe_id(): void {
