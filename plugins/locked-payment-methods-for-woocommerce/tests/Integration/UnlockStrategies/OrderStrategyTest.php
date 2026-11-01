@@ -185,6 +185,29 @@ final class OrderStrategyTest extends TestCase {
 		}
 	}
 
+	public function test_a_grants_step_whose_write_fails_keeps_v1s_grants_for_its_retry(): void {
+		$this->use_storage( false, false );
+		$order = $this->create_order();
+		$order->update_meta_data( '_dws_wc_lpm_grant_access_cod', 'yes' );
+		$order->save();
+		$refuse = static fn ( mixed $check, int $object_id, string $key ): mixed => DWS_LPMWC_META_UNLOCKED_METHODS === $key ? false : $check;
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+
+		$failed = false;
+		try {
+			dws_lpmwc_move_order_grants();
+		} catch ( \RuntimeException ) {
+			$failed = true;
+		} finally {
+			remove_filter( 'add_post_metadata', $refuse );
+		}
+
+		self::assertTrue( $failed );
+		self::assertSame( 'yes', wc_get_order( $order->get_id() )->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
+		dws_lpmwc_move_order_grants();
+		self::assertSame( array( 'cod' ), dws_lpmwc_get_order_unlocked_payment_method_ids( $order->get_id() ) );
+	}
+
 	protected static function should_lock( string $gateway_id, int $order_id ): mixed {
 		return apply_filters( 'dws_lpmwc/payment_method/should_lock', true, $gateway_id, 0, $order_id );
 	}

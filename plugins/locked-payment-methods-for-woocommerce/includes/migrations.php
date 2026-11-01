@@ -126,12 +126,14 @@ function dws_lpmwc_move_user_grants(): void {
 /**
  * Moves v1's order grants, one 'yes' row per payment method, into each order's list beside the grants it holds, through WooCommerce's order data, so either order storage keeps them, then deletes every v1 grant row of the order.
  *
+ * The list is saved before v1's rows are deleted, because one save deletes an order's meta before it adds any, so a failed write would lose the grants a retry needs.
+ *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @global  wpdb $wpdb WordPress's database access.
  *
- * @throws  RuntimeException Thrown when v1's order grants could not be read or an order's grants could not be stored.
+ * @throws  RuntimeException Thrown when v1's order grants could not be read, or an order's grants could not be stored or its v1 rows deleted.
  *
  * @return  void
  */
@@ -159,32 +161,55 @@ function dws_lpmwc_move_order_grants(): void {
 
 	foreach ( array_unique( $ids ) as $order_id ) {
 		$order = wc_get_order( $order_id );
-		if ( ! $order instanceof WC_Order ) {
+		$rows  = $order instanceof WC_Order ? dws_lpmwc_get_v1_order_grant_rows( $order ) : array();
+		if ( array() === $rows ) {
 			continue;
 		}
 
 		$granted = dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id );
-		$moved   = false;
-		foreach ( $order->get_meta_data() as $meta ) {
-			$data = $meta instanceof WC_Meta_Data ? $meta->get_data() : array();
-			if ( is_string( $data['key'] ?? null ) && str_starts_with( $data['key'], $prefix ) ) {
-				if ( 'yes' === ( $data['value'] ?? null ) ) {
-					$granted[] = substr( $data['key'], strlen( $prefix ) );
-				}
-				$order->delete_meta_data( $data['key'] );
-				$moved = true;
+		foreach ( $rows as $key => $value ) {
+			if ( 'yes' === $value ) {
+				$granted[] = substr( $key, strlen( $prefix ) );
 			}
 		}
-		if ( ! $moved ) {
-			continue;
-		}
-
-		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array_values( array_unique( $granted ) ) );
+		$granted = array_values( array_unique( $granted ) );
+		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, $granted );
 		$order->save();
-		if ( dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ) !== array_values( array_unique( $granted ) ) ) {
+		if ( dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ) !== $granted ) {
 			throw new RuntimeException( "The payment methods unlocked for order $order_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
+
+		foreach ( array_keys( $rows ) as $key ) {
+			$order->delete_meta_data( $key );
+		}
+		$order->save();
+		$order = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && array() !== dws_lpmwc_get_v1_order_grant_rows( $order ) ) {
+			throw new RuntimeException( "The v1 grants of order $order_id could not be deleted." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
 	}
+}
+
+/**
+ * Returns an order's v1 grant rows, by meta key.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   WC_Order $order The order.
+ *
+ * @return  array<string, mixed>
+ */
+function dws_lpmwc_get_v1_order_grant_rows( WC_Order $order ): array {
+	$rows = array();
+	foreach ( $order->get_meta_data() as $meta ) {
+		$data = $meta instanceof WC_Meta_Data ? $meta->get_data() : array();
+		if ( is_string( $data['key'] ?? null ) && str_starts_with( $data['key'], '_dws_wc_lpm_grant_access_' ) ) {
+			$rows[ $data['key'] ] = $data['value'] ?? null;
+		}
+	}
+
+	return $rows;
 }
 
 /**
