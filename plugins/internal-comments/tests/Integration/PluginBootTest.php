@@ -13,11 +13,14 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Mig
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\InternalComments\Settings;
+use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PluginBootTest extends TestCase {
+	use RunsRequestsTrait;
+
 	public function test_the_plugin_boots_every_component(): void {
 		$plugin = dws_ic_plugin();
 
@@ -31,7 +34,15 @@ final class PluginBootTest extends TestCase {
 
 		self::assertContains( $includes . 'safeguards.php', \get_included_files() );
 		self::assertContains( $includes . 'index.php', \get_included_files() );
-		self::assertNotContains( $includes . '_disabled-example.php', \get_included_files() );
+		self::assertIsInt( \file_put_contents( $includes . '_ic-skipped.php', "<?php\nconst DWS_IC_SKIPPED_INCLUDE = true;\n" ) );
+		try {
+			$request = self::request( 'echo 0 < did_action( "dws_ic/boot/succeeded" ) ? ( defined( "DWS_IC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
+		} finally {
+			\unlink( $includes . '_ic-skipped.php' );
+		}
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( 'skipped', $request['last'], $request['output'] );
 	}
 
 	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {

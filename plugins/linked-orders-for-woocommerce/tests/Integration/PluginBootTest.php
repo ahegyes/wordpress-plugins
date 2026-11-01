@@ -13,11 +13,14 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migrati
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\LinkedOrders\Settings;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PluginBootTest extends TestCase {
+	use RunsRequestsTrait;
+
 	public function test_the_plugin_boots_every_component_but_the_integration_with_an_absent_plugin(): void {
 		$plugin = dws_lowc_plugin();
 
@@ -31,15 +34,15 @@ final class PluginBootTest extends TestCase {
 
 		self::assertContains( $includes . 'safeguards.php', \get_included_files() );
 		self::assertContains( $includes . 'index.php', \get_included_files() );
-		\file_put_contents( $includes . '_lowc-skipped.php', "<?php\nconst DWS_LOWC_SKIPPED_INCLUDE = true;\n" );
+		self::assertIsInt( \file_put_contents( $includes . '_lowc-skipped.php', "<?php\nconst DWS_LOWC_SKIPPED_INCLUDE = true;\n" ) );
 		try {
-			\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( 'echo defined( "DWS_LOWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped";' ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The loader runs only in a fresh request.
+			$request = self::request( 'echo 0 < did_action( "dws_lowc/boot/succeeded" ) ? ( defined( "DWS_LOWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
 		} finally {
 			\unlink( $includes . '_lowc-skipped.php' );
 		}
 
-		self::assertSame( 0, $status, \implode( "\n", $output ) );
-		self::assertSame( 'skipped', (string) \end( $output ) );
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( 'skipped', $request['last'], $request['output'] );
 	}
 
 	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {
