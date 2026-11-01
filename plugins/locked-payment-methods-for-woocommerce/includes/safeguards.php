@@ -27,7 +27,7 @@ function dws_lpmwc_is_relaxed( $filtered ): bool {
 }
 
 /**
- * Returns the ids of the locked payment methods: the plugin's list, or v1's while the plugin has stored none, because the migration that copies v1's list runs only once the plugin boots.
+ * Returns the ids of the locked payment methods: the plugin's list, or v1's while the plugin has stored none, because the migration that copies v1's list runs only once the plugin boots, with the ids the plugin's list filters add.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -37,8 +37,17 @@ function dws_lpmwc_is_relaxed( $filtered ): bool {
 function dws_lpmwc_get_locked_payment_method_ids(): array {
 	$stored = get_option( 'dws_lpmwc_locked_payment_methods' );
 	$ids    = dws_lpmwc_add_locked_ids( array(), false === $stored ? get_option( 'dws-wc-lpm_general_locked-payment-methods' ) : $stored );
+	$ids    = dws_lpmwc_add_locked_ids( $ids, dws_lpmwc_apply_v1_setting_filter( $ids, 'general', 'locked-payment-methods', 'dws_lpmwc/payment_method/locked_ids' ) );
 
-	return dws_lpmwc_add_locked_ids( $ids, dws_lpmwc_apply_v1_setting_filter( $ids, 'general', 'locked-payment-methods', 'dws_lpmwc/payment_method/locked_ids' ) );
+	/**
+	 * Filters the locked payment methods' ids wherever the plugin reads them, at checkout, in the lock check and on the grants forms; a callback adds the ids it locks, and an id it leaves out stays locked.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string[] $ids The locked payment methods' ids.
+	 */
+	return dws_lpmwc_add_locked_ids( $ids, apply_filters( 'dws_lpmwc/payment_method/locked_ids', $ids ) );
 }
 
 /**
@@ -162,17 +171,6 @@ function dws_lpmwc_remove_locked_payment_methods( $gateways ): array {
 	 * @param       array<mixed> $gateways The payment gateways offered, by id.
 	 */
 	$ids = dws_lpmwc_add_locked_ids( $ids, apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods', array( $ids, $gateways ), '2.0.0', 'dws_lpmwc/payment_method/locked_ids' ) );
-
-	/**
-	 * Filters the locked payment methods' ids, to which a callback adds the ids it locks; an id it leaves out stays locked.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string[]     $ids      The locked payment methods' ids.
-	 * @param   array<mixed> $gateways The payment gateways offered, by id.
-	 */
-	$ids = dws_lpmwc_add_locked_ids( $ids, apply_filters( 'dws_lpmwc/payment_method/locked_ids', $ids, $gateways ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
 
 	$user_id  = get_current_user_id();
 	$order_id = dws_lpmwc_get_paid_order_id();

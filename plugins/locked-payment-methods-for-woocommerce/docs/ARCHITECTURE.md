@@ -30,11 +30,11 @@ The request that activates the plugin does not boot it, because WordPress includ
 
 `includes/safeguards.php` filters `woocommerce_available_payment_gateways` at 999, which WooCommerce applies on the classic checkout, the order payment page and the Store API's checkout:
 
-1. It reads `dws_lpmwc_locked_payment_methods`, or v1's `dws-wc-lpm_general_locked-payment-methods` while the plugin has stored none, since the migration that copies v1's list runs only once the plugin boots, then lets v1's value and list filters and `dws_lpmwc/payment_method/locked_ids` add ids.
+1. It reads `dws_lpmwc_locked_payment_methods`, or v1's `dws-wc-lpm_general_locked-payment-methods` while the plugin has stored none, since the migration that copies v1's list runs only once the plugin boots, then lets v1's value filter and `dws_lpmwc/payment_method/locked_ids` add ids, as every read of the list does, and v1's list filter add more.
 2. For each offered payment method on the list, it fires v1's two lock filters, then `dws_lpmwc/payment_method/should_lock` with the current user and, on an order's own payment page with that order's key, the order.
 3. It removes the payment method unless `should_lock` returns an explicit `false` after `dws_lpmwc/boot/succeeded`, so the lock binds everyone while the plugin cannot boot.
 
-Each unlock strategy in `src/UnlockStrategies/` hooks `should_lock` while its switch is on, and returns `false` when its subject unlocks the payment method: the user's roles, the user's grants on the site, the order's grants, the user's Groups groups or the plans the user is an active member of. `dws_lpmwc_is_payment_method_locked()` runs the same filter for a user and an order outside checkout, over the settings' list alone, because the list filters judge the payment methods a checkout offers; the grants forms offer the same list.
+Each unlock strategy in `src/UnlockStrategies/` hooks `should_lock` while its switch is on, and returns `false` when its subject unlocks the payment method: the user's roles, the user's grants on the site, the order's grants, the user's Groups groups or the plans the user is an active member of. `dws_lpmwc_is_payment_method_locked()` runs the same filter for a user and an order outside checkout, over the same list without v1's list filter, which v1 fired only at checkout; the grants forms offer that list.
 
 ## Where code lives
 

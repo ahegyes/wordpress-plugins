@@ -96,7 +96,7 @@ function dws_lpmwc_get_payment_method_title( string $gateway_id ): string {
 }
 
 /**
- * Returns the choices of a grants field by payment method id: the methods the settings lock and the subject's other grants, since a save keeps only the choices a field offers, each marked when it is not locked or when another rule already unlocks it for the user.
+ * Returns the choices of a grants field by payment method id: the locked methods and the subject's other grants, since a save keeps only the choices a field offers, each marked when it is not locked or when another rule already unlocks it for the user.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -171,9 +171,7 @@ function dws_lpmwc_get_plan_unlocked_payment_method_ids( int $plan_id ): array {
 }
 
 /**
- * Returns whether a payment method is locked for a user and an order: whether the settings lock it and dws_lpmwc/payment_method/should_lock does not relax it.
- *
- * The ids the list filters add are left out, because those filters judge the payment methods a checkout offers.
+ * Returns whether a payment method is locked for a user and an order: whether the locked list holds it and dws_lpmwc/payment_method/should_lock does not relax it.
  *
  * @since   2.0.0
  * @version 2.0.0
