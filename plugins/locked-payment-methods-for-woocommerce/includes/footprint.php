@@ -27,7 +27,7 @@ function dws_lpmwc_get_footprint(): array {
 		'meta'                      => array( 'post' => array( DWS_LPMWC_META_UNLOCKED_METHODS, '_dws_wc_lpm_unlocked_payment_methods' ) ),
 		'meta_prefixes'             => array( 'order' => array( '_' . Plugin::PREFIX . '_', '_dws_wc_lpm_' ) ),
 		'user_meta_site_prefixes'   => array( Plugin::PREFIX . '_' ),
-		'user_meta_global_prefixes' => array( Plugin::PREFIX . '_', 'dws_wc_lpm_' ),
+		'user_meta_global_prefixes' => array( Plugin::PREFIX . '_', 'dws_wc_lpm_grant_access_' ),
 		'user_meta_global'          => array( '_locked_payment_methods_for_woocommerce_admin_notices' ),
 		'network_options'           => array( Plugin::PREFIX . '_network_notices' ),
 		'capabilities'              => array( DWS_LPMWC_CAP_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_CAP_UNLOCK_VIA_ORDERS, DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS, DWS_LPMWC_CAP_UNLOCK_VIA_WC_MEMBERSHIPS ),

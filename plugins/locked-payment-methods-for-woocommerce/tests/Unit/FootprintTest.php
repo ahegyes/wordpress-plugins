@@ -73,7 +73,7 @@ final class FootprintTest extends TestCase {
 		self::assertSame( array( 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ), $footprint['options'] );
 		self::assertSame( array( '_' . Plugin::PREFIX . '_', '_dws_wc_lpm_' ), $footprint['meta_prefixes']['order'] );
 		self::assertSame( array( DWS_LPMWC_META_UNLOCKED_METHODS, '_dws_wc_lpm_unlocked_payment_methods' ), $footprint['meta']['post'] );
-		self::assertContains( 'dws_wc_lpm_', $footprint['user_meta_global_prefixes'] );
+		self::assertContains( 'dws_wc_lpm_grant_access_', $footprint['user_meta_global_prefixes'] );
 		self::assertSame( array( '_locked_payment_methods_for_woocommerce_admin_notices' ), $footprint['user_meta_global'] );
 		self::assertSame( array( DWS_LPMWC_CAP_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_CAP_UNLOCK_VIA_ORDERS, DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS, DWS_LPMWC_CAP_UNLOCK_VIA_WC_MEMBERSHIPS ), $footprint['capabilities'] );
 	}
