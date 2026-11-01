@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+A WooCommerce Memberships plan's unlocked payment methods move from the plan meta _dws_wc_lpm_unlocked_payment_methods to _dws_lpmwc_unlocked_payment_methods, and its tab saves under a nonce of its own.

@@ -8,9 +8,10 @@ The monorepo of the DWS v2 WordPress plugins, each built on the wp-framework pac
 wordpress-plugins/
 ├── plugins/
 │   ├── linked-orders-for-woocommerce/    Linked Orders for WooCommerce → wc-linked-orders, ports 8822 and 8823, on wordpress.org
-│   └── internal-comments/                Internal Comments → wp-internal-comments, ports 8824 and 8825, on wordpress.org
+│   ├── internal-comments/                Internal Comments → wp-internal-comments, ports 8824 and 8825, on wordpress.org
+│   └── locked-payment-methods-for-woocommerce/    Locked Payment Methods for WooCommerce → wc-locked-payment-methods, ports 8826 and 8827, on wordpress.org
 ├── tests/
-│   ├── e2e/                              the shared environment's smoke check, over the plugins .wp-env.tests.json maps
+│   ├── e2e/                              the shared environment's checks: every plugin .wp-env.tests.json maps is active and boots, and the plugins work side by side
 │   └── Fixtures/multi-plugin-smoke/      reserved for a fixture plugin the shared environment mounts
 ├── .github/workflows/
 │   ├── plugins.yml                       lists the plugins, their mirrors and readmes and each one's WordPress versions for the other workflows
@@ -28,7 +29,7 @@ wordpress-plugins/
 npm run setup                     # every install, then every plugin's build
 composer plugins:quality-check    # each plugin's quality-check, in its own environments
 composer test:integration         # starts the shared environment and runs each plugin's Integration suite in it
-npm run test:e2e                  # the shared environment's smoke check
+npm run test:e2e                  # the shared environment's checks
 npm run plugins:test:e2e          # each plugin's end-to-end suite, in its own environment
 actionlint .github/workflows/*.yml plugins/*/.github/workflows/*.yml && zizmor .github/ plugins/*/.github/
 ```
@@ -49,4 +50,4 @@ Each plugin's `AGENTS.md` states its code style, the template's. Markdown keeps 
 
 - CI runs twice per change: the root's lanes on the pull request, and the mirror's own after the split.
 - The root's workflow checks cover the root's workflows; a plugin's own are checked on its mirror after the split, and locally by the command above.
-- Each plugin's Integration suite runs twice: in the plugin's own environments and in the shared one.
+- Each plugin's Integration suite runs twice: in the plugin's own environments and in the shared one, which leaves out the rows of a plugin the shared environment does not install, such as Locked Payment Methods' Groups and WooCommerce Memberships groups.

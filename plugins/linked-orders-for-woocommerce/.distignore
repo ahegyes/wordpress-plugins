@@ -34,6 +34,7 @@ stylelint.config.js
 phpcs.dist.xml
 phpcs.tests.dist.xml
 phpstan.dist.neon
+phpstan.safeguards.neon
 phpunit.dist.xml
 playwright.config.js
 scoper.inc.php

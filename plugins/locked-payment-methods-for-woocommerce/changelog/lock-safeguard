@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+The lock holds whenever the plugin is active, on a runtime below its floors, with WooCommerce below 11.2 and when the plugin fails to boot, until the plugin has booted; only an explicit false from dws_lpmwc/payment_method/should_lock unlocks a payment method, so a callback that returns null, 0 or an empty string no longer does.

@@ -7,7 +7,7 @@ v1 sites upgrade in place, so the port keeps v1's option keys, order meta, capab
 ## Layout
 
 ```
-linked-orders-for-woocommerce.php      the entry: bootstrap load.php, the inert updater, the floor check, safeguards, the build gate, the autoloader
+linked-orders-for-woocommerce.php      the entry: safeguards, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader
 functions.php                dws_lowc_plugin(), the boot on plugins_loaded 15, deactivation, the order-tables declaration, v1's boot hooks, the includes/ loader
 uninstall.php                the framework's uninstall engine over the footprint, with v1's DWS_LOWC_OPTION_DELETE_DATA consent
 src/                         the composition root and its components only
@@ -20,7 +20,7 @@ src/                         the composition root and its components only
 └── Integration/             SequentialOrderNumbersPro, gated on wc_seq_order_number_pro()
 models/DWS_Order_Node.php    v1's global node class on the classmap, reading and saving the _dws_lo_ order meta
 includes/                    hook-free code as dws_lowc_ functions and DWS_LOWC_ constants, loaded in name order, _-prefixed files skipped
-├── safeguards.php           restrictions that hold when the build fails; loaded by the entry before the autoloader
+├── safeguards.php           restrictions that hold whenever the plugin cannot boot; loaded by the entry before the floor check
 ├── capabilities.php         v1's four capabilities and the roles CapabilityGrants gives them
 ├── options.php              v1's option keys, their defaults and the depth validator
 ├── settings.php             v1's settings API: the raw, validated and validating reads, by v1 field id and group
@@ -41,7 +41,7 @@ changelog/                   the pending entries changelog:write turns into CHAN
 composer packages-install    # dependencies, then php-scoper into vendor-prefixed/
 composer test:unit
 composer test:integration    # starts .wp-env.tests.json, then runs test:integration:run, which builds the scripts first
-composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan, Unit and Integration
+composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
 composer changelog:add       # stages an entry in changelog/; composer changelog:write, at release, also syncs readme.txt
 npm run setup                # both installs, the scripts' build, then the development site
 npm run build                # the orders list's assets through the local wp-scripts; npm run start watches them in a POSIX shell
@@ -68,7 +68,7 @@ Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI run
 6. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-lowc_` keys and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
 7. **Order storage.** Order code goes through WC CRUD, `get_edit_order_url()` and WooCommerce's screen ids and list hooks, never the posts table, and every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorage`: posts and the order tables, each with the sync on and off. Rows that check only the order of hooks, or a stand-in plugin, use one.
 8. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name, and `DeprecatedHooksTest` names the pair.
-9. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_lowc_is_relaxed()` (`docs/recipes.md`).
+9. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_lowc_is_relaxed()` (the template's recipes). The entry loads them before the floor check, so they parse on PHP 7.4 and call only WordPress APIs present at the oldest WordPress the bootstrap package runs on, or guard them, which `phpstan.safeguards.neon` checks.
 10. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails.
 
 ## Style

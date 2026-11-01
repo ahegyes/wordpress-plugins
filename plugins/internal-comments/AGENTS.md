@@ -7,7 +7,7 @@ v1 sites upgrade in place, so the port keeps v1's comment type, settings rows, c
 ## Layout
 
 ```
-internal-comments.php        the entry: bootstrap load.php, the inert updater, the floor check, safeguards, the build gate, the autoloader
+internal-comments.php        the entry: safeguards, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader
 functions.php                dws_ic_plugin(), the boot on plugins_loaded 15, deactivation, the order-tables declaration, v1's boot hooks, the includes/ loader
 uninstall.php                the framework's uninstall engine over the footprint, with v1's remove-data-uninstall consent
 src/                         the composition root and its components only
@@ -20,7 +20,7 @@ src/                         the composition root and its components only
 └── AdminScreens.php         the posts and orders list column with its quick view, the Comments screen view, the comment edit screen
 models/DWS_Internal_Comment.php  v1's global model class on the classmap, wrapping an internal comment with the user's permissions on it
 includes/                    hook-free code as dws_ic_ functions and DWS_IC_ constants, loaded in name order, _-prefixed files skipped
-├── safeguards.php           restrictions that hold when the build fails; loaded by the entry before the autoloader
+├── safeguards.php           restrictions that hold whenever the plugin cannot boot; loaded by the entry before the floor check
 ├── capabilities.php         v1's twelve capabilities and the roles CapabilityGrants gives them
 ├── options.php              v1's two settings rows, their fields and their defaults
 ├── settings.php             v1's settings API: the raw and validated reads, by v1 field id and group
@@ -41,7 +41,7 @@ changelog/                   the pending entries changelog:write turns into CHAN
 composer packages-install    # dependencies, then php-scoper into vendor-prefixed/
 composer test:unit
 composer test:integration    # starts .wp-env.tests.json, then runs test:integration:run, which builds the scripts first
-composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan, Unit and Integration
+composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
 composer changelog:add       # stages an entry in changelog/; composer changelog:write, at release, also syncs readme.txt
 npm run setup                # both installs, the scripts' build, then the development site
 npm run build                # the meta box's and quick view's assets through the local wp-scripts; npm run start watches them in a POSIX shell
@@ -69,7 +69,7 @@ Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI run
 7. **Internal status.** An internal comment is stored under the `dws_internal` status, which keeps it out of WordPress's queries, counts, feeds and REST API without the plugin's help, so no code stores one under another status, and a query that lists them names the status. `Comments` puts back any that WordPress or another plugin moves, announcing the move as a status change after WordPress announces its own, so caches that follow status changes, such as WooCommerce's comment counts, end where the comment is; the migration's bulk move resets WooCommerce's counts instead. Until the migration has moved the comments v1 stored approved, it leaves the type out of every comment query and feed that names neither it nor the status. Every check of what a user may do with one goes through the `see_`, `edit_` and `trash_dws_internal_comment` meta capabilities.
 8. **Order storage.** Order code takes ids WooCommerce resolves in either storage, through `dws_ic_get_post_type()` and `edit_post`, which WooCommerce maps for orders, and WooCommerce's screen ids and list hooks, never the posts table; every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorage`.
 9. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name.
-10. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_ic_is_relaxed()` (the template's recipes).
+10. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_ic_is_relaxed()` (the template's recipes). The entry loads them before the floor check, so they parse on PHP 7.4 and call only WordPress APIs present at the oldest WordPress the bootstrap package runs on, or guard them, which `phpstan.safeguards.neon` checks.
 11. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails; bulk work is a batched step, which runs only from the runner's scheduled hook.
 
 ## Style

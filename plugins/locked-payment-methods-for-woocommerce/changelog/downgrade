@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+A downgrade to 1.3.5 finds no unlocked payment methods for customers, orders, groups or plans, and locks every payment method on v1's list for everyone without full access.

@@ -25,6 +25,8 @@ defined( 'ABSPATH' ) || exit;
 
 define( 'DWS_IC_FILE', __FILE__ );
 
+require_once __DIR__ . '/includes/safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
+
 $dws_ic_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
 if ( is_readable( $dws_ic_bootstrap ) ) {
 	require_once $dws_ic_bootstrap;
@@ -33,8 +35,6 @@ if ( is_readable( $dws_ic_bootstrap ) ) {
 		return;
 	}
 }
-
-require_once __DIR__ . '/includes/safeguards.php';
 
 if ( ! is_readable( $dws_ic_bootstrap ) || ! is_readable( __DIR__ . '/assets/build/meta-box.asset.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
 	add_action( 'all_admin_notices', 'dws_ic_render_build_notice' );

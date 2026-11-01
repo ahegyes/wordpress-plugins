@@ -1,0 +1,83 @@
+name: Quality
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-php:
+    name: PHP Lint
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      php-version: '8.5'
+      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
+
+  lint-scripts-styles:
+    name: Scripts and styles lint
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      scripts: '["lint:scripts", "lint:styles", "lint:types"]'
+
+  block-json:
+    name: block.json schema
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+
+  slug:
+    name: Plugin slug
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      slug: ${{ steps.slug.outputs.slug }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The workflows read the slug the plugin declares, as the template's do, so a change to the template's applies here unedited.
+      - name: Read the slug from composer.json
+        id: slug
+        run: |
+          slug=$(jq -r '.extra["text-domain"] // empty' composer.json)
+          if ! [[ "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "::error::composer.json's extra.text-domain must be the plugin's kebab-case slug — got '$slug'."
+            exit 1
+          fi
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
+  php-syntax:
+    name: PHP syntax
+    needs: slug
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    with:
+      php-versions: '["7.4"]'
+      paths: ${{ format('["{0}.php", "uninstall.php", "includes"]', needs.slug.outputs.slug) }}
+
+  readme-lint:
+    name: readme.txt lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: thetwopct/wporg-plugin-readme-linter@1f869aba959265ecc90935b2380c6569d56646ac # v1.0.2
+        with:
+          path: readme.txt
+          fail-on: error
+
+  changelog:
+    name: Changelog fragments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+      - uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
+      - run: composer changelog:validate

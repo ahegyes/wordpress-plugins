@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+v1's settings hooks locked_payment_methods_for_woocommerce/settings/{registered_options_page,registered_options_groups,get_option_value,update_option_value,delete_option_value,validate_option_value} and locked_payment_methods_for_woocommerce/{general,integrations,plugin}_settings/validate_option_value, v1's framework notice actions and the dws_wp_framework/*/init_status filters.

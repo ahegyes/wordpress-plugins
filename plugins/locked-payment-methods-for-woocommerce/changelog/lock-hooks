@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+dws_lpmwc/payment_method/locked_ids, which locks more payment methods, dws_lpmwc/payment_method/should_lock, which judges a payment method for the paying user and the order being paid, and dws_lpmwc_is_payment_method_locked().

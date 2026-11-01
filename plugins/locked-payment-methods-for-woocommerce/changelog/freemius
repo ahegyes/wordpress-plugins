@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+Freemius and the premium build's licensing, with dws_lpmwc_fs(), dws_lpmwc_fs_init(), dws_lpmwc_fs_settings_url(), dws_lpmwc_fs_loaded and the Upgrade and Freemius links; every way of unlocking a payment method is part of the plugin.

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+The Users screen names each locked payment method's state in text and escapes it, and its filter applies from either dropdown; v1's showed icons without text and read only the top dropdown.
