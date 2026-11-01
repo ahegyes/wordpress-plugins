@@ -142,14 +142,12 @@ function dws_lpmwc_get_paid_order_id(): int {
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   mixed $gateways The payment gateways offered, by id, or what an earlier callback returned in their place, which WooCommerce casts to a list.
+ * @param   mixed $gateways The payment gateways offered, by id, or what an earlier callback returned in their place.
  *
- * @return  mixed
+ * @return  array<mixed>
  */
-function dws_lpmwc_remove_locked_payment_methods( $gateways ) {
-	if ( ! is_array( $gateways ) ) {
-		return $gateways;
-	}
+function dws_lpmwc_remove_locked_payment_methods( $gateways ): array {
+	$gateways = (array) $gateways; // WooCommerce casts the filtered value to a list, so the lock judges what it would offer.
 
 	$ids = dws_lpmwc_get_locked_payment_method_ids();
 

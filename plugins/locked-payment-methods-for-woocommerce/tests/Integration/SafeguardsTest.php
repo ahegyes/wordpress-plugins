@@ -32,6 +32,13 @@ final class SafeguardsTest extends TestCase {
 		);
 	}
 
+	public static function gateway_values(): array {
+		return array(
+			'null'   => array( 'null' ),
+			'object' => array( 'object' ),
+		);
+	}
+
 	public static function early_relaxations(): array {
 		return array(
 			'null'         => array( null ),
@@ -115,13 +122,17 @@ final class SafeguardsTest extends TestCase {
 		}
 	}
 
-	public function test_the_lock_passes_on_a_gateways_value_that_is_not_a_list(): void {
-		add_filter( 'woocommerce_available_payment_gateways', '__return_null' );
+	#[DataProvider( 'gateway_values' )]
+	public function test_the_lock_judges_a_gateways_value_that_is_not_a_list_as_woocommerce_casts_it( string $kind ): void {
+		$replace = static fn ( array $gateways ): ?object => 'object' === $kind ? (object) $gateways : null;
+		add_filter( 'woocommerce_available_payment_gateways', $replace );
 
 		try {
-			self::assertNull( self::available() );
+			$offered = (array) self::available();
+			self::assertArrayNotHasKey( 'cod', $offered );
+			self::assertSame( 'object' === $kind, \array_key_exists( 'bacs', $offered ) );
 		} finally {
-			remove_filter( 'woocommerce_available_payment_gateways', '__return_null' );
+			remove_filter( 'woocommerce_available_payment_gateways', $replace );
 		}
 	}
 
@@ -339,7 +350,7 @@ final class SafeguardsTest extends TestCase {
 		self::assertSame( $expected, $request['last'] );
 	}
 
-	protected static function available( array $gateways = array() ): ?array {
+	protected static function available( array $gateways = array() ): mixed {
 		return apply_filters( 'woocommerce_available_payment_gateways', $gateways + WC()->payment_gateways()->payment_gateways() );
 	}
 
