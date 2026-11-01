@@ -185,6 +185,21 @@ final class OrderStrategyTest extends TestCase {
 		}
 	}
 
+	public function test_the_grants_step_throws_when_it_cannot_tell_whether_an_order_table_exists(): void {
+		global $wpdb;
+
+		$fail       = static fn ( string $query ): string => \str_starts_with( \ltrim( $query ), 'SHOW TABLES' ) ? "SELECT * FROM {$wpdb->prefix}dws_lpmwc_missing" : $query;
+		$suppressed = $wpdb->suppress_errors();
+		add_filter( 'query', $fail );
+		try {
+			$this->expectExceptionObject( new \RuntimeException( 'The v1 order grants could not be read.' ) );
+			dws_lpmwc_move_order_grants();
+		} finally {
+			remove_filter( 'query', $fail );
+			$wpdb->suppress_errors( $suppressed );
+		}
+	}
+
 	public function test_a_grants_step_whose_write_fails_keeps_v1s_grants_for_its_retry(): void {
 		$this->use_storage( false, false );
 		$order = $this->create_order();

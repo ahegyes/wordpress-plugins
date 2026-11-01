@@ -148,7 +148,11 @@ function dws_lpmwc_move_order_grants(): void {
 	);
 	foreach ( $tables as $table => $column ) {
 		$wpdb->flush();
-		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The order tables exist only once WooCommerce created them.
+		$listed = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The order tables exist only once WooCommerce created them.
+		if ( null === $listed && '' !== $wpdb->last_error ) {
+			throw new RuntimeException( 'The v1 order grants could not be read.' );
+		}
+		if ( $table !== $listed ) {
 			continue;
 		}
 
