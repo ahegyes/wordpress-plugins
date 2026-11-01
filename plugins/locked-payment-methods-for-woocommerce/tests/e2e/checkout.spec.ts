@@ -81,6 +81,11 @@ test.describe( 'Checkout', () => {
 			params: { force: true },
 		} );
 		cli( 'user', 'delete', String( customer ), '--yes' );
+		// The block checkout and the Store API's checkout leave draft orders, which the next start's order tables check counts as unsynced.
+		cli(
+			'eval',
+			'foreach ( wc_get_orders( array( "status" => "checkout-draft", "limit" => -1 ) ) as $order ) { $order->delete( true ); }'
+		);
 		cli(
 			'option',
 			'update',

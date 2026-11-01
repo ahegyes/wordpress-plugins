@@ -120,9 +120,9 @@ final class UninstallTest extends TestCase {
 		);
 		update_post_meta( $plan, DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
 		update_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod' ) );
-		self::assertTrue( get_role( 'administrator' )?->has_cap( DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS ) );
 
 		try {
+			self::assertTrue( get_role( 'administrator' )?->has_cap( DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS ) );
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
 			wp_cache_flush();
 			wp_roles()->for_site();
