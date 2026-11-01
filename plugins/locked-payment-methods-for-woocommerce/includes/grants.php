@@ -114,7 +114,7 @@ function dws_lpmwc_get_grant_choices( array $granted, int $user_id ): array {
 		if ( ! in_array( $id, $locked, true ) ) {
 			/* translators: %s: payment method title. */
 			$title = sprintf( __( '%s (not locked)', 'locked-payment-methods-for-woocommerce' ), $title );
-		} elseif ( 0 !== $user_id && ! in_array( $id, $granted, true ) && ! dws_lpmwc_is_payment_method_locked( $id, $user_id ) ) {
+		} elseif ( 0 !== $user_id && ! in_array( $id, $granted, true ) && ! dws_lpmwc_should_lock( true, $id, $user_id, 0 ) ) {
 			/* translators: %s: payment method title. */
 			$title = sprintf( __( '%s (unlocked by another rule)', 'locked-payment-methods-for-woocommerce' ), $title );
 		}

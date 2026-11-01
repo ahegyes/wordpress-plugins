@@ -192,9 +192,9 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$lines   = array();
 		foreach ( dws_lpmwc_get_locked_payment_method_ids() as $id ) {
 			$state = match ( true ) {
-				\in_array( $id, $granted, true )                      => __( 'unlocked on the profile', 'locked-payment-methods-for-woocommerce' ),
-				! dws_lpmwc_is_payment_method_locked( $id, $user_id ) => __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ),
-				default                                               => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
+				\in_array( $id, $granted, true )                    => __( 'unlocked on the profile', 'locked-payment-methods-for-woocommerce' ),
+				! dws_lpmwc_should_lock( true, $id, $user_id, 0 ) => __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ),
+				default                                             => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
 			};
 			/* translators: 1: payment method title, 2: the payment method's state for the user. */
 			$lines[] = esc_html( \sprintf( __( '%1$s: %2$s', 'locked-payment-methods-for-woocommerce' ), dws_lpmwc_get_payment_method_title( $id ), $state ) );
