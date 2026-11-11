@@ -10,7 +10,23 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_filter( 'woocommerce_available_payment_gateways', 'dws_lpmwc_remove_locked_payment_methods', 999 );
+if ( 0 < did_action( 'woocommerce_loaded' ) ) {
+	dws_lpmwc_add_woocommerce_safeguards();
+} else {
+	add_action( 'woocommerce_loaded', 'dws_lpmwc_add_woocommerce_safeguards' );
+}
+
+/**
+ * Hooks the safeguards that call WooCommerce.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @return  void
+ */
+function dws_lpmwc_add_woocommerce_safeguards(): void {
+	add_filter( 'woocommerce_available_payment_gateways', 'dws_lpmwc_remove_locked_payment_methods', 999 );
+}
 
 /**
  * Returns whether a safeguard's filtered value relaxes it, which takes an explicit false once the plugin has finished booting.
