@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the getters through which a peer plugin reads the plugin's slug, name and version, so the plugin's classes never become its contract.
+ * Defines the getters through which a peer plugin reads the plugin's slug, name and version.
  *
- * A peer calls them from plugins_loaded on, since it may load before the plugin, and behind function_exists(), since a site below the floors or with a partial build may leave them undefined. Each reads only the plugin's header, so a getter that is defined still answers when a later include fails.
+ * Each reads only the plugin's header, so a getter that is defined still answers when a later include fails.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -25,7 +25,9 @@ function dws_lpmwc_get_plugin_slug(): string {
 }
 
 /**
- * Returns the plugin's name from its header, translated only once init has fired, because WordPress flags translations loaded earlier.
+ * Returns the plugin's name from its header, translated once init has fired.
+ *
+ * WordPress flags translations loaded earlier.
  *
  * @since   2.0.0
  * @version 2.0.0

@@ -167,7 +167,7 @@ function dws_lpmwc_get_int_option( string $key ): int {
 }
 
 /**
- * Returns an option as a string, reading a missing or empty value of an option with a translated default as that default, only after init.
+ * Returns an option as a string, reading a missing or empty value of an option with a translated default as that default.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -206,7 +206,9 @@ function dws_lpmwc_get_list_option( string $key ): array {
 }
 
 /**
- * Returns an option's translated default, which exists only after init, or an empty string for an option without one.
+ * Returns an option's translated default, or an empty string for an option without one.
+ *
+ * Callers read it from init on, because WordPress flags translations loaded earlier.
  *
  * @since   2.0.0
  * @version 2.0.0

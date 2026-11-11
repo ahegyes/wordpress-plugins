@@ -13,7 +13,9 @@ use DeepWebSolutions\LinkedOrders\Plugin;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Returns the plugin's stored data by kind, which covers every option, transient, user meta key and scheduled job under the plugin's prefix, and what v1 stored under its own names: its settings, version rows and notices, the order links' meta and the capabilities.
+ * Returns the plugin's stored data by kind.
+ *
+ * It also covers what v1 stored under its own names.
  *
  * @since   2.0.0
  * @version 2.0.0

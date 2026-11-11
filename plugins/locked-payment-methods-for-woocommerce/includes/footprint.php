@@ -13,7 +13,9 @@ use DeepWebSolutions\LockedPaymentMethods\Plugin;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Returns the plugin's stored data by kind, which covers every option, transient, user meta key and scheduled job under the plugin's prefix, the grants on users, orders, Groups groups and WooCommerce Memberships plans, and what v1 stored under its own names: its settings, version rows, notices, grants and capabilities.
+ * Returns the plugin's stored data by kind.
+ *
+ * It also covers the grants on Groups groups and WooCommerce Memberships plans, and what v1 stored under its own names.
  *
  * @since   2.0.0
  * @version 2.0.0

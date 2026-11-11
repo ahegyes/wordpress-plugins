@@ -29,7 +29,9 @@ function dws_lpmwc_get_migration_steps(): array {
 }
 
 /**
- * Stores each setting the site has not stored yet, autoloaded, from v1's row where it holds a value of the setting's kind and otherwise from the setting's default, and leaves v1's rows in place, so a site that goes back to v1 still finds its settings.
+ * Stores each setting the site has not stored yet.
+ *
+ * It takes v1's row where that holds a value of the setting's kind, and the setting's default otherwise, and leaves v1's rows in place, so a site that goes back to v1 still finds its settings.
  *
  * @since   2.0.0
  * @version 2.0.0

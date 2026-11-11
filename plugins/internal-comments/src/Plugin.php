@@ -16,7 +16,7 @@ use DeepWebSolutions\InternalComments\Scoped\Psr\Log\LoggerInterface as PsrLogge
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Composes the plugin from its logger, scheduler, migrations and components, inside the framework's boot boundary.
+ * Composes the plugin inside the framework's boot boundary.
  *
  * @since   2.0.0
  * @version 2.0.0

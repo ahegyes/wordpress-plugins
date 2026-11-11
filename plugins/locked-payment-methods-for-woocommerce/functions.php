@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the plugin's accessor, boots it on plugins_loaded, unschedules its jobs on deactivation, declares its WooCommerce feature compatibility and loads the files in includes/.
+ * Hooks the plugin into WordPress and loads the files in includes/.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -88,7 +88,9 @@ function dws_lpmwc_deactivate(): void {
 }
 
 /**
- * Declares that the plugin works with WooCommerce's order tables, which its tests cover on both order storages.
+ * Declares that the plugin works with WooCommerce's order tables.
+ *
+ * Each WooCommerce feature flag is declared from evidence, here the tests that cover both order storages.
  *
  * @since   2.0.0
  * @version 2.0.0
