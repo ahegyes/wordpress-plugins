@@ -7,7 +7,7 @@
 		"type": "git",
 		"url": "git+https://github.com/ahegyes/wc-locked-payment-methods.git"
 	},
-	"bugs": "https://github.com/ahegyes/wc-locked-payment-methods/issues",
+	"bugs": "https://github.com/ahegyes/wordpress-plugins/issues",
 	"engines": {
 		"node": ">=26",
 		"npm": ">=11"

@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Report it privately through [GitHub's security advisory form](https://github.com/ahegyes/wc-locked-payment-methods/security/advisories/new), never in a public issue. The first response comes within 7 days.
+Report it privately through [GitHub's security advisory form](https://github.com/ahegyes/wordpress-plugins/security/advisories/new), never in a public issue. The first response comes within 7 days.
 
 ## Scope
 
