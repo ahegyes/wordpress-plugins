@@ -96,6 +96,35 @@ final class UninstallTest extends TestCase {
 	}
 
 	#[RunInSeparateProcess]
+	public function test_a_web_uninstall_whose_engine_fails_ends_with_its_message_and_keeps_the_consent(): void {
+		global $wpdb;
+
+		\define( 'WP_UNINSTALL_PLUGIN', plugin_basename( DWS_LPMWC_FILE ) );
+		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
+		$failing = "DELETE FROM `$wpdb->options` WHERE `option_name` = '" . Plugin::PREFIX . "_revision'";
+		add_filter( 'query', static fn ( string $query ): string => \str_contains( $query, $failing ) ? 'SELECT * FROM dws_lpmwc_missing_table' : $query );
+		add_filter( 'wp_die_handler', static fn (): \Closure => static fn ( string $message, string $title, array $args ): never => throw new \LogicException( $args['response'] . ' ' . $message ) );
+		$wpdb->suppress_errors();
+
+		try {
+			include \dirname( DWS_LPMWC_FILE ) . '/uninstall.php';
+			self::fail( 'The uninstall finished.' );
+		} catch ( \LogicException $died ) {
+			self::assertStringStartsWith( '500 Uninstall could not remove everything: option ' . Plugin::PREFIX . '_revision', $died->getMessage() );
+			self::assertSame( 'yes', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
+		} finally {
+			remove_all_filters( 'query' );
+			delete_option( DWS_LPMWC_OPTION_DELETE_DATA );
+			delete_option( Plugin::PREFIX . '_revision' );
+			wp_cache_flush();
+			wp_roles()->for_site();
+			// The other tests share the database, so the runner stores again what a new site starts with, and the grants act again.
+			dws_lpmwc_plugin()->migrations?->run();
+			do_action( 'wp_loaded' );
+		}
+	}
+
+	#[RunInSeparateProcess]
 	public function test_a_consenting_uninstall_removes_the_grants_v1s_rows_and_the_capabilities(): void {
 		global $wpdb;
 
