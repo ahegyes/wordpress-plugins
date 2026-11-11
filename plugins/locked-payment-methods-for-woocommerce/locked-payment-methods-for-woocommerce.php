@@ -29,16 +29,14 @@ define( 'DWS_LPMWC_FILE', __FILE__ );
 require_once __DIR__ . '/includes/safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
 
 $dws_lpmwc_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( is_readable( $dws_lpmwc_bootstrap ) ) {
-	require_once $dws_lpmwc_bootstrap;
-	Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
-	if ( ! Requirements::check_floors( __FILE__ ) ) {
-		return;
-	}
+if ( ! is_readable( $dws_lpmwc_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+	add_action( 'all_admin_notices', 'dws_lpmwc_render_build_notice' );
+	return;
 }
 
-if ( ! is_readable( $dws_lpmwc_bootstrap ) ) { // The floor gate never ran, so nothing built may load.
-	add_action( 'all_admin_notices', 'dws_lpmwc_render_build_notice' );
+require_once $dws_lpmwc_bootstrap;
+Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
+if ( ! Requirements::check_floors( __FILE__ ) ) {
 	return;
 }
 

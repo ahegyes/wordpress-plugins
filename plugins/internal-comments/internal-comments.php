@@ -28,15 +28,18 @@ define( 'DWS_IC_FILE', __FILE__ );
 require_once __DIR__ . '/includes/safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
 
 $dws_ic_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( is_readable( $dws_ic_bootstrap ) ) {
-	require_once $dws_ic_bootstrap;
-	Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
-	if ( ! Requirements::check_floors( __FILE__ ) ) {
-		return;
-	}
+if ( ! is_readable( $dws_ic_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+	add_action( 'all_admin_notices', 'dws_ic_render_build_notice' );
+	return;
 }
 
-if ( ! is_readable( $dws_ic_bootstrap ) || ! is_readable( __DIR__ . '/assets/build/meta-box.asset.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
+require_once $dws_ic_bootstrap;
+Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
+if ( ! Requirements::check_floors( __FILE__ ) ) {
+	return;
+}
+
+if ( ! is_readable( __DIR__ . '/assets/build/meta-box.asset.php' ) ) { // The plugin reads its build tree unchecked, so a build that did not write it must not load.
 	add_action( 'all_admin_notices', 'dws_ic_render_build_notice' );
 	return;
 }
