@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -85,5 +86,21 @@ final class PartialDeployTest extends TestCase {
 
 		\unlink( $log );
 		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'no' );
+	}
+
+	public function test_a_build_error_is_logged_with_its_location_once_an_hour(): void {
+		$message = 'A partial deploy ' . \uniqid() . '.';
+		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-throws.php';
+		\file_put_contents( $include, "<?php\nthrow new RuntimeException( '$message' );\n" );
+		try {
+			$first  = self::request( 'echo 1;' );
+			$second = self::request( 'echo 1;' );
+		} finally {
+			\unlink( $include );
+			delete_transient( Plugin::PREFIX . '_build_error_' . \md5( $message ) );
+		}
+
+		self::assertStringContainsString( "did not finish loading: $message in $include:2", $first['output'] );
+		self::assertStringNotContainsString( 'did not finish loading', $second['output'] );
 	}
 }
