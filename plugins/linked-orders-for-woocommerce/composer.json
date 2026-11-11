@@ -56,7 +56,7 @@
 		"automattic/jetpack-changelogger": "^7",
 		"humbug/php-scoper": "^0.18",
 		"johnpbloch/wordpress-core": "^7.1",
-		"laravel/serializable-closure": "^2.1",
+		"laravel/serializable-closure": "^2.2",
 		"php-di/php-di": "^7.1.1",
 		"php-stubs/woocommerce-stubs": "^11.2",
 		"phpunit/phpunit": "^13",

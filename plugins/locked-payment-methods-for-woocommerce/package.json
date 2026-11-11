@@ -26,27 +26,42 @@
 		"setup": "npm run packages-install:all && npm run build && npm run wp-env:start",
 		"packages-install:all": "composer packages-install && npm run packages-install",
 		"packages-update:all": "composer packages-update && npm run packages-update && npm run packages-update:wp",
+
 		"packages-install": "npm install",
 		"packages-update": "npm update",
 		"packages-update:wp": "wp-scripts packages-update",
-		"wp-env": "wp-env",
-		"wp-env:start": "wp-env start",
-		"wp-env:stop": "wp-env stop",
-		"wp-env:update": "wp-env start --update",
-		"wp-env:destroy": "wp-env destroy",
-		"wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
-		"wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
-		"wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
-		"wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
+
 		"build": "exit 0",
+
+		"format": "npm run format:scripts && npm run format:styles",
+		"format:scripts": "wp-scripts format tests/EndToEnd eslint.config.mjs stylelint.config.js playwright.config.js",
+		"format:styles": "npm run lint:styles -- --fix",
+		"format:all": "( composer format:php || [ $? -eq 1 ] ) && npm run format",
+
 		"lint": "npm run lint:scripts && npm run lint:styles && npm run lint:types",
 		"lint:scripts": "wp-scripts lint-js tests/EndToEnd eslint.config.mjs stylelint.config.js playwright.config.js",
 		"lint:styles": "wp-scripts lint-style 'assets/src/**/*.scss' --allow-empty-input",
 		"lint:types": "tsc",
-		"audit": "composer audit && npm audit",
+		"lint:all": "composer lint:php && npm run lint",
+
+		"wp-env:start": "wp-env start",
+		"wp-env:stop": "wp-env stop",
+		"wp-env:update": "wp-env start --update",
+		"wp-env:destroy": "wp-env destroy",
+
+		"wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
+		"wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
+		"wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
+		"wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
+
+		"audit": "composer audit --locked --abandoned=report && npm audit --omit=dev --audit-level=high",
 		"audit:fix": "npm audit fix",
 		"check:engines": "wp-scripts check-engines",
 		"check:licenses": "wp-scripts check-licenses",
-		"test:e2e": "playwright test --config=playwright.config.js"
+
+		"test:e2e": "playwright test --config=playwright.config.js",
+		"test:all": "composer test && npm run test:e2e",
+
+		"quality-check:all": "composer quality-check && npm run lint && npm run test:e2e"
 	}
 }
