@@ -82,15 +82,15 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 
 			$fields[] = array(
 				'type'  => 'title',
-				'id'    => "dws-wc-lpm_{$group}",
+				'id'    => "dws-wc-lpm_$group",
 				'title' => $titles[ $group ],
 			);
 			foreach ( $group_fields as $id => $field ) {
-				$fields[] = array( 'id' => $keys[ $id ] ?? "dws-wc-lpm_{$group}_{$id}" ) + $field; // A field a v1 callback adds keeps the option v1 stored it under.
+				$fields[] = array( 'id' => $keys[ $id ] ?? "dws-wc-lpm_{$group}_$id" ) + $field; // A field a v1 callback adds keeps the option v1 stored it under.
 			}
 			$fields[] = array(
 				'type' => 'sectionend',
-				'id'   => "dws-wc-lpm_{$group}",
+				'id'   => "dws-wc-lpm_$group",
 			);
 		}
 

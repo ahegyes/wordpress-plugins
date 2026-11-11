@@ -157,5 +157,5 @@ function dws_lowc_find_setting( string $field_id, ?string $group ): ?array {
 		$group = substr( $group, 0, -9 );
 	}
 
-	return in_array( $group, DWS_LOWC_SETTINGS_GROUPS, true ) ? array( $group, $field_id, "dws-lowc_{$group}_{$field_id}" ) : null;
+	return in_array( $group, DWS_LOWC_SETTINGS_GROUPS, true ) ? array( $group, $field_id, "dws-lowc_{$group}_$field_id" ) : null;
 }

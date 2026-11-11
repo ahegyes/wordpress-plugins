@@ -48,7 +48,7 @@ function dws_lpmwc_add_settings(): void {
 			}
 
 			$default = DWS_LPMWC_OPTION_DEFAULTS[ $key ];
-			$v1      = get_option( "dws-wc-lpm_{$group}_{$id}", null );
+			$v1      = get_option( "dws-wc-lpm_{$group}_$id", null );
 			if ( is_array( $default ) ) {
 				$value = is_array( $v1 ) ? array_values( array_filter( $v1, 'is_string' ) ) : $default;
 			} else {
