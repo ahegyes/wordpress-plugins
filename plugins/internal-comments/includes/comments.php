@@ -74,7 +74,7 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
  */
 function dws_ic_is_internal_comment( $comment ): ?bool {
 	$comment = dws_ic_get_comment( $comment );
-	return null === $comment ? null : DWS_IC_COMMENT_TYPE === $comment->comment_type;
+	return is_null( $comment ) ? null : DWS_IC_COMMENT_TYPE === $comment->comment_type;
 }
 
 /**
@@ -242,7 +242,7 @@ function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $sta
  */
 function dws_ic_is_private_comment( $comment ): ?bool {
 	$owners = dws_ic_get_private_comment_owners( $comment );
-	return null === $owners ? null : array() !== $owners;
+	return is_null( $owners ) ? null : array() !== $owners;
 }
 
 /**
@@ -257,15 +257,18 @@ function dws_ic_is_private_comment( $comment ): ?bool {
  */
 function dws_ic_get_private_comment_owners( $comment ): ?array {
 	$comment = dws_ic_get_comment( $comment );
-	if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+	if ( is_null( $comment ) || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
 		return null;
 	}
 
 	$owners = array();
-	for ( $node = $comment; null !== $node; $node = dws_ic_get_comment( $node->comment_parent ) ) {
+	$node   = $comment;
+	while ( ! is_null( $node ) ) {
 		if ( true === filter_var( get_comment_meta( (int) $node->comment_ID, DWS_IC_META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ) {
 			$owners[] = (int) $node->user_id;
 		}
+
+		$node = dws_ic_get_comment( $node->comment_parent );
 	}
 
 	return $owners;

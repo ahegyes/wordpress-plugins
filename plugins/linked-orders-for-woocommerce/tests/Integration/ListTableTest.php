@@ -318,7 +318,7 @@ final class ListTableTest extends TestCase {
 		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$args = apply_filters(
 				'woocommerce_order_list_table_prepare_items_query_args',
-				$others + ( null === $found ? array() : array( 'id' => $found ) ) + array(
+				$others + ( \is_null( $found ) ? array() : array( 'id' => $found ) ) + array(
 					'type'    => 'shop_order',
 					'status'  => 'any',
 					'limit'   => -1,
@@ -332,7 +332,7 @@ final class ListTableTest extends TestCase {
 
 		$vars = apply_filters(
 			'request',
-			$others + ( null === $found ? array() : array( 'post__in' => $found ) ) + array(
+			$others + ( \is_null( $found ) ? array() : array( 'post__in' => $found ) ) + array(
 				'post_type'      => 'shop_order',
 				'post_status'    => 'any',
 				'posts_per_page' => -1,

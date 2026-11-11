@@ -247,7 +247,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function enqueue_list_assets( string $hook_suffix ): void {
 		$screen    = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		$post_type = null === $screen || '' === $screen->post_type ? 'post' : $screen->post_type;
+		$post_type = \is_null( $screen ) || '' === $screen->post_type ? 'post' : $screen->post_type;
 		if ( 1 === \preg_match( '/^woocommerce_page_wc-orders(?:--(.+))?$/', $hook_suffix, $matches ) && ! isset( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tells the list from the edit screen.
 			$post_type = $matches[1] ?? 'shop_order';
 		} elseif ( 'edit.php' !== $hook_suffix ) {
@@ -543,7 +543,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function add_privacy_field( string $html, \WP_Comment $comment ): string {
 		$is_private = dws_ic_is_private_comment( $comment );
-		if ( null === $is_private || ( ! $is_private && ! dws_ic_are_enabled_private_comments() ) ) {
+		if ( \is_null( $is_private ) || ( ! $is_private && ! dws_ic_are_enabled_private_comments() ) ) {
 			return $html;
 		}
 

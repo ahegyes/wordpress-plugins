@@ -33,7 +33,7 @@ const DWS_LOWC_SETTINGS_GROUPS = array( 'general', 'plugin' );
  */
 function dws_lowc_get_raw_setting( string $field_id, ?string $group = null ) {
 	$field = dws_lowc_find_setting( $field_id, $group );
-	return null === $field ? null : get_option( $field[2], null );
+	return is_null( $field ) ? null : get_option( $field[2], null );
 }
 
 /**
@@ -49,7 +49,7 @@ function dws_lowc_get_raw_setting( string $field_id, ?string $group = null ) {
  */
 function dws_lowc_get_validated_setting( string $field_id, ?string $group = null ) {
 	$field = dws_lowc_find_setting( $field_id, $group );
-	if ( null === $field ) {
+	if ( is_null( $field ) ) {
 		return null;
 	}
 
@@ -67,7 +67,7 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
 	 * @param       string $field_id The field's v1 id.
 	 */
 	$value = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'dws_lowc/settings/validated_value' );
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		/**
 		 * Filters the validated value of a setting read through the section, after its group's filter.
 		 *
@@ -108,7 +108,7 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
  */
 function dws_lowc_validate_setting( $value, string $field_id, ?string $group = null ) {
 	$field = dws_lowc_find_setting( $field_id, $group );
-	switch ( null === $field ? null : $field[2] ) {
+	switch ( is_null( $field ) ? null : $field[2] ) {
 		case DWS_LOWC_OPTION_MAX_DEPTH:
 			return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 1, 1 );
 		case DWS_LOWC_OPTION_AUTOCOMPLETE:
@@ -145,7 +145,7 @@ function dws_lowc_get_max_depth(): int {
  * @return  array{0: string, 1: string, 2: string}|null
  */
 function dws_lowc_find_setting( string $field_id, ?string $group ): ?array {
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		if ( false === strpos( $field_id, '/' ) ) {
 			return null;
 		}

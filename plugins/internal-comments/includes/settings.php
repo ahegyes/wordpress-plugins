@@ -36,7 +36,7 @@ const DWS_IC_SETTINGS_GROUPS = array(
  */
 function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
 	$field = dws_ic_find_setting( $field_id, $group );
-	if ( null === $field ) {
+	if ( is_null( $field ) ) {
 		return null;
 	}
 
@@ -57,7 +57,7 @@ function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
  */
 function dws_ic_get_validated_setting( string $field_id, ?string $group = null ) {
 	$field = dws_ic_find_setting( $field_id, $group );
-	if ( null === $field ) {
+	if ( is_null( $field ) ) {
 		return null;
 	}
 
@@ -84,7 +84,7 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 	 * @param       string $field_id The field's v1 id.
 	 */
 	$value = apply_filters_deprecated( "internal_comments/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'dws_ic/settings/validated_value' );
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		/**
 		 * Filters the validated value of a setting read through the settings page, after its group's filter.
 		 *
@@ -150,7 +150,7 @@ function dws_ic_are_enabled_private_comments(): bool {
  * @return  array{0: string, 1: string}|null
  */
 function dws_ic_find_setting( string $field_id, ?string $group ): ?array {
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		if ( false === strpos( $field_id, '/' ) ) {
 			return null;
 		}

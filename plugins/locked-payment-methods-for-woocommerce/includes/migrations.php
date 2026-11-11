@@ -52,7 +52,7 @@ function dws_lpmwc_add_settings(): void {
 			if ( is_array( $default ) ) {
 				$value = is_array( $v1 ) ? array_values( array_filter( $v1, 'is_string' ) ) : $default;
 			} else {
-				$value = wc_bool_to_string( null === $v1 ? $default : ( filter_var( $v1, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? $default ) ); // filter_var() reads null as false, so an absent row takes the default before it.
+				$value = wc_bool_to_string( is_null( $v1 ) ? $default : ( filter_var( $v1, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? $default ) ); // filter_var() reads null as false, so an absent row takes the default before it.
 			}
 
 			if ( ! add_option( $key, $value, '', true ) ) {
@@ -151,7 +151,7 @@ function dws_lpmwc_move_order_grants(): void {
 	foreach ( $tables as $table => $column ) {
 		$wpdb->flush();
 		$listed = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The order tables exist only once WooCommerce created them.
-		if ( null === $listed && '' !== $wpdb->last_error ) {
+		if ( is_null( $listed ) && '' !== $wpdb->last_error ) {
 			throw new RuntimeException( 'The v1 order grants could not be read.' );
 		}
 		if ( $table !== $listed ) {

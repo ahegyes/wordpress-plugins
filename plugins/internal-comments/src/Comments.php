@@ -70,12 +70,12 @@ final class Comments implements ComponentInterface {
 	 */
 	public function keep_inserted_internal( int|string $comment_id ): void {
 		$replaced = $this->put_back( $comment_id );
-		if ( null === $replaced ) {
+		if ( \is_null( $replaced ) ) {
 			return;
 		}
 
 		$comment = dws_ic_get_comment( $comment_id );
-		if ( null !== $comment ) {
+		if ( ! \is_null( $comment ) ) {
 			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, $replaced, $comment );
 		}
 	}
@@ -98,7 +98,7 @@ final class Comments implements ComponentInterface {
 		}
 
 		$stored = dws_ic_get_comment( (int) $comment->comment_ID );
-		if ( null !== $stored && DWS_IC_COMMENT_STATUS === $stored->comment_approved ) {
+		if ( ! \is_null( $stored ) && DWS_IC_COMMENT_STATUS === $stored->comment_approved ) {
 			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, (string) $new_status, $stored );
 		}
 	}
@@ -275,7 +275,7 @@ final class Comments implements ComponentInterface {
 		}
 
 		$comment = dws_ic_get_comment( $comment_id );
-		return null !== $comment && get_current_user_id() !== (int) $comment->user_id ? false : $check;
+		return ! \is_null( $comment ) && get_current_user_id() !== (int) $comment->user_id ? false : $check;
 	}
 
 	// endregion
@@ -298,7 +298,7 @@ final class Comments implements ComponentInterface {
 		global $wpdb;
 
 		$comment = dws_ic_get_comment( $comment_id );
-		if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( DWS_IC_COMMENT_STATUS, 'trash', 'post-trashed' ), true ) ) {
+		if ( \is_null( $comment ) || DWS_IC_COMMENT_TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( DWS_IC_COMMENT_STATUS, 'trash', 'post-trashed' ), true ) ) {
 			return null;
 		}
 

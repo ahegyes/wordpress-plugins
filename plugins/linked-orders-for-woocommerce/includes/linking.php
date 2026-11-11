@@ -44,7 +44,7 @@ function dws_lowc_get_order_node( $order ): ?DWS_Order_Node {
  */
 function dws_lowc_is_root_order( $order ): ?bool {
 	$node = dws_lowc_get_order_node( $order );
-	return null === $node ? null : 0 === $node->get_depth();
+	return is_null( $node ) ? null : 0 === $node->get_depth();
 }
 
 /**
@@ -63,7 +63,7 @@ function dws_lowc_is_root_order( $order ): ?bool {
 function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 	$parent = dws_lowc_get_order_node( $parent_id );
 	$child  = dws_lowc_get_order_node( $child_id );
-	if ( null === $parent || null === $child ) {
+	if ( is_null( $parent ) || is_null( $child ) ) {
 		return null;
 	}
 
@@ -114,7 +114,7 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
  */
 function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
 	$node = dws_lowc_get_order_node( $order );
-	while ( null !== $node && $node->has_parent() ) {
+	while ( ! is_null( $node ) && $node->has_parent() ) {
 		$node = $node->get_parent();
 	}
 
@@ -133,7 +133,7 @@ function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
  */
 function dws_lowc_get_orders_tree( $order ): ?array {
 	$node = dws_lowc_get_order_node( $order );
-	if ( null === $node ) {
+	if ( is_null( $node ) ) {
 		return null;
 	}
 

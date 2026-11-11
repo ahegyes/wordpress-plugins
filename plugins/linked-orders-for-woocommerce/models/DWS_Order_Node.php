@@ -112,7 +112,7 @@ final class DWS_Order_Node {
 	public function __construct( mixed $order ) {
 		$order     = wc_get_order( $order );
 		$post_type = $order instanceof WC_Order && true === dws_lowc_is_supported_order( $order ) ? get_post_type_object( $order->get_type() ) : null;
-		if ( ! $order instanceof WC_Order || null === $post_type ) {
+		if ( ! $order instanceof WC_Order || is_null( $post_type ) ) {
 			throw new InvalidArgumentException( 'The order is missing or of an unsupported type.' );
 		}
 
@@ -217,7 +217,7 @@ final class DWS_Order_Node {
 	 * @return  bool
 	 */
 	public function has_parent(): bool {
-		return null !== $this->get_parent();
+		return ! is_null( $this->get_parent() );
 	}
 
 	/**

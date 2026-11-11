@@ -43,7 +43,7 @@ final class MetaBox implements ComponentInterface {
 	 */
 	public function add_meta_box( string $screen_id, mixed $post_or_order ): void {
 		$node = current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) && current_user_can( DWS_LOWC_CAP_SEE_METABOX ) ? dws_lowc_get_order_node( $post_or_order ) : null;
-		if ( null === $node ) {
+		if ( \is_null( $node ) ) {
 			return;
 		}
 
@@ -63,14 +63,14 @@ final class MetaBox implements ComponentInterface {
 	 */
 	public function render_meta_box( mixed $post_or_order ): void {
 		$node = dws_lowc_get_order_node( $post_or_order );
-		if ( null === $node ) {
+		if ( \is_null( $node ) ) {
 			return;
 		}
 
 		$parent     = $node->get_parent();
 		$can_create = $node->can_create_child();
 		$type_name  = dws_lowc_get_singular_name( $node->get_post_type() );
-		if ( null !== $parent ) {
+		if ( ! \is_null( $parent ) ) {
 			?>
 			<div class="dws-linked-orders__parent">
 				<?php echo esc_html_x( 'Parent', 'metabox', 'linked-orders-for-woocommerce' ); ?>:

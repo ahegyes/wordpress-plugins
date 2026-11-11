@@ -213,7 +213,7 @@ final class RestRoutes implements ComponentInterface {
 		}
 
 		$parent = 0 === $parent_id ? null : dws_ic_get_comment( $parent_id );
-		if ( 0 !== $parent_id && ( null === $parent || DWS_IC_COMMENT_TYPE !== $parent->comment_type || (int) $parent->comment_post_ID !== $post_id || ! current_user_can( 'see_dws_internal_comment', $parent_id ) ) ) {
+		if ( 0 !== $parent_id && ( \is_null( $parent ) || DWS_IC_COMMENT_TYPE !== $parent->comment_type || (int) $parent->comment_post_ID !== $post_id || ! current_user_can( 'see_dws_internal_comment', $parent_id ) ) ) {
 			return new \WP_Error( 'dws_ic_invalid_parent', __( 'The comment you are replying to is not one of this item\'s internal comments.', 'internal-comments' ), array( 'status' => 400 ) );
 		}
 
@@ -252,7 +252,7 @@ final class RestRoutes implements ComponentInterface {
 				'comment_meta'    => array( DWS_IC_META_PRIVATE => $private ? 'yes' : 'no' ),
 			)
 		);
-		if ( null === $comment_id ) {
+		if ( \is_null( $comment_id ) ) {
 			return new \WP_Error( 'dws_ic_not_stored', __( 'The internal comment could not be stored. Please try again.', 'internal-comments' ), array( 'status' => 500 ) );
 		}
 
@@ -274,7 +274,7 @@ final class RestRoutes implements ComponentInterface {
 		return new \WP_REST_Response(
 			array(
 				'id'      => absint( $request['id'] ),
-				'content' => null === $comment ? '' : $comment->comment_content,
+				'content' => \is_null( $comment ) ? '' : $comment->comment_content,
 			)
 		);
 	}
@@ -297,7 +297,7 @@ final class RestRoutes implements ComponentInterface {
 		}
 
 		$stored  = dws_ic_get_comment( $comment_id );
-		$comment = null === $stored ? array() : $stored->to_array();
+		$comment = \is_null( $stored ) ? array() : $stored->to_array();
 		$data    = array(
 			'comment_ID'      => $comment_id,
 			'comment_content' => $content,
@@ -355,7 +355,7 @@ final class RestRoutes implements ComponentInterface {
 			return new \WP_Error( 'dws_ic_not_updated', __( 'The internal comment could not be updated. Please try again.', 'internal-comments' ), array( 'status' => 500 ) );
 		}
 
-		return $this->respond( null === $stored ? 0 : (int) $stored->comment_post_ID );
+		return $this->respond( \is_null( $stored ) ? 0 : (int) $stored->comment_post_ID );
 	}
 
 	/**
@@ -371,7 +371,7 @@ final class RestRoutes implements ComponentInterface {
 	public function trash_comment( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$comment_id = absint( $request['id'] );
 		$stored     = dws_ic_get_comment( $comment_id );
-		$comment    = null === $stored ? array() : $stored->to_array();
+		$comment    = \is_null( $stored ) ? array() : $stored->to_array();
 
 		/**
 		 * Fires before the meta box trashes an internal comment.
@@ -398,7 +398,7 @@ final class RestRoutes implements ComponentInterface {
 			return new \WP_Error( 'dws_ic_not_trashed', __( 'The internal comment could not be moved to the trash. Please try again.', 'internal-comments' ), array( 'status' => 500 ) );
 		}
 
-		return $this->respond( null === $stored ? 0 : (int) $stored->comment_post_ID );
+		return $this->respond( \is_null( $stored ) ? 0 : (int) $stored->comment_post_ID );
 	}
 
 	// endregion

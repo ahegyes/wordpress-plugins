@@ -428,7 +428,7 @@ function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked
 function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
 	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
-	return null === $setting ? null : get_option( $setting['key'], null );
+	return is_null( $setting ) ? null : get_option( $setting['key'], null );
 }
 
 /**
@@ -464,7 +464,7 @@ function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = nul
 function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
 	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
-	return null === $setting ? null : dws_lpmwc_validate_v1_setting( $value, $setting['key'] );
+	return is_null( $setting ) ? null : dws_lpmwc_validate_v1_setting( $value, $setting['key'] );
 }
 
 /**
@@ -495,7 +495,7 @@ function dws_lpmwc_get_validated_general_setting( string $field_id ) {
  * @return  array{group: string, field: string, key: string}|null
  */
 function dws_lpmwc_find_v1_setting( string $field_id, ?string $group ): ?array {
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		$parts = explode( '/', $field_id, 2 );
 		if ( 2 !== count( $parts ) ) {
 			return null;
@@ -504,7 +504,7 @@ function dws_lpmwc_find_v1_setting( string $field_id, ?string $group ): ?array {
 	}
 
 	$key = DWS_LPMWC_V1_SETTINGS[ $group ][ $field_id ] ?? null;
-	return null === $key ? null : array(
+	return is_null( $key ) ? null : array(
 		'group' => $group,
 		'field' => $field_id,
 		'key'   => $key,
@@ -524,7 +524,7 @@ function dws_lpmwc_find_v1_setting( string $field_id, ?string $group ): ?array {
  */
 function dws_lpmwc_read_v1_setting( string $field_id, ?string $group ) {
 	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		/**
 		 * Filters a setting's value, by its group-prefixed v1 id, before its group reads it.
 		 *
@@ -535,13 +535,13 @@ function dws_lpmwc_read_v1_setting( string $field_id, ?string $group ) {
 		 * @param       mixed  $value    Null, or the value a callback answers.
 		 * @param       string $field_id v1's id of the setting, prefixed with its group and a slash.
 		 */
-		$value = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value', array( null, $field_id ), '2.0.0', null === $setting ? 'get_option' : 'option_' . $setting['key'] );
-		if ( null !== $value ) {
+		$value = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value', array( null, $field_id ), '2.0.0', is_null( $setting ) ? 'get_option' : 'option_' . $setting['key'] );
+		if ( ! is_null( $value ) ) {
 			return $value;
 		}
 	}
 
-	return null === $setting ? null : dws_lpmwc_apply_v1_setting_filter( dws_lpmwc_validate_v1_setting( get_option( $setting['key'], null ), $setting['key'] ), $setting['group'], $setting['field'], 'option_' . $setting['key'] );
+	return is_null( $setting ) ? null : dws_lpmwc_apply_v1_setting_filter( dws_lpmwc_validate_v1_setting( get_option( $setting['key'], null ), $setting['key'] ), $setting['group'], $setting['field'], 'option_' . $setting['key'] );
 }
 
 /**

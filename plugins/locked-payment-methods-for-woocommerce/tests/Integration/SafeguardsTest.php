@@ -334,7 +334,7 @@ final class SafeguardsTest extends TestCase {
 	#[DataProvider( 'floors' )]
 	public function test_the_lock_holds_and_nothing_relaxes_it_while_the_plugin_cannot_boot( ?string $header, string $expected ): void {
 		$source = (string) \file_get_contents( DWS_LPMWC_FILE );
-		if ( null !== $header ) {
+		if ( ! \is_null( $header ) ) {
 			\file_put_contents( DWS_LPMWC_FILE, (string) \preg_replace( '/^(\s*\*\s*' . \preg_quote( $header, '/' ) . ':\s*).*$/m', '${1}99.0', $source ) );
 		}
 
@@ -376,7 +376,7 @@ final class SafeguardsTest extends TestCase {
 		$GLOBALS['wp']->query_vars['order-pay'] = (string) $order_id;
 		set_query_var( 'order-pay', (string) $order_id );
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
-		if ( null !== $key ) {
+		if ( ! \is_null( $key ) ) {
 			$_GET['key'] = $key;
 		}
 	}

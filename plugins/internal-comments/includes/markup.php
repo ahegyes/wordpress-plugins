@@ -46,7 +46,7 @@ function dws_ic_print_comments_list( int $post_id ): void {
 	}
 
 	$post_type = get_post_type_object( (string) dws_ic_get_post_type( $post_id ) );
-	$singular  = null === $post_type ? null : $post_type->labels->singular_name;
+	$singular  = is_null( $post_type ) ? null : $post_type->labels->singular_name;
 	?>
 	<p class="dws-internal-comments__empty">
 		<?php

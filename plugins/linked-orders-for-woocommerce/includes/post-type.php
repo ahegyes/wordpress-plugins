@@ -90,7 +90,7 @@ function dws_lowc_is_supported_order( $order ): ?bool {
  */
 function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_order', ?WC_Order $order = null ): array {
 	$statuses   = array_map( array( OrderUtil::class, 'remove_status_prefix' ), array_keys( wc_get_order_statuses() ) );
-	$order_type = null === $order ? $order_type : $order->get_type();
+	$order_type = is_null( $order ) ? $order_type : $order->get_type();
 
 	/**
 	 * Filters the statuses an order must have for a child to be created from it.

@@ -41,7 +41,7 @@ final class DWS_Internal_Comment {
 	 */
 	public function __construct( $comment ) {
 		$comment = dws_ic_get_comment( $comment );
-		if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+		if ( is_null( $comment ) || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
 			throw new InvalidArgumentException( 'The comment is not an internal comment.' );
 		}
 
