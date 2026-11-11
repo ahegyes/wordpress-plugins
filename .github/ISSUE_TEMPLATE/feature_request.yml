@@ -8,6 +8,8 @@ body:
       label: Target plugin (or scaffold)
       options:
         - linked-orders-for-woocommerce
+        - internal-comments
+        - locked-payment-methods-for-woocommerce
         - Monorepo scaffold (root composer/npm scripts, wp-env, CI workflows)
         - New plugin proposal
     validations:
@@ -18,10 +20,10 @@ body:
     attributes:
       label: Target area
       options:
-        - Plugin runtime (components, framework wiring, settings, hooks)
+        - Runtime (boot, components, framework wiring)
         - Composer scoping pipeline
         - Changelog tooling
-        - CI workflows
+        - CI workflows (.github/workflows/)
         - wp-env / integration / E2E test infrastructure
         - Documentation
         - New area / unsure
