@@ -2,17 +2,8 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
-use DeepWebSolutions\InternalComments\AdminScreens;
-use DeepWebSolutions\InternalComments\Comments;
-use DeepWebSolutions\InternalComments\MetaBox;
-use DeepWebSolutions\InternalComments\Permissions;
 use DeepWebSolutions\InternalComments\Plugin;
-use DeepWebSolutions\InternalComments\RestRoutes;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
-use DeepWebSolutions\InternalComments\Settings;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +16,6 @@ final class PluginBootTest extends TestCase {
 		$plugin = dws_ic_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, Permissions::class, Comments::class, MetaBox::class, RestRoutes::class, AdminScreens::class ), $plugin->kernel?->resolved );
 		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 

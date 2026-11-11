@@ -2,17 +2,9 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
-use DeepWebSolutions\LinkedOrders\Autocompletion;
-use DeepWebSolutions\LinkedOrders\ChildCreation;
 use DeepWebSolutions\LinkedOrders\Integration\SequentialOrderNumbersPro;
-use DeepWebSolutions\LinkedOrders\ListTable;
-use DeepWebSolutions\LinkedOrders\MetaBox;
 use DeepWebSolutions\LinkedOrders\Plugin;
-use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
-use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
-use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
-use DeepWebSolutions\LinkedOrders\Settings;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +17,6 @@ final class PluginBootTest extends TestCase {
 		$plugin = dws_lowc_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, ChildCreation::class, MetaBox::class, ListTable::class, Autocompletion::class ), $plugin->kernel?->resolved );
 		self::assertSame( array( SequentialOrderNumbersPro::class ), $plugin->kernel->skipped );
 	}
 

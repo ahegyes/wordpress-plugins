@@ -187,7 +187,7 @@ final class Plugin {
 	 */
 	protected function compose(): bool {
 		$this->scheduler->register_hooks(); // Before the WooCommerce check, so the plugin's recurring WP-Cron events keep their schedules while it is blocked.
-		if ( ! ( new WooCommerceRequirement( DWS_LOWC_FILE ) )->check() ) {
+		if ( ! WooCommerceRequirement::check( DWS_LOWC_FILE ) ) {
 			return false;
 		}
 

@@ -13,13 +13,13 @@
         "npm": ">=11"
     },
     "devDependencies": {
-        "@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#8d53efd292e4abee4a9c57b0e379434f54bedbe9",
+        "@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#b107001cce9f2960495d9d50481c8540d228f60c",
         "@axe-core/playwright": "^4.14.0",
         "@playwright/test": "^1.64.1",
-        "@types/node": "^26.6.5",
-        "@wordpress/e2e-test-utils-playwright": "^3.1.0",
-        "@wordpress/env": "^12.0.0",
-        "@wordpress/scripts": "^37.0.0",
+        "@types/node": "^26.6.6",
+        "@wordpress/e2e-test-utils-playwright": "^3.2.0",
+        "@wordpress/env": "^12.1.0",
+        "@wordpress/scripts": "^37.1.0",
         "typescript": "^6.0.3"
     },
     "scripts": {
@@ -39,7 +39,7 @@
         "wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
         "wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
         "build": "exit 0",
-        "lint:scripts": "wp-scripts lint-js tests/e2e",
+        "lint:scripts": "wp-scripts lint-js tests/EndToEnd",
         "lint:styles": "wp-scripts lint-style 'assets/src/**/*.scss' --allow-empty-input",
         "lint:types": "tsc",
         "audit": "composer audit && npm audit",

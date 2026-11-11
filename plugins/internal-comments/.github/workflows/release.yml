@@ -38,11 +38,13 @@ jobs:
   release:
     name: Release
     needs: slug
-    # A reusable workflow can't elevate above the caller's token; grant the provenance check's and the GitHub Release's scopes here.
+    # A reusable workflow cannot raise the caller's token, so this job grants every scope the release's jobs declare.
     permissions:
       actions: read
+      attestations: write
       contents: write
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-release.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+      id-token: write
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-release.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       project-path: '.'
       plugin-slug: ${{ needs.slug.outputs.slug }}

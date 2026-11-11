@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-version: '8.5'
@@ -33,7 +33,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       project-path: plugins/${{ matrix.plugin }}
       scripts: '["lint:scripts", "lint:styles", "lint:types"]'
@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       project-path: plugins/${{ matrix.plugin }}
 
@@ -56,7 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-versions: '["7.4"]'

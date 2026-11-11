@@ -152,7 +152,7 @@ final class Permissions implements ComponentInterface {
 	 */
 	public function exclude_from_xml_rpc( \WP_Comment_Query $query ): void {
 		// XML-RPC's wp.getComments takes no type from its caller, so a query naming the type is one of the plugin's own.
-		if ( \defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST && ! dws_ic_query_names_internal_type( $query->query_vars ) ) {
+		if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! dws_ic_query_names_internal_type( $query->query_vars ) ) {
 			$query->query_vars['type__not_in'] = dws_ic_exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 		}
 	}

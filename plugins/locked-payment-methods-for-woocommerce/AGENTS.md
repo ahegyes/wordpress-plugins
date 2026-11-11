@@ -41,7 +41,7 @@ composer test:integration    # starts .wp-env.tests.json, then runs test:integra
 composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
 composer changelog:add       # stages an entry in changelog/; composer changelog:write, at release, also syncs readme.txt
 npm run setup                # both installs, then the development site
-npm run lint:scripts         # ESLint over tests/e2e, beside lint:types (tsc); the plugin builds no scripts or styles
+npm run lint:scripts         # ESLint over tests/EndToEnd, beside lint:types (tsc); the plugin builds no scripts or styles
 npm run test:e2e             # Playwright on .wp-env.tests.json, starting it if needed
 ```
 

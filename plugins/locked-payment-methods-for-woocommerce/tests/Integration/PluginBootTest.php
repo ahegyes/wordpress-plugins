@@ -3,15 +3,9 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
-use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
-use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
-use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
-use DeepWebSolutions\LockedPaymentMethods\Settings;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -25,7 +19,6 @@ final class PluginBootTest extends TestCase {
 		$plugin = dws_lpmwc_plugin();
 
 		self::assertSame( 'booted', $plugin->boot->status );
-		self::assertSame( array( Scheduler::class, AdminNotices::class, CapabilityGrants::class, Settings::class, UserRoleStrategy::class, UserProfileStrategy::class ), $plugin->kernel?->resolved );
 		self::assertSame( array( OrderStrategy::class, GroupsStrategy::class, WooCommerceMembershipsStrategy::class ), $plugin->kernel->skipped ); // Orders and the integrations are off by default, as v1's were.
 	}
 

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -78,7 +79,8 @@ final class UserRoleStrategyTest extends TestCase {
 	}
 
 	public function test_the_booted_plugin_runs_the_strategy(): void {
-		self::assertContains( UserRoleStrategy::class, dws_lpmwc_plugin()->kernel?->resolved ?? array() );
+		self::assertContains( UserRoleStrategy::class, Plugin::COMPONENTS );
+		self::assertNotContains( UserRoleStrategy::class, dws_lpmwc_plugin()->kernel?->skipped ?? array( UserRoleStrategy::class ) );
 	}
 
 	public function test_only_a_user_with_a_full_access_role_is_unlocked(): void {

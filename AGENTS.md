@@ -11,7 +11,7 @@ wordpress-plugins/
 │   ├── internal-comments/                Internal Comments → wp-internal-comments, ports 8824 and 8825, on wordpress.org
 │   └── locked-payment-methods-for-woocommerce/    Locked Payment Methods for WooCommerce → wc-locked-payment-methods, ports 8826 and 8827, on wordpress.org
 ├── tests/
-│   ├── e2e/                              the shared environment's checks: every plugin .wp-env.tests.json maps is active and boots, and the plugins work side by side
+│   ├── EndToEnd/                         the shared environment's checks: every plugin .wp-env.tests.json maps is active and boots, and the plugins work side by side
 │   └── Fixtures/multi-plugin-smoke/      reserved for a fixture plugin the shared environment mounts
 ├── .github/workflows/
 │   ├── plugins.yml                       lists the plugins, their mirrors and readmes and each one's WordPress versions for the other workflows

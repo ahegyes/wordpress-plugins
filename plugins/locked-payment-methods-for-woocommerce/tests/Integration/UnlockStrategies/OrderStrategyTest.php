@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorage;
@@ -79,12 +80,13 @@ final class OrderStrategyTest extends TestCase {
 	}
 
 	public function test_the_plugin_runs_the_strategy_once_its_switch_is_on(): void {
+		self::assertContains( OrderStrategy::class, Plugin::COMPONENTS );
 		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS, 'yes' );
 
-		$request = self::request( 'echo wp_json_encode( in_array( DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy::class, dws_lpmwc_plugin()->kernel->resolved, true ) );' );
+		$request = self::request( 'echo wp_json_encode( in_array( ' . OrderStrategy::class . '::class, dws_lpmwc_plugin()->kernel->skipped, true ) );' );
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( 'true', $request['last'] );
+		self::assertSame( 'false', $request['last'] );
 	}
 
 	#[DataProvider( 'storages' )]
