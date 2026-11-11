@@ -1,5 +1,21 @@
 <?php declare( strict_types=1 );
 
+// A row that breaks the plugin on disk repairs it in a finally block, which an aborted run never reaches, so the suite refuses to test what such a run left behind.
+$dws_ic_leftovers = array();
+foreach ( array( 'includes/zz-*.php', 'includes/*_zz-*.php', 'blocks/build/*.hidden', 'assets/build/*.hidden', 'vendor-prefixed/ahegyes/*/*.hidden', 'vendor-prefixed/ahegyes/*/src/*.hidden' ) as $dws_ic_pattern ) {
+	$dws_ic_found = glob( dirname( __DIR__, 2 ) . '/' . $dws_ic_pattern );
+	if ( false === $dws_ic_found ) {
+		throw new RuntimeException( "The plugin's $dws_ic_pattern could not be listed." );
+	}
+
+	$dws_ic_leftovers = array_merge( $dws_ic_leftovers, $dws_ic_found );
+}
+
+if ( array() !== $dws_ic_leftovers ) {
+	fwrite( STDERR, "An aborted run left the plugin changed on disk; restore or delete these, then run the suite again:\n" . implode( "\n", $dws_ic_leftovers ) . "\n" );
+	exit( 1 );
+}
+
 // WordPress ends the process with exit code 0 when it cannot load, which would otherwise pass the suite.
 $dws_ic_loaded = false;
 register_shutdown_function(
@@ -19,3 +35,9 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 do_action( 'dws_ic_revision/migration/run' );
 
 $dws_ic_loaded = true;
+
+// Every row calls the plugin's functions, which an aborted run of UninstallTest's floor row keeps from loading by leaving the entry's Requires PHP header raised; PluginBootTest reports a boot that fails once they have loaded.
+if ( ! function_exists( 'dws_ic_plugin' ) ) {
+	fwrite( STDERR, "The plugin's functions did not load; activate it, restore the entry file's Requires headers and complete the build, then run the suite again.\n" );
+	exit( 1 );
+}
