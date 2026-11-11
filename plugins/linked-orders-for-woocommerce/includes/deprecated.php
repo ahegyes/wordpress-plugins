@@ -96,7 +96,6 @@ const DWS_LOWC_V1_COMPONENTS = array( 'actions', 'autocompletion', 'output', 'me
  */
 function dws_lowc_name(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lowc_get_plugin_name()' );
-
 	return dws_lowc_get_plugin_name();
 }
 
@@ -111,7 +110,6 @@ function dws_lowc_name(): string {
  */
 function dws_lowc_version(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lowc_get_plugin_version()' );
-
 	return dws_lowc_get_plugin_version();
 }
 
@@ -126,7 +124,6 @@ function dws_lowc_version(): string {
  */
 function dws_lowc_path(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LOWC_PATH;
 }
 
@@ -141,7 +138,6 @@ function dws_lowc_path(): string {
  */
 function dws_lowc_min_php(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LOWC_MIN_PHP;
 }
 
@@ -156,7 +152,6 @@ function dws_lowc_min_php(): string {
  */
 function dws_lowc_min_wp(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LOWC_MIN_WP;
 }
 
@@ -174,7 +169,6 @@ function dws_lowc_min_wp(): string {
  */
 function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return dws_lowc_join_v1_hook_tag( 'linked_orders_for_woocommerce', $name, $extra );
 }
 
@@ -193,7 +187,6 @@ function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_lowc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return in_array( $component_id, DWS_LOWC_V1_COMPONENTS, true ) ? dws_lowc_join_v1_hook_tag( 'linked_orders_for_woocommerce/' . str_replace( '-', '_', $component_id ), $name, $extra ) : null;
 }
 

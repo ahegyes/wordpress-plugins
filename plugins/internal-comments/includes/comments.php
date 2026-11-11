@@ -59,7 +59,6 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
 
 	// get_comment() reads an empty id as the comment of the current loop.
 	$comment = $comment instanceof WP_Comment || ( is_numeric( $comment ) && (int) $comment > 0 ) ? get_comment( $comment instanceof WP_Comment ? $comment : (int) $comment ) : null;
-
 	return $comment instanceof WP_Comment ? $comment : null;
 }
 
@@ -75,7 +74,6 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
  */
 function dws_ic_is_internal_comment( $comment ): ?bool {
 	$comment = dws_ic_get_comment( $comment );
-
 	return null === $comment ? null : DWS_IC_COMMENT_TYPE === $comment->comment_type;
 }
 
@@ -164,7 +162,6 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 	$data = apply_filters( 'dws_ic/internal_comment/creation_data', $data );
 
 	$comment_id = wp_insert_comment( wp_slash( $data ) ); // @phpstan-ignore argument.type (The fields pass through public filters, which wp_insert_comment() accepts in any shape.)
-
 	return false === $comment_id ? null : $comment_id;
 }
 
@@ -245,7 +242,6 @@ function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $sta
  */
 function dws_ic_is_private_comment( $comment ): ?bool {
 	$owners = dws_ic_get_private_comment_owners( $comment );
-
 	return null === $owners ? null : array() !== $owners;
 }
 
@@ -294,7 +290,6 @@ function dws_ic_exclude_internal_type( $excluded ): array {
 	}
 
 	$types[] = DWS_IC_COMMENT_TYPE;
-
 	return $types;
 }
 
@@ -331,6 +326,5 @@ function dws_ic_has_replies( int $comment_id ): bool {
 			'count'  => true,
 		)
 	);
-
 	return is_int( $replies ) && 0 < $replies;
 }

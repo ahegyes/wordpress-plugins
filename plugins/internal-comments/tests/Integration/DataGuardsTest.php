@@ -65,7 +65,6 @@ final class DataGuardsTest extends TestCase {
 		$mailed  = array();
 		$record  = static function ( mixed $result, array $mail ) use ( &$mailed ): bool {
 			$mailed[] = $mail['subject'];
-
 			return true;
 		};
 		$notify  = get_option( 'comments_notify' );

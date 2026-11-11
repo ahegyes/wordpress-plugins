@@ -41,7 +41,6 @@ function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
 	}
 
 	$row = get_option( DWS_IC_SETTINGS_GROUPS[ $field[0] ] );
-
 	return is_array( $row ) && array_key_exists( $field[1], $row ) ? $row[ $field[1] ] : null;
 }
 
@@ -122,7 +121,6 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
  */
 function dws_ic_get_selected_post_types(): array {
 	$selected = dws_ic_get_raw_setting( DWS_IC_SETTING_POST_TYPES, 'general' );
-
 	return is_array( $selected ) ? array_values( array_filter( $selected, 'is_string' ) ) : array();
 }
 

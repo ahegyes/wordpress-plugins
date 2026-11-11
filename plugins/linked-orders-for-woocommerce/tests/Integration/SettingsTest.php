@@ -117,7 +117,6 @@ final class SettingsTest extends TestCase {
 		$v2_hook  = "dws_lowc/settings/{$group}_fields";
 		$v1_extra = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v1', \array_keys( $fields ) );
-
 			return $fields + array(
 				'extra' => array(
 					'type'  => 'text',
@@ -127,7 +126,6 @@ final class SettingsTest extends TestCase {
 		};
 		$v2_spy   = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v2', \array_column( $fields, 'id' ) );
-
 			return $fields;
 		};
 		add_filter( $v1_hook, $v1_extra );
@@ -161,7 +159,6 @@ final class SettingsTest extends TestCase {
 	protected function render(): \Dom\HTMLDocument {
 		\ob_start();
 		\WC_Admin_Settings::output_fields( self::$advanced->get_settings_for_section( self::SECTION ) );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

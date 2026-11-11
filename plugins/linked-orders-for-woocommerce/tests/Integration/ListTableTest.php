@@ -287,7 +287,6 @@ final class ListTableTest extends TestCase {
 		$screen = OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( 'shop-order' ) : 'edit-shop_order';
 		set_current_screen( $screen );
 		$GLOBALS['typenow'] = 'shop_order';
-
 		return $screen;
 	}
 
@@ -328,7 +327,6 @@ final class ListTableTest extends TestCase {
 					'order'   => 'ASC',
 				)
 			);
-
 			return \array_map( 'intval', wc_get_orders( $args ) );
 		}
 
@@ -343,7 +341,6 @@ final class ListTableTest extends TestCase {
 				'order'          => 'ASC',
 			)
 		);
-
 		return \array_map( 'intval', ( new \WP_Query( $vars ) )->posts );
 	}
 }

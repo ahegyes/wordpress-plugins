@@ -105,18 +105,15 @@ final class SettingsApiTest extends TestCase {
 		$filters = array(
 			'linked_orders_for_woocommerce/general_settings/get_validated_option_value' => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
 				$seen[] = array( 'group', $value, $field_id );
-
 				return 4;
 			},
 			'linked_orders_for_woocommerce/settings/get_validated_option_value'         => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
 				$seen[] = array( 'section', $value, $field_id );
-
 				return 5;
 			},
 		);
 		$v2      = static function ( mixed $value, string $field_id, string $group ) use ( &$seen ): mixed {
 			$seen[] = array( 'v2', $value, $field_id, $group );
-
 			return 6;
 		};
 		foreach ( $filters as $hook => $filter ) {

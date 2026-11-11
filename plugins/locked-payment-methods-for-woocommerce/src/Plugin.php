@@ -201,7 +201,6 @@ final class Plugin {
 
 		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );
-
 		return true;
 	}
 

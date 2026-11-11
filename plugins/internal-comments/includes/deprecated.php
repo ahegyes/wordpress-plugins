@@ -113,7 +113,6 @@ const DWS_IC_V1_COMPONENTS = array(
  */
 function dws_ic_name(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_ic_get_plugin_name()' );
-
 	return dws_ic_get_plugin_name();
 }
 
@@ -128,7 +127,6 @@ function dws_ic_name(): string {
  */
 function dws_ic_version(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_ic_get_plugin_version()' );
-
 	return dws_ic_get_plugin_version();
 }
 
@@ -143,7 +141,6 @@ function dws_ic_version(): string {
  */
 function dws_ic_path(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_IC_PATH;
 }
 
@@ -158,7 +155,6 @@ function dws_ic_path(): string {
  */
 function dws_ic_min_php(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_IC_MIN_PHP;
 }
 
@@ -173,7 +169,6 @@ function dws_ic_min_php(): string {
  */
 function dws_ic_min_wp(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_IC_MIN_WP;
 }
 
@@ -191,7 +186,6 @@ function dws_ic_min_wp(): string {
  */
 function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return dws_ic_join_v1_hook_tag( 'internal_comments', $name, $extra );
 }
 
@@ -210,7 +204,6 @@ function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_ic_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return isset( DWS_IC_V1_COMPONENTS[ $component_id ] ) ? dws_ic_join_v1_hook_tag( 'internal_comments/' . DWS_IC_V1_COMPONENTS[ $component_id ], $name, $extra ) : null;
 }
 

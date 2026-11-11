@@ -120,7 +120,6 @@ final class MigrationsTest extends TestCase {
 					'comment_date_gmt' => \current_time( 'mysql', true ),
 				)
 			);
-
 			return (int) $wpdb->insert_id;
 		};
 

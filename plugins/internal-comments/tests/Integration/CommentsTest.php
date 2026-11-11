@@ -68,13 +68,11 @@ final class CommentsTest extends TestCase {
 		$seen = array();
 		$v1   = static function ( array $data ) use ( &$seen ): array {
 			$seen[] = 'v1';
-
 			return array( 'comment_content' => 'v1' ) + $data;
 		};
 		$v2   = static function ( array $data ) use ( &$seen ): array {
 			$seen[]                  = 'v2:' . $data['comment_content'];
 			$data['comment_content'] = 'v2';
-
 			return $data;
 		};
 		add_filter( 'internal_comments/create_comment_data', $v1 );

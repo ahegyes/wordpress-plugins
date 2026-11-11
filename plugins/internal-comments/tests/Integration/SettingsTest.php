@@ -138,7 +138,6 @@ final class SettingsTest extends TestCase {
 		$v2_hook  = "dws_ic/settings/{$group}_fields";
 		$v1_extra = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v1', \array_keys( $fields ) );
-
 			return $fields + array(
 				'extra' => array(
 					'type'  => 'text',
@@ -148,7 +147,6 @@ final class SettingsTest extends TestCase {
 		};
 		$v2_spy   = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v2', \array_column( $fields, 'id' ) );
-
 			return $fields;
 		};
 		add_filter( $v1_hook, $v1_extra );
@@ -184,7 +182,6 @@ final class SettingsTest extends TestCase {
 		$_GET['tab']        = $tab;
 		\ob_start();
 		self::$page->render_page();
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

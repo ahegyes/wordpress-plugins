@@ -133,7 +133,6 @@ function dws_ic_convert_v1_comments(): bool {
 
 	if ( $end >= $last ) {
 		delete_option( 'dws_ic_v1_comments_cursor' );
-
 		return false;
 	}
 

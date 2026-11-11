@@ -33,7 +33,6 @@ const DWS_LOWC_SETTINGS_GROUPS = array( 'general', 'plugin' );
  */
 function dws_lowc_get_raw_setting( string $field_id, ?string $group = null ) {
 	$field = dws_lowc_find_setting( $field_id, $group );
-
 	return null === $field ? null : get_option( $field[2], null );
 }
 

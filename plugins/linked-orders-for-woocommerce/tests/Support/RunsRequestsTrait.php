@@ -15,7 +15,6 @@ trait RunsRequestsTrait {
 		$provoked = '' === $diagnostic ? null : \array_find_key( $output, static fn ( string $line ): bool => \str_contains( $line, $diagnostic ) );
 
 		self::assertSame( array(), \array_slice( $output, 0, \is_int( $provoked ) ? $provoked : \max( 0, \count( $output ) - 1 ) ), \implode( "\n", $output ) );
-
 		return array(
 			'status' => $status,
 			'output' => \implode( "\n", $output ),

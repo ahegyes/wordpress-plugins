@@ -36,7 +36,6 @@ function dws_ic_get_plugin_slug(): string {
  */
 function dws_ic_get_plugin_name(): string {
 	$name = get_file_data( DWS_IC_FILE, array( 'Name' => 'Plugin Name' ) )['Name'];
-
 	return 0 < did_action( 'init' ) ? __( $name, 'internal-comments' ) : $name; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- The header's name reaches the POT through make-pot's header extraction.
 }
 

@@ -135,7 +135,6 @@ final class RestRoutes implements ComponentInterface {
 	 */
 	public function can_read_post_comments( \WP_REST_Request $request ): bool {
 		$post_id = absint( $request['post'] );
-
 		return $this->can_use_post( $post_id ) && ( current_user_can( DWS_IC_CAP_SEE_METABOX ) || current_user_can( DWS_IC_CAP_SEE_COLUMN ) );
 	}
 
@@ -272,7 +271,6 @@ final class RestRoutes implements ComponentInterface {
 	 */
 	public function get_comment( \WP_REST_Request $request ): \WP_REST_Response {
 		$comment = dws_ic_get_comment( absint( $request['id'] ) );
-
 		return new \WP_REST_Response(
 			array(
 				'id'      => absint( $request['id'] ),

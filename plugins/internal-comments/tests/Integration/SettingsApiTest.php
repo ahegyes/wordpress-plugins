@@ -111,18 +111,15 @@ final class SettingsApiTest extends TestCase {
 		$filters = array(
 			'internal_comments/general_settings/get_validated_option_value' => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
 				$seen[] = array( 'group', $value, $field_id );
-
 				return 'group';
 			},
 			'internal_comments/settings/get_validated_option_value'         => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
 				$seen[] = array( 'section', $value, $field_id );
-
 				return 'section';
 			},
 		);
 		$v2      = static function ( mixed $value, string $field_id, string $group ) use ( &$seen ): mixed {
 			$seen[] = array( 'v2', $value, $field_id, $group );
-
 			return 'v2';
 		};
 		foreach ( $filters as $hook => $filter ) {

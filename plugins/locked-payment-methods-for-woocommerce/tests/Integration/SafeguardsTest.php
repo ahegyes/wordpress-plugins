@@ -210,7 +210,6 @@ final class SafeguardsTest extends TestCase {
 		foreach ( $hooks as $hook => $id ) {
 			$adders[ $hook ] = static function ( array $ids, mixed $context = null ) use ( &$seen, $hook, $id ): array {
 				$seen[] = array( $hook, $ids, \is_array( $context ) ? \array_keys( $context ) : $context );
-
 				return array( ...$ids, $id );
 			};
 			add_filter( $hook, $adders[ $hook ], 10, 2 );
@@ -243,12 +242,10 @@ final class SafeguardsTest extends TestCase {
 		$v1_safe      = "$v1/woocommerce_payments";
 		$record       = static function ( mixed ...$args ) use ( &$seen ): mixed {
 			$seen[] = $args;
-
 			return $args[0];
 		};
 		$returns_null = static function ( mixed $lock ) use ( &$seen ): mixed {
 			$seen[] = array( $lock );
-
 			return null;
 		};
 		add_filter( $v1, $record, 10, 2 );

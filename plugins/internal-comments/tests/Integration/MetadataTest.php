@@ -51,7 +51,6 @@ final class MetadataTest extends TestCase {
 
 	protected static function translate_name(): \Closure {
 		$name = self::get_listed_header( 'Name' );
-
 		return static fn ( string $translation, string $text ): string => $name === $text ? self::TRANSLATION : $translation;
 	}
 }

@@ -49,7 +49,6 @@ final class AutocompletionTest extends TestCase {
 		$seen   = array();
 		$record = static function ( bool $should, int $order_id ) use ( &$seen ): bool {
 			$seen[] = $order_id;
-
 			return $should;
 		};
 		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
@@ -112,7 +111,6 @@ final class AutocompletionTest extends TestCase {
 		$grandchild = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
 		self::assertTrue( dws_lowc_link_orders( $child->get_id(), $grandchild->get_id() ) );
-
 		return array( wc_get_order( $root->get_id() ), wc_get_order( $child->get_id() ), wc_get_order( $grandchild->get_id() ) );
 	}
 }

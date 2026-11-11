@@ -243,7 +243,6 @@ final class Comments implements ComponentInterface {
 	 */
 	public function hide_unmoved_feed_comments( string $where ): string {
 		global $wpdb;
-
 		return dws_ic_is_v1_move_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
 	}
 
@@ -276,7 +275,6 @@ final class Comments implements ComponentInterface {
 		}
 
 		$comment = dws_ic_get_comment( $comment_id );
-
 		return null !== $comment && get_current_user_id() !== (int) $comment->user_id ? false : $check;
 	}
 
@@ -307,7 +305,6 @@ final class Comments implements ComponentInterface {
 		$wpdb->update( $wpdb->comments, array( 'comment_approved' => DWS_IC_COMMENT_STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
 		clean_comment_cache( (int) $comment->comment_ID );
 		wp_update_comment_count( (int) $comment->comment_post_ID );
-
 		return $comment->comment_approved;
 	}
 

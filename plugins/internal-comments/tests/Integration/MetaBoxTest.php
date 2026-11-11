@@ -180,7 +180,6 @@ final class MetaBoxTest extends TestCase {
 		wp_set_current_user( self::$users[ $role ] );
 		$type = (string) get_post_type( $post );
 		do_action( 'add_meta_boxes', $type, get_post( $post ) );
-
 		return isset( $wp_meta_boxes[ $type ]['normal']['core']['dws-internal-comments'] );
 	}
 
@@ -191,7 +190,6 @@ final class MetaBoxTest extends TestCase {
 		$box = $wp_meta_boxes['post']['normal']['core']['dws-internal-comments'];
 		\ob_start();
 		\call_user_func( $box['callback'], get_post( $this->post ), $box );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

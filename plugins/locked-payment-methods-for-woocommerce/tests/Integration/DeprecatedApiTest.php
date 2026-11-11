@@ -163,7 +163,6 @@ final class DeprecatedApiTest extends TestCase {
 		$seen = array();
 		$spy  = static function ( mixed ...$args ) use ( &$seen ): mixed {
 			$seen[] = $args;
-
 			return $args[0];
 		};
 		add_filter( $v1, $spy, 10, 3 );
@@ -187,7 +186,6 @@ final class DeprecatedApiTest extends TestCase {
 		$seen     = array();
 		$spy      = static function ( mixed ...$args ) use ( &$seen ): mixed {
 			$seen[] = $args;
-
 			return $args[0];
 		};
 		add_filter( $v1, $spy, 10, 3 );

@@ -121,7 +121,6 @@ final class Permissions implements ComponentInterface {
 	 */
 	public function exclude_from_core_rest_collections( array $args ): array {
 		$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
-
 		return $args;
 	}
 

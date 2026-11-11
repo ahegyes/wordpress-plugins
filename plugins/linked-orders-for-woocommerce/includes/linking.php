@@ -44,7 +44,6 @@ function dws_lowc_get_order_node( $order ): ?DWS_Order_Node {
  */
 function dws_lowc_is_root_order( $order ): ?bool {
 	$node = dws_lowc_get_order_node( $order );
-
 	return null === $node ? null : 0 === $node->get_depth();
 }
 

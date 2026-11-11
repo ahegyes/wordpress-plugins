@@ -99,7 +99,6 @@ final class UserRoleStrategyTest extends TestCase {
 		$seen    = array();
 		$replace = static function ( mixed $value, string $field_id ) use ( &$seen ): array {
 			$seen[] = array( $value, $field_id );
-
 			return array( 'customer' );
 		};
 		add_filter( self::V1_HOOK, $replace, 10, 2 );

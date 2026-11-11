@@ -130,7 +130,6 @@ final class MetaBoxTest extends TestCase {
 			self::assertInstanceOf( \WP_Post::class, $post_or_order );
 		}
 		do_action( 'add_meta_boxes', $screen, $post_or_order );
-
 		return $wp_meta_boxes[ $screen ]['side']['default']['dws-linked-orders'] ?? null;
 	}
 
@@ -142,7 +141,6 @@ final class MetaBoxTest extends TestCase {
 
 		\ob_start();
 		\call_user_func( $box['callback'], $order, $box );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 }

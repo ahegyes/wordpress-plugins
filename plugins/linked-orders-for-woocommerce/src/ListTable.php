@@ -96,7 +96,6 @@ final class ListTable implements ComponentInterface {
 		$preceding = apply_filters( 'dws_lowc/list_table/preceding_column', $preceding, $type, $columns );
 		$position  = \array_search( $preceding, \array_keys( $columns ), true );
 		$position  = false === $position ? \count( $columns ) : $position + 1;
-
 		return \array_slice( $columns, 0, $position, true ) + array( 'dws_lo_depth' => _x( 'Depth', 'list table heading', 'linked-orders-for-woocommerce' ) ) + \array_slice( $columns, $position, null, true );
 	}
 
@@ -382,7 +381,6 @@ final class ListTable implements ComponentInterface {
 			)
 		);
 		$stored  = \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null;
-
 		return \max( dws_lowc_get_max_depth(), $stored ?? 0 );
 	}
 
@@ -396,7 +394,6 @@ final class ListTable implements ComponentInterface {
 	 */
 	protected static function get_depth_filter(): ?int {
 		$depth = \filter_var( self::get_query_arg( '_dws_lo_depth' ), \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 0 ) ) );
-
 		return false === $depth ? null : $depth;
 	}
 
@@ -418,7 +415,6 @@ final class ListTable implements ComponentInterface {
 			'key'   => '_dws_lo_depth',
 			'value' => (string) $depth,
 		);
-
 		return array(
 			0 === $depth ? array(
 				'relation' => 'OR',

@@ -83,7 +83,6 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
 		$options = dws_lpmwc_get_grant_choices( dws_lpmwc_get_plan_unlocked_payment_method_ids( $object_id ), 0 );
-
 		return array(
 			'title'      => __( 'Unlocked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => DWS_LPMWC_CAP_UNLOCK_VIA_WC_MEMBERSHIPS,
@@ -113,7 +112,6 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	public static function is_available(): bool {
 		$version = get_option( 'wc_memberships_version', '0.0.0' );
-
 		return \function_exists( 'wc_memberships_get_user_active_memberships' ) && \is_string( $version ) && \version_compare( $version, '1.18.0', '>=' );
 	}
 

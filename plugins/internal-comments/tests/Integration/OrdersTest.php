@@ -120,7 +120,6 @@ final class OrdersTest extends TestCase {
 		wp_set_current_user( self::$users[ $role ] );
 		$request = new \WP_REST_Request( 'POST', "/dws_ic/v1/posts/$order_id/comments" );
 		$request->set_param( 'content', $content );
-
 		return rest_do_request( $request )->get_status();
 	}
 }

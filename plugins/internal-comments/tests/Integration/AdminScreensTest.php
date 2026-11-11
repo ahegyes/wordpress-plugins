@@ -72,12 +72,10 @@ final class AdminScreensTest extends TestCase {
 		$seen = array();
 		$v1   = static function ( string $column, ?string $post_type ) use ( &$seen ): string {
 			$seen[] = array( 'v1', $column, $post_type );
-
 			return $column;
 		};
 		$v2   = static function ( string $column, ?string $post_type ) use ( &$seen ): string {
 			$seen[] = array( 'v2', $column, $post_type );
-
 			return 'title';
 		};
 		add_filter( self::V1_PRECEDING_COLUMN, $v1, 10, 2 );
@@ -262,7 +260,6 @@ final class AdminScreensTest extends TestCase {
 			$GLOBALS['comment'] = get_comment( $comment );
 			try {
 				$screens->enqueue_comment_screen_style( 'comment.php' );
-
 				return \implode( '', (array) wp_styles()->get_data( 'internal-comments-comment-screen', 'after' ) );
 			} finally {
 				unset( $GLOBALS['comment'] );
@@ -291,7 +288,6 @@ final class AdminScreensTest extends TestCase {
 			wp_get_current_user()->get_role_caps(); // An earlier row can leave the editor current with capabilities its role has since lost.
 			$editor = (int) wp_count_comments()->trash;
 			wp_set_current_user( self::$users['administrator'] );
-
 			return array( $editor, (int) wp_count_comments()->trash );
 		};
 		$woocommerce = has_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ) );
@@ -388,7 +384,6 @@ final class AdminScreensTest extends TestCase {
 	protected function cell(): \Dom\HTMLDocument {
 		\ob_start();
 		( new AdminScreens() )->render_cell( 'dws-internal-comments', $this->post );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

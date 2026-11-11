@@ -36,7 +36,6 @@ function dws_lowc_get_plugin_slug(): string {
  */
 function dws_lowc_get_plugin_name(): string {
 	$name = get_file_data( DWS_LOWC_FILE, array( 'Name' => 'Plugin Name' ) )['Name'];
-
 	return 0 < did_action( 'init' ) ? __( $name, 'linked-orders-for-woocommerce' ) : $name; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- The header's name reaches the POT through make-pot's header extraction.
 }
 

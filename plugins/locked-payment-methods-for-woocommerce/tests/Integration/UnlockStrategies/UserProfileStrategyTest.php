@@ -248,7 +248,6 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected static function create_user( string $role ): int {
 		$login = \uniqid( "lpm-profiles-$role-" );
-
 		return (int) wp_insert_user(
 			array(
 				'user_login' => $login,
@@ -261,7 +260,6 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected static function key(): string {
 		global $wpdb;
-
 		return $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS;
 	}
 
@@ -272,7 +270,6 @@ final class UserProfileStrategyTest extends TestCase {
 	protected static function render( int $user_id ): \Dom\HTMLDocument {
 		\ob_start();
 		do_action( 'edit_user_profile', get_userdata( $user_id ) );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

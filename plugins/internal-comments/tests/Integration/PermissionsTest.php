@@ -168,7 +168,6 @@ final class PermissionsTest extends TestCase {
 			)
 		);
 		$this->posts[] = $post;
-
 		return $post;
 	}
 

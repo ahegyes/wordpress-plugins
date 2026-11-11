@@ -51,7 +51,6 @@ final class DeprecatedHooksTest extends TestCase {
 		$fired = array();
 		$spy   = static function ( mixed $value = null ) use ( &$fired ): mixed {
 			$fired[] = current_filter();
-
 			return $value;
 		};
 		add_filter( $v1, $spy );
@@ -137,7 +136,6 @@ final class DeprecatedHooksTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		$screen = wc_get_page_screen_id( 'shop-order' );
 		set_current_screen( $screen );
-
 		return $screen;
 	}
 }

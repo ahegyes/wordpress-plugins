@@ -207,7 +207,6 @@ final class GroupsStrategyTest extends TestCase {
 			)
 		);
 		$this->groups[] = $group;
-
 		return $group;
 	}
 

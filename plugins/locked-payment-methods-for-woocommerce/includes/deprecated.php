@@ -115,7 +115,6 @@ const DWS_LPMWC_V1_COMPONENTS = array(
  */
 function dws_lpmwc_name(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_get_plugin_name()' );
-
 	return dws_lpmwc_get_plugin_name();
 }
 
@@ -130,7 +129,6 @@ function dws_lpmwc_name(): string {
  */
 function dws_lpmwc_version(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_get_plugin_version()' );
-
 	return dws_lpmwc_get_plugin_version();
 }
 
@@ -145,7 +143,6 @@ function dws_lpmwc_version(): string {
  */
 function dws_lpmwc_path(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LPMWC_PATH;
 }
 
@@ -160,7 +157,6 @@ function dws_lpmwc_path(): string {
  */
 function dws_lpmwc_min_php(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LPMWC_MIN_PHP;
 }
 
@@ -175,7 +171,6 @@ function dws_lpmwc_min_php(): string {
  */
 function dws_lpmwc_min_wp(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LPMWC_MIN_WP;
 }
 
@@ -193,7 +188,6 @@ function dws_lpmwc_min_wp(): string {
  */
 function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return dws_lpmwc_join_v1_hook_tag( 'locked_payment_methods_for_woocommerce', $name, $extra );
 }
 
@@ -212,7 +206,6 @@ function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_lpmwc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return isset( DWS_LPMWC_V1_COMPONENTS[ $component_id ] ) ? dws_lpmwc_join_v1_hook_tag( 'locked_payment_methods_for_woocommerce/' . DWS_LPMWC_V1_COMPONENTS[ $component_id ], $name, $extra ) : null;
 }
 
@@ -301,7 +294,6 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 	 * @param       int    $user_id          The user's id.
 	 */
 	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user', array( true, $locked_method_id, $user_id ), '2.0.0', 'dws_lpmwc/payment_method/should_lock' );
-
 	return dws_lpmwc_should_lock( false !== $lock, $locked_method_id, $user_id, 0 );
 }
 
@@ -333,7 +325,6 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
 	 * @param       int    $order_id         The order's id.
 	 */
 	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( true, $locked_method_id, $order_id ), '2.0.0', 'dws_lpmwc/payment_method/should_lock' );
-
 	return dws_lpmwc_should_lock( false !== $lock, $locked_method_id, $order instanceof WC_Order ? $order->get_customer_id() : 0, $order_id );
 }
 
@@ -351,7 +342,6 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
  */
 function dws_lpmwc_check_payment_method_access_via_user_meta( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-
 	return ! ( UserProfileStrategy::should_load() && UserProfileStrategy::unlocks( $locked_method_id, $user_id ) );
 }
 
@@ -369,7 +359,6 @@ function dws_lpmwc_check_payment_method_access_via_user_meta( string $locked_met
  */
 function dws_lpmwc_check_payment_method_access_via_user_roles( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-
 	return ! ( UserRoleStrategy::should_load() && UserRoleStrategy::unlocks( $locked_method_id, $user_id ) );
 }
 
@@ -387,7 +376,6 @@ function dws_lpmwc_check_payment_method_access_via_user_roles( string $locked_me
  */
 function dws_lpmwc_check_payment_method_access_via_groups( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-
 	return ! ( GroupsStrategy::should_load() && GroupsStrategy::unlocks( $locked_method_id, $user_id ) );
 }
 
@@ -405,7 +393,6 @@ function dws_lpmwc_check_payment_method_access_via_groups( string $locked_method
  */
 function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-
 	return ! ( WooCommerceMembershipsStrategy::should_load() && WooCommerceMembershipsStrategy::unlocks( $locked_method_id, $user_id ) );
 }
 
@@ -423,7 +410,6 @@ function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locke
  */
 function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked_method_id, int $order_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-
 	return ! ( OrderStrategy::should_load() && OrderStrategy::unlocks( $locked_method_id, $order_id ) );
 }
 
@@ -442,7 +428,6 @@ function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked
 function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
 	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
-
 	return null === $setting ? null : get_option( $setting['key'], null );
 }
 
@@ -460,7 +445,6 @@ function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
  */
 function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
-
 	return dws_lpmwc_read_v1_setting( $field_id, $group );
 }
 
@@ -480,7 +464,6 @@ function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = nul
 function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
 	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
-
 	return null === $setting ? null : dws_lpmwc_validate_v1_setting( $value, $setting['key'] );
 }
 
@@ -497,7 +480,6 @@ function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = 
  */
 function dws_lpmwc_get_validated_general_setting( string $field_id ) {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
-
 	return dws_lpmwc_read_v1_setting( $field_id, 'general' );
 }
 
@@ -522,7 +504,6 @@ function dws_lpmwc_find_v1_setting( string $field_id, ?string $group ): ?array {
 	}
 
 	$key = DWS_LPMWC_V1_SETTINGS[ $group ][ $field_id ] ?? null;
-
 	return null === $key ? null : array(
 		'group' => $group,
 		'field' => $field_id,

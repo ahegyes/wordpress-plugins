@@ -147,7 +147,6 @@ final class DWS_Order_Node {
 	 */
 	public function __call( string $name, array $arguments ): mixed {
 		$method = array( $this->order, $name );
-
 		return is_callable( $method ) ? $method( ...$arguments ) : null;
 	}
 
@@ -189,7 +188,6 @@ final class DWS_Order_Node {
 	 */
 	public function get_depth(): int {
 		$this->maybe_read();
-
 		return $this->depth;
 	}
 
@@ -233,7 +231,6 @@ final class DWS_Order_Node {
 	public function get_children(): array {
 		$this->maybe_read();
 		$this->children ??= array_values( array_filter( array_map( static fn ( ?int $id ): ?DWS_Order_Node => dws_lowc_get_order_node( $id ), $this->child_ids ) ) );
-
 		return $this->children;
 	}
 
@@ -323,7 +320,6 @@ final class DWS_Order_Node {
 
 		$child->set_parent( $this );
 		$this->children = array( ...$this->get_children(), $child );
-
 		return true;
 	}
 

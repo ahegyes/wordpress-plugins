@@ -107,7 +107,6 @@ final class DWS_Internal_Comment {
 	 */
 	public function is_author( ?int $user_id = null ): bool {
 		$user_id = $user_id ?? get_current_user_id();
-
 		return 0 !== $user_id && (int) $this->comment->user_id === $user_id;
 	}
 
@@ -177,7 +176,6 @@ final class DWS_Internal_Comment {
 	 */
 	public function get_edit_comment_link(): ?string {
 		$link = get_edit_comment_link( (int) $this->comment->comment_ID );
-
 		return is_string( $link ) ? $link : null;
 	}
 

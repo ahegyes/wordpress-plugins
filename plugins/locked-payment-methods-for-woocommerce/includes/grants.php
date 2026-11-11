@@ -32,7 +32,6 @@ const DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS = 'dws_lpmwc_unlocked_payment_metho
  */
 function dws_lpmwc_get_user_grants_key(): string {
 	global $wpdb;
-
 	return $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS;
 }
 
@@ -48,7 +47,6 @@ function dws_lpmwc_get_user_grants_key(): string {
  */
 function dws_lpmwc_get_user_unlocked_payment_method_ids( int $user_id ): array {
 	$ids = get_user_meta( $user_id, dws_lpmwc_get_user_grants_key(), true );
-
 	return is_array( $ids ) ? array_values( array_filter( $ids, 'is_string' ) ) : array();
 }
 
@@ -75,7 +73,6 @@ const DWS_LPMWC_META_UNLOCKED_METHODS = '_dws_lpmwc_unlocked_payment_methods';
 function dws_lpmwc_get_order_unlocked_payment_method_ids( int $order_id ): array {
 	$order = 0 === $order_id ? false : wc_get_order( $order_id );
 	$ids   = $order instanceof WC_Order ? $order->get_meta( DWS_LPMWC_META_UNLOCKED_METHODS ) : array();
-
 	return is_array( $ids ) ? array_values( array_filter( $ids, 'is_string' ) ) : array();
 }
 
@@ -91,7 +88,6 @@ function dws_lpmwc_get_order_unlocked_payment_method_ids( int $order_id ): array
  */
 function dws_lpmwc_get_payment_method_title( string $gateway_id ): string {
 	$gateway = WC()->payment_gateways()->payment_gateways()[ $gateway_id ] ?? null;
-
 	return $gateway instanceof WC_Payment_Gateway ? $gateway->get_title() : $gateway_id;
 }
 
@@ -166,7 +162,6 @@ function dws_lpmwc_get_groups_unlocked_payment_method_ids(): array {
  */
 function dws_lpmwc_get_plan_unlocked_payment_method_ids( int $plan_id ): array {
 	$ids = get_post_meta( $plan_id, DWS_LPMWC_META_UNLOCKED_METHODS, true );
-
 	return is_array( $ids ) ? array_values( array_filter( $ids, 'is_string' ) ) : array();
 }
 

@@ -30,7 +30,6 @@ final class ReadmeTest extends TestCase {
 
 	protected static function read_fields( string $file ): array {
 		\preg_match_all( '/^[\s*]*([A-Za-z ]+):\s*(\S.*?)\s*$/m', (string) \file_get_contents( \dirname( __DIR__, 2 ) . "/$file" ), $matches );
-
 		return \array_combine( $matches[1], $matches[2] );
 	}
 }

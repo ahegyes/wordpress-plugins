@@ -146,7 +146,6 @@ const DWS_LPMWC_V1_SETTINGS = array(
  */
 function dws_lpmwc_get_bool_option( string $key ): bool {
 	$default = dws_lpmwc_get_option_default( $key );
-
 	return filter_var( get_option( $key, $default ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? ( true === $default );
 }
 
@@ -162,7 +161,6 @@ function dws_lpmwc_get_bool_option( string $key ): bool {
  */
 function dws_lpmwc_get_int_option( string $key ): int {
 	$default = dws_lpmwc_get_option_default( $key );
-
 	return filter_var( get_option( $key, $default ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? ( is_int( $default ) ? $default : 0 );
 }
 
@@ -201,7 +199,6 @@ function dws_lpmwc_get_list_option( string $key ): array {
 	$default = dws_lpmwc_get_option_default( $key );
 	$stored  = get_option( $key, $default );
 	$stored  = is_array( $stored ) ? $stored : $default;
-
 	return is_array( $stored ) ? array_values( array_filter( $stored, 'is_string' ) ) : array();
 }
 

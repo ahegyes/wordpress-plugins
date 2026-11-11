@@ -159,7 +159,6 @@ function dws_lpmwc_get_paid_order_id(): int {
 
 	$order = wc_get_order( $wp->query_vars['order-pay'] ?? 0 );
 	$key   = isset( $_GET['key'] ) && is_string( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The order key authorizes paying the order, as on WooCommerce's order-pay page.
-
 	return $order instanceof WC_Order && '' !== $key && hash_equals( $order->get_order_key(), $key ) ? $order->get_id() : 0;
 }
 

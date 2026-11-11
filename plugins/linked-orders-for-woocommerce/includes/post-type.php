@@ -55,7 +55,6 @@ function dws_lowc_get_supported_order_types(): array {
  */
 function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
 	$name = $post_type->labels->singular_name ?? null;
-
 	return is_string( $name ) ? $name : $post_type->label;
 }
 
@@ -75,7 +74,6 @@ function dws_lowc_is_supported_order( $order ): ?bool {
 	}
 
 	$order = wc_get_order( $order );
-
 	return $order instanceof WC_Order ? in_array( $order->get_type(), dws_lowc_get_supported_order_types(), true ) : null;
 }
 
@@ -230,7 +228,6 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 	$child->save();
 	if ( true !== dws_lowc_link_orders( $parent_id, $child->get_id() ) ) {
 		$child->delete( true );
-
 		return new WP_Error( 'dws_lowc_link_refused', __( 'another order was being linked at the same time. Please try again.', 'linked-orders-for-woocommerce' ) );
 	}
 

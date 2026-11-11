@@ -145,7 +145,6 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 */
 	public function add_settings_link( array $links ): array {
 		\array_unshift( $links, \sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), esc_html__( 'Settings', 'linked-orders-for-woocommerce' ) ) );
-
 		return $links;
 	}
 

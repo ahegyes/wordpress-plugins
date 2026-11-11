@@ -108,7 +108,6 @@ final class AdminScreens implements ComponentInterface {
 
 		$position = \array_search( $preceding, \array_keys( $columns ), true );
 		$position = false === $position ? \count( $columns ) : $position + 1;
-
 		return \array_slice( $columns, 0, $position, true ) + array( self::COLUMN => __( 'Internal Comments', 'internal-comments' ) ) + \array_slice( $columns, $position, null, true );
 	}
 
@@ -202,7 +201,6 @@ final class AdminScreens implements ComponentInterface {
 		}
 		if ( 0 === $count ) {
 			echo '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">' . esc_html__( 'No internal comments', 'internal-comments' ) . '</span>';
-
 			return;
 		}
 
@@ -314,7 +312,6 @@ final class AdminScreens implements ComponentInterface {
 		$args['dws_ic_list_table'] = true;
 		if ( ! current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
 			$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
-
 			return $args;
 		}
 
@@ -377,7 +374,6 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function filter_bulk_actions( array $actions ): array {
 		$type = isset( $_GET['comment_type'] ) && \is_string( $_GET['comment_type'] ) ? sanitize_key( wp_unslash( $_GET['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reads the screen's view.
-
 		return DWS_IC_COMMENT_TYPE === $type ? \array_intersect_key( $actions, \array_flip( array( 'trash', 'untrash', 'delete' ) ) ) : $actions;
 	}
 
@@ -426,7 +422,6 @@ final class AdminScreens implements ComponentInterface {
 
 		$counts          = \get_object_vars( $count );
 		$counts['trash'] = \is_int( $listed ) ? $listed : 0;
-
 		return (object) $counts;
 	}
 
@@ -446,7 +441,6 @@ final class AdminScreens implements ComponentInterface {
 		global $wpdb;
 
 		$clauses['where'] = ( $clauses['where'] ?? '' ) . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' );
-
 		return $clauses;
 	}
 
@@ -503,7 +497,6 @@ final class AdminScreens implements ComponentInterface {
 		$changes    = \array_reverse( \array_filter( (array) get_comment_meta( $comment_id, '_dws_ic_change_id', false ), 'is_string' ) );
 		if ( array() === $changes ) {
 			echo '<p>' . esc_html__( 'No earlier versions of this comment are recorded.', 'internal-comments' ) . '</p>';
-
 			return;
 		}
 
