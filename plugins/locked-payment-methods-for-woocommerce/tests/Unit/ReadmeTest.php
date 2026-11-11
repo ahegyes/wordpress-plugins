@@ -16,6 +16,12 @@ final class ReadmeTest extends TestCase {
 		self::assertSame( $entry['Requires PHP'], $readme['Requires PHP'] );
 	}
 
+	// Plugin Check refuses a Tested up to in the entry, in any case, as WordPress reads headers, so the readme holds the only one.
+	public function test_the_entry_leaves_tested_up_to_to_the_readme(): void {
+		self::assertDoesNotMatchRegularExpression( '/^(?:[ \t]*<\?(?:php)?)?[ \t\/*#@]*Tested up to:/mi', (string) \file_get_contents( \dirname( __DIR__, 2 ) . '/locked-payment-methods-for-woocommerce.php' ) );
+		self::assertArrayHasKey( 'Tested up to', self::read_fields( 'readme.txt' ) );
+	}
+
 	public function test_the_readme_holds_the_changelog_markers_the_sync_fills(): void {
 		$readme = (string) \file_get_contents( \dirname( __DIR__, 2 ) . '/readme.txt' );
 
