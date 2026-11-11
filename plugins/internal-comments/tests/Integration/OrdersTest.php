@@ -55,7 +55,7 @@ final class OrdersTest extends TestCase {
 	#[After]
 	protected function restore_settings(): void {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Each row registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
 		wp_set_current_user( 0 );
 	}

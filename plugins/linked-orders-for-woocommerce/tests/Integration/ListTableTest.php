@@ -286,7 +286,7 @@ final class ListTableTest extends TestCase {
 	protected function open_list(): string {
 		$screen = OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( 'shop-order' ) : 'edit-shop_order';
 		set_current_screen( $screen );
-		$GLOBALS['typenow'] = 'shop_order'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The posts list sets it from the request.
+		$GLOBALS['typenow'] = 'shop_order';
 
 		return $screen;
 	}
@@ -315,7 +315,7 @@ final class ListTableTest extends TestCase {
 
 	// The found ids stand in for the orders a search narrowed the list to, under the key each storage's search sets.
 	protected function query( ?array $found = null, array $meta_query = array() ): array {
-		$others = array() === $meta_query ? array() : array( 'meta_query' => $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Another extension's filter.
+		$others = array() === $meta_query ? array() : array( 'meta_query' => $meta_query );
 		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$args = apply_filters(
 				'woocommerce_order_list_table_prepare_items_query_args',

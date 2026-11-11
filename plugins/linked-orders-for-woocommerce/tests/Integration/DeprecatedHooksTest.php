@@ -40,7 +40,7 @@ final class DeprecatedHooksTest extends TestCase {
 	#[After]
 	protected function reset_the_screen(): void {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Resets what the rows registered.
+		$wp_meta_boxes = array();
 		unset( $GLOBALS['current_screen'] );
 		wp_set_current_user( 0 );
 	}

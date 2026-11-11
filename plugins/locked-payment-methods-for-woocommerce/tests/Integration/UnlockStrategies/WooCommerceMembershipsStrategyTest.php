@@ -59,7 +59,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 			wp_delete_user( $user );
 		}
 		unregister_post_type( 'wc_membership_plan' );
-		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
+		$GLOBALS['wp_filter'] = self::$hooks;
 	}
 
 	// The form evaluates its definition and saves an object once per request, so every row edits a plan of its own.

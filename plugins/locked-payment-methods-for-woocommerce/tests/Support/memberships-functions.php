@@ -8,7 +8,7 @@
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
 
 if ( ! function_exists( 'wc_memberships_get_user_active_memberships' ) ) {
-	function wc_memberships_get_user_active_memberships( $user_id = null, $args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Memberships' signature.
+	function wc_memberships_get_user_active_memberships( $user_id = null, $args = array() ) {
 		return MembershipsDouble::$memberships[ (int) $user_id ] ?? array();
 	}
 }

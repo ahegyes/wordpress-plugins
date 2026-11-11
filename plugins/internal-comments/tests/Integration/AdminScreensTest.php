@@ -225,7 +225,7 @@ final class AdminScreensTest extends TestCase {
 		);
 		$screens = new AdminScreens();
 
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The row registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		$screens->add_revisions_meta_box( get_comment( $comment ) );
 		$box = $wp_meta_boxes['comment']['normal']['default']['dws-internal-comments-revisions'] ?? null;
 		self::assertIsArray( $box );
@@ -259,7 +259,7 @@ final class AdminScreensTest extends TestCase {
 	public function test_the_comment_edit_screen_hides_the_fields_an_internal_comment_keeps(): void {
 		$screens = new AdminScreens();
 		$styles  = static function ( int $comment ) use ( $screens ): string {
-			$GLOBALS['comment'] = get_comment( $comment ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Stands in for the edit screen's comment.
+			$GLOBALS['comment'] = get_comment( $comment );
 			try {
 				$screens->enqueue_comment_screen_style( 'comment.php' );
 
@@ -284,7 +284,7 @@ final class AdminScreensTest extends TestCase {
 		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
 		wp_trash_comment( $internal );
 		wp_trash_comment( $public );
-		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 
 		$counts      = static function (): array {
 			wp_set_current_user( self::$users['editor'] );
@@ -328,7 +328,7 @@ final class AdminScreensTest extends TestCase {
 		);
 		wp_trash_comment( (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $product ), get_user_by( 'id', self::$users['administrator'] ) ?: null ) );
 		wp_trash_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
-		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 		\WC_Comments::delete_comments_count_cache();
 		wp_cache_delete( 'comments-0', 'counts' );
 
@@ -355,7 +355,7 @@ final class AdminScreensTest extends TestCase {
 		wp_trash_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
 		$revision = get_option( 'dws_ic_revision' );
 		update_option( 'dws_ic_revision', 1 );
-		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 		\WC_Comments::delete_comments_count_cache();
 		wp_cache_delete( 'comments-0', 'counts' );
 

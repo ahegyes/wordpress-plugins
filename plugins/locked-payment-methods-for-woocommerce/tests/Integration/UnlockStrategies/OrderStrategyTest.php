@@ -51,7 +51,7 @@ final class OrderStrategyTest extends TestCase {
 	#[\Override]
 	public static function tearDownAfterClass(): void {
 		wp_delete_user( self::$admin );
-		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
+		$GLOBALS['wp_filter'] = self::$hooks;
 	}
 
 	#[Before]

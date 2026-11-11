@@ -69,7 +69,7 @@ final class PartialDeployTest extends TestCase {
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
 		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
-		\ini_set( 'error_log', $log ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- The child process's stderr would fail the test.
+		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
 			static function ( string $class_name ): void {
 				if ( Uninstaller::class === $class_name ) {

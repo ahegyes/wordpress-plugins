@@ -51,7 +51,7 @@ final class GroupsStrategyTest extends TestCase {
 		foreach ( self::$users as $user ) {
 			wp_delete_user( $user );
 		}
-		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
+		$GLOBALS['wp_filter'] = self::$hooks;
 	}
 
 	#[Before]

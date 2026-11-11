@@ -82,7 +82,7 @@ final class MetaBoxTest extends TestCase {
 	#[After]
 	protected function delete_posts(): void {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Each row registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		wp_delete_post( $this->post, true );
 		wp_delete_post( $this->page, true );
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
@@ -161,7 +161,7 @@ final class MetaBoxTest extends TestCase {
 	}
 
 	public function test_the_edit_screen_of_a_selected_post_loads_the_meta_boxs_assets(): void {
-		$GLOBALS['post'] = get_post( $this->post ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The edit screen sets its post.
+		$GLOBALS['post'] = get_post( $this->post );
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
@@ -176,7 +176,7 @@ final class MetaBoxTest extends TestCase {
 
 	protected function registers( string $role, int $post ): bool {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Each check registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		wp_set_current_user( self::$users[ $role ] );
 		$type = (string) get_post_type( $post );
 		do_action( 'add_meta_boxes', $type, get_post( $post ) );

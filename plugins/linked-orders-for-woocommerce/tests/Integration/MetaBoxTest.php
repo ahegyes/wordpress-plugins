@@ -34,7 +34,7 @@ final class MetaBoxTest extends TestCase {
 	#[After]
 	protected function clear_meta_boxes(): void {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Resets what the rows registered.
+		$wp_meta_boxes = array();
 		wp_set_current_user( 0 );
 		if ( 0 !== $this->user ) {
 			require_once ABSPATH . 'wp-admin/includes/user.php';

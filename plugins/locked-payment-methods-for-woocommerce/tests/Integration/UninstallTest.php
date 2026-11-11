@@ -26,7 +26,7 @@ final class UninstallTest extends TestCase {
 		$source = (string) \file_get_contents( DWS_LPMWC_FILE );
 		\file_put_contents( DWS_LPMWC_FILE, (string) \preg_replace( '/^(\s*\*\s*Requires PHP:\s*).*$/m', '${1}99.0', $source ) );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
-		\ini_set( 'error_log', $log ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- The child process's stderr would fail the test.
+		\ini_set( 'error_log', $log );
 
 		try {
 			include \dirname( DWS_LPMWC_FILE ) . '/uninstall.php';
