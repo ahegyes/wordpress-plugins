@@ -54,7 +54,7 @@ try {
 }
 
 /**
- * Reports a build that could not load, rethrowing in local and development environments and otherwise logging the error and showing the build notice.
+ * Reports a build that could not load, rethrowing in local and development environments and otherwise logging the error with its location and showing the build notice.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -70,7 +70,13 @@ function dws_lowc_handle_build_error( Throwable $error ): void {
 		throw $error;
 	}
 
-	error_log( 'Linked Orders for WooCommerce did not finish loading: ' . $error->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The plugin's logger is part of the build that failed.
+	// A partial deploy fails the same way on every request, so each distinct message is logged about once an hour, as best effort.
+	$key = 'dws_lowc_build_error_' . md5( $error->getMessage() );
+	if ( false === get_transient( $key ) ) {
+		set_transient( $key, 1, HOUR_IN_SECONDS );
+		error_log( 'Linked Orders for WooCommerce did not finish loading: ' . $error->getMessage() . ' in ' . $error->getFile() . ':' . $error->getLine() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The plugin's logger is part of the build that failed.
+	}
+
 	add_action( 'all_admin_notices', 'dws_lowc_render_build_notice' );
 }
 
