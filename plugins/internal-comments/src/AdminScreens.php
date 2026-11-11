@@ -505,8 +505,8 @@ final class AdminScreens implements ComponentInterface {
 		echo '<ul class="dws-internal-comments__revisions">';
 		foreach ( $changes as $change_id ) {
 			$content = get_comment_meta( $comment_id, "_dws_ic_previous_content_$change_id", true );
-			$user    = get_userdata( filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_by_$change_id", true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0 );
-			$time    = filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_time_$change_id", true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
+			$user    = get_userdata( \filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_by_$change_id", true ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0 );
+			$time    = \filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_time_$change_id", true ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0;
 			$name    = false === $user ? __( 'an unknown user', 'internal-comments' ) : $user->display_name;
 			?>
 			<li>

@@ -351,7 +351,7 @@ final class RestRoutes implements ComponentInterface {
 		do_action( 'dws_ic/internal_comment/before_update', $comment, $data );
 
 		$updated = wp_update_comment( wp_slash( $data ), true );
-		if ( \is_wp_error( $updated ) || false === $updated ) {
+		if ( is_wp_error( $updated ) || false === $updated ) {
 			return new \WP_Error( 'dws_ic_not_updated', __( 'The internal comment could not be updated. Please try again.', 'internal-comments' ), array( 'status' => 500 ) );
 		}
 

@@ -102,7 +102,7 @@ final class Permissions implements ComponentInterface {
 			default       => null,
 		} : null;
 		$comment_id = \is_numeric( $request['id'] ) ? (int) $request['id'] : 0;
-		if ( \is_wp_error( $response ) || \is_null( $capability ) || true !== dws_ic_is_internal_comment( $comment_id ) || current_user_can( $capability, $comment_id ) ) {
+		if ( is_wp_error( $response ) || \is_null( $capability ) || true !== dws_ic_is_internal_comment( $comment_id ) || current_user_can( $capability, $comment_id ) ) {
 			return $response;
 		}
 

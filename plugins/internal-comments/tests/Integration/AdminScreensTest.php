@@ -199,7 +199,7 @@ final class AdminScreensTest extends TestCase {
 
 	public function test_the_comments_screen_offers_only_the_actions_an_internal_comment_supports(): void {
 		$comment = get_comment( $this->comment( 'Row' ) );
-		$actions = array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
+		$actions = \array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
 
 		self::assertInstanceOf( \WP_Comment::class, $comment );
 		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( new AdminScreens()->filter_row_actions( $actions, $comment ) ) );

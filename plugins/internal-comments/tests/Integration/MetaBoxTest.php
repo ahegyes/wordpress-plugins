@@ -130,7 +130,7 @@ final class MetaBoxTest extends TestCase {
 		$comment = $this->comment( 'Hooked' );
 		$classes = static fn ( array $classes ): array => \array_merge( $classes, array( 'from-v2' ) );
 		$action  = static function ( \DWS_Internal_Comment $comment ): void {
-			echo '<span class="from-action">' . \esc_html( (string) $comment->comment_ID ) . '</span>';
+			echo '<span class="from-action">' . esc_html( (string) $comment->comment_ID ) . '</span>';
 		};
 		add_filter( 'dws_ic/meta_box/comment_classes', $classes );
 		add_action( 'dws_ic/meta_box/before_comment_actions', $action );

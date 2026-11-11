@@ -116,8 +116,8 @@ final class MigrationsTest extends TestCase {
 					'comment_type'     => $type,
 					'comment_approved' => $status,
 					'comment_content'  => "$type $status",
-					'comment_date'     => \current_time( 'mysql' ),
-					'comment_date_gmt' => \current_time( 'mysql', true ),
+					'comment_date'     => current_time( 'mysql' ),
+					'comment_date_gmt' => current_time( 'mysql', true ),
 				)
 			);
 			return (int) $wpdb->insert_id;

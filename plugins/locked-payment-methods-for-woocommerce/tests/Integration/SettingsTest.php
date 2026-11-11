@@ -159,7 +159,7 @@ final class SettingsTest extends TestCase {
 		$links = apply_filters( "plugin_action_links_{$basename}", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
 		$meta  = apply_filters( 'plugin_row_meta', array(), $basename, array(), 'all' );
 
-		self::assertStringContainsString( \esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), (string) \reset( $links ) );
+		self::assertStringContainsString( esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), (string) \reset( $links ) );
 		self::assertStringContainsString( 'https://wordpress.org/support/plugin/locked-payment-methods-for-woocommerce/', \implode( '', $meta ) );
 		self::assertSame( array(), apply_filters( 'plugin_row_meta', array(), 'another-plugin/another-plugin.php', array(), 'all' ) );
 	}

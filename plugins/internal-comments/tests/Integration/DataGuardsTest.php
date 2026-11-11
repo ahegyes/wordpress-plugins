@@ -276,8 +276,8 @@ final class DataGuardsTest extends TestCase {
 				'comment_type'     => DWS_IC_COMMENT_TYPE,
 				'comment_approved' => '1',
 				'comment_content'  => 'v1',
-				'comment_date'     => \current_time( 'mysql' ),
-				'comment_date_gmt' => \current_time( 'mysql', true ),
+				'comment_date'     => current_time( 'mysql' ),
+				'comment_date_gmt' => current_time( 'mysql', true ),
 			)
 		);
 		$v1     = (int) $wpdb->insert_id;

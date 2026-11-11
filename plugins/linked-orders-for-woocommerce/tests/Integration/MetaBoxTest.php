@@ -102,7 +102,7 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( wc_get_order( $child->get_id() )->get_edit_order_url(), $link?->getAttribute( 'href' ) );
 		$button = $box->querySelector( 'a.button' );
 		self::assertSame( 'Add new child Order', \trim( (string) $button?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		\parse_str( (string) \wp_parse_url( (string) $button?->getAttribute( 'href' ), \PHP_URL_QUERY ), $query );
+		\parse_str( (string) wp_parse_url( (string) $button?->getAttribute( 'href' ), \PHP_URL_QUERY ), $query );
 		self::assertSame( 'dws_lowc_create_linked_child', $query['action'] ?? null );
 		self::assertSame( (string) $order->get_id(), $query['parent_id'] ?? null );
 		self::assertSame( 1, wp_verify_nonce( (string) ( $query['_wpnonce'] ?? '' ), 'dws_create_linked_child' ) );

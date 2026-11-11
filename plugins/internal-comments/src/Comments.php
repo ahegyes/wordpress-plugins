@@ -155,11 +155,11 @@ final class Comments implements ComponentInterface {
 	 * @return  array<string, mixed>|\WP_Error
 	 */
 	public function filter_update_data( array|\WP_Error $data, array $comment ): array|\WP_Error {
-		if ( \is_wp_error( $data ) || DWS_IC_COMMENT_TYPE !== ( $comment['comment_type'] ?? null ) ) {
+		if ( is_wp_error( $data ) || DWS_IC_COMMENT_TYPE !== ( $comment['comment_type'] ?? null ) ) {
 			return $data;
 		}
 
-		$comment_id = (int) filter_var( $comment['comment_ID'] ?? 0, FILTER_VALIDATE_INT );
+		$comment_id = (int) \filter_var( $comment['comment_ID'] ?? 0, \FILTER_VALIDATE_INT );
 		$previous   = wp_unslash( $comment['comment_content'] ?? '' );
 		if ( ( $data['comment_content'] ?? '' ) !== $previous ) {
 			$change_id = \uniqid( (string) get_current_user_id(), true );
@@ -187,7 +187,7 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function keep_replies_private( int|string $comment_id ): void {
-		if ( true !== dws_ic_is_internal_comment( $comment_id ) || true !== filter_var( get_comment_meta( (int) $comment_id, DWS_IC_META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ) {
+		if ( true !== dws_ic_is_internal_comment( $comment_id ) || true !== \filter_var( get_comment_meta( (int) $comment_id, DWS_IC_META_PRIVATE, true ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ) {
 			return;
 		}
 
@@ -265,7 +265,7 @@ final class Comments implements ComponentInterface {
 		}
 
 		// A comment turns private only before anyone replies, since a reply's author would otherwise own the private thread once the comment above is deleted.
-		$turns_private = true === filter_var( $meta_value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) && true !== filter_var( get_comment_meta( $comment_id, DWS_IC_META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE );
+		$turns_private = true === \filter_var( $meta_value, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) && true !== \filter_var( get_comment_meta( $comment_id, DWS_IC_META_PRIVATE, true ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE );
 		if ( $turns_private && dws_ic_has_replies( $comment_id ) ) {
 			return false;
 		}
