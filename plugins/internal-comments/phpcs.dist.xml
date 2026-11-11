@@ -25,4 +25,19 @@
 			</property>
 		</properties>
 	</rule>
+
+	<!-- Every global the plugin declares starts with its prefix or sits in its namespace. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="dws_ic"/>
+				<element value="DeepWebSolutions\InternalComments"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- v1 named the model class, which the plugin keeps as API. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound">
+		<exclude-pattern>*/models/DWS_Internal_Comment\.php</exclude-pattern>
+	</rule>
 </ruleset>

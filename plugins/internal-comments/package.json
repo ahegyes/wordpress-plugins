@@ -45,7 +45,7 @@
 		"start": "npm run start:assets",
 		"start:assets": "wp-scripts start meta-box=./assets/src/meta-box.ts quick-view=./assets/src/quick-view.ts --output-path=assets/build",
 		"lint": "npm run lint:scripts && npm run lint:styles && npm run lint:types",
-		"lint:scripts": "wp-scripts lint-js assets/src tests/EndToEnd",
+		"lint:scripts": "wp-scripts lint-js assets/src tests/EndToEnd eslint.config.mjs stylelint.config.js playwright.config.js",
 		"lint:styles": "wp-scripts lint-style 'assets/src/**/*.scss'",
 		"lint:types": "tsc",
 		"audit": "composer audit && npm audit",

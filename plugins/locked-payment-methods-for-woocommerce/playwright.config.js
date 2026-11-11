@@ -1,6 +1,8 @@
 const { defineConfig } = require( '@playwright/test' );
-// The port of .wp-env.tests.json, so the suite runs on the production tests environment and leaves the development one's data alone.
-const baseConfig = require( '@ahegyes/wordpress-configs/node/playwright.config.base.js' )( { port: 8827 } );
+const baseConfig =
+	require( '@ahegyes/wordpress-configs/node/playwright.config.base.js' )( {
+		port: require( './.wp-env.tests.json' ).port,
+	} );
 
 module.exports = defineConfig( {
 	...baseConfig,
