@@ -75,13 +75,16 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
 	}
 
-	public function test_the_v1_boot_hooks_fire_after_the_v2_ones_with_the_failure(): void {
+	// The v1 hooks fire at the earliest priority, so every v1 listener runs before a v2 listener of any later one.
+	public function test_the_v1_boot_hooks_fire_at_the_earliest_priority_with_the_failure(): void {
 		$fired = array();
 		$spy   = static function ( mixed $error = null ) use ( &$fired ): void {
 			$fired[] = array( current_action(), $error );
 		};
 		add_action( 'dws_lowc_initialized', $spy );
 		add_action( 'dws_lowc_initialization_failure', $spy );
+		add_action( 'dws_lowc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+		add_action( 'dws_lowc/boot/failed', $spy, PHP_INT_MIN + 1 );
 		$error = new \RuntimeException( 'Failed.' );
 
 		try {
@@ -90,12 +93,16 @@ final class DeprecatedApiTest extends TestCase {
 		} finally {
 			remove_action( 'dws_lowc_initialized', $spy );
 			remove_action( 'dws_lowc_initialization_failure', $spy );
+			remove_action( 'dws_lowc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'dws_lowc/boot/failed', $spy, PHP_INT_MIN + 1 );
 		}
 
 		self::assertSame(
 			array(
 				array( 'dws_lowc_initialized', null ),
+				array( 'dws_lowc/boot/succeeded', '' ),
 				array( 'dws_lowc_initialization_failure', $error ),
+				array( 'dws_lowc/boot/failed', $error ),
 			),
 			$fired
 		);
@@ -106,5 +113,7 @@ final class DeprecatedApiTest extends TestCase {
 			),
 			$this->deprecated
 		);
+		self::assertSame( PHP_INT_MIN, has_action( 'dws_lowc/boot/succeeded', 'dws_lowc_fire_v1_initialized' ) );
+		self::assertSame( PHP_INT_MIN, has_action( 'dws_lowc/boot/failed', 'dws_lowc_fire_v1_initialization_failure' ) );
 	}
 }
