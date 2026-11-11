@@ -16,7 +16,7 @@ final class PluginBootTest extends TestCase {
 	public function test_the_plugin_boots_every_component_but_the_integration_with_an_absent_plugin(): void {
 		$plugin = dws_lowc_plugin();
 
-		self::assertSame( 'booted', $plugin->boot->status );
+		self::assertSame( 'booted', $plugin->boundary->status );
 		self::assertSame( array( SequentialOrderNumbersPro::class ), $plugin->kernel->skipped );
 	}
 

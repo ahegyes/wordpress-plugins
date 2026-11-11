@@ -18,7 +18,7 @@ final class PluginBootTest extends TestCase {
 	public function test_the_plugin_boots_every_component_whose_switch_is_on(): void {
 		$plugin = dws_lpmwc_plugin();
 
-		self::assertSame( 'booted', $plugin->boot->status );
+		self::assertSame( 'booted', $plugin->boundary->status );
 		self::assertSame( array( OrderStrategy::class, GroupsStrategy::class, WooCommerceMembershipsStrategy::class ), $plugin->kernel->skipped ); // Orders and the integrations are off by default, as v1's were.
 	}
 

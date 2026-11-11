@@ -15,7 +15,7 @@ final class PluginBootTest extends TestCase {
 	public function test_the_plugin_boots_every_component(): void {
 		$plugin = dws_ic_plugin();
 
-		self::assertSame( 'booted', $plugin->boot->status );
+		self::assertSame( 'booted', $plugin->boundary->status );
 		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 

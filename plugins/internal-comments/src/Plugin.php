@@ -72,7 +72,7 @@ final class Plugin {
 	 *
 	 * @var     PluginBoot
 	 */
-	public readonly PluginBoot $boot;
+	public readonly PluginBoot $boundary;
 
 	/**
 	 * The scheduler, which the components and the deactivation callback share.
@@ -127,7 +127,7 @@ final class Plugin {
 	public function __construct() {
 		$this->logger    = new ErrorLogLogger( self::SLUG );
 		$this->scheduler = new Scheduler( self::PREFIX );
-		$this->boot      = new PluginBoot( DWS_IC_FILE, self::PREFIX, $this->logger );
+		$this->boundary  = new PluginBoot( DWS_IC_FILE, self::PREFIX, $this->logger );
 	}
 
 	// endregion
@@ -143,7 +143,7 @@ final class Plugin {
 	 * @return  void
 	 */
 	public function boot(): void {
-		$this->boot->run( $this->compose( ... ) );
+		$this->boundary->run( $this->compose( ... ) );
 	}
 
 	/**

@@ -13,7 +13,7 @@ test.describe( 'Without WooCommerce', () => {
 	test( 'the plugin boots and every screen still loads', async ( {
 		page,
 	} ) => {
-		expect( cli( 'eval', 'echo dws_ic_plugin()->boot->status;' ) ).toBe(
+		expect( cli( 'eval', 'echo dws_ic_plugin()->boundary->status;' ) ).toBe(
 			'booted'
 		);
 

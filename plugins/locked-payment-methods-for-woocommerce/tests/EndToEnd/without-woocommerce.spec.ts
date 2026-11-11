@@ -17,9 +17,9 @@ test.describe( 'Without WooCommerce', () => {
 	test( 'the plugin stays blocked, WordPress names the missing plugin and every screen still loads', async ( {
 		page,
 	} ) => {
-		expect( cli( 'eval', 'echo dws_lpmwc_plugin()->boot->status;' ) ).toBe(
-			'blocked'
-		);
+		expect(
+			cli( 'eval', 'echo dws_lpmwc_plugin()->boundary->status;' )
+		).toBe( 'blocked' );
 
 		const front = await page.goto( '/' );
 		expect( front?.status() ).toBe( 200 );
