@@ -14,7 +14,7 @@ wordpress-plugins/
 │   ├── EndToEnd/                         the shared environment's checks: every plugin .wp-env.tests.json maps is active and boots, and the plugins work side by side
 │   └── Fixtures/multi-plugin-smoke/      reserved for a fixture plugin the shared environment mounts
 ├── .github/workflows/
-│   ├── plugins.yml                       lists the plugins, their mirrors and readmes and each one's WordPress versions for the other workflows
+│   ├── plugins.yml                       lists the plugins, their mirrors and readmes for the other workflows, checks a release tag names one, and lists each one's WordPress versions for Tests
 │   ├── quality.yml, tests.yml, tests-nightly.yml, audit.yml    the template's lanes, once per plugin with project-path plugins/<slug>
 │   ├── codeql.yml, workflow-checks.yml   the template's, over the root's workflows
 │   ├── release-rehearsal.yml             rehearses each plugin's release, from build to the built-artifact test, on pull requests and trunk, publishing nothing

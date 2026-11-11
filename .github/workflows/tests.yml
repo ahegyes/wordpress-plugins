@@ -13,6 +13,8 @@ jobs:
   plugins:
     name: Plugins
     uses: ./.github/workflows/plugins.yml
+    with:
+      list-wordpress: true
 
   unit:
     name: Unit (${{ matrix.plugin }})
