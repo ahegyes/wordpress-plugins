@@ -35,6 +35,19 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( 'skipped', $request['last'], $request['output'] );
 	}
 
+	public function test_a_boot_listener_that_throws_is_not_reported_as_an_incomplete_build(): void {
+		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-boot-listener.php';
+		\file_put_contents( $include, "<?php\nadd_action( 'dws_lowc/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
+		try {
+			$request = self::request( 'echo 1;' );
+		} finally {
+			\unlink( $include );
+		}
+
+		self::assertStringContainsString( 'A boot listener failed.', $request['output'] );
+		self::assertStringNotContainsString( 'did not finish loading', $request['output'] );
+	}
+
 	public function test_the_entry_loads_its_safeguards_before_the_bootstrap_package_and_its_floor_gate(): void {
 		$root       = \dirname( DWS_LOWC_FILE );
 		$safeguards = \array_search( $root . '/includes/safeguards.php', \get_included_files(), true );
