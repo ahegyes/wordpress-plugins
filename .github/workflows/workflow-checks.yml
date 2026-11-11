@@ -3,12 +3,11 @@ name: Workflow Checks
 on:
   push:
     branches: [trunk]
-    paths: ['.github/workflows/**']
+    paths: ['.github/**', 'plugins/*/.github/workflows/**']
   pull_request:
-    paths: ['.github/workflows/**']
+    paths: ['.github/**', 'plugins/*/.github/workflows/**']
   schedule:
-    # Weekly Monday 06:00 UTC. Keeps zizmor's online audits (e.g.
-    # known-vulnerable-actions) fresh between workflow changes.
+    # Re-runs zizmor's online audits between workflow changes.
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
@@ -20,8 +19,12 @@ permissions: {}
 
 jobs:
   checks:
+    name: Workflow Checks
     permissions:
       contents: read
       security-events: write
       actions: read
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-workflow-checks.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    with:
+      # The split makes each plugin's workflows its mirror's own, so they are linted here before they reach it.
+      extra-workflows: '["plugins/*/.github/workflows/*.yml"]'

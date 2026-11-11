@@ -16,7 +16,7 @@ wordpress-plugins/
 ├── .github/workflows/
 │   ├── plugins.yml                       lists the plugins, their mirrors and readmes for the other workflows, checks a release tag names one, and lists each one's WordPress versions for Tests
 │   ├── quality.yml, tests.yml, tests-nightly.yml, audit.yml    the template's lanes, once per plugin with project-path plugins/<slug>
-│   ├── codeql.yml, workflow-checks.yml   the template's, over the root's workflows
+│   ├── codeql.yml, workflow-checks.yml   the template's, workflow-checks.yml also linting each plugin's workflows
 │   ├── release-rehearsal.yml             rehearses each plugin's release, from build to the built-artifact test, on pull requests and trunk, publishing nothing
 │   └── split-plugins.yml                 splits each plugin to the mirror its composer.json name gives, and forwards <slug>/vX.Y.Z as vX.Y.Z
 ├── .wp-env.tests.json                    the shared environment on port 8820: every plugin and WooCommerce from vendor/, as production
@@ -50,5 +50,4 @@ Each plugin's `AGENTS.md` states its code style, the template's. Markdown keeps 
 ## Limitations
 
 - CI runs twice per change: the root's lanes on the pull request, and the mirror's own after the split.
-- The root's workflow checks cover the root's workflows; a plugin's own are checked on its mirror after the split, and locally by the command above.
 - Each plugin's Integration suite runs twice: in the plugin's own environments and in the shared one, which leaves out the rows of a plugin the shared environment does not install, such as Locked Payment Methods' Groups and WooCommerce Memberships groups.
