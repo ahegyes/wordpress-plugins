@@ -23,6 +23,8 @@ const DWS_LOWC_SETTINGS_GROUPS = array( 'general', 'plugin' );
 /**
  * Returns the stored value of a setting, or null for a setting that is not stored or a group v1 did not have.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -38,6 +40,8 @@ function dws_lowc_get_raw_setting( string $field_id, ?string $group = null ) {
 
 /**
  * Returns the validated value of a setting, filtered, or null for a group v1 did not have.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -96,6 +100,8 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
 
 /**
  * Returns a value validated as the given built-in setting stores it, or the value itself for any other field.
+ *
+ * @api
  *
  * @since   1.1.0
  * @version 2.0.0

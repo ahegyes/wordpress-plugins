@@ -119,8 +119,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	/**
 	 * Returns whether the user's grants list on the current site holds the payment method.
 	 *
-	 * @internal
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *

@@ -45,8 +45,6 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 	/**
 	 * Returns whether the user holds one of the full-access roles, which unlocks every locked payment method.
 	 *
-	 * @internal
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *

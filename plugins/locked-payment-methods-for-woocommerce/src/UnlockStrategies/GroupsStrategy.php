@@ -111,8 +111,6 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	/**
 	 * Returns whether a group of the user, or a group above one, unlocks the payment method.
 	 *
-	 * @internal
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *

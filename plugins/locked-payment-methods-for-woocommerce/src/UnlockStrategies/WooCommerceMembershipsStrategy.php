@@ -118,8 +118,6 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	/**
 	 * Returns whether a plan the user is an active member of unlocks the payment method.
 	 *
-	 * @internal
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *

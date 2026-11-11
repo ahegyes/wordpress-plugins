@@ -7,6 +7,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * It keeps v1's global name, which other plugins type-hint, and reads of the comment's fields and calls to its methods reach the wrapped comment.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *

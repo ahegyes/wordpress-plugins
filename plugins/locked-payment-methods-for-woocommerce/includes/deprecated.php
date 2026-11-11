@@ -37,6 +37,8 @@ $dws_lpmwc_header = get_file_data(
 /**
  * The plugin's untranslated name.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lpmwc_get_plugin_name().
@@ -45,6 +47,8 @@ define( 'DWS_LPMWC_NAME', $dws_lpmwc_header['Name'] );
 
 /**
  * The plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -55,6 +59,8 @@ define( 'DWS_LPMWC_VERSION', $dws_lpmwc_header['Version'] );
 /**
  * The path of the plugin's main file.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use DWS_LPMWC_FILE.
@@ -64,6 +70,8 @@ define( 'DWS_LPMWC_PATH', DWS_LPMWC_FILE );
 /**
  * The oldest PHP version the plugin runs on.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -72,6 +80,8 @@ define( 'DWS_LPMWC_MIN_PHP', $dws_lpmwc_header['RequiresPHP'] );
 
 /**
  * The oldest WordPress version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -107,6 +117,8 @@ const DWS_LPMWC_V1_COMPONENTS = array(
 /**
  * Returns the plugin's name, translated once init has fired.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lpmwc_get_plugin_name().
@@ -120,6 +132,8 @@ function dws_lpmwc_name(): string {
 
 /**
  * Returns the plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -135,6 +149,8 @@ function dws_lpmwc_version(): string {
 /**
  * Returns the path of the plugin's main file.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -148,6 +164,8 @@ function dws_lpmwc_path(): string {
 
 /**
  * Returns the oldest PHP version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -163,6 +181,8 @@ function dws_lpmwc_min_php(): string {
 /**
  * Returns the oldest WordPress version the plugin runs on.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -176,6 +196,8 @@ function dws_lpmwc_min_wp(): string {
 
 /**
  * Returns a hook name as v1 built it for the plugin.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -193,6 +215,8 @@ function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
 
 /**
  * Returns a hook name as v1 built it for one of its components, or null for an id v1 had no component for.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -270,6 +294,8 @@ function dws_lpmwc_fire_v1_initialization_failure( Throwable $error ): void {
 /**
  * Returns whether a payment method stays locked for a user, as the plugin's strategies judge it, firing v1's filter first.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lpmwc_is_payment_method_locked().
@@ -299,6 +325,8 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 
 /**
  * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's filter first.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -331,6 +359,8 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
 /**
  * Returns whether the user-profile strategy leaves a payment method locked for a user, true while the strategy is off.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lpmwc_is_payment_method_locked().
@@ -347,6 +377,8 @@ function dws_lpmwc_check_payment_method_access_via_user_meta( string $locked_met
 
 /**
  * Returns whether the role strategy leaves a payment method locked for a user, true while the strategy is off.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -365,6 +397,8 @@ function dws_lpmwc_check_payment_method_access_via_user_roles( string $locked_me
 /**
  * Returns whether the Groups strategy leaves a payment method locked for a user, true while the strategy is off.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lpmwc_is_payment_method_locked().
@@ -381,6 +415,8 @@ function dws_lpmwc_check_payment_method_access_via_groups( string $locked_method
 
 /**
  * Returns whether the WooCommerce Memberships strategy leaves a payment method locked for a user, true while the strategy is off.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -399,6 +435,8 @@ function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locke
 /**
  * Returns whether the order strategy leaves a payment method locked for paying an order, true while the strategy is off.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lpmwc_is_payment_method_locked().
@@ -415,6 +453,8 @@ function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked
 
 /**
  * Returns a setting's stored value, by v1's field id and group, or null for an id v1 had no setting for.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -434,6 +474,8 @@ function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
 /**
  * Returns a setting's value, of the setting's kind, by v1's field id and group, through v1's value filters, or null for an id v1 had no setting for.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use get_option().
@@ -450,6 +492,8 @@ function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = nul
 
 /**
  * Returns a value as the setting's kind, by v1's field id and group: a boolean for a switch and a list of strings for a list, falling back to the setting's default.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -469,6 +513,8 @@ function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = 
 
 /**
  * Returns a General setting's value, of the setting's kind, by v1's field id, through v1's value filter.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0

@@ -7,6 +7,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * It keeps v1's global name, which other plugins type-hint, and calls to it that name no method of its own reach the order.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *

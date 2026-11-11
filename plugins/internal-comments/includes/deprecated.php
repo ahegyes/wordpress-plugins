@@ -31,6 +31,8 @@ $dws_ic_header = get_file_data(
 /**
  * The plugin's untranslated name.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_ic_get_plugin_name().
@@ -39,6 +41,8 @@ define( 'DWS_IC_NAME', $dws_ic_header['Name'] );
 
 /**
  * The plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -49,6 +53,8 @@ define( 'DWS_IC_VERSION', $dws_ic_header['Version'] );
 /**
  * The path of the plugin's main file.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use DWS_IC_FILE.
@@ -58,6 +64,8 @@ define( 'DWS_IC_PATH', DWS_IC_FILE );
 /**
  * The oldest PHP version the plugin runs on.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -66,6 +74,8 @@ define( 'DWS_IC_MIN_PHP', $dws_ic_header['RequiresPHP'] );
 
 /**
  * The oldest WordPress version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -105,6 +115,8 @@ const DWS_IC_V1_COMPONENTS = array(
 /**
  * Returns the plugin's name, translated once init has fired.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_ic_get_plugin_name().
@@ -118,6 +130,8 @@ function dws_ic_name(): string {
 
 /**
  * Returns the plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -133,6 +147,8 @@ function dws_ic_version(): string {
 /**
  * Returns the path of the plugin's main file.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -146,6 +162,8 @@ function dws_ic_path(): string {
 
 /**
  * Returns the oldest PHP version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -161,6 +179,8 @@ function dws_ic_min_php(): string {
 /**
  * Returns the oldest WordPress version the plugin runs on.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -174,6 +194,8 @@ function dws_ic_min_wp(): string {
 
 /**
  * Returns a hook name as v1 built it for the plugin.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -191,6 +213,8 @@ function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
 
 /**
  * Returns a hook name as v1 built it for one of its components, or null for an id v1 had no component for.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0

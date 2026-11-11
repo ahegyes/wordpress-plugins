@@ -26,6 +26,8 @@ const DWS_IC_SETTINGS_GROUPS = array(
 /**
  * Returns the stored value of a setting, or null for a setting that is not stored or a group v1 did not have.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -46,6 +48,8 @@ function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
 
 /**
  * Returns the validated value of a setting, filtered, or null for a group v1 did not have.
+ *
+ * @api
  *
  * @since   1.1.0
  * @version 2.0.0
@@ -114,6 +118,8 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 /**
  * Returns the names of the post types selected for internal comments, as stored, so a post type that registers late stays selected.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -126,6 +132,8 @@ function dws_ic_get_selected_post_types(): array {
 
 /**
  * Returns whether internal comments can be marked private.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0

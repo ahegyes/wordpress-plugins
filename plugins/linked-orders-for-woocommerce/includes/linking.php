@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Returns an order's node, or null when the value names no order of a supported type.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -35,6 +37,8 @@ function dws_lowc_get_order_node( $order ): ?DWS_Order_Node {
 /**
  * Returns whether an order is at the top of its tree, or null when it has no node.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -51,6 +55,8 @@ function dws_lowc_is_root_order( $order ): ?bool {
  * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, or when another request still links orders after five seconds, and null when either order has no node.
  *
  * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock. A link holds it for milliseconds, so the next one waits for it rather than refusing at once.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -105,6 +111,8 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 /**
  * Returns the node at the top of an order's tree, which is the order's own for a root or for a child whose parent was deleted, or null when the order has no node.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -123,6 +131,8 @@ function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
 
 /**
  * Returns the ids of an order and its descendants, each child before the next with its own descendants, or null when the order has no node.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
