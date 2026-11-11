@@ -59,10 +59,13 @@ function dws_lowc_plugin(): Plugin {
  */
 function dws_lowc_boot(): void {
 	try {
-		dws_lowc_plugin()->boot();
+		$plugin = dws_lowc_plugin();
 	} catch ( Throwable $error ) {
 		dws_lowc_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->boot(); // PluginBoot reports a failed composition itself, and a hook listener's throw is not a build error.
 }
 
 /**
@@ -75,10 +78,13 @@ function dws_lowc_boot(): void {
  */
 function dws_lowc_deactivate(): void {
 	try {
-		dws_lowc_plugin()->deactivate();
+		$plugin = dws_lowc_plugin();
 	} catch ( Throwable $error ) {
 		dws_lowc_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->deactivate();
 }
 
 /**

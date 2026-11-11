@@ -59,10 +59,13 @@ function dws_ic_plugin(): Plugin {
  */
 function dws_ic_boot(): void {
 	try {
-		dws_ic_plugin()->boot();
+		$plugin = dws_ic_plugin();
 	} catch ( Throwable $error ) {
 		dws_ic_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->boot(); // PluginBoot reports a failed composition itself, and a hook listener's throw is not a build error.
 }
 
 /**
@@ -75,10 +78,13 @@ function dws_ic_boot(): void {
  */
 function dws_ic_deactivate(): void {
 	try {
-		dws_ic_plugin()->deactivate();
+		$plugin = dws_ic_plugin();
 	} catch ( Throwable $error ) {
 		dws_ic_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->deactivate();
 }
 
 /**

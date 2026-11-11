@@ -59,10 +59,13 @@ function dws_lpmwc_plugin(): Plugin {
  */
 function dws_lpmwc_boot(): void {
 	try {
-		dws_lpmwc_plugin()->boot();
+		$plugin = dws_lpmwc_plugin();
 	} catch ( Throwable $error ) {
 		dws_lpmwc_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->boot(); // PluginBoot reports a failed composition itself, and a hook listener's throw is not a build error.
 }
 
 /**
@@ -75,10 +78,13 @@ function dws_lpmwc_boot(): void {
  */
 function dws_lpmwc_deactivate(): void {
 	try {
-		dws_lpmwc_plugin()->deactivate();
+		$plugin = dws_lpmwc_plugin();
 	} catch ( Throwable $error ) {
 		dws_lpmwc_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->deactivate();
 }
 
 /**
