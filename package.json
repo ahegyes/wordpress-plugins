@@ -1,53 +1,53 @@
 {
-    "name": "@ahegyes/wordpress-plugins",
-    "private": true,
-    "description": "DWS WordPress plugins monorepo — the shared test environment and the plugins' fan-outs.",
-    "license": "GPL-3.0-or-later",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ahegyes/wordpress-plugins.git"
-    },
-    "bugs": "https://github.com/ahegyes/wordpress-plugins/issues",
-    "engines": {
-        "node": ">=26",
-        "npm": ">=11"
-    },
-    "devDependencies": {
-        "@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#b107001cce9f2960495d9d50481c8540d228f60c",
-        "@playwright/test": "^1.64.1",
-        "@wordpress/e2e-test-utils-playwright": "^3.2.0",
-        "@wordpress/env": "^12.1.0",
-        "@wordpress/scripts": "^37.1.0"
-    },
-    "scripts": {
-        "setup": "npm run packages-install:all && npm run plugins:build",
-        "packages-install:all": "composer packages-install && composer plugins:packages-install && npm run packages-install && npm run plugins:packages-install",
-        "packages-update:all": "composer packages-update && composer plugins:packages-update && npm run packages-update && npm run plugins:packages-update && npm run packages-update:wp && npm run plugins:packages-update:wp",
+	"name": "@ahegyes/wordpress-plugins",
+	"private": true,
+	"description": "DWS WordPress plugins monorepo — the shared test environment and the plugins' fan-outs.",
+	"license": "GPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ahegyes/wordpress-plugins.git"
+	},
+	"bugs": "https://github.com/ahegyes/wordpress-plugins/issues",
+	"engines": {
+		"node": ">=26",
+		"npm": ">=11"
+	},
+	"devDependencies": {
+		"@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#b107001cce9f2960495d9d50481c8540d228f60c",
+		"@playwright/test": "^1.64.1",
+		"@wordpress/e2e-test-utils-playwright": "^3.2.0",
+		"@wordpress/env": "^12.1.0",
+		"@wordpress/scripts": "^37.1.0"
+	},
+	"scripts": {
+		"setup": "npm run packages-install:all && npm run plugins:build",
+		"packages-install:all": "composer packages-install && composer plugins:packages-install && npm run packages-install && npm run plugins:packages-install",
+		"packages-update:all": "composer packages-update && composer plugins:packages-update && npm run packages-update && npm run plugins:packages-update && npm run packages-update:wp && npm run plugins:packages-update:wp",
 
-        "packages-install": "npm install",
-        "packages-update": "npm update",
-        "packages-update:wp": "wp-scripts packages-update",
+		"packages-install": "npm install",
+		"packages-update": "npm update",
+		"packages-update:wp": "wp-scripts packages-update",
 
-        "plugins:packages-install": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-install && npm --prefix=plugins/internal-comments run packages-install && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-install",
-        "plugins:packages-update": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update && npm --prefix=plugins/internal-comments run packages-update && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-update",
-        "plugins:packages-update:wp": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update:wp && npm --prefix=plugins/internal-comments run packages-update:wp && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-update:wp",
+		"plugins:packages-install": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-install && npm --prefix=plugins/internal-comments run packages-install && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-install",
+		"plugins:packages-update": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update && npm --prefix=plugins/internal-comments run packages-update && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-update",
+		"plugins:packages-update:wp": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update:wp && npm --prefix=plugins/internal-comments run packages-update:wp && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-update:wp",
 
-        "plugins:build": "npm --prefix=plugins/linked-orders-for-woocommerce run build && npm --prefix=plugins/internal-comments run build && npm --prefix=plugins/locked-payment-methods-for-woocommerce run build",
+		"plugins:build": "npm --prefix=plugins/linked-orders-for-woocommerce run build && npm --prefix=plugins/internal-comments run build && npm --prefix=plugins/locked-payment-methods-for-woocommerce run build",
 
-        "wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
-        "wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
-        "wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
-        "wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
+		"wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
+		"wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
+		"wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
+		"wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
 
-        "audit": "composer audit && npm audit",
-        "audit:fix": "npm audit fix",
-        "check:engines": "wp-scripts check-engines",
-        "check:licenses": "wp-scripts check-licenses",
+		"audit": "composer audit && npm audit",
+		"audit:fix": "npm audit fix",
+		"check:engines": "wp-scripts check-engines",
+		"check:licenses": "wp-scripts check-licenses",
 
-        "test:e2e": "playwright test --config=playwright.config.js",
-        "plugins:test:e2e": "npm --prefix=plugins/linked-orders-for-woocommerce run test:e2e && npm --prefix=plugins/internal-comments run test:e2e && npm --prefix=plugins/locked-payment-methods-for-woocommerce run test:e2e",
-        "test:all": "composer test:integration && npm run test:e2e",
+		"test:e2e": "playwright test --config=playwright.config.js",
+		"plugins:test:e2e": "npm --prefix=plugins/linked-orders-for-woocommerce run test:e2e && npm --prefix=plugins/internal-comments run test:e2e && npm --prefix=plugins/locked-payment-methods-for-woocommerce run test:e2e",
+		"test:all": "composer test:integration && npm run test:e2e",
 
-        "quality-check:all": "composer quality-check && npm run test:e2e"
-    }
+		"quality-check:all": "composer quality-check && npm run test:e2e"
+	}
 }

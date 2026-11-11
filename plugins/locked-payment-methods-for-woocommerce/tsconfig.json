@@ -1,4 +1,4 @@
 {
-  "extends": "@ahegyes/wordpress-configs/node/tsconfig.base.json",
-  "include": ["tests/EndToEnd/**/*"]
+	"extends": "@ahegyes/wordpress-configs/node/tsconfig.base.json",
+	"include": ["tests/EndToEnd/**/*"]
 }

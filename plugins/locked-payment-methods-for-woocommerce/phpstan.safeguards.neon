@@ -1,16 +1,16 @@
 # The safeguards load before the floor gate, so they are analyzed at the oldest PHP and WordPress the bootstrap package runs on, which the framework's phpstan.bootstrap.neon sets; the WordPress extensions are listed because composer.json keeps them from installing themselves.
 includes:
-    - vendor/szepeviktor/phpstan-wordpress/extension.neon
-    - vendor/johnbillion/wp-compat/extension.neon
-    - vendor/swissspidy/phpstan-no-private/rules.neon
-    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+	- vendor/johnbillion/wp-compat/extension.neon
+	- vendor/swissspidy/phpstan-no-private/rules.neon
+	- vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
 
 parameters:
-    paths:
-        - includes/safeguards.php
-    # The lock filters WooCommerce's gateways, so it calls WooCommerce too.
-    scanFiles:
-        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
-    phpVersion: 70400
-    WPCompat:
-        requiresAtLeast: '5.2'
+	paths:
+		- includes/safeguards.php
+	# The lock filters WooCommerce's gateways, so it calls WooCommerce too.
+	scanFiles:
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+	phpVersion: 70400
+	WPCompat:
+		requiresAtLeast: '5.2'
