@@ -5,8 +5,8 @@
 	"port": 8820,
 	"testsEnvironment": false,
 	"mappings": {
-		"wp-content/plugins/internal-comments": "./plugins/internal-comments",
 		"wp-content/plugins/linked-orders-for-woocommerce": "./plugins/linked-orders-for-woocommerce",
+		"wp-content/plugins/internal-comments": "./plugins/internal-comments",
 		"wp-content/plugins/locked-payment-methods-for-woocommerce": "./plugins/locked-payment-methods-for-woocommerce",
 		"wp-content/plugins/woocommerce": "./vendor/wp-plugin/woocommerce"
 	},
