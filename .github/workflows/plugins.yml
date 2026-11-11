@@ -25,6 +25,9 @@ on:
       wordpress:
         description: 'JSON array of { plugin, wp } objects: the newest WordPress release of every branch from each plugin''s Requires at least up. Empty unless list-wordpress is true.'
         value: ${{ jobs.wordpress.outputs.wordpress }}
+      newest-wordpress:
+        description: 'The newest WordPress release the wordpress output lists, for the shared environment. Empty unless list-wordpress is true.'
+        value: ${{ jobs.wordpress.outputs.newest }}
 
 permissions:
   contents: read
@@ -91,6 +94,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       wordpress: ${{ steps.wordpress.outputs.wordpress }}
+      newest: ${{ steps.wordpress.outputs.newest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -112,4 +116,7 @@ jobs:
             fi
             pairs=$(printf '%s' "$offers" | jq -c --arg floor "$floor" --arg plugin "$plugin" --argjson pairs "$pairs" '[.offers[].version | select((split(".")[0:2] | map(tonumber)) >= ($floor | split(".")[0:2] | map(tonumber)))] | unique | if length == 0 then error("No WordPress release at or above \($floor) for \($plugin).") else $pairs + map({ plugin: $plugin, wp: . }) end')
           done
-          echo "wordpress=$pairs" >> "$GITHUB_OUTPUT"
+          {
+            echo "wordpress=$pairs"
+            echo "newest=$(jq -r 'map(.wp) | max_by(split(".") | map(tonumber))' <<< "$pairs")"
+          } >> "$GITHUB_OUTPUT"

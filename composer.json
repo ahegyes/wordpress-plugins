@@ -53,7 +53,7 @@
 		"test:integration:ci": [
 			"Composer\\Config::disableProcessTimeout",
 			"@plugins:packages-install",
-			"npm --prefix=. run plugins:packages-install",
+			"npm --prefix=. run plugins:packages-install:ci",
 			"@test:integration:run"
 		],
 

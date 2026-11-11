@@ -15,12 +15,15 @@
 	"devDependencies": {
 		"@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#b107001cce9f2960495d9d50481c8540d228f60c",
 		"@playwright/test": "^1.64.1",
+		"@types/node": "^26.6.6",
 		"@wordpress/e2e-test-utils-playwright": "^3.2.0",
 		"@wordpress/env": "^12.1.0",
-		"@wordpress/scripts": "^37.1.0"
+		"@wordpress/scripts": "^37.1.0",
+		"typescript": "^6.0.3"
 	},
 	"scripts": {
 		"setup": "npm run packages-install:all && npm run plugins:build",
+		"setup:ci": "composer plugins:packages-install && npm run plugins:packages-install:ci && npm run plugins:build",
 		"packages-install:all": "composer packages-install && composer plugins:packages-install && npm run packages-install && npm run plugins:packages-install",
 		"packages-update:all": "composer packages-update && composer plugins:packages-update && npm run packages-update && npm run plugins:packages-update && npm run packages-update:wp && npm run plugins:packages-update:wp",
 
@@ -31,8 +34,15 @@
 		"plugins:packages-install": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-install && npm --prefix=plugins/internal-comments run packages-install && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-install",
 		"plugins:packages-update": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update && npm --prefix=plugins/internal-comments run packages-update && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-update",
 		"plugins:packages-update:wp": "npm --prefix=plugins/linked-orders-for-woocommerce run packages-update:wp && npm --prefix=plugins/internal-comments run packages-update:wp && npm --prefix=plugins/locked-payment-methods-for-woocommerce run packages-update:wp",
+		"plugins:packages-install:ci": "npm --prefix=plugins/linked-orders-for-woocommerce ci && npm --prefix=plugins/internal-comments ci && npm --prefix=plugins/locked-payment-methods-for-woocommerce ci",
 
 		"plugins:build": "npm --prefix=plugins/linked-orders-for-woocommerce run build && npm --prefix=plugins/internal-comments run build && npm --prefix=plugins/locked-payment-methods-for-woocommerce run build",
+
+		"lint": "npm run lint:scripts && npm run lint:types",
+		"lint:scripts": "wp-scripts lint-js tests/EndToEnd eslint.config.mjs playwright.config.js",
+		"lint:types": "tsc",
+		"plugins:lint": "npm --prefix=plugins/linked-orders-for-woocommerce run lint && npm --prefix=plugins/internal-comments run lint && npm --prefix=plugins/locked-payment-methods-for-woocommerce run lint",
+		"lint:all": "npm run lint && composer plugins:lint:php && npm run plugins:lint",
 
 		"wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
 		"wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
@@ -46,8 +56,8 @@
 
 		"test:e2e": "playwright test --config=playwright.config.js",
 		"plugins:test:e2e": "npm --prefix=plugins/linked-orders-for-woocommerce run test:e2e && npm --prefix=plugins/internal-comments run test:e2e && npm --prefix=plugins/locked-payment-methods-for-woocommerce run test:e2e",
-		"test:all": "composer test:integration && npm run test:e2e",
+		"test:all": "composer test:integration && npm run test:e2e && composer plugins:test && npm run plugins:test:e2e",
 
-		"quality-check:all": "composer quality-check && npm run test:e2e"
+		"quality-check:all": "composer quality-check && npm run lint && npm run test:e2e && composer plugins:quality-check && npm run plugins:lint && npm run plugins:test:e2e"
 	}
 }

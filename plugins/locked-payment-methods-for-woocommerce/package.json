@@ -39,6 +39,7 @@
 		"wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
 		"wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
 		"build": "exit 0",
+		"lint": "npm run lint:scripts && npm run lint:styles && npm run lint:types",
 		"lint:scripts": "wp-scripts lint-js tests/EndToEnd",
 		"lint:styles": "wp-scripts lint-style 'assets/src/**/*.scss' --allow-empty-input",
 		"lint:types": "tsc",

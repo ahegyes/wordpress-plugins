@@ -42,6 +42,7 @@
 		"build:assets": "wp-scripts build orders-list-table=./assets/src/orders-list-table.ts orders-list-table-icons=./assets/src/orders-list-table-icons.scss --output-path=assets/build",
 		"start": "npm run start:assets",
 		"start:assets": "wp-scripts start orders-list-table=./assets/src/orders-list-table.ts orders-list-table-icons=./assets/src/orders-list-table-icons.scss --output-path=assets/build",
+		"lint": "npm run lint:scripts && npm run lint:styles && npm run lint:types",
 		"lint:scripts": "wp-scripts lint-js assets/src tests/EndToEnd",
 		"lint:styles": "wp-scripts lint-style 'assets/src/**/*.scss'",
 		"lint:types": "tsc",

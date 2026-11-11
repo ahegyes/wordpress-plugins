@@ -27,16 +27,17 @@ jobs:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan", "changelog:validate"]'
 
   lint-scripts-styles:
-    name: Scripts and styles lint (${{ matrix.plugin }})
+    name: Lint scripts and styles (${{ matrix.project }})
     needs: plugins
     strategy:
       fail-fast: false
       matrix:
-        plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
+        project: ${{ fromJSON(needs.plugins.outputs.projects) }}
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
-      project-path: plugins/${{ matrix.plugin }}
-      scripts: '["lint:scripts", "lint:styles", "lint:types"]'
+      project-path: ${{ matrix.project }}
+      # The root holds only the shared environment's spec and configs, so it has no styles to lint.
+      scripts: ${{ matrix.project == '.' && '["lint:scripts", "lint:types"]' || '["lint:scripts", "lint:styles", "lint:types"]' }}
 
   block-json:
     name: block.json schema (${{ matrix.plugin }})
