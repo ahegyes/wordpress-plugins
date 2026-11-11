@@ -28,7 +28,6 @@
 	},
 	"require-dev": {
 		"ahegyes/wordpress-configs": "dev-trunk",
-		"automattic/jetpack-changelogger": "^7",
 		"wp-plugin/woocommerce": "^11.2"
 	},
 
@@ -65,7 +64,6 @@
 
 		"quality-check": [
 			"@composer validate --strict",
-			"@changelog:validate",
 			"@test:integration"
 		],
 
@@ -111,11 +109,7 @@
 			"@composer --working-dir=plugins/linked-orders-for-woocommerce quality-check",
 			"@composer --working-dir=plugins/internal-comments quality-check",
 			"@composer --working-dir=plugins/locked-payment-methods-for-woocommerce quality-check"
-		],
-
-		"changelog:add": "@php vendor/bin/changelogger add",
-		"changelog:validate": "@php vendor/bin/changelogger validate",
-		"changelog:write": "@php vendor/bin/changelogger write"
+		]
 	},
 
 	"extra": {
@@ -124,20 +118,6 @@
 				"type:wordpress-plugin",
 				"type:wordpress-theme"
 			]
-		},
-		"changelogger": {
-			"versioning": "semver",
-			"changelog": "CHANGELOG.md",
-			"changes-dir": "changelog",
-			"default-type": "changed",
-			"types": {
-				"added": "Added",
-				"changed": "Changed",
-				"deprecated": "Deprecated",
-				"removed": "Removed",
-				"fixed": "Fixed",
-				"security": "Security"
-			}
 		}
 	},
 

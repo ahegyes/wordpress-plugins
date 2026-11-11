@@ -13,13 +13,13 @@ npm run test:e2e
 
 ## Changelog entries
 
-Each user-visible change adds one fragment, in the changed plugin's directory or, for a change to the monorepo itself, at the root:
+Each user-visible change to a plugin adds one fragment, from that plugin's directory; the monorepo's own changes are recorded in its history and pull requests:
 
 ```sh
 composer changelog:add
 ```
 
-CI validates the fragments with `composer changelog:validate` in the root and in every plugin.
+CI validates the fragments with `composer changelog:validate` in every plugin.
 
 ## Releases
 

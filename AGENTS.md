@@ -20,7 +20,7 @@ wordpress-plugins/
 │   ├── release-rehearsal.yml             rehearses each plugin's release, from build to the built-artifact test, on pull requests and trunk, publishing nothing
 │   └── split-plugins.yml                 splits each plugin to the mirror its composer.json name gives, and forwards <slug>/vX.Y.Z as vX.Y.Z
 ├── .wp-env.tests.json                    the shared environment on port 8820: every plugin and WooCommerce from vendor/, as production
-├── composer.json                         changelogger, WooCommerce for the shared environment, the shared Integration run and the plugins:* fan-outs
+├── composer.json                         WooCommerce for the shared environment, the shared Integration run and the plugins:* fan-outs
 └── package.json                          wp-env and Playwright for the shared environment, and the plugins:* fan-outs
 ```
 
