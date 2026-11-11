@@ -4,8 +4,8 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Support;
 
 use PHPUnit\Framework\Attributes\After;
 
-// WooCommerce reads these options on every order load, so pre_option filters move this process to another storage, with or without the order tables' data caching, without changing the tests site.
-trait OrderStorage {
+// WooCommerce reads these options on every order load, so pre_option filters move this process to another storage, with the order tables' data cache off, without changing the tests site.
+trait OrderStorageTrait {
 	protected array $orders = array();
 
 	protected array $storage_filters = array();
@@ -19,11 +19,11 @@ trait OrderStorage {
 		);
 	}
 
-	protected function use_storage( bool $hpos, bool $sync, bool $caching = false ): void {
+	protected function use_storage( bool $hpos, bool $sync ): void {
 		$this->storage_filters = array(
 			'pre_option_woocommerce_custom_orders_table_enabled'           => static fn (): string => $hpos ? 'yes' : 'no',
 			'pre_option_woocommerce_custom_orders_table_data_sync_enabled' => static fn (): string => $sync ? 'yes' : 'no',
-			'pre_option_woocommerce_hpos_datastore_caching_enabled'        => static fn (): string => $caching ? 'yes' : 'no',
+			'pre_option_woocommerce_hpos_datastore_caching_enabled'        => static fn (): string => 'no',
 		);
 		foreach ( $this->storage_filters as $hook => $filter ) {
 			add_filter( $hook, $filter );
@@ -34,7 +34,6 @@ trait OrderStorage {
 		$order = wc_create_order( $args + array( 'status' => 'pending' ) );
 		self::assertInstanceOf( \WC_Order::class, $order );
 		$this->orders[] = $order->get_id();
-
 		return $order;
 	}
 
@@ -47,11 +46,13 @@ trait OrderStorage {
 				$order->delete( true );
 			}
 		}
+
 		$this->orders = array();
 
 		foreach ( $this->storage_filters as $hook => $filter ) {
 			remove_filter( $hook, $filter );
 		}
+
 		$this->storage_filters = array();
 	}
 }

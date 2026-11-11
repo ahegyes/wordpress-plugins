@@ -5,6 +5,7 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategi
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -18,17 +19,17 @@ require_once \dirname( __DIR__, 2 ) . '/Support/memberships-functions.php';
 #[CoversNothing]
 #[Group( 'wc-memberships' )]
 final class WooCommerceMembershipsStrategyTest extends TestCase {
+	use RestoresOptionsTrait;
+
 	protected const string FORM = 'dws_lpmwc_membership_plan';
 
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS, 'wc_memberships_version' );
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS, 'wc_memberships_version' );
 
 	protected static WooCommerceMembershipsStrategy $strategy;
 
 	protected static array $hooks = array();
 
 	protected static array $users = array();
-
-	protected array $stored = array();
 
 	protected int $plan;
 
@@ -63,10 +64,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	// The form evaluates its definition and saves an object once per request, so every row edits a plan of its own.
 	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
+	protected function create_the_plan(): void {
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
 		update_option( 'wc_memberships_version', '1.27.0' );
 		$this->plan = (int) wp_insert_post(
@@ -79,11 +77,8 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	}
 
 	#[After]
-	protected function restore_rows(): void {
+	protected function clean_up(): void {
 		wp_delete_post( $this->plan, true );
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
 		MembershipsDouble::$memberships = array();
 		unset( $_POST[ self::FORM ], $_POST[ self::FORM . '_nonce' ], $GLOBALS['post'] );
 		wp_set_current_user( 0 );

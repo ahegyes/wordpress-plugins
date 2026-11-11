@@ -4,6 +4,8 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
 use DeepWebSolutions\InternalComments\Settings;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\InternalComments\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -12,13 +14,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class SettingsTest extends TestCase {
-	protected const array ROWS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
 
 	protected static OptionsPage $page;
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -29,7 +30,7 @@ final class SettingsTest extends TestCase {
 
 	#[\Override]
 	public static function tearDownAfterClass(): void {
-		foreach ( self::ROWS as $row ) {
+		foreach ( self::OPTIONS as $row ) {
 			remove_filter( "pre_update_option_$row", array( self::$page, 'sanitize_submission' ) );
 			remove_filter( "option_page_capability_$row", array( self::$page, 'get_capability' ) );
 			unregister_setting( $row, $row );
@@ -44,27 +45,13 @@ final class SettingsTest extends TestCase {
 	}
 
 	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::ROWS as $row ) {
-			$this->stored[ $row ] = get_option( $row );
-		}
+	protected function forget_the_settings_errors(): void {
 		$GLOBALS['wp_settings_errors'] = array();
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $row => $value ) {
-			false === $value ? delete_option( $row ) : update_option( $row, $value );
-		}
+	protected function forget_the_tab(): void {
 		unset( $_GET['tab'] );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_page_keeps_v1s_slug_parent_capability_and_tabs(): void {

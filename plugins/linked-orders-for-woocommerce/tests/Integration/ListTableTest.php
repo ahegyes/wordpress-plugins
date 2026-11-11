@@ -4,6 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\Plugin;
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\BeforeClass;
@@ -13,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class ListTableTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	protected const array COLUMNS = array(
 		'cb'           => '',

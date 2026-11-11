@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -11,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 // Internal comments stay hidden by their status, which WordPress's queries, counts, feeds and REST API leave out without the plugin's help.
 #[CoversNothing]
 final class DataGuardsTest extends TestCase {
+	use RunsRequestsTrait;
+
 	protected int $admin;
 
 	protected int $other;
@@ -245,10 +249,10 @@ final class DataGuardsTest extends TestCase {
 			$comment
 		);
 
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' --skip-plugins=internal-comments eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The row needs a request without the plugin.
+		$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
 
-		self::assertSame( 0, $status, \implode( "\n", $output ) );
-		self::assertSame( wp_json_encode( array( array( $public ), array( $public ), 1, 1, 401, array( $public ) ) ), (string) \end( $output ) );
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( wp_json_encode( array( array( $public ), array( $public ), 1, 1, 401, array( $public ) ) ), $request['last'], $request['output'] );
 	}
 
 	protected function comment( string $content = 'Internal', array $meta = array() ): int {

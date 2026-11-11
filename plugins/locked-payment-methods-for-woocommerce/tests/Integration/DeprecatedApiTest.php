@@ -2,7 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -10,13 +11,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
 
 	protected static array $users = array();
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	public static function hook_tags(): array {
 		return array(
@@ -54,31 +54,9 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	#[Before]
-	protected function record_deprecations(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
+	protected function store_the_settings(): void {
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
 		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
-		add_filter( 'deprecated_function_trigger_error', '__return_false' );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_function_run', array( $this, 'record' ), 10, 2 );
-		add_action( 'deprecated_hook_run', array( $this, 'record' ), 10, 2 );
-	}
-
-	#[After]
-	protected function stop_recording(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-		remove_filter( 'deprecated_function_trigger_error', '__return_false' );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_function_run', array( $this, 'record' ) );
-		remove_action( 'deprecated_hook_run', array( $this, 'record' ) );
-	}
-
-	public function record( string $name, string $replacement ): void {
-		$this->deprecated[] = array( $name, $replacement );
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {

@@ -3,26 +3,26 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
 use DeepWebSolutions\LockedPaymentMethods\Settings;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class SettingsTest extends TestCase {
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
 	protected const string SECTION = 'dws-locked-payment-methods';
 
 	protected const array CHECKBOXES = array( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS, DWS_LPMWC_OPTION_DELETE_DATA );
 
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, ...self::CHECKBOXES );
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, ...self::CHECKBOXES );
 
 	protected static \WC_Settings_Page $advanced;
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -43,27 +43,9 @@ final class SettingsTest extends TestCase {
 		);
 	}
 
-	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
-	}
-
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
+	protected function forget_the_rejections(): void {
 		( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->setValue( null, array() );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_section_sits_on_the_advanced_tab_under_its_v1_id(): void {
@@ -71,7 +53,7 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_the_section_shows_v1s_groups_with_their_defaults(): void {
-		foreach ( self::KEYS as $key ) {
+		foreach ( self::OPTIONS as $key ) {
 			delete_option( $key );
 		}
 

@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -10,9 +12,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedHooksTest extends TestCase {
-	use OrderStorage;
-
-	protected array $deprecated = array();
+	use OrderStorageTrait;
+	use RecordsDeprecationsTrait;
 
 	public static function renamed_hooks(): array {
 		return array(
@@ -32,24 +33,16 @@ final class DeprecatedHooksTest extends TestCase {
 	}
 
 	#[Before]
-	protected function record_deprecations(): void {
+	protected function log_in(): void {
 		wp_set_current_user( 1 );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
-	protected function stop_recording(): void {
+	protected function reset_the_screen(): void {
 		global $wp_meta_boxes;
 		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Resets what the rows registered.
 		unset( $GLOBALS['current_screen'] );
 		wp_set_current_user( 0 );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	#[DataProvider( 'renamed_hooks' )]

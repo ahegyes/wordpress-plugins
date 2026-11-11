@@ -3,14 +3,14 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration\Integration;
 
 use DeepWebSolutions\LinkedOrders\Integration\SequentialOrderNumbersPro;
-use DeepWebSolutions\LinkedOrders\Tests\Integration\OrderStorage;
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class SequentialOrderNumbersProTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	public function test_the_integration_loads_only_beside_the_plugin(): void {
 		self::assertFalse( SequentialOrderNumbersPro::should_load() );

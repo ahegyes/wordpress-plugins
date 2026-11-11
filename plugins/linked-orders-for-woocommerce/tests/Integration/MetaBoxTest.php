@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\BeforeClass;
@@ -12,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class MetaBoxTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	protected int $user = 0;
 

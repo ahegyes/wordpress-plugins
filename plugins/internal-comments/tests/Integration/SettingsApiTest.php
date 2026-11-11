@@ -2,19 +2,18 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\InternalComments\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class SettingsApiTest extends TestCase {
-	protected const array ROWS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
 
-	protected array $stored = array();
-
-	protected array $deprecated = array();
+	protected const array OPTIONS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
 
 	public static function stored_settings(): array {
 		return array(
@@ -30,28 +29,6 @@ final class SettingsApiTest extends TestCase {
 		);
 	}
 
-	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::ROWS as $row ) {
-			$this->stored[ $row ] = get_option( $row );
-		}
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
-	}
-
-	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $row => $value ) {
-			false === $value ? delete_option( $row ) : update_option( $row, $value );
-		}
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
-	}
-
 	#[DataProvider( 'stored_settings' )]
 	public function test_a_setting_reads_from_its_v1_row_validated_by_its_field( string $row, string $field, mixed $stored, string $field_id, ?string $group, array|bool $expected ): void {
 		update_option( $row, array( $field => $stored ) );
@@ -61,7 +38,7 @@ final class SettingsApiTest extends TestCase {
 	}
 
 	public function test_missing_settings_read_as_v1_defaults(): void {
-		foreach ( self::ROWS as $row ) {
+		foreach ( self::OPTIONS as $row ) {
 			delete_option( $row );
 		}
 

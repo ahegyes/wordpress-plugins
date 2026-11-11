@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -11,15 +13,14 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class UserRoleStrategyTest extends TestCase {
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
 	protected const string V1_HOOK = 'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value';
 
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
 
 	protected static array $users = array();
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -44,27 +45,13 @@ final class UserRoleStrategyTest extends TestCase {
 	}
 
 	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
+	protected function grant_shop_managers_every_method(): void {
 		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
+	protected function log_out(): void {
 		wp_set_current_user( 0 );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_strategy_loads_while_its_switch_is_on_as_v1s_did_by_default(): void {

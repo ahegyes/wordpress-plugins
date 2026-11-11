@@ -2,15 +2,15 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
-	protected array $deprecated = array();
+	use RecordsDeprecationsTrait;
+
 
 	public static function hook_tags(): array {
 		return array(
@@ -26,26 +26,6 @@ final class DeprecatedApiTest extends TestCase {
 			'component-ajax'        => array( 'dws_ic_get_component_hook_tag', array( 'ajax', 'before_insert_comment' ), 'internal_comments/ajax/before_insert_comment' ),
 			'component-absent'      => array( 'dws_ic_get_component_hook_tag', array( 'freemius', 'name' ), null ),
 		);
-	}
-
-	#[Before]
-	protected function record_deprecations(): void {
-		add_filter( 'deprecated_function_trigger_error', '__return_false' );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_function_run', array( $this, 'record' ), 10, 2 );
-		add_action( 'deprecated_hook_run', array( $this, 'record' ), 10, 2 );
-	}
-
-	#[After]
-	protected function stop_recording(): void {
-		remove_filter( 'deprecated_function_trigger_error', '__return_false' );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_function_run', array( $this, 'record' ) );
-		remove_action( 'deprecated_hook_run', array( $this, 'record' ) );
-	}
-
-	public function record( string $name, string $replacement ): void {
-		$this->deprecated[] = array( $name, $replacement );
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {

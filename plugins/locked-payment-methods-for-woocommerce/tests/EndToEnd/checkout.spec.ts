@@ -1,17 +1,5 @@
-/// <reference types="node" />
-import { execFileSync } from 'node:child_process';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
-
-// No screen enables a payment method, locks it or grants it in one step, so the site's WP-CLI stores them.
-const cli = ( ...args: string[] ): string =>
-	execFileSync(
-		'node_modules/.bin/wp-env',
-		[ '--config', '.wp-env.tests.json', 'run', 'cli', 'wp', ...args ],
-		{ encoding: 'utf8', stdio: [ 'ignore', 'pipe', 'ignore' ] }
-	)
-		.trim()
-		.split( '\n' )
-		.pop() ?? '';
+import { cli } from './cli';
 
 // A context takes the config's storage state, the administrator's session, unless it names its own.
 const LOGGED_OUT = { cookies: [], origins: [] };

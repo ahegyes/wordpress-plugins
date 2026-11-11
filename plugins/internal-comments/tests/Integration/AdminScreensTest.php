@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\AdminScreens;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -10,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class AdminScreensTest extends TestCase {
+	use RecordsDeprecationsTrait;
+
 	// WordPress reports a deprecated hook only when something listens on it.
 	protected const string V1_PRECEDING_COLUMN = 'internal_comments/wp_table_output/insert_after';
 
@@ -18,8 +21,6 @@ final class AdminScreensTest extends TestCase {
 	protected int $post;
 
 	protected mixed $stored;
-
-	protected array $deprecated = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -57,8 +58,6 @@ final class AdminScreensTest extends TestCase {
 			)
 		);
 		wp_set_current_user( self::$users['administrator'] );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
@@ -67,12 +66,6 @@ final class AdminScreensTest extends TestCase {
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
 		wp_set_current_user( 0 );
 		unset( $_GET['comment_type'] );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_posts_list_column_follows_the_comments_column_and_passes_v1s_filter_first(): void {

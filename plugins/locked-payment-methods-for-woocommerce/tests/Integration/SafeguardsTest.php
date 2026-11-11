@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -12,15 +14,15 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class SafeguardsTest extends TestCase {
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
+
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, self::V1_KEY );
 
 	protected const string FILTER = 'dws_lpmwc/payment_method/should_lock';
 
 	protected const string V1_KEY = 'dws-wc-lpm_general_locked-payment-methods';
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	public static function relaxations(): array {
 		return array(
@@ -63,30 +65,16 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	#[Before]
-	protected function store_rows(): void {
-		foreach ( array( DWS_LPMWC_OPTION_LOCKED_METHODS, self::V1_KEY ) as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
+	protected function lock_cod(): void {
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
+	protected function reset_the_request(): void {
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		unset( $GLOBALS['wp']->query_vars['order-pay'], $_GET['key'] );
 		set_query_var( 'order-pay', '' );
 		wp_set_current_user( 0 );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_lock_removes_the_methods_the_plugins_option_lists(): void {

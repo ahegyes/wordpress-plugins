@@ -2,17 +2,16 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class OptionsTest extends TestCase {
-	protected const array RESTORED = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	use RestoresOptionsTrait;
 
-	protected array $stored = array();
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
 
 	public static function stored_depths(): array {
 		return array(
@@ -36,20 +35,6 @@ final class OptionsTest extends TestCase {
 		);
 	}
 
-	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::RESTORED as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
-	}
-
-	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-	}
-
 	public function test_the_settings_keep_the_keys_v1_stored_them_under(): void {
 		self::assertSame( 'dws-lowc_general_max-depth', DWS_LOWC_OPTION_MAX_DEPTH );
 		self::assertSame( 'dws-lowc_general_autocomplete-descendants', DWS_LOWC_OPTION_AUTOCOMPLETE );
@@ -57,7 +42,7 @@ final class OptionsTest extends TestCase {
 	}
 
 	public function test_a_missing_depth_reads_as_v1s_default(): void {
-		foreach ( self::RESTORED as $key ) {
+		foreach ( self::OPTIONS as $key ) {
 			delete_option( $key );
 		}
 

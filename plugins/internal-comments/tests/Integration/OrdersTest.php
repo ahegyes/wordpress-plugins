@@ -5,6 +5,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\MetaBox;
+use DeepWebSolutions\InternalComments\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -14,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 // Orders live in WooCommerce's order tables, in the posts table, or in both, so each row runs on every storage.
 #[CoversNothing]
 final class OrdersTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	protected static array $users = array();
 

@@ -4,6 +4,8 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -12,7 +14,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class LinkingTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
+	use RunsRequestsTrait;
 
 	protected int $user = 0;
 
@@ -55,7 +58,7 @@ final class LinkingTest extends TestCase {
 	// The parent's children are one meta value that every link reads and rewrites, so a link must not write back a list another request changed after this one loaded the parent.
 	#[DataProvider( 'storages_and_data_caching' )]
 	public function test_a_link_keeps_a_child_another_request_linked_after_the_parent_was_loaded( bool $hpos, bool $sync, bool $caching = false ): void {
-		$this->use_storage( $hpos, $sync, $caching );
+		$this->use_storage_and_data_caching( $hpos, $sync, $caching );
 		$parent = $this->create_order();
 		$first  = $this->create_order();
 		$second = $this->create_order();
@@ -74,7 +77,7 @@ final class LinkingTest extends TestCase {
 	// A child another request linked after this one loaded it must be refused, so the child's meta is read past the caches too.
 	#[DataProvider( 'storages_and_data_caching' )]
 	public function test_a_link_is_refused_for_a_child_another_request_linked_after_the_child_was_loaded( bool $hpos, bool $sync, bool $caching = false ): void {
-		$this->use_storage( $hpos, $sync, $caching );
+		$this->use_storage_and_data_caching( $hpos, $sync, $caching );
 		$parent = $this->create_order();
 		$other  = $this->create_order();
 		$child  = $this->create_order();
@@ -369,12 +372,21 @@ final class LinkingTest extends TestCase {
 		return self::storages() + array( 'hpos-with-data-caching' => array( true, false, true ) );
 	}
 
+	// The trait keeps the order tables' data caching off, which these rows also need on.
+	protected function use_storage_and_data_caching( bool $hpos, bool $sync, bool $caching ): void {
+		$this->use_storage( $hpos, $sync );
+		$hook = 'pre_option_woocommerce_hpos_datastore_caching_enabled';
+		remove_filter( $hook, $this->storage_filters[ $hook ] );
+		$this->storage_filters[ $hook ] = static fn (): string => $caching ? 'yes' : 'no';
+		add_filter( $hook, $this->storage_filters[ $hook ] );
+	}
+
 	// The other request runs on the row's storage, as the shared tests site stores orders on the order tables.
 	protected function link_in_another_request( bool $hpos, bool $sync, int $parent_id, int $child_id ): void {
-		$php = \sprintf( 'add_filter( "pre_option_woocommerce_custom_orders_table_enabled", fn () => "%s" ); add_filter( "pre_option_woocommerce_custom_orders_table_data_sync_enabled", fn () => "%s" ); echo var_export( dws_lowc_link_orders( %d, %d ), true );', $hpos ? 'yes' : 'no', $sync ? 'yes' : 'no', $parent_id, $child_id );
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The race needs a second request.
+		$php     = \sprintf( 'add_filter( "pre_option_woocommerce_custom_orders_table_enabled", fn () => "%s" ); add_filter( "pre_option_woocommerce_custom_orders_table_data_sync_enabled", fn () => "%s" ); echo var_export( dws_lowc_link_orders( %d, %d ), true );', $hpos ? 'yes' : 'no', $sync ? 'yes' : 'no', $parent_id, $child_id );
+		$request = self::request( $php );
 
-		self::assertSame( 0, $status, \implode( "\n", $output ) );
-		self::assertSame( 'true', (string) \end( $output ) );
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( 'true', $request['last'], $request['output'] );
 	}
 }

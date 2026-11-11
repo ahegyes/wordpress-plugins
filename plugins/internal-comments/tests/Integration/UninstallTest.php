@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\AfterClass;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -10,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class UninstallTest extends TestCase {
+	use RunsRequestsTrait;
+
 	protected const int USER = 1;
 
 	#[AfterClass]
@@ -40,16 +43,16 @@ final class UninstallTest extends TestCase {
 		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
 		$php = 'uninstall_plugin( "internal-comments/internal-comments.php" ); echo wp_json_encode( array( defined( "DWS_IC_FILE" ), get_option( "' . DWS_IC_OPTION_PLUGIN . '" ) ) );';
 
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' --skip-plugins=internal-comments eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The uninstall needs a request without the plugin.
+		$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
 
 		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request would.
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' ) . ' 2>&1', $restored, $restore_status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The restore needs a request with the plugin.
+		$restored = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
 		wp_cache_flush();
 		wp_roles()->for_site();
 
-		self::assertSame( 0, $status, \implode( "\n", $output ) );
-		self::assertSame( '[false,false]', (string) \end( $output ) );
-		self::assertSame( 0, $restore_status, \implode( "\n", $restored ) );
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( '[false,false]', $request['last'], $request['output'] );
+		self::assertSame( 0, $restored['status'], $restored['output'] );
 		self::assertSame( DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ], get_option( DWS_IC_OPTION_PLUGIN ) );
 		self::assertTrue( get_role( 'editor' )?->has_cap( DWS_IC_CAP_INSERT ) );
 	}

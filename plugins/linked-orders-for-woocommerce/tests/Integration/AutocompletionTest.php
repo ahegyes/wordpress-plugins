@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -10,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class AutocompletionTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	protected mixed $stored = false;
 

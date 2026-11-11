@@ -1,29 +1,9 @@
-/// <reference types="node" />
-import { execFileSync } from 'node:child_process';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
+import { cli } from './cli';
 
 // WordPress core's own message for a plugin whose Requires Plugins header lists an inactive plugin.
 const DEPENDENCY =
 	'Locked Payment Methods for WooCommerce requires 1 plugin to be installed and activated: WooCommerce.';
-
-// No page shows the boot's outcome, so the site's WP-CLI reads it.
-const bootStatus = (): string =>
-	execFileSync(
-		'node_modules/.bin/wp-env',
-		[
-			'--config',
-			'.wp-env.tests.json',
-			'run',
-			'cli',
-			'wp',
-			'eval',
-			'echo dws_lpmwc_plugin()->boot->status;',
-		],
-		{ encoding: 'utf8', stdio: [ 'ignore', 'pipe', 'ignore' ] }
-	)
-		.trim()
-		.split( '\n' )
-		.pop() ?? '';
 
 test.describe( 'Without WooCommerce', () => {
 	test.beforeAll( async ( { requestUtils } ) => {
@@ -37,7 +17,9 @@ test.describe( 'Without WooCommerce', () => {
 	test( 'the plugin stays blocked, WordPress names the missing plugin and every screen still loads', async ( {
 		page,
 	} ) => {
-		expect( bootStatus() ).toBe( 'blocked' );
+		expect( cli( 'eval', 'echo dws_lpmwc_plugin()->boot->status;' ) ).toBe(
+			'blocked'
+		);
 
 		const front = await page.goto( '/' );
 		expect( front?.status() ).toBe( 200 );

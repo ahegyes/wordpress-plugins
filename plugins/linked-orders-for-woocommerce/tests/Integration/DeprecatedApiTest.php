@@ -2,15 +2,15 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
-	protected array $deprecated = array();
+	use RecordsDeprecationsTrait;
+
 
 	public static function hook_tags(): array {
 		return array(
@@ -23,26 +23,6 @@ final class DeprecatedApiTest extends TestCase {
 			'component-sos'    => array( 'dws_lowc_get_component_hook_tag', array( 'wc-sequential-order-numbers-pro-integration', 'name' ), 'linked_orders_for_woocommerce/wc_sequential_order_numbers_pro_integration/name' ),
 			'component-absent' => array( 'dws_lowc_get_component_hook_tag', array( 'freemius', 'name' ), null ),
 		);
-	}
-
-	#[Before]
-	protected function record_deprecations(): void {
-		add_filter( 'deprecated_function_trigger_error', '__return_false' );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_function_run', array( $this, 'record' ), 10, 2 );
-		add_action( 'deprecated_hook_run', array( $this, 'record' ), 10, 2 );
-	}
-
-	#[After]
-	protected function stop_recording(): void {
-		remove_filter( 'deprecated_function_trigger_error', '__return_false' );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_function_run', array( $this, 'record' ) );
-		remove_action( 'deprecated_hook_run', array( $this, 'record' ) );
-	}
-
-	public function record( string $name, string $replacement ): void {
-		$this->deprecated[] = array( $name, $replacement );
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {

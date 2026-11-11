@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -11,13 +12,13 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class UserProfileStrategyTest extends TestCase {
+	use RestoresOptionsTrait;
+
 	protected const string FORM = 'dws_lpmwc_user_profile';
 
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
 
 	protected static array $users = array();
-
-	protected array $stored = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -40,20 +41,14 @@ final class UserProfileStrategyTest extends TestCase {
 
 	// The form evaluates its definition and saves an object once per request, so every row edits a customer of its own.
 	#[Before]
-	protected function store_rows(): void {
+	protected function create_the_customer(): void {
 		self::$users['customer'] = self::create_user( 'customer' );
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
 		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
+	protected function clean_up(): void {
 		wp_delete_user( self::$users['customer'] );
 		foreach ( self::$users as $user ) {
 			delete_user_meta( $user, self::key() );
