@@ -294,7 +294,7 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	protected static function queried_users( ?array $args = null ): array {
-		return \array_map( 'intval', ( new \WP_User_Query( $args ?? self::query_args() ) )->get_results() );
+		return \array_map( 'intval', new \WP_User_Query( $args ?? self::query_args() )->get_results() );
 	}
 
 	protected static function query_args(): array {

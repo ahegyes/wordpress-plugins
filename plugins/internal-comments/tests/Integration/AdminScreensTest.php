@@ -82,7 +82,7 @@ final class AdminScreensTest extends TestCase {
 		add_filter( 'dws_ic/list_table/preceding_column', $v2, 10, 2 );
 
 		try {
-			$columns = ( new AdminScreens() )->add_column(
+			$columns = new AdminScreens()->add_column(
 				array(
 					'cb'       => '',
 					'title'    => 'Title',
@@ -100,8 +100,8 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( array( array( 'v1', 'comments', 'post' ), array( 'v2', 'comments', 'post' ) ), $seen );
 		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'dws_ic/list_table/preceding_column' ) ), $this->deprecated );
 		wp_set_current_user( self::$users['editor'] );
-		self::assertArrayHasKey( 'dws-internal-comments', ( new AdminScreens() )->add_column( array( 'title' => 'Title' ), 'post' ) );
-		self::assertSame( array( 'title' => 'Title' ), ( new AdminScreens() )->add_column( array( 'title' => 'Title' ), 'page' ) );
+		self::assertArrayHasKey( 'dws-internal-comments', new AdminScreens()->add_column( array( 'title' => 'Title' ), 'post' ) );
+		self::assertSame( array( 'title' => 'Title' ), new AdminScreens()->add_column( array( 'title' => 'Title' ), 'page' ) );
 	}
 
 	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
@@ -180,14 +180,14 @@ final class AdminScreensTest extends TestCase {
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
-			$args = ( new AdminScreens() )->filter_list_table_args(
+			$args = new AdminScreens()->filter_list_table_args(
 				array(
 					'post_id' => $this->post,
 					'type'    => DWS_IC_COMMENT_TYPE,
 					'status'  => 'all',
 				)
 			);
-			$rows = ( new \WP_Comment_Query( $args ) )->comments;
+			$rows = new \WP_Comment_Query( $args )->comments;
 			$all  = get_comments( array( 'post_id' => $this->post, 'type' => DWS_IC_COMMENT_TYPE, 'status' => DWS_IC_COMMENT_STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
 		} finally {
 			get_role( 'editor' )?->remove_cap( DWS_IC_CAP_SEE_TABLE );
@@ -202,7 +202,7 @@ final class AdminScreensTest extends TestCase {
 		$actions = array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
 
 		self::assertInstanceOf( \WP_Comment::class, $comment );
-		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( ( new AdminScreens() )->filter_row_actions( $actions, $comment ) ) );
+		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( new AdminScreens()->filter_row_actions( $actions, $comment ) ) );
 	}
 
 	public function test_the_edit_screen_of_an_internal_comment_shows_its_revisions_and_its_author_its_privacy(): void {
@@ -373,7 +373,7 @@ final class AdminScreensTest extends TestCase {
 	}
 
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
-		( new AdminScreens() )->enqueue_list_assets( 'edit.php' );
+		new AdminScreens()->enqueue_list_assets( 'edit.php' );
 
 		self::assertTrue( wp_script_is( 'internal-comments-quick-view' ) );
 		self::assertTrue( wp_style_is( 'internal-comments-quick-view' ) );
@@ -383,7 +383,7 @@ final class AdminScreensTest extends TestCase {
 
 	protected function cell(): \Dom\HTMLDocument {
 		\ob_start();
-		( new AdminScreens() )->render_cell( 'dws-internal-comments', $this->post );
+		new AdminScreens()->render_cell( 'dws-internal-comments', $this->post );
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

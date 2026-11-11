@@ -165,7 +165,7 @@ final class MetaBoxTest extends TestCase {
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
-			( new MetaBox() )->enqueue_assets( 'post.php' );
+			new MetaBox()->enqueue_assets( 'post.php' );
 		} finally {
 			unset( $GLOBALS['post'] );
 		}

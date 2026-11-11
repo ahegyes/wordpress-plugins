@@ -127,7 +127,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		}
 
 		$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
-		foreach ( (array) ( new \Groups_User( $user_id ) )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
+		foreach ( (array) new \Groups_User( $user_id )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
 			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
 				return true;
 			}

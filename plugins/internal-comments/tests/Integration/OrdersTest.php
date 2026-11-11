@@ -87,7 +87,7 @@ final class OrdersTest extends TestCase {
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id(), 'comment_content' => 'On the order' ), get_user_by( 'id', self::$users['administrator'] ) ?: null ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
 		wp_set_current_user( self::$users['shop_manager'] );
 
-		( new MetaBox() )->add_meta_box( $screen, $object );
+		new MetaBox()->add_meta_box( $screen, $object );
 		$box = $wp_meta_boxes[ $screen ]['normal']['core'][ MetaBox::ID ] ?? null;
 		self::assertIsArray( $box );
 		\ob_start();

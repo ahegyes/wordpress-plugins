@@ -45,7 +45,7 @@ final class SettingsTest extends TestCase {
 
 	#[After]
 	protected function forget_the_rejections(): void {
-		( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->setValue( null, array() );
+		new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->setValue( null, array() );
 	}
 
 	public function test_the_section_sits_on_the_advanced_tab_under_its_v1_id(): void {
@@ -140,7 +140,7 @@ final class SettingsTest extends TestCase {
 		add_filter( $v1_hook, $v1_extra );
 
 		try {
-			$ids = \array_column( ( new Settings() )->get_section_fields( 'advanced', self::SECTION ), 'id' );
+			$ids = \array_column( new Settings()->get_section_fields( 'advanced', self::SECTION ), 'id' );
 		} finally {
 			remove_filter( $v1_hook, $v1_extra );
 		}

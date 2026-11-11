@@ -341,6 +341,6 @@ final class ListTableTest extends TestCase {
 				'order'          => 'ASC',
 			)
 		);
-		return \array_map( 'intval', ( new \WP_Query( $vars ) )->posts );
+		return \array_map( 'intval', new \WP_Query( $vars )->posts );
 	}
 }

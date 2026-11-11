@@ -21,7 +21,7 @@ final class SequentialOrderNumbersProTest extends TestCase {
 	public function test_a_linked_child_is_numbered_before_it_is_saved(): void {
 		require_once \dirname( __DIR__, 2 ) . '/Fixtures/sequential-order-numbers-pro.php';
 		self::assertTrue( SequentialOrderNumbersPro::should_load() );
-		( new SequentialOrderNumbersPro() )->register_hooks();
+		new SequentialOrderNumbersPro()->register_hooks();
 		wp_set_current_user( 1 );
 
 		$id = dws_lowc_create_linked_child( $this->create_order()->get_id() );

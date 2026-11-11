@@ -51,7 +51,7 @@ final class SettingsTest extends TestCase {
 
 	#[After]
 	protected function forget_the_rejections(): void {
-		( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->setValue( null, array() );
+		new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->setValue( null, array() );
 	}
 
 	public function test_the_section_sits_on_the_advanced_tab_under_its_v1_id(): void {
@@ -100,7 +100,7 @@ final class SettingsTest extends TestCase {
 		$this->save( array( DWS_LOWC_OPTION_MAX_DEPTH => $posted ) );
 
 		self::assertSame( '4', get_option( DWS_LOWC_OPTION_MAX_DEPTH ) );
-		self::assertSame( array( 'Maximum linked orders depth was not saved and keeps its previous value. The other changes were saved. Enter a whole number of 1 or more, such as 2.' ), ( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->getValue() );
+		self::assertSame( array( 'Maximum linked orders depth was not saved and keeps its previous value. The other changes were saved. Enter a whole number of 1 or more, such as 2.' ), new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->getValue() );
 	}
 
 	public function test_a_whole_depth_of_at_least_one_is_stored(): void {
@@ -132,7 +132,7 @@ final class SettingsTest extends TestCase {
 		add_filter( $v2_hook, $v2_spy );
 
 		try {
-			$fields = ( new Settings() )->get_section_fields( 'advanced', self::SECTION );
+			$fields = new Settings()->get_section_fields( 'advanced', self::SECTION );
 		} finally {
 			remove_filter( $v1_hook, $v1_extra );
 			remove_filter( $v2_hook, $v2_spy );

@@ -48,7 +48,7 @@ final class XmlRpcTest extends TestCase {
 		add_filter( 'xmlrpc_enabled', '__return_true' );
 
 		try {
-			$comments = ( new \wp_xmlrpc_server() )->wp_getComments(
+			$comments = new \wp_xmlrpc_server()->wp_getComments(
 				array(
 					1,
 					'ic-xmlrpc-editor',

@@ -55,7 +55,7 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_the_page_keeps_v1s_slug_parent_capability_and_tabs(): void {
-		$page = ( new Settings() )->get_options_page( Settings::PAGE );
+		$page = new Settings()->get_options_page( Settings::PAGE );
 
 		self::assertSame( 'dws-internal-comments', Settings::PAGE );
 		self::assertSame( 'options-general.php', $page['parent'] );
@@ -153,7 +153,7 @@ final class SettingsTest extends TestCase {
 		add_filter( $v2_hook, $v2_spy );
 
 		try {
-			$tabs = ( new Settings() )->get_options_page( Settings::PAGE )['tabs'];
+			$tabs = new Settings()->get_options_page( Settings::PAGE )['tabs'];
 		} finally {
 			remove_filter( $v1_hook, $v1_extra );
 			remove_filter( $v2_hook, $v2_spy );

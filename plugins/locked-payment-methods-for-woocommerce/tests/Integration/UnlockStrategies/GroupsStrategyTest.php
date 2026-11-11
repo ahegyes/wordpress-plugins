@@ -80,7 +80,7 @@ final class GroupsStrategyTest extends TestCase {
 	}
 
 	public function test_the_settings_show_the_groups_switch_while_groups_is_active(): void {
-		$fields = ( new \DeepWebSolutions\LockedPaymentMethods\Settings() )->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
+		$fields = new \DeepWebSolutions\LockedPaymentMethods\Settings()->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
 		$switch = \array_values( \array_filter( $fields, static fn ( array $field ): bool => DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS === ( $field['id'] ?? null ) ) );
 
 		self::assertSame( 'checkbox', $switch[0]['type'] ?? null );

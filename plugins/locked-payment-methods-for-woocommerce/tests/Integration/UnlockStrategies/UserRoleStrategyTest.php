@@ -82,7 +82,7 @@ final class UserRoleStrategyTest extends TestCase {
 	public function test_an_empty_roles_list_unlocks_no_one(): void {
 		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array() );
 
-		self::assertTrue( ( new UserRoleStrategy() )->unlock_for_full_access_roles( true, 'cod', self::$users['shop_manager'] ) );
+		self::assertTrue( new UserRoleStrategy()->unlock_for_full_access_roles( true, 'cod', self::$users['shop_manager'] ) );
 	}
 
 	public function test_at_checkout_the_lock_opens_for_a_full_access_user_only(): void {
@@ -104,7 +104,7 @@ final class UserRoleStrategyTest extends TestCase {
 		add_filter( self::V1_HOOK, $replace, 10, 2 );
 
 		try {
-			$lock = ( new UserRoleStrategy() )->unlock_for_full_access_roles( true, 'cod', self::$users['customer'] );
+			$lock = new UserRoleStrategy()->unlock_for_full_access_roles( true, 'cod', self::$users['customer'] );
 		} finally {
 			remove_filter( self::V1_HOOK, $replace );
 		}
