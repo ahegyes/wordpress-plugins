@@ -70,6 +70,10 @@ Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on, and t
 10. **Safeguards** live in `includes/safeguards.php`, call WordPress, that file and WooCommerce, and relax only through their own filter, through `dws_lpmwc_is_relaxed()` (the template's recipes). The entry loads them before the floor check, so they parse on PHP 7.4 and call only what their hook hands them, WordPress APIs present at the oldest WordPress the bootstrap package runs on and WooCommerce APIs present since 3.6, guarding anything newer with `function_exists()` or `method_exists()`. WordPress loads the plugin while WooCommerce is inactive, so a safeguard that calls WooCommerce is hooked from `dws_lpmwc_add_woocommerce_safeguards()`, which the file runs on `woocommerce_loaded`, or at once where that has fired already, as on the request that activates the plugin; WooCommerce fires it, since 3.6, once every plugin has loaded. `phpstan.safeguards.neon`, the file's only PHPStan profile, reads the whole file, with WooCommerce's stubs loaded, and checks the WordPress floor; review checks the WooCommerce floor, which no tool reads.
 11. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails.
 
+## Contract
+
+The plugin's contract is the elements tagged `@api`, the hooks it fires, and its option, meta and capability names and REST routes; breaking it ships as the next major. Every other function, constant and class, `src/` included, is internal and changes in any release.
+
 ## Style
 
 - Every PHP file opens with `<?php declare( strict_types=1 );`, uses `array()`, `final` classes, `protected` over `private` and `#[\Override]` on overrides, and groups class members in `// region NAME` blocks outside `tests/`.
