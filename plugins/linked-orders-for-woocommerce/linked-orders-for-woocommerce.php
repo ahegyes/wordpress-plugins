@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Loads the plugin's safeguards, then the rest of the plugin once the site meets its floors and its build is complete.
+ *
  * Plugin Name:          Linked Orders for WooCommerce
  * Plugin URI:           https://github.com/ahegyes/wc-linked-orders
  * Description:          A WooCommerce extension for creating orders that are logically connected to existing ones.
@@ -15,6 +17,9 @@
  * License URI:          https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:          linked-orders-for-woocommerce
  * Domain Path:          /languages
+ *
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @package DeepWebSolutions\LinkedOrders
  */

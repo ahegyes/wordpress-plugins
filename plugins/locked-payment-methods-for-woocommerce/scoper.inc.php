@@ -2,6 +2,9 @@
 /**
  * Returns the php-scoper config that prefixes the framework and PHP-DI with the plugin's namespace.
  *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 

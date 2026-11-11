@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Loads the plugin's safeguards, then the rest of the plugin once the site meets its floors and its build is complete.
+ *
  * Plugin Name:          Locked Payment Methods for WooCommerce
  * Plugin URI:           https://github.com/ahegyes/wc-locked-payment-methods
  * Description:          Hides the payment methods you lock from customers at checkout until you unlock them for a user, a role, an order, a group or a membership plan.
@@ -15,6 +17,9 @@
  * License URI:          https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:          locked-payment-methods-for-woocommerce
  * Domain Path:          /languages
+ *
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @package DeepWebSolutions\LockedPaymentMethods
  */

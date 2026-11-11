@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Loads the plugin's safeguards, then the rest of the plugin once the site meets its floors and its build is complete.
+ *
  * Plugin Name:          Internal Comments
  * Plugin URI:           https://github.com/ahegyes/wp-internal-comments
  * Description:          Lets the people who run a site leave comments on its posts, pages, products and orders that only they can read.
@@ -14,6 +16,9 @@
  * License URI:          https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:          internal-comments
  * Domain Path:          /languages
+ *
+ * @since   2.0.0
+ * @version 2.0.0
  *
  * @package DeepWebSolutions\InternalComments
  */
