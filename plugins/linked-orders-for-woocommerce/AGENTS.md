@@ -42,7 +42,7 @@ composer packages-install    # dependencies, then php-scoper into vendor-prefixe
 composer test:unit
 composer test:integration    # starts .wp-env.tests.json, then runs test:integration:run, which builds the scripts first
 composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
-composer changelog:add       # stages an entry in changelog/; composer changelog:write, at release, also syncs readme.txt
+composer changelog:add       # stages an entry in changelog/, which the release step in the monorepo's CONTRIBUTING.md writes
 npm run setup                # both installs, the scripts' build, then the development site
 npm run build                # the orders list's assets through the local wp-scripts; npm run start watches them in a POSIX shell
 npm run lint:scripts         # ESLint, beside lint:styles (Stylelint) and lint:types (tsc)

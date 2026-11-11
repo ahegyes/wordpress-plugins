@@ -1,4 +1,0 @@
-Significance: major
-Type: changed
-
-Rebuilt on the v2 framework, which boots the plugin only where its floors are met and otherwise shows a notice.
