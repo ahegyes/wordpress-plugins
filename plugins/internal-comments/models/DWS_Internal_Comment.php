@@ -59,7 +59,7 @@ final class DWS_Internal_Comment {
 	 * @return  mixed
 	 */
 	public function __get( string $name ) {
-		return property_exists( $this->comment, $name ) ? $this->comment->$name : null;
+		return property_exists( $this->comment, $name ) ? $this->comment->$name : null; // @phpstan-ignore property.dynamicName (v1 forwards every field of the comment by name.)
 	}
 
 	/**
@@ -73,7 +73,7 @@ final class DWS_Internal_Comment {
 	 * @return  bool
 	 */
 	public function __isset( string $name ): bool {
-		return isset( $this->comment->$name );
+		return isset( $this->comment->$name ); // @phpstan-ignore property.dynamicName (v1 forwards every field of the comment by name.)
 	}
 
 	/**
@@ -88,7 +88,7 @@ final class DWS_Internal_Comment {
 	 * @return  mixed
 	 */
 	public function __call( string $name, array $args ) {
-		return method_exists( $this->comment, $name ) ? $this->comment->$name( ...$args ) : null;
+		return method_exists( $this->comment, $name ) ? $this->comment->$name( ...$args ) : null; // @phpstan-ignore method.dynamicName (v1 forwards every method of the comment by name.)
 	}
 
 	// endregion
