@@ -35,6 +35,6 @@ npm run test:e2e
 
 ## Releases
 
-A plugin's release commit writes its changelog and sets its version, as its `CONTRIBUTING.md` describes. The tag `<slug>/v<version>` on that commit reaches the plugin's mirror as `v<version>`, where the plugin's own release workflow publishes it.
+A plugin releases from its mirror: the tag `<slug>/v<version>` on its release commit here reaches the mirror as `v<version>`, where the plugin's own release workflow publishes it. `CONTRIBUTING.md` holds the release step.
 
 `AGENTS.md` holds the monorepo's conventions, and `CONTRIBUTING.md` how changes land.

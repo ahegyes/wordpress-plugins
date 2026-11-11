@@ -1,6 +1,8 @@
 const { defineConfig } = require( '@playwright/test' );
-// The shared environment's port, where every plugin runs beside the others.
-const baseConfig = require( '@ahegyes/wordpress-configs/node/playwright.config.base.js' )( { port: 8820 } );
+const baseConfig =
+	require( '@ahegyes/wordpress-configs/node/playwright.config.base.js' )( {
+		port: require( './.wp-env.tests.json' ).port,
+	} );
 
 module.exports = defineConfig( {
 	...baseConfig,

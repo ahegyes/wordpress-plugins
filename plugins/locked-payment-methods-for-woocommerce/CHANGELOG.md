@@ -2,9 +2,14 @@
 
 All notable changes to this plugin are documented in this file. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Pending entries live in [`changelog/`](./changelog) — add via `composer changelog:add`. Aggregate into a release with `composer changelog:write`, which also copies the versions between the markers into `readme.txt`.
+Pending entries live in [`changelog/`](./changelog) — add via `composer changelog:add`. Aggregate them into a release as the monorepo's [`CONTRIBUTING.md`](https://github.com/ahegyes/wordpress-plugins/blob/trunk/CONTRIBUTING.md) describes.
 
 <!-- Start changelog -->
+
+## 2.0.0 - unreleased
+
+### Changed
+- Rebuilt on the v2 framework, which boots the plugin only where its floors and WooCommerce are met and otherwise shows a notice.
 
 ## 1.3.5 - 2022-07-13
 

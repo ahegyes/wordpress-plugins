@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-version: '8.5'
@@ -36,10 +36,32 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       project-path: plugins/${{ matrix.plugin }}
       artifact-slug: ${{ matrix.plugin }}-nightly
       php-version: '8.5'
       wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  # CI installs only the root, so the shared environment's jobs install and build the plugins it maps.
+  shared-integration:
+    name: Integration (shared environment)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    with:
+      project-path: '.'
+      php-version: '8.5'
+      wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+      composer-script: 'test:integration:ci'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  shared-e2e:
+    name: E2E (shared environment)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    with:
+      project-path: '.'
+      artifact-slug: shared-environment-nightly
+      php-version: '8.5'
+      wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+      build-script: 'setup:ci'
       wp-env-config-file: '.wp-env.tests.json'

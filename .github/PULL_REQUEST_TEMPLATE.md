@@ -13,7 +13,7 @@
 
 ## Checklist
 
-- [ ] Changelog fragment added (`composer changelog:add` in the changed plugin's directory, or at the root for the monorepo itself)
+- [ ] Changelog fragment added (`composer changelog:add` in the changed plugin's directory)
 - [ ] Tests added/updated
 - [ ] `composer quality-check` passes locally in every changed plugin
 - [ ] Plugin header and `readme.txt` updated if runtime requirements changed

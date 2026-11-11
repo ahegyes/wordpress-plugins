@@ -135,7 +135,7 @@ function dws_lpmwc_should_lock( bool $lock, string $gateway_id, int $user_id, in
 function dws_lpmwc_get_paid_order_id(): int {
 	global $wp;
 
-	if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ! function_exists( 'is_checkout_pay_page' ) || ! is_checkout_pay_page() ) {
+	if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && true === REST_REQUEST ) || ! function_exists( 'is_checkout_pay_page' ) || ! is_checkout_pay_page() ) {
 		return 0;
 	}
 

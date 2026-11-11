@@ -1,5 +1,6 @@
 # Each plugin's own .gitignore covers its generated files.
 tests/.cache
+.wp-env*.override.json
 
 # Created by https://www.toptal.com/developers/gitignore/api/node,linux,macos,phpunit,windows,composer,phpstorm+all,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=node,linux,macos,phpunit,windows,composer,phpstorm+all,visualstudiocode
@@ -34,8 +35,7 @@ composer.phar
 .LSOverride
 
 # Icon must end with two \r
-Icon
-
+Icon
 
 # Thumbnails
 ._*

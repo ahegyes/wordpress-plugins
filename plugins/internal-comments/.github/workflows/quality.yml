@@ -11,20 +11,20 @@ permissions:
 jobs:
   lint-php:
     name: PHP Lint
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-version: '8.5'
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
 
   lint-scripts-styles:
     name: Scripts and styles lint
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       scripts: '["lint:scripts", "lint:styles", "lint:types"]'
 
   block-json:
     name: block.json schema
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
 
   slug:
     name: Plugin slug
@@ -50,7 +50,7 @@ jobs:
   php-syntax:
     name: PHP syntax
     needs: slug
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@8d53efd292e4abee4a9c57b0e379434f54bedbe9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-versions: '["7.4"]'
       paths: ${{ format('["{0}.php", "uninstall.php", "includes"]', needs.slug.outputs.slug) }}

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -74,7 +75,8 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	public function test_the_booted_plugin_runs_the_strategy(): void {
-		self::assertContains( UserProfileStrategy::class, dws_lpmwc_plugin()->kernel?->resolved ?? array() );
+		self::assertContains( UserProfileStrategy::class, Plugin::COMPONENTS );
+		self::assertNotContains( UserProfileStrategy::class, dws_lpmwc_plugin()->kernel?->skipped ?? array( UserProfileStrategy::class ) );
 	}
 
 	public function test_a_user_is_unlocked_only_for_the_methods_their_site_grants_list_holds(): void {
