@@ -17,6 +17,7 @@ wordpress-plugins/
 │   ├── plugins.yml                       lists the plugins, their mirrors and readmes and each one's WordPress versions for the other workflows
 │   ├── quality.yml, tests.yml, tests-nightly.yml, audit.yml    the template's lanes, once per plugin with project-path plugins/<slug>
 │   ├── codeql.yml, workflow-checks.yml   the template's, over the root's workflows
+│   ├── release-rehearsal.yml             rehearses each plugin's release, from build to the built-artifact test, on pull requests and trunk, publishing nothing
 │   └── split-plugins.yml                 splits each plugin to the mirror its composer.json name gives, and forwards <slug>/vX.Y.Z as vX.Y.Z
 ├── .wp-env.tests.json                    the shared environment on port 8820: every plugin and WooCommerce from vendor/, as production
 ├── composer.json                         changelogger, WooCommerce for the shared environment, the shared Integration run and the plugins:* fan-outs
