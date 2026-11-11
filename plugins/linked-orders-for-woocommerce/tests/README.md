@@ -6,7 +6,7 @@ This document describes the plugin's three test suites, the environments they ru
 
 | Suite | Where | Runs on | Covers |
 | --- | --- | --- | --- |
-| Unit | `tests/Unit/` | PHP alone, without WordPress | the component tree, the footprint's shape and coverage of v1's data, and the readme's version and floors |
+| Unit | `tests/Unit/` | PHP alone, without WordPress | the component tree, the footprint's shape and coverage of v1's data, the readme's version and floors, the entry's `WC tested up to` against the locked WooCommerce, the entry's lack of a `Tested up to`, which the readme alone holds, and the stub in every shipped directory |
 | Integration | `tests/Integration/` | the tests site, with WordPress, WooCommerce and order tables loaded, and the multisite site for its `multisite` group | the boot, every component, v1's keys, settings API, linking API, node class, capabilities and deprecated functions and hooks, the options and their readers, the migrations, deactivation, uninstall after v1's consent, the assets, the peer getters, and a partial deploy: a missing build file or engine, or an include that throws, and the boot and settings on a second site of a network; every row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait` |
 | End to end | `tests/EndToEnd/` | the tests site, in a browser through Playwright | a child created from an order's meta box and both orders' depth in the orders list, the plugin row's link to its settings section, and the plugin with WooCommerce deactivated |
 
