@@ -8,11 +8,11 @@ use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( Settings::class )]
 final class SettingsTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;

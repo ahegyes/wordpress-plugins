@@ -2,11 +2,12 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Permissions;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( Permissions::class )]
 final class PermissionsTest extends TestCase {
 	protected static array $users = array();
 

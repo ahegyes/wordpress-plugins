@@ -9,14 +9,14 @@ use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 require_once \dirname( __DIR__, 2 ) . '/Support/memberships-functions.php';
 
 // Memberships is a paid plugin absent from WP Packages, so these rows run against a double of its one function and its three hooks, unverified against a licensed copy.
-#[CoversNothing]
+#[CoversClass( WooCommerceMembershipsStrategy::class )]
 #[Group( 'wc-memberships' )]
 final class WooCommerceMembershipsStrategyTest extends TestCase {
 	use RestoresOptionsTrait;

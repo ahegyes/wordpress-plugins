@@ -4,11 +4,11 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration\Integration;
 
 use DeepWebSolutions\LinkedOrders\Integration\SequentialOrderNumbersPro;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( SequentialOrderNumbersPro::class )]
 final class SequentialOrderNumbersProTest extends TestCase {
 	use OrderStorageTrait;
 

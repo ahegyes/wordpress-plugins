@@ -6,10 +6,10 @@ use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( AdminScreens::class )]
 final class AdminScreensTest extends TestCase {
 	use RecordsDeprecationsTrait;
 

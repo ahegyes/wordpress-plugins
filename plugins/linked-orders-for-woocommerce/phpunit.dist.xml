@@ -27,6 +27,8 @@
 	<source>
 		<include>
 			<directory>src</directory>
+			<directory>includes</directory>
+			<directory>models</directory>
 		</include>
 	</source>
 </phpunit>

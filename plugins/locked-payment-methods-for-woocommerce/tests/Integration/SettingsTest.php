@@ -7,11 +7,11 @@ use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( Settings::class )]
 final class SettingsTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
