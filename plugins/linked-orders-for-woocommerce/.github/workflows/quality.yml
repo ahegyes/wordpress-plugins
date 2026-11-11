@@ -5,19 +5,23 @@ on:
     branches: [trunk]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   lint-php:
-    name: PHP Lint
+    name: Lint PHP
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-version: '8.5'
-      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
+      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan", "changelog:validate"]'
 
   lint-scripts-styles:
-    name: Scripts and styles lint
+    name: Lint scripts and styles
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       scripts: '["lint:scripts", "lint:styles", "lint:types"]'
@@ -41,7 +45,7 @@ jobs:
         id: slug
         run: |
           slug=$(jq -r '.extra["text-domain"] // empty' composer.json)
-          if ! [[ "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+          if ! [[ "$slug" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
             echo "::error::composer.json's extra.text-domain must be the plugin's kebab-case slug — got '$slug'."
             exit 1
           fi
@@ -58,6 +62,7 @@ jobs:
   readme-lint:
     name: readme.txt lint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -66,18 +71,3 @@ jobs:
         with:
           path: readme.txt
           fail-on: error
-
-  changelog:
-    name: Changelog fragments
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
-      - uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
-      - run: composer changelog:validate

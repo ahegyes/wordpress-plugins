@@ -29,7 +29,7 @@ jobs:
         id: slug
         run: |
           slug=$(jq -r '.extra["text-domain"] // empty' composer.json)
-          if ! [[ "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+          if ! [[ "$slug" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
             echo "::error::composer.json's extra.text-domain must be the plugin's kebab-case slug — got '$slug'."
             exit 1
           fi

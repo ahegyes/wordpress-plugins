@@ -16,8 +16,11 @@ permissions: {}
 
 jobs:
   analyze:
+    name: CodeQL
     permissions:
       actions: read
       contents: read
       security-events: write
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-codeql.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    with:
+      languages: '["actions", "javascript-typescript"]'
