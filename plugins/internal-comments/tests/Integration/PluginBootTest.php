@@ -38,7 +38,7 @@ final class PluginBootTest extends TestCase {
 		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-boot-listener.php';
 		\file_put_contents( $include, "<?php\nadd_action( 'dws_ic/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
 		try {
-			$request = self::request( 'echo 1;' );
+			$request = self::request_provoking( 'A boot listener failed.', 'echo 1;' );
 		} finally {
 			\unlink( $include );
 		}

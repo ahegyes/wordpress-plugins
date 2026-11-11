@@ -23,6 +23,11 @@ final class MultisiteTest extends TestCase {
 		self::assertIsInt( $site_id );
 
 		try {
+			// WooCommerce queries two of its tables during a new site's first init, before its version check installs them, so a request without the plugin installs WooCommerce first.
+			$installed = self::request_provoking( 'WordPress database error', 'echo (int) function_exists( "dws_lpmwc_boot" );', '--url=' . get_home_url( $site_id, '/' ), '--skip-plugins=' . Plugin::SLUG );
+			self::assertSame( 0, $installed['status'], $installed['output'] );
+			self::assertSame( '0', $installed['last'], $installed['output'] );
+
 			$request = self::request( 'echo did_action( "dws_lpmwc/boot/succeeded" );', '--url=' . get_home_url( $site_id, '/' ) );
 
 			self::assertSame( '1', $request['last'], $request['output'] );

@@ -30,7 +30,7 @@ final class PartialDeployTest extends TestCase {
 		$include = \dirname( DWS_LPMWC_FILE ) . '/includes/zz-throws.php';
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request( 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lpmwc_boot" ), false !== has_action( "all_admin_notices", "dws_lpmwc_render_build_notice" ) ) );' );
+			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lpmwc_boot" ), false !== has_action( "all_admin_notices", "dws_lpmwc_render_build_notice" ) ) );' );
 		} finally {
 			\unlink( $include );
 		}
@@ -43,7 +43,7 @@ final class PartialDeployTest extends TestCase {
 		$root = \dirname( DWS_LPMWC_FILE ) . '/src/Plugin.php'; // options.php reads it at include time, after metadata.php has loaded.
 		\rename( $root, "$root.hidden" );
 		try {
-			$request = self::request( 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lpmwc_boot" ), dws_lpmwc_get_plugin_slug(), dws_lpmwc_get_plugin_name(), dws_lpmwc_get_plugin_version() ) );' );
+			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lpmwc_boot" ), dws_lpmwc_get_plugin_slug(), dws_lpmwc_get_plugin_name(), dws_lpmwc_get_plugin_version() ) );' );
 		} finally {
 			\rename( "$root.hidden", $root );
 		}
@@ -56,7 +56,7 @@ final class PartialDeployTest extends TestCase {
 		$root = \dirname( DWS_LPMWC_FILE ) . '/vendor-prefixed/ahegyes/wp-framework-core/src/PluginBoot.php'; // The composition root constructs it, and no include reads it.
 		\rename( $root, "$root.hidden" );
 		try {
-			$request = self::request( 'remove_action( "all_admin_notices", "dws_lpmwc_render_build_notice" ); do_action( "deactivate_" . plugin_basename( DWS_LPMWC_FILE ), false ); echo false !== has_action( "all_admin_notices", "dws_lpmwc_render_build_notice" ) ? "reported" : "silent";' );
+			$request = self::request_provoking( 'PluginBoot.php', 'remove_action( "all_admin_notices", "dws_lpmwc_render_build_notice" ); do_action( "deactivate_" . plugin_basename( DWS_LPMWC_FILE ), false ); echo false !== has_action( "all_admin_notices", "dws_lpmwc_render_build_notice" ) ? "reported" : "silent";' );
 		} finally {
 			\rename( "$root.hidden", $root );
 		}
@@ -93,8 +93,8 @@ final class PartialDeployTest extends TestCase {
 		$include = \dirname( DWS_LPMWC_FILE ) . '/includes/zz-throws.php';
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( '$message' );\n" );
 		try {
-			$first  = self::request( 'echo 1;' );
-			$second = self::request( 'echo 1;' );
+			$first  = self::request_provoking( 'did not finish loading', 'echo 1;' );
+			$second = self::request_provoking( 'did not finish loading', 'echo 1;' );
 		} finally {
 			\unlink( $include );
 			delete_transient( Plugin::PREFIX . '_build_error_' . \md5( $message ) );
