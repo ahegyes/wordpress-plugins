@@ -2,15 +2,15 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
-	protected array $deprecated = array();
+	use RecordsDeprecationsTrait;
+
 
 	public static function hook_tags(): array {
 		return array(
@@ -23,26 +23,6 @@ final class DeprecatedApiTest extends TestCase {
 			'component-sos'    => array( 'dws_lowc_get_component_hook_tag', array( 'wc-sequential-order-numbers-pro-integration', 'name' ), 'linked_orders_for_woocommerce/wc_sequential_order_numbers_pro_integration/name' ),
 			'component-absent' => array( 'dws_lowc_get_component_hook_tag', array( 'freemius', 'name' ), null ),
 		);
-	}
-
-	#[Before]
-	protected function record_deprecations(): void {
-		add_filter( 'deprecated_function_trigger_error', '__return_false' );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_function_run', array( $this, 'record' ), 10, 2 );
-		add_action( 'deprecated_hook_run', array( $this, 'record' ), 10, 2 );
-	}
-
-	#[After]
-	protected function stop_recording(): void {
-		remove_filter( 'deprecated_function_trigger_error', '__return_false' );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_function_run', array( $this, 'record' ) );
-		remove_action( 'deprecated_hook_run', array( $this, 'record' ) );
-	}
-
-	public function record( string $name, string $replacement ): void {
-		$this->deprecated[] = array( $name, $replacement );
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
@@ -95,13 +75,16 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
 	}
 
-	public function test_the_v1_boot_hooks_fire_after_the_v2_ones_with_the_failure(): void {
+	// The v1 hooks fire at the earliest priority, so every v1 listener runs before a v2 listener of any later one.
+	public function test_the_v1_boot_hooks_fire_at_the_earliest_priority_with_the_failure(): void {
 		$fired = array();
 		$spy   = static function ( mixed $error = null ) use ( &$fired ): void {
 			$fired[] = array( current_action(), $error );
 		};
 		add_action( 'dws_lowc_initialized', $spy );
 		add_action( 'dws_lowc_initialization_failure', $spy );
+		add_action( 'dws_lowc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+		add_action( 'dws_lowc/boot/failed', $spy, PHP_INT_MIN + 1 );
 		$error = new \RuntimeException( 'Failed.' );
 
 		try {
@@ -110,12 +93,16 @@ final class DeprecatedApiTest extends TestCase {
 		} finally {
 			remove_action( 'dws_lowc_initialized', $spy );
 			remove_action( 'dws_lowc_initialization_failure', $spy );
+			remove_action( 'dws_lowc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'dws_lowc/boot/failed', $spy, PHP_INT_MIN + 1 );
 		}
 
 		self::assertSame(
 			array(
 				array( 'dws_lowc_initialized', null ),
+				array( 'dws_lowc/boot/succeeded', '' ),
 				array( 'dws_lowc_initialization_failure', $error ),
+				array( 'dws_lowc/boot/failed', $error ),
 			),
 			$fired
 		);
@@ -126,5 +113,7 @@ final class DeprecatedApiTest extends TestCase {
 			),
 			$this->deprecated
 		);
+		self::assertSame( PHP_INT_MIN, has_action( 'dws_lowc/boot/succeeded', 'dws_lowc_fire_v1_initialized' ) );
+		self::assertSame( PHP_INT_MIN, has_action( 'dws_lowc/boot/failed', 'dws_lowc_fire_v1_initialization_failure' ) );
 	}
 }

@@ -66,7 +66,9 @@ function dws_ic_get_migration_steps(): array {
 }
 
 /**
- * Stores each settings row a site lacks with v1's defaults, autoloaded, so a site that never saved the settings page reads them without a query, and keeps the rows a v1 site stored.
+ * Stores the default of each setting a site lacks.
+ *
+ * The rows a v1 site stored stay as they are.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -131,7 +133,6 @@ function dws_ic_convert_v1_comments(): bool {
 
 	if ( $end >= $last ) {
 		delete_option( 'dws_ic_v1_comments_cursor' );
-
 		return false;
 	}
 

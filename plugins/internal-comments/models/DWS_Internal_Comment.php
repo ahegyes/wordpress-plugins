@@ -7,6 +7,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * It keeps v1's global name, which other plugins type-hint, and reads of the comment's fields and calls to its methods reach the wrapped comment.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -41,7 +43,7 @@ final class DWS_Internal_Comment {
 	 */
 	public function __construct( $comment ) {
 		$comment = dws_ic_get_comment( $comment );
-		if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+		if ( is_null( $comment ) || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
 			throw new InvalidArgumentException( 'The comment is not an internal comment.' );
 		}
 
@@ -59,7 +61,7 @@ final class DWS_Internal_Comment {
 	 * @return  mixed
 	 */
 	public function __get( string $name ) {
-		return property_exists( $this->comment, $name ) ? $this->comment->$name : null;
+		return property_exists( $this->comment, $name ) ? $this->comment->$name : null; // @phpstan-ignore property.dynamicName (v1 forwards every field of the comment by name.)
 	}
 
 	/**
@@ -73,7 +75,7 @@ final class DWS_Internal_Comment {
 	 * @return  bool
 	 */
 	public function __isset( string $name ): bool {
-		return isset( $this->comment->$name );
+		return isset( $this->comment->$name ); // @phpstan-ignore property.dynamicName (v1 forwards every field of the comment by name.)
 	}
 
 	/**
@@ -88,7 +90,7 @@ final class DWS_Internal_Comment {
 	 * @return  mixed
 	 */
 	public function __call( string $name, array $args ) {
-		return method_exists( $this->comment, $name ) ? $this->comment->$name( ...$args ) : null;
+		return method_exists( $this->comment, $name ) ? $this->comment->$name( ...$args ) : null; // @phpstan-ignore method.dynamicName (v1 forwards every method of the comment by name.)
 	}
 
 	// endregion
@@ -107,7 +109,6 @@ final class DWS_Internal_Comment {
 	 */
 	public function is_author( ?int $user_id = null ): bool {
 		$user_id = $user_id ?? get_current_user_id();
-
 		return 0 !== $user_id && (int) $this->comment->user_id === $user_id;
 	}
 
@@ -177,7 +178,6 @@ final class DWS_Internal_Comment {
 	 */
 	public function get_edit_comment_link(): ?string {
 		$link = get_edit_comment_link( (int) $this->comment->comment_ID );
-
 		return is_string( $link ) ? $link : null;
 	}
 

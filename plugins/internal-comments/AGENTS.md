@@ -41,6 +41,7 @@ changelog/                   the pending entries changelog:write turns into CHAN
 composer packages-install    # dependencies, then php-scoper into vendor-prefixed/
 composer test:unit
 composer test:integration    # starts .wp-env.tests.json, then runs test:integration:run, which builds the scripts first
+composer test:integration:multisite  # starts .wp-env.multisite.json, then runs the Integration suite's multisite group, which the default run skips
 composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
 composer changelog:add       # stages an entry in changelog/, which the release step in the monorepo's CONTRIBUTING.md writes
 npm run setup                # both installs, the scripts' build, then the development site
@@ -55,8 +56,9 @@ Run wp-scripts only through the npm scripts or `node_modules/.bin/wp-scripts`: `
 
 - `.wp-env.json`: development, as `local`, on port 8824, behind `npm run setup` and `wp-env:*`. The framework rethrows boot and migration failures there.
 - `.wp-env.tests.json`: Integration and end to end, as `production`, on port 8825, behind `wp-env:tests:*`, `composer test:integration` and `npm run test:e2e`. The end-to-end suite deactivates and reactivates WooCommerce there.
+- `.wp-env.multisite.json`: a network with WooCommerce and the plugin network-activated, as `production`, on port 8829, behind `wp-env:multisite:*` and `composer test:integration:multisite`, for the Integration suite's `multisite` group.
 
-Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI runs Integration and end to end on every WordPress branch from the entry's `Requires at least` up, and nightly on WordPress trunk.
+Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI runs Integration and end to end on every WordPress branch from the entry's `Requires at least` up, and nightly on WordPress trunk.
 
 ## Conventions
 
@@ -67,10 +69,14 @@ Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI run
 5. **Request reads.** An integer or boolean is read as `filter_var( wp_unslash( $_POST['key'] ?? '' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? $default` (`FILTER_VALIDATE_BOOL` for a boolean, where an absent key reads false, as an unchecked checkbox posts nothing), and a string through an `is_string()` guard and the field's sanitizer; never `filter_input()`, the `default` filter option or a cast on request input. A REST route declares each parameter's type and sanitizer in its `args`.
 6. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-internal-comments_` rows and its comments their `dws_internal` type and `dws_ic_is_private` and `_dws_ic_` meta; anything new lives under `dws_ic_`, or `_dws_ic_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
 7. **Internal status.** An internal comment is stored under the `dws_internal` status, which keeps it out of WordPress's queries, counts, feeds and REST API without the plugin's help, so no code stores one under another status, and a query that lists them names the status. `Comments` puts back any that WordPress or another plugin moves, announcing the move as a status change after WordPress announces its own, so caches that follow status changes, such as WooCommerce's comment counts, end where the comment is; the migration's bulk move resets WooCommerce's counts instead. Until the migration has moved the comments v1 stored approved, it leaves the type out of every comment query and feed that names neither it nor the status. Every check of what a user may do with one goes through the `see_`, `edit_` and `trash_dws_internal_comment` meta capabilities.
-8. **Order storage.** Order code takes ids WooCommerce resolves in either storage, through `dws_ic_get_post_type()` and `edit_post`, which WooCommerce maps for orders, and WooCommerce's screen ids and list hooks, never the posts table; every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorage`.
+8. **Order storage.** Order code takes ids WooCommerce resolves in either storage, through `dws_ic_get_post_type()` and `edit_post`, which WooCommerce maps for orders, and WooCommerce's screen ids and list hooks, never the posts table; every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait`.
 9. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name.
 10. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_ic_is_relaxed()` (the template's recipes). The entry loads them before the floor check, so they parse on PHP 7.4 and call only WordPress APIs present at the oldest WordPress the bootstrap package runs on, or guard them, which `phpstan.safeguards.neon` checks.
 11. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails; bulk work is a batched step, which runs only from the runner's scheduled hook.
+
+## Contract
+
+The plugin's contract is the elements tagged `@api`, the hooks it fires, and its option, meta and capability names and REST routes; breaking it ships as the next major. Every other function, constant and class, `src/` included, is internal and changes in any release.
 
 ## Style
 

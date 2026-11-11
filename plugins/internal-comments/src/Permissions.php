@@ -62,7 +62,7 @@ final class Permissions implements ComponentInterface {
 
 		$comment = dws_ic_get_comment( $args[0] ?? null );
 		$owners  = dws_ic_get_private_comment_owners( $comment );
-		if ( null === $comment || null === $owners ) {
+		if ( \is_null( $comment ) || \is_null( $owners ) ) {
 			return array( 'do_not_allow' );
 		}
 
@@ -102,7 +102,7 @@ final class Permissions implements ComponentInterface {
 			default       => null,
 		} : null;
 		$comment_id = \is_numeric( $request['id'] ) ? (int) $request['id'] : 0;
-		if ( \is_wp_error( $response ) || null === $capability || true !== dws_ic_is_internal_comment( $comment_id ) || current_user_can( $capability, $comment_id ) ) {
+		if ( is_wp_error( $response ) || \is_null( $capability ) || true !== dws_ic_is_internal_comment( $comment_id ) || current_user_can( $capability, $comment_id ) ) {
 			return $response;
 		}
 
@@ -121,7 +121,6 @@ final class Permissions implements ComponentInterface {
 	 */
 	public function exclude_from_core_rest_collections( array $args ): array {
 		$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
-
 		return $args;
 	}
 

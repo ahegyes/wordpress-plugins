@@ -4,6 +4,10 @@
 
 Report it privately through [GitHub's security advisory form](https://github.com/ahegyes/wordpress-plugins/security/advisories/new), never in a public issue. The first response comes within 7 days.
 
+## Supported versions
+
+Only the latest 2.x release receives security fixes. 1.x receives none.
+
 ## Scope
 
 In scope: the plugin's PHP, JavaScript and CSS, its prefixing configuration (`scoper.inc.php`) and its CI workflows.

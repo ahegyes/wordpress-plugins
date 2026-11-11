@@ -31,7 +31,7 @@ composer test:integration
 npm run test:e2e
 ```
 
-`composer test:integration` runs each plugin's Integration suite in the shared environment, and `npm run test:e2e` its checks of the plugins side by side.
+`composer test:integration` runs each plugin's Integration suite in the shared environment, `composer test:integration:multisite` each plugin's `multisite` group on a network on <http://localhost:8821>, and `npm run test:e2e` the shared environment's checks of the plugins side by side.
 
 ## Releases
 

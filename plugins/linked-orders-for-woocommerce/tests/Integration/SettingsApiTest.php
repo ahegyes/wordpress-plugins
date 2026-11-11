@@ -2,19 +2,18 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class SettingsApiTest extends TestCase {
-	protected const array KEYS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
 
-	protected array $stored = array();
-
-	protected array $deprecated = array();
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
 
 	public static function stored_settings(): array {
 		return array(
@@ -28,28 +27,6 @@ final class SettingsApiTest extends TestCase {
 		);
 	}
 
-	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
-	}
-
-	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
-	}
-
 	#[DataProvider( 'stored_settings' )]
 	public function test_a_setting_reads_validated_by_its_v1_field_and_group( string $key, string $stored, string $field_id, ?string $group, int|bool $expected ): void {
 		update_option( $key, $stored );
@@ -59,7 +36,7 @@ final class SettingsApiTest extends TestCase {
 	}
 
 	public function test_missing_settings_read_as_v1_defaults(): void {
-		foreach ( self::KEYS as $key ) {
+		foreach ( self::OPTIONS as $key ) {
 			delete_option( $key );
 		}
 
@@ -128,18 +105,15 @@ final class SettingsApiTest extends TestCase {
 		$filters = array(
 			'linked_orders_for_woocommerce/general_settings/get_validated_option_value' => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
 				$seen[] = array( 'group', $value, $field_id );
-
 				return 4;
 			},
 			'linked_orders_for_woocommerce/settings/get_validated_option_value'         => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
 				$seen[] = array( 'section', $value, $field_id );
-
 				return 5;
 			},
 		);
 		$v2      = static function ( mixed $value, string $field_id, string $group ) use ( &$seen ): mixed {
 			$seen[] = array( 'v2', $value, $field_id, $group );
-
 			return 6;
 		};
 		foreach ( $filters as $hook => $filter ) {

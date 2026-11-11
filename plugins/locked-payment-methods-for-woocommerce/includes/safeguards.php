@@ -1,6 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Holds the plugin's safeguards, which load before its floor gate, so they hold on a runtime below its floors and when the rest of the build fails to load.
+ * Holds the plugin's safeguards.
+ *
+ * They load before the floor gate, so they hold on a runtime below the plugin's floors and when the rest of the build fails to load.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -10,7 +12,23 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_filter( 'woocommerce_available_payment_gateways', 'dws_lpmwc_remove_locked_payment_methods', 999 );
+if ( 0 < did_action( 'woocommerce_loaded' ) ) {
+	dws_lpmwc_add_woocommerce_safeguards();
+} else {
+	add_action( 'woocommerce_loaded', 'dws_lpmwc_add_woocommerce_safeguards' );
+}
+
+/**
+ * Hooks the safeguards that call WooCommerce.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @return  void
+ */
+function dws_lpmwc_add_woocommerce_safeguards(): void {
+	add_filter( 'woocommerce_available_payment_gateways', 'dws_lpmwc_remove_locked_payment_methods', 999 );
+}
 
 /**
  * Returns whether a safeguard's filtered value relaxes it, which takes an explicit false once the plugin has finished booting.
@@ -141,7 +159,6 @@ function dws_lpmwc_get_paid_order_id(): int {
 
 	$order = wc_get_order( $wp->query_vars['order-pay'] ?? 0 );
 	$key   = isset( $_GET['key'] ) && is_string( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The order key authorizes paying the order, as on WooCommerce's order-pay page.
-
 	return $order instanceof WC_Order && '' !== $key && hash_equals( $order->get_order_key(), $key ) ? $order->get_id() : 0;
 }
 

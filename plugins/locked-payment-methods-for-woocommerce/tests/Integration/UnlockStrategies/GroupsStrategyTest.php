@@ -4,25 +4,26 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategi
 
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( GroupsStrategy::class )]
 #[Group( 'groups' )]
 final class GroupsStrategyTest extends TestCase {
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS, DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS );
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS, DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS );
 
 	protected static GroupsStrategy $strategy;
 
 	protected static array $hooks = array();
 
 	protected static array $users = array();
-
-	protected array $stored = array();
 
 	protected array $groups = array();
 
@@ -50,25 +51,19 @@ final class GroupsStrategyTest extends TestCase {
 		foreach ( self::$users as $user ) {
 			wp_delete_user( $user );
 		}
-		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
+		$GLOBALS['wp_filter'] = self::$hooks;
 	}
 
 	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
+	protected function lock_the_methods(): void {
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
 		delete_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
+	protected function clean_up(): void {
 		foreach ( $this->groups as $group ) {
 			\Groups_Group::delete( $group );
-		}
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
 		}
 		unset( $_POST['dws_lpmwc_group'] );
 		wp_set_current_user( 0 );
@@ -85,7 +80,7 @@ final class GroupsStrategyTest extends TestCase {
 	}
 
 	public function test_the_settings_show_the_groups_switch_while_groups_is_active(): void {
-		$fields = ( new \DeepWebSolutions\LockedPaymentMethods\Settings() )->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
+		$fields = new \DeepWebSolutions\LockedPaymentMethods\Settings()->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
 		$switch = \array_values( \array_filter( $fields, static fn ( array $field ): bool => DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS === ( $field['id'] ?? null ) ) );
 
 		self::assertSame( 'checkbox', $switch[0]['type'] ?? null );
@@ -212,7 +207,6 @@ final class GroupsStrategyTest extends TestCase {
 			)
 		);
 		$this->groups[] = $group;
-
 		return $group;
 	}
 

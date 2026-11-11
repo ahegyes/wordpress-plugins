@@ -1,4 +1,4 @@
-# The safeguards load before the floor gate, so they are analyzed at the oldest PHP and WordPress the bootstrap package runs on, which the framework's phpstan.bootstrap.neon sets; the WordPress extensions are listed because composer.json keeps them from installing themselves.
+# The entry and the safeguards run before the floor gate, so they are analyzed at the oldest PHP and WordPress the bootstrap package runs on, which the framework's phpstan.bootstrap.neon sets; the WordPress extensions are listed because composer.json keeps them from installing themselves.
 includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 	- vendor/johnbillion/wp-compat/extension.neon
@@ -7,10 +7,20 @@ includes:
 
 parameters:
 	paths:
+		- locked-payment-methods-for-woocommerce.php
 		- includes/safeguards.php
-	# The lock filters WooCommerce's gateways, so it calls WooCommerce too.
+	# A safeguard calls WooCommerce where the plugin requires it.
 	scanFiles:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 	phpVersion: 70400
 	WPCompat:
 		requiresAtLeast: '5.2'
+	# The entry loads the scoped bootstrap package by path, before any autoloader.
+	scanDirectories:
+		- vendor-prefixed/ahegyes/wp-framework-bootstrap
+	ignoreErrors:
+		# The entry's build-error handler runs only once the floor gate has passed.
+		-
+			identifier: WPCompat.functionNotAvailable
+			message: '#^wp_get_environment_type\(\) #'
+			path: locked-payment-methods-for-woocommerce.php

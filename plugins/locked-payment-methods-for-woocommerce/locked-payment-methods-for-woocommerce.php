@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Loads the plugin's safeguards, then the rest of the plugin once the site meets its floors and its build is complete.
+ *
  * Plugin Name:          Locked Payment Methods for WooCommerce
  * Plugin URI:           https://github.com/ahegyes/wc-locked-payment-methods
  * Description:          Hides the payment methods you lock from customers at checkout until you unlock them for a user, a role, an order, a group or a membership plan.
@@ -16,6 +18,9 @@
  * Text Domain:          locked-payment-methods-for-woocommerce
  * Domain Path:          /languages
  *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
@@ -29,16 +34,14 @@ define( 'DWS_LPMWC_FILE', __FILE__ );
 require_once __DIR__ . '/includes/safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
 
 $dws_lpmwc_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( is_readable( $dws_lpmwc_bootstrap ) ) {
-	require_once $dws_lpmwc_bootstrap;
-	Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
-	if ( ! Requirements::check_floors( __FILE__ ) ) {
-		return;
-	}
+if ( ! is_readable( $dws_lpmwc_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+	add_action( 'all_admin_notices', 'dws_lpmwc_render_build_notice' );
+	return;
 }
 
-if ( ! is_readable( $dws_lpmwc_bootstrap ) ) { // The floor gate never ran, so nothing built may load.
-	add_action( 'all_admin_notices', 'dws_lpmwc_render_build_notice' );
+require_once $dws_lpmwc_bootstrap;
+Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
+if ( ! Requirements::check_floors( __FILE__ ) ) {
 	return;
 }
 
@@ -51,14 +54,14 @@ try {
 }
 
 /**
- * Reports a build that could not load, rethrowing in local and development environments and otherwise logging the error and showing the build notice.
+ * Reports a build that could not load.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @param   Throwable $error The error that stopped the build.
  *
- * @throws  Throwable Thrown in local and development environments.
+ * @throws  Throwable Thrown when the site runs in a local or development environment.
  *
  * @return  void
  */
@@ -67,7 +70,13 @@ function dws_lpmwc_handle_build_error( Throwable $error ): void {
 		throw $error;
 	}
 
-	error_log( 'Locked Payment Methods for WooCommerce did not finish loading: ' . $error->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The plugin's logger is part of the build that failed.
+	// A partial deploy fails the same way on every request, so each distinct message is logged about once an hour, as best effort.
+	$key = 'dws_lpmwc_build_error_' . md5( $error->getMessage() );
+	if ( false === get_transient( $key ) ) {
+		set_transient( $key, 1, HOUR_IN_SECONDS );
+		error_log( 'Locked Payment Methods for WooCommerce did not finish loading: ' . $error->getMessage() . ' in ' . $error->getFile() . ':' . $error->getLine() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The plugin's logger is part of the build that failed.
+	}
+
 	add_action( 'all_admin_notices', 'dws_lpmwc_render_build_notice' );
 }
 

@@ -23,7 +23,6 @@ defined( 'ABSPATH' ) || exit;
 function dws_ic_get_comments_list_html( int $post_id ): string {
 	ob_start();
 	dws_ic_print_comments_list( $post_id );
-
 	return (string) ob_get_clean();
 }
 
@@ -43,12 +42,11 @@ function dws_ic_print_comments_list( int $post_id ): void {
 		echo '<ul class="dws-internal-comments__list">';
 		dws_ic_print_comment_thread( $comments, 0 );
 		echo '</ul>';
-
 		return;
 	}
 
 	$post_type = get_post_type_object( (string) dws_ic_get_post_type( $post_id ) );
-	$singular  = null === $post_type ? null : $post_type->labels->singular_name;
+	$singular  = is_null( $post_type ) ? null : $post_type->labels->singular_name;
 	?>
 	<p class="dws-internal-comments__empty">
 		<?php

@@ -1,4 +1,4 @@
-# The WordPress extensions are listed here because composer.json keeps them from installing themselves, and before configs' profile because wp-compat's neon resets WPCompat.requiresAtLeast to null.
+# The WordPress extensions are listed here because composer.json keeps them from installing themselves.
 includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 	- vendor/johnbillion/wp-compat/extension.neon
@@ -7,20 +7,24 @@ includes:
 
 parameters:
 	paths:
-		- locked-payment-methods-for-woocommerce.php
 		- functions.php
 		- uninstall.php
 		- includes
 		- src
-	# phpstan.safeguards.neon analyzes the safeguards at the oldest runtime they parse on.
+	# phpstan.safeguards.neon analyzes the entry and the safeguards at the oldest runtime they parse on, so this profile only scans them.
 	excludePaths:
 		- includes/safeguards.php
 	scanFiles:
+		- locked-payment-methods-for-woocommerce.php
 		- includes/safeguards.php
-		- tests/PHPStan/woocommerce-memberships.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
+		- tests/PHPStan/woocommerce-memberships.php
 	# The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.
 	scanDirectories:
 		- vendor-prefixed
 		- vendor/wp-plugin/groups/lib
+	# wp-compat reads the floor from the entry's Requires at least only while requiresAtLeast, which configs' profile sets, is null.
+	WPCompat:
+		pluginFile: locked-payment-methods-for-woocommerce.php
+		requiresAtLeast: null

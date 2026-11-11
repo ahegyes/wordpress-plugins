@@ -4,6 +4,7 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -11,6 +12,10 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class MigrationsTest extends TestCase {
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( ...self::KEYS, ...self::V1_KEYS );
+
 	// v1.3.5's settings, as its free and premium builds stored them.
 	protected const array V1_KEYS = array(
 		'dws-wc-lpm_general_locked-payment-methods',
@@ -34,20 +39,8 @@ final class MigrationsTest extends TestCase {
 		DWS_LPMWC_OPTION_DELETE_DATA,
 	);
 
-	protected array $stored = array();
-
-	#[\Override]
-	protected function setUp(): void {
-		foreach ( array( ...self::KEYS, ...self::V1_KEYS ) as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
-	}
-
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
+	protected function restore_the_revision(): void {
 		update_option( Plugin::PREFIX . '_revision', \count( dws_lpmwc_get_migration_steps() ) );
 	}
 

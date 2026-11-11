@@ -108,7 +108,6 @@ final class AdminScreens implements ComponentInterface {
 
 		$position = \array_search( $preceding, \array_keys( $columns ), true );
 		$position = false === $position ? \count( $columns ) : $position + 1;
-
 		return \array_slice( $columns, 0, $position, true ) + array( self::COLUMN => __( 'Internal Comments', 'internal-comments' ) ) + \array_slice( $columns, $position, null, true );
 	}
 
@@ -202,7 +201,6 @@ final class AdminScreens implements ComponentInterface {
 		}
 		if ( 0 === $count ) {
 			echo '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">' . esc_html__( 'No internal comments', 'internal-comments' ) . '</span>';
-
 			return;
 		}
 
@@ -249,7 +247,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function enqueue_list_assets( string $hook_suffix ): void {
 		$screen    = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		$post_type = null === $screen || '' === $screen->post_type ? 'post' : $screen->post_type;
+		$post_type = \is_null( $screen ) || '' === $screen->post_type ? 'post' : $screen->post_type;
 		if ( 1 === \preg_match( '/^woocommerce_page_wc-orders(?:--(.+))?$/', $hook_suffix, $matches ) && ! isset( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tells the list from the edit screen.
 			$post_type = $matches[1] ?? 'shop_order';
 		} elseif ( 'edit.php' !== $hook_suffix ) {
@@ -314,7 +312,6 @@ final class AdminScreens implements ComponentInterface {
 		$args['dws_ic_list_table'] = true;
 		if ( ! current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
 			$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
-
 			return $args;
 		}
 
@@ -377,7 +374,6 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function filter_bulk_actions( array $actions ): array {
 		$type = isset( $_GET['comment_type'] ) && \is_string( $_GET['comment_type'] ) ? sanitize_key( wp_unslash( $_GET['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reads the screen's view.
-
 		return DWS_IC_COMMENT_TYPE === $type ? \array_intersect_key( $actions, \array_flip( array( 'trash', 'untrash', 'delete' ) ) ) : $actions;
 	}
 
@@ -426,7 +422,6 @@ final class AdminScreens implements ComponentInterface {
 
 		$counts          = \get_object_vars( $count );
 		$counts['trash'] = \is_int( $listed ) ? $listed : 0;
-
 		return (object) $counts;
 	}
 
@@ -446,7 +441,6 @@ final class AdminScreens implements ComponentInterface {
 		global $wpdb;
 
 		$clauses['where'] = ( $clauses['where'] ?? '' ) . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' );
-
 		return $clauses;
 	}
 
@@ -503,7 +497,6 @@ final class AdminScreens implements ComponentInterface {
 		$changes    = \array_reverse( \array_filter( (array) get_comment_meta( $comment_id, '_dws_ic_change_id', false ), 'is_string' ) );
 		if ( array() === $changes ) {
 			echo '<p>' . esc_html__( 'No earlier versions of this comment are recorded.', 'internal-comments' ) . '</p>';
-
 			return;
 		}
 
@@ -512,8 +505,8 @@ final class AdminScreens implements ComponentInterface {
 		echo '<ul class="dws-internal-comments__revisions">';
 		foreach ( $changes as $change_id ) {
 			$content = get_comment_meta( $comment_id, "_dws_ic_previous_content_$change_id", true );
-			$user    = get_userdata( filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_by_$change_id", true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0 );
-			$time    = filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_time_$change_id", true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
+			$user    = get_userdata( \filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_by_$change_id", true ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0 );
+			$time    = \filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_time_$change_id", true ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0;
 			$name    = false === $user ? __( 'an unknown user', 'internal-comments' ) : $user->display_name;
 			?>
 			<li>
@@ -550,7 +543,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function add_privacy_field( string $html, \WP_Comment $comment ): string {
 		$is_private = dws_ic_is_private_comment( $comment );
-		if ( null === $is_private || ( ! $is_private && ! dws_ic_are_enabled_private_comments() ) ) {
+		if ( \is_null( $is_private ) || ( ! $is_private && ! dws_ic_are_enabled_private_comments() ) ) {
 			return $html;
 		}
 

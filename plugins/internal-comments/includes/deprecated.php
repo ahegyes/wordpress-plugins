@@ -31,6 +31,8 @@ $dws_ic_header = get_file_data(
 /**
  * The plugin's untranslated name.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_ic_get_plugin_name().
@@ -39,6 +41,8 @@ define( 'DWS_IC_NAME', $dws_ic_header['Name'] );
 
 /**
  * The plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -49,6 +53,8 @@ define( 'DWS_IC_VERSION', $dws_ic_header['Version'] );
 /**
  * The path of the plugin's main file.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use DWS_IC_FILE.
@@ -58,6 +64,8 @@ define( 'DWS_IC_PATH', DWS_IC_FILE );
 /**
  * The oldest PHP version the plugin runs on.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -66,6 +74,8 @@ define( 'DWS_IC_MIN_PHP', $dws_ic_header['RequiresPHP'] );
 
 /**
  * The oldest WordPress version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -105,6 +115,8 @@ const DWS_IC_V1_COMPONENTS = array(
 /**
  * Returns the plugin's name, translated once init has fired.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_ic_get_plugin_name().
@@ -113,12 +125,13 @@ const DWS_IC_V1_COMPONENTS = array(
  */
 function dws_ic_name(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_ic_get_plugin_name()' );
-
 	return dws_ic_get_plugin_name();
 }
 
 /**
  * Returns the plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -128,12 +141,13 @@ function dws_ic_name(): string {
  */
 function dws_ic_version(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_ic_get_plugin_version()' );
-
 	return dws_ic_get_plugin_version();
 }
 
 /**
  * Returns the path of the plugin's main file.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -143,12 +157,13 @@ function dws_ic_version(): string {
  */
 function dws_ic_path(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_IC_PATH;
 }
 
 /**
  * Returns the oldest PHP version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -158,12 +173,13 @@ function dws_ic_path(): string {
  */
 function dws_ic_min_php(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_IC_MIN_PHP;
 }
 
 /**
  * Returns the oldest WordPress version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -173,12 +189,13 @@ function dws_ic_min_php(): string {
  */
 function dws_ic_min_wp(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_IC_MIN_WP;
 }
 
 /**
  * Returns a hook name as v1 built it for the plugin.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -191,12 +208,13 @@ function dws_ic_min_wp(): string {
  */
 function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return dws_ic_join_v1_hook_tag( 'internal_comments', $name, $extra );
 }
 
 /**
  * Returns a hook name as v1 built it for one of its components, or null for an id v1 had no component for.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -210,7 +228,6 @@ function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_ic_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return isset( DWS_IC_V1_COMPONENTS[ $component_id ] ) ? dws_ic_join_v1_hook_tag( 'internal_comments/' . DWS_IC_V1_COMPONENTS[ $component_id ], $name, $extra ) : null;
 }
 

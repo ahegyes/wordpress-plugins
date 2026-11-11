@@ -82,15 +82,15 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 
 			$fields[] = array(
 				'type'  => 'title',
-				'id'    => "dws-wc-lpm_{$group}",
+				'id'    => "dws-wc-lpm_$group",
 				'title' => $titles[ $group ],
 			);
 			foreach ( $group_fields as $id => $field ) {
-				$fields[] = array( 'id' => $keys[ $id ] ?? "dws-wc-lpm_{$group}_{$id}" ) + $field; // A field a v1 callback adds keeps the option v1 stored it under.
+				$fields[] = array( 'id' => $keys[ $id ] ?? "dws-wc-lpm_{$group}_$id" ) + $field; // A field a v1 callback adds keeps the option v1 stored it under.
 			}
 			$fields[] = array(
 				'type' => 'sectionend',
-				'id'   => "dws-wc-lpm_{$group}",
+				'id'   => "dws-wc-lpm_$group",
 			);
 		}
 
@@ -136,7 +136,6 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 */
 	public function add_settings_link( array $links ): array {
 		\array_unshift( $links, \sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), esc_html__( 'Settings', 'locked-payment-methods-for-woocommerce' ) ) );
-
 		return $links;
 	}
 

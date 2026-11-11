@@ -45,8 +45,6 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 	/**
 	 * Returns whether the user holds one of the full-access roles, which unlocks every locked payment method.
 	 *
-	 * @internal
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
@@ -62,7 +60,6 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 		}
 
 		$roles = dws_lpmwc_apply_v1_setting_filter( dws_lpmwc_get_list_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), 'general', 'full-access-user-roles', 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
-
 		return \is_array( $roles ) && array() !== \array_intersect( $user->roles, \array_filter( $roles, 'is_string' ) );
 	}
 

@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Returns an order's node, or null when the value names no order of a supported type.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -35,6 +37,8 @@ function dws_lowc_get_order_node( $order ): ?DWS_Order_Node {
 /**
  * Returns whether an order is at the top of its tree, or null when it has no node.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -44,14 +48,15 @@ function dws_lowc_get_order_node( $order ): ?DWS_Order_Node {
  */
 function dws_lowc_is_root_order( $order ): ?bool {
 	$node = dws_lowc_get_order_node( $order );
-
-	return null === $node ? null : 0 === $node->get_depth();
+	return is_null( $node ) ? null : 0 === $node->get_depth();
 }
 
 /**
  * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, or when another request still links orders after five seconds, and null when either order has no node.
  *
  * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock. A link holds it for milliseconds, so the next one waits for it rather than refusing at once.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -64,7 +69,7 @@ function dws_lowc_is_root_order( $order ): ?bool {
 function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 	$parent = dws_lowc_get_order_node( $parent_id );
 	$child  = dws_lowc_get_order_node( $child_id );
-	if ( null === $parent || null === $child ) {
+	if ( is_null( $parent ) || is_null( $child ) ) {
 		return null;
 	}
 
@@ -106,6 +111,8 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 /**
  * Returns the node at the top of an order's tree, which is the order's own for a root or for a child whose parent was deleted, or null when the order has no node.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -115,7 +122,7 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
  */
 function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
 	$node = dws_lowc_get_order_node( $order );
-	while ( null !== $node && $node->has_parent() ) {
+	while ( ! is_null( $node ) && $node->has_parent() ) {
 		$node = $node->get_parent();
 	}
 
@@ -124,6 +131,8 @@ function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
 
 /**
  * Returns the ids of an order and its descendants, each child before the next with its own descendants, or null when the order has no node.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -134,7 +143,7 @@ function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
  */
 function dws_lowc_get_orders_tree( $order ): ?array {
 	$node = dws_lowc_get_order_node( $order );
-	if ( null === $node ) {
+	if ( is_null( $node ) ) {
 		return null;
 	}
 

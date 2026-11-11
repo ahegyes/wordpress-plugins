@@ -5,6 +5,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\MetaBox;
+use DeepWebSolutions\InternalComments\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -14,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 // Orders live in WooCommerce's order tables, in the posts table, or in both, so each row runs on every storage.
 #[CoversNothing]
 final class OrdersTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	protected static array $users = array();
 
@@ -54,7 +55,7 @@ final class OrdersTest extends TestCase {
 	#[After]
 	protected function restore_settings(): void {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Each row registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
 		wp_set_current_user( 0 );
 	}
@@ -86,7 +87,7 @@ final class OrdersTest extends TestCase {
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id(), 'comment_content' => 'On the order' ), get_user_by( 'id', self::$users['administrator'] ) ?: null ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
 		wp_set_current_user( self::$users['shop_manager'] );
 
-		( new MetaBox() )->add_meta_box( $screen, $object );
+		new MetaBox()->add_meta_box( $screen, $object );
 		$box = $wp_meta_boxes[ $screen ]['normal']['core'][ MetaBox::ID ] ?? null;
 		self::assertIsArray( $box );
 		\ob_start();
@@ -119,7 +120,6 @@ final class OrdersTest extends TestCase {
 		wp_set_current_user( self::$users[ $role ] );
 		$request = new \WP_REST_Request( 'POST', "/dws_ic/v1/posts/$order_id/comments" );
 		$request->set_param( 'content', $content );
-
 		return rest_do_request( $request )->get_status();
 	}
 }

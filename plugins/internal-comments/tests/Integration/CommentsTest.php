@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -9,11 +10,11 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class CommentsTest extends TestCase {
+	use RecordsDeprecationsTrait;
+
 	protected int $post;
 
 	protected int $admin;
-
-	protected array $deprecated = array();
 
 	#[Before]
 	protected function create_post(): void {
@@ -34,8 +35,6 @@ final class CommentsTest extends TestCase {
 				'post_status' => 'publish',
 			)
 		);
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
@@ -43,12 +42,6 @@ final class CommentsTest extends TestCase {
 		wp_delete_post( $this->post, true );
 		wp_set_current_user( 0 );
 		wp_delete_user( $this->admin );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_an_internal_comment_keeps_v1s_type_under_its_own_status_by_its_author(): void {
@@ -75,13 +68,11 @@ final class CommentsTest extends TestCase {
 		$seen = array();
 		$v1   = static function ( array $data ) use ( &$seen ): array {
 			$seen[] = 'v1';
-
 			return array( 'comment_content' => 'v1' ) + $data;
 		};
 		$v2   = static function ( array $data ) use ( &$seen ): array {
 			$seen[]                  = 'v2:' . $data['comment_content'];
 			$data['comment_content'] = 'v2';
-
 			return $data;
 		};
 		add_filter( 'internal_comments/create_comment_data', $v1 );

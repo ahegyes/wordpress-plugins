@@ -3,16 +3,18 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
+use DeepWebSolutions\LinkedOrders\MetaBox;
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\BeforeClass;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( MetaBox::class )]
 final class MetaBoxTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	protected int $user = 0;
 
@@ -33,7 +35,7 @@ final class MetaBoxTest extends TestCase {
 	#[After]
 	protected function clear_meta_boxes(): void {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Resets what the rows registered.
+		$wp_meta_boxes = array();
 		wp_set_current_user( 0 );
 		if ( 0 !== $this->user ) {
 			require_once ABSPATH . 'wp-admin/includes/user.php';
@@ -101,7 +103,7 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( wc_get_order( $child->get_id() )->get_edit_order_url(), $link?->getAttribute( 'href' ) );
 		$button = $box->querySelector( 'a.button' );
 		self::assertSame( 'Add new child Order', \trim( (string) $button?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		\parse_str( (string) \wp_parse_url( (string) $button?->getAttribute( 'href' ), \PHP_URL_QUERY ), $query );
+		\parse_str( (string) wp_parse_url( (string) $button?->getAttribute( 'href' ), \PHP_URL_QUERY ), $query );
 		self::assertSame( 'dws_lowc_create_linked_child', $query['action'] ?? null );
 		self::assertSame( (string) $order->get_id(), $query['parent_id'] ?? null );
 		self::assertSame( 1, wp_verify_nonce( (string) ( $query['_wpnonce'] ?? '' ), 'dws_create_linked_child' ) );
@@ -129,7 +131,6 @@ final class MetaBoxTest extends TestCase {
 			self::assertInstanceOf( \WP_Post::class, $post_or_order );
 		}
 		do_action( 'add_meta_boxes', $screen, $post_or_order );
-
 		return $wp_meta_boxes[ $screen ]['side']['default']['dws-linked-orders'] ?? null;
 	}
 
@@ -141,7 +142,6 @@ final class MetaBoxTest extends TestCase {
 
 		\ob_start();
 		\call_user_func( $box['callback'], $order, $box );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 }

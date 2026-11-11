@@ -3,12 +3,11 @@ name: Workflow Checks
 on:
   push:
     branches: [trunk]
-    paths: ['.github/workflows/**']
+    paths: ['.github/**']
   pull_request:
-    paths: ['.github/workflows/**']
+    paths: ['.github/**']
   schedule:
-    # Weekly Monday 06:00 UTC. Keeps zizmor's online audits (e.g.
-    # known-vulnerable-actions) fresh between workflow changes.
+    # Re-runs zizmor's online audits between workflow changes.
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
@@ -20,6 +19,7 @@ permissions: {}
 
 jobs:
   checks:
+    name: Workflow Checks
     permissions:
       contents: read
       security-events: write

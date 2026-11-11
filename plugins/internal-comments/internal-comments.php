@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Loads the plugin's safeguards, then the rest of the plugin once the site meets its floors and its build is complete.
+ *
  * Plugin Name:          Internal Comments
  * Plugin URI:           https://github.com/ahegyes/wp-internal-comments
  * Description:          Lets the people who run a site leave comments on its posts, pages, products and orders that only they can read.
@@ -15,6 +17,9 @@
  * Text Domain:          internal-comments
  * Domain Path:          /languages
  *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
  * @package DeepWebSolutions\InternalComments
  */
 
@@ -28,15 +33,18 @@ define( 'DWS_IC_FILE', __FILE__ );
 require_once __DIR__ . '/includes/safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
 
 $dws_ic_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( is_readable( $dws_ic_bootstrap ) ) {
-	require_once $dws_ic_bootstrap;
-	Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
-	if ( ! Requirements::check_floors( __FILE__ ) ) {
-		return;
-	}
+if ( ! is_readable( $dws_ic_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+	add_action( 'all_admin_notices', 'dws_ic_render_build_notice' );
+	return;
 }
 
-if ( ! is_readable( $dws_ic_bootstrap ) || ! is_readable( __DIR__ . '/assets/build/meta-box.asset.php' ) ) { // The floor gate never ran, or the scripts were never built, so nothing built may load.
+require_once $dws_ic_bootstrap;
+Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
+if ( ! Requirements::check_floors( __FILE__ ) ) {
+	return;
+}
+
+if ( ! is_readable( __DIR__ . '/assets/build/meta-box.asset.php' ) ) { // The plugin reads its build tree unchecked, so a build that did not write it must not load.
 	add_action( 'all_admin_notices', 'dws_ic_render_build_notice' );
 	return;
 }
@@ -50,14 +58,14 @@ try {
 }
 
 /**
- * Reports a build that could not load, rethrowing in local and development environments and otherwise logging the error and showing the build notice.
+ * Reports a build that could not load.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @param   Throwable $error The error that stopped the build.
  *
- * @throws  Throwable Thrown in local and development environments.
+ * @throws  Throwable Thrown when the site runs in a local or development environment.
  *
  * @return  void
  */
@@ -66,7 +74,13 @@ function dws_ic_handle_build_error( Throwable $error ): void {
 		throw $error;
 	}
 
-	error_log( 'Internal Comments did not finish loading: ' . $error->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The plugin's logger is part of the build that failed.
+	// A partial deploy fails the same way on every request, so each distinct message is logged about once an hour, as best effort.
+	$key = 'dws_ic_build_error_' . md5( $error->getMessage() );
+	if ( false === get_transient( $key ) ) {
+		set_transient( $key, 1, HOUR_IN_SECONDS );
+		error_log( 'Internal Comments did not finish loading: ' . $error->getMessage() . ' in ' . $error->getFile() . ':' . $error->getLine() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The plugin's logger is part of the build that failed.
+	}
+
 	add_action( 'all_admin_notices', 'dws_ic_render_build_notice' );
 }
 

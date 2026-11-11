@@ -66,6 +66,5 @@ const DWS_LOWC_OPTION_DEFAULTS = array(
  */
 function dws_lowc_validate_max_depth( $submitted ) {
 	$depth = is_string( $submitted ) ? filter_var( $submitted, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) : false;
-
 	return false === $depth ? new WP_Error( 'invalid_number', __( 'Enter a whole number of 1 or more, such as 2.', 'linked-orders-for-woocommerce' ) ) : (string) $depth;
 }

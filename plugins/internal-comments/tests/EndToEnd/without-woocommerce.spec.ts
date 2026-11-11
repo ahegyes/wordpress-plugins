@@ -1,25 +1,5 @@
-/// <reference types="node" />
-import { execFileSync } from 'node:child_process';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
-
-// No page shows the boot's outcome, so the site's WP-CLI reads it.
-const bootStatus = (): string =>
-	execFileSync(
-		'node_modules/.bin/wp-env',
-		[
-			'--config',
-			'.wp-env.tests.json',
-			'run',
-			'cli',
-			'wp',
-			'eval',
-			'echo dws_ic_plugin()->boot->status;',
-		],
-		{ encoding: 'utf8', stdio: [ 'ignore', 'pipe', 'ignore' ] }
-	)
-		.trim()
-		.split( '\n' )
-		.pop() ?? '';
+import { cli } from './cli';
 
 test.describe( 'Without WooCommerce', () => {
 	test.beforeAll( async ( { requestUtils } ) => {
@@ -33,7 +13,9 @@ test.describe( 'Without WooCommerce', () => {
 	test( 'the plugin boots and every screen still loads', async ( {
 		page,
 	} ) => {
-		expect( bootStatus() ).toBe( 'booted' );
+		expect( cli( 'eval', 'echo dws_ic_plugin()->boundary->status;' ) ).toBe(
+			'booted'
+		);
 
 		const front = await page.goto( '/' );
 		expect( front?.status() ).toBe( 200 );

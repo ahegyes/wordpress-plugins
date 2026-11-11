@@ -29,7 +29,9 @@ function dws_lpmwc_get_migration_steps(): array {
 }
 
 /**
- * Stores each setting the site has not stored yet, autoloaded, from v1's row where it holds a value of the setting's kind and otherwise from the setting's default, and leaves v1's rows in place, so a site that goes back to v1 still finds its settings.
+ * Stores each setting the site has not stored yet.
+ *
+ * It takes v1's row where that holds a value of the setting's kind, and the setting's default otherwise, and leaves v1's rows in place, so a site that goes back to v1 still finds its settings.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -46,11 +48,11 @@ function dws_lpmwc_add_settings(): void {
 			}
 
 			$default = DWS_LPMWC_OPTION_DEFAULTS[ $key ];
-			$v1      = get_option( "dws-wc-lpm_{$group}_{$id}", null );
+			$v1      = get_option( "dws-wc-lpm_{$group}_$id", null );
 			if ( is_array( $default ) ) {
 				$value = is_array( $v1 ) ? array_values( array_filter( $v1, 'is_string' ) ) : $default;
 			} else {
-				$value = wc_bool_to_string( null === $v1 ? $default : ( filter_var( $v1, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? $default ) ); // filter_var() reads null as false, so an absent row takes the default before it.
+				$value = wc_bool_to_string( is_null( $v1 ) ? $default : ( filter_var( $v1, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? $default ) ); // filter_var() reads null as false, so an absent row takes the default before it.
 			}
 
 			if ( ! add_option( $key, $value, '', true ) ) {
@@ -149,7 +151,7 @@ function dws_lpmwc_move_order_grants(): void {
 	foreach ( $tables as $table => $column ) {
 		$wpdb->flush();
 		$listed = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The order tables exist only once WooCommerce created them.
-		if ( null === $listed && '' !== $wpdb->last_error ) {
+		if ( is_null( $listed ) && '' !== $wpdb->last_error ) {
 			throw new RuntimeException( 'The v1 order grants could not be read.' );
 		}
 		if ( $table !== $listed ) {

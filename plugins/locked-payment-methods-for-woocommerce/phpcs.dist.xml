@@ -11,4 +11,14 @@
 			</property>
 		</properties>
 	</rule>
+
+	<!-- Every global the plugin declares starts with its prefix or sits in its namespace. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="dws_lpmwc"/>
+				<element value="DeepWebSolutions\LockedPaymentMethods"/>
+			</property>
+		</properties>
+	</rule>
 </ruleset>

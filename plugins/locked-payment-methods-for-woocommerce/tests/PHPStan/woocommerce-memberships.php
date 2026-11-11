@@ -13,4 +13,4 @@
  *
  * @return  array<int, mixed>
  */
-function wc_memberships_get_user_active_memberships( $user_id = null, $args = array() ) {} // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- A declaration only.
+function wc_memberships_get_user_active_memberships( $user_id = null, $args = array() ) {}

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -29,7 +30,7 @@ final class PartialDeployTest extends TestCase {
 		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php';
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request( 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_ic_boot" ), false !== has_action( "all_admin_notices", "dws_ic_render_build_notice" ) ) );' );
+			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_ic_boot" ), false !== has_action( "all_admin_notices", "dws_ic_render_build_notice" ) ) );' );
 		} finally {
 			\unlink( $include );
 		}
@@ -42,7 +43,7 @@ final class PartialDeployTest extends TestCase {
 		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php'; // It loads after metadata.php.
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request( 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_ic_boot" ), dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) );' );
+			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_ic_boot" ), dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) );' );
 		} finally {
 			\unlink( $include );
 		}
@@ -55,7 +56,7 @@ final class PartialDeployTest extends TestCase {
 		$root = \dirname( DWS_IC_FILE ) . '/vendor-prefixed/ahegyes/wp-framework-core/src/PluginBoot.php'; // The composition root constructs it, and no include reads it.
 		\rename( $root, "$root.hidden" );
 		try {
-			$request = self::request( 'remove_action( "all_admin_notices", "dws_ic_render_build_notice" ); do_action( "deactivate_" . plugin_basename( DWS_IC_FILE ), false ); echo false !== has_action( "all_admin_notices", "dws_ic_render_build_notice" ) ? "reported" : "silent";' );
+			$request = self::request_provoking( 'PluginBoot.php', 'remove_action( "all_admin_notices", "dws_ic_render_build_notice" ); do_action( "deactivate_" . plugin_basename( DWS_IC_FILE ), false ); echo false !== has_action( "all_admin_notices", "dws_ic_render_build_notice" ) ? "reported" : "silent";' );
 		} finally {
 			\rename( "$root.hidden", $root );
 		}
@@ -68,7 +69,7 @@ final class PartialDeployTest extends TestCase {
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
 		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
-		\ini_set( 'error_log', $log ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- The child process's stderr would fail the test.
+		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
 			static function ( string $class_name ): void {
 				if ( Uninstaller::class === $class_name ) {
@@ -85,5 +86,21 @@ final class PartialDeployTest extends TestCase {
 
 		\unlink( $log );
 		update_option( DWS_IC_OPTION_PLUGIN, DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ] );
+	}
+
+	public function test_a_build_error_is_logged_with_its_location_once_an_hour(): void {
+		$message = 'A partial deploy ' . \uniqid() . '.';
+		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php';
+		\file_put_contents( $include, "<?php\nthrow new RuntimeException( '$message' );\n" );
+		try {
+			$first  = self::request_provoking( 'did not finish loading', 'echo 1;' );
+			$second = self::request_provoking( 'did not finish loading', 'echo 1;' );
+		} finally {
+			\unlink( $include );
+			delete_transient( Plugin::PREFIX . '_build_error_' . \md5( $message ) );
+		}
+
+		self::assertStringContainsString( "did not finish loading: $message in $include:2", $first['output'] );
+		self::assertStringNotContainsString( 'did not finish loading', $second['output'] );
 	}
 }

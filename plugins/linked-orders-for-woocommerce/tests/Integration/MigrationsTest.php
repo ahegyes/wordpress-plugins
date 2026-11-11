@@ -4,6 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -11,23 +12,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class MigrationsTest extends TestCase {
-	protected const array KEYS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	use RestoresOptionsTrait;
 
-	protected array $stored = array();
-
-	#[\Override]
-	protected function setUp(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
-	}
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-
+	protected function restore_the_revision(): void {
 		update_option( Plugin::PREFIX . '_revision', \count( dws_lowc_get_migration_steps() ) );
 	}
 
@@ -35,7 +25,7 @@ final class MigrationsTest extends TestCase {
 	#[RunInSeparateProcess]
 	public function test_the_runner_brings_a_new_site_to_revision_one_with_the_untranslated_defaults_autoloaded(): void {
 		global $wpdb;
-		foreach ( self::KEYS as $key ) {
+		foreach ( self::OPTIONS as $key ) {
 			delete_option( $key );
 		}
 		update_option( Plugin::PREFIX . '_revision', 0 );
@@ -46,7 +36,7 @@ final class MigrationsTest extends TestCase {
 		self::assertSame( '1', get_option( DWS_LOWC_OPTION_MAX_DEPTH ) );
 		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_AUTOCOMPLETE ) );
 		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
-		foreach ( self::KEYS as $key ) {
+		foreach ( self::OPTIONS as $key ) {
 			self::assertSame( 'on', $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $key ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the stored autoload flag.
 		}
 	}

@@ -45,6 +45,8 @@ const DWS_IC_META_PRIVATE = 'dws_ic_is_private';
 /**
  * Returns the comment that an id, a comment or an array holding a comment_ID names, or null when there is none.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -59,12 +61,13 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
 
 	// get_comment() reads an empty id as the comment of the current loop.
 	$comment = $comment instanceof WP_Comment || ( is_numeric( $comment ) && (int) $comment > 0 ) ? get_comment( $comment instanceof WP_Comment ? $comment : (int) $comment ) : null;
-
 	return $comment instanceof WP_Comment ? $comment : null;
 }
 
 /**
  * Returns whether a comment is internal, or null when there is no such comment.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -75,12 +78,13 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
  */
 function dws_ic_is_internal_comment( $comment ): ?bool {
 	$comment = dws_ic_get_comment( $comment );
-
-	return null === $comment ? null : DWS_IC_COMMENT_TYPE === $comment->comment_type;
+	return is_null( $comment ) ? null : DWS_IC_COMMENT_TYPE === $comment->comment_type;
 }
 
 /**
  * Returns whether a post's type, or an order's type in any of WooCommerce's storages, is one the settings select for internal comments.
+ *
+ * @api
  *
  * @since   1.1.0
  * @version 2.0.0
@@ -117,6 +121,8 @@ function dws_ic_get_post_type( ?int $post_id = null ): ?string {
 
 /**
  * Stores an internal comment by an author, the current user by default, and returns its id, or null when it could not be stored.
+ *
+ * @api
  *
  * @since   1.1.0
  * @version 2.0.0
@@ -164,12 +170,13 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 	$data = apply_filters( 'dws_ic/internal_comment/creation_data', $data );
 
 	$comment_id = wp_insert_comment( wp_slash( $data ) ); // @phpstan-ignore argument.type (The fields pass through public filters, which wp_insert_comment() accepts in any shape.)
-
 	return false === $comment_id ? null : $comment_id;
 }
 
 /**
  * Returns a post's internal comments the current user can see, threaded by default, each wrapped in the plugin's model.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -204,6 +211,8 @@ function dws_ic_get_internal_comments( int $post_id, array $args = array(), bool
 /**
  * Returns the internal comments a trashed post held under a status, as WordPress recorded them when it trashed the post, which the current user can see.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -236,6 +245,8 @@ function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $sta
 /**
  * Returns whether an internal comment is private, because its author or the author of one of its ancestors marked it so, or null for a comment that is not internal.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -245,8 +256,7 @@ function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $sta
  */
 function dws_ic_is_private_comment( $comment ): ?bool {
 	$owners = dws_ic_get_private_comment_owners( $comment );
-
-	return null === $owners ? null : array() !== $owners;
+	return is_null( $owners ) ? null : array() !== $owners;
 }
 
 /**
@@ -261,15 +271,18 @@ function dws_ic_is_private_comment( $comment ): ?bool {
  */
 function dws_ic_get_private_comment_owners( $comment ): ?array {
 	$comment = dws_ic_get_comment( $comment );
-	if ( null === $comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+	if ( is_null( $comment ) || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
 		return null;
 	}
 
 	$owners = array();
-	for ( $node = $comment; null !== $node; $node = dws_ic_get_comment( $node->comment_parent ) ) {
+	$node   = $comment;
+	while ( ! is_null( $node ) ) {
 		if ( true === filter_var( get_comment_meta( (int) $node->comment_ID, DWS_IC_META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ) {
 			$owners[] = (int) $node->user_id;
 		}
+
+		$node = dws_ic_get_comment( $node->comment_parent );
 	}
 
 	return $owners;
@@ -294,7 +307,6 @@ function dws_ic_exclude_internal_type( $excluded ): array {
 	}
 
 	$types[] = DWS_IC_COMMENT_TYPE;
-
 	return $types;
 }
 
@@ -331,6 +343,5 @@ function dws_ic_has_replies( int $comment_id ): bool {
 			'count'  => true,
 		)
 	);
-
 	return is_int( $replies ) && 0 < $replies;
 }

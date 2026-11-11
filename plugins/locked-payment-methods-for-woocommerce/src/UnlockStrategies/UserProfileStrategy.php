@@ -97,7 +97,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
 		$options = dws_lpmwc_get_grant_choices( dws_lpmwc_get_user_unlocked_payment_method_ids( $object_id ), $object_id );
-
 		return array(
 			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => DWS_LPMWC_CAP_UNLOCK_VIA_USER_PROFILES,
@@ -119,8 +118,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 
 	/**
 	 * Returns whether the user's grants list on the current site holds the payment method.
-	 *
-	 * @internal
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -167,7 +164,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	public function add_users_column( array $columns ): array {
 		$position = \array_search( 'role', \array_keys( $columns ), true );
 		$position = false === $position ? \count( $columns ) : $position + 1;
-
 		return \array_slice( $columns, 0, $position, true ) + array( self::COLUMN => __( 'Unlocked for', 'locked-payment-methods-for-woocommerce' ) ) + \array_slice( $columns, $position, null, true );
 	}
 
@@ -253,7 +249,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 			'compare' => 'LIKE',
 		);
 		$args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filter matches a user meta value, which only a meta query reaches.
-
 		return $args;
 	}
 

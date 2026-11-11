@@ -5,6 +5,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\InternalComments\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -12,23 +13,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class MigrationsTest extends TestCase {
-	protected const array ROWS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
+	use RestoresOptionsTrait;
 
-	protected array $stored = array();
-
-	#[\Override]
-	protected function setUp(): void {
-		foreach ( self::ROWS as $row ) {
-			$this->stored[ $row ] = get_option( $row );
-		}
-	}
+	protected const array OPTIONS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $row => $value ) {
-			false === $value ? delete_option( $row ) : update_option( $row, $value );
-		}
-
+	protected function restore_the_revision(): void {
 		update_option( Plugin::PREFIX . '_revision', \count( dws_ic_get_migration_steps() ) );
 	}
 
@@ -36,7 +26,7 @@ final class MigrationsTest extends TestCase {
 	#[RunInSeparateProcess]
 	public function test_the_runner_brings_a_new_site_to_the_latest_revision_with_v1s_defaults_autoloaded(): void {
 		global $wpdb;
-		foreach ( self::ROWS as $row ) {
+		foreach ( self::OPTIONS as $row ) {
 			delete_option( $row );
 		}
 		update_option( Plugin::PREFIX . '_revision', 0 );
@@ -44,7 +34,7 @@ final class MigrationsTest extends TestCase {
 		do_action( Plugin::PREFIX . '_revision/migration/run' ); // A batched step runs only from the runner's scheduled hook.
 
 		self::assertSame( \count( dws_ic_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
-		foreach ( self::ROWS as $row ) {
+		foreach ( self::OPTIONS as $row ) {
 			self::assertSame( DWS_IC_SETTING_DEFAULTS[ $row ], get_option( $row ) );
 			self::assertSame( 'on', $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $row ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the stored autoload flag.
 		}
@@ -126,11 +116,10 @@ final class MigrationsTest extends TestCase {
 					'comment_type'     => $type,
 					'comment_approved' => $status,
 					'comment_content'  => "$type $status",
-					'comment_date'     => \current_time( 'mysql' ),
-					'comment_date_gmt' => \current_time( 'mysql', true ),
+					'comment_date'     => current_time( 'mysql' ),
+					'comment_date_gmt' => current_time( 'mysql', true ),
 				)
 			);
-
 			return (int) $wpdb->insert_id;
 		};
 

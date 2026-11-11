@@ -71,7 +71,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 
 			$wc_fields = array();
 			foreach ( $group_fields as $id => $field ) {
-				$wc_fields[] = array( 'id' => "dws-lowc_{$group}_{$id}" ) + $field;
+				$wc_fields[] = array( 'id' => "dws-lowc_{$group}_$id" ) + $field;
 			}
 
 			/**
@@ -89,7 +89,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 				array(
 					array(
 						'type'  => 'title',
-						'id'    => "dws-lowc_{$group}",
+						'id'    => "dws-lowc_$group",
 						'title' => 'general' === $group ? __( 'General Settings', 'linked-orders-for-woocommerce' ) : __( 'Plugin Settings', 'linked-orders-for-woocommerce' ),
 					),
 				),
@@ -97,7 +97,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 				array(
 					array(
 						'type' => 'sectionend',
-						'id'   => "dws-lowc_{$group}",
+						'id'   => "dws-lowc_$group",
 					),
 				)
 			);
@@ -145,7 +145,6 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 */
 	public function add_settings_link( array $links ): array {
 		\array_unshift( $links, \sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), esc_html__( 'Settings', 'linked-orders-for-woocommerce' ) ) );
-
 		return $links;
 	}
 

@@ -3,23 +3,23 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Settings;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( Settings::class )]
 final class SettingsTest extends TestCase {
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
 	protected const string SECTION = 'dws-linked-orders';
 
-	protected const array KEYS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
 
 	protected static \WC_Settings_Page $advanced;
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -49,27 +49,9 @@ final class SettingsTest extends TestCase {
 		);
 	}
 
-	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
-	}
-
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-		( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->setValue( null, array() );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
+	protected function forget_the_rejections(): void {
+		new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->setValue( null, array() );
 	}
 
 	public function test_the_section_sits_on_the_advanced_tab_under_its_v1_id(): void {
@@ -77,7 +59,7 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_the_section_shows_v1s_two_groups_with_their_defaults(): void {
-		foreach ( self::KEYS as $key ) {
+		foreach ( self::OPTIONS as $key ) {
 			delete_option( $key );
 		}
 
@@ -118,7 +100,7 @@ final class SettingsTest extends TestCase {
 		$this->save( array( DWS_LOWC_OPTION_MAX_DEPTH => $posted ) );
 
 		self::assertSame( '4', get_option( DWS_LOWC_OPTION_MAX_DEPTH ) );
-		self::assertSame( array( 'Maximum linked orders depth was not saved and keeps its previous value. The other changes were saved. Enter a whole number of 1 or more, such as 2.' ), ( new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' ) )->getValue() );
+		self::assertSame( array( 'Maximum linked orders depth was not saved and keeps its previous value. The other changes were saved. Enter a whole number of 1 or more, such as 2.' ), new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->getValue() );
 	}
 
 	public function test_a_whole_depth_of_at_least_one_is_stored(): void {
@@ -135,7 +117,6 @@ final class SettingsTest extends TestCase {
 		$v2_hook  = "dws_lowc/settings/{$group}_fields";
 		$v1_extra = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v1', \array_keys( $fields ) );
-
 			return $fields + array(
 				'extra' => array(
 					'type'  => 'text',
@@ -145,14 +126,13 @@ final class SettingsTest extends TestCase {
 		};
 		$v2_spy   = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v2', \array_column( $fields, 'id' ) );
-
 			return $fields;
 		};
 		add_filter( $v1_hook, $v1_extra );
 		add_filter( $v2_hook, $v2_spy );
 
 		try {
-			$fields = ( new Settings() )->get_section_fields( 'advanced', self::SECTION );
+			$fields = new Settings()->get_section_fields( 'advanced', self::SECTION );
 		} finally {
 			remove_filter( $v1_hook, $v1_extra );
 			remove_filter( $v2_hook, $v2_spy );
@@ -171,7 +151,7 @@ final class SettingsTest extends TestCase {
 		$links = apply_filters( "plugin_action_links_{$basename}", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
 		$meta  = apply_filters( 'plugin_row_meta', array(), $basename, array(), 'all' );
 
-		self::assertStringContainsString( \esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), (string) \reset( $links ) );
+		self::assertStringContainsString( esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), (string) \reset( $links ) );
 		self::assertStringContainsString( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/', \implode( '', $meta ) );
 		self::assertSame( array(), apply_filters( 'plugin_row_meta', array(), 'another-plugin/another-plugin.php', array(), 'all' ) );
 	}
@@ -179,7 +159,6 @@ final class SettingsTest extends TestCase {
 	protected function render(): \Dom\HTMLDocument {
 		\ob_start();
 		\WC_Admin_Settings::output_fields( self::$advanced->get_settings_for_section( self::SECTION ) );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

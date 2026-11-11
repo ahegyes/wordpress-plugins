@@ -2,20 +2,22 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\ChildCreation;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\LinkedOrders\Scoped\Psr\Log\NullLogger;
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( ChildCreation::class )]
 final class ChildCreationTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	protected const string ACTION = 'admin_post_dws_lowc_create_linked_child';
 

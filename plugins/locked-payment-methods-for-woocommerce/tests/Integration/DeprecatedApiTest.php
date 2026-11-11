@@ -2,7 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\After;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -10,13 +11,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
 
 	protected static array $users = array();
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	public static function hook_tags(): array {
 		return array(
@@ -54,31 +54,9 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	#[Before]
-	protected function record_deprecations(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
+	protected function store_the_settings(): void {
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
 		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
-		add_filter( 'deprecated_function_trigger_error', '__return_false' );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_function_run', array( $this, 'record' ), 10, 2 );
-		add_action( 'deprecated_hook_run', array( $this, 'record' ), 10, 2 );
-	}
-
-	#[After]
-	protected function stop_recording(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
-		remove_filter( 'deprecated_function_trigger_error', '__return_false' );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_function_run', array( $this, 'record' ) );
-		remove_action( 'deprecated_hook_run', array( $this, 'record' ) );
-	}
-
-	public function record( string $name, string $replacement ): void {
-		$this->deprecated[] = array( $name, $replacement );
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
@@ -131,13 +109,16 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
 	}
 
-	public function test_the_v1_boot_hooks_fire_after_the_v2_ones_with_the_failure(): void {
+	// The v1 hooks fire at the earliest priority, so every v1 listener runs before a v2 listener of any later one.
+	public function test_the_v1_boot_hooks_fire_at_the_earliest_priority_with_the_failure(): void {
 		$fired = array();
 		$spy   = static function ( mixed $error = null ) use ( &$fired ): void {
 			$fired[] = array( current_action(), $error );
 		};
 		add_action( 'dws_lpmwc_initialized', $spy );
 		add_action( 'dws_lpmwc_initialization_failure', $spy );
+		add_action( 'dws_lpmwc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+		add_action( 'dws_lpmwc/boot/failed', $spy, PHP_INT_MIN + 1 );
 		$error = new \RuntimeException( 'Failed.' );
 
 		try {
@@ -146,12 +127,16 @@ final class DeprecatedApiTest extends TestCase {
 		} finally {
 			remove_action( 'dws_lpmwc_initialized', $spy );
 			remove_action( 'dws_lpmwc_initialization_failure', $spy );
+			remove_action( 'dws_lpmwc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'dws_lpmwc/boot/failed', $spy, PHP_INT_MIN + 1 );
 		}
 
 		self::assertSame(
 			array(
 				array( 'dws_lpmwc_initialized', null ),
+				array( 'dws_lpmwc/boot/succeeded', '' ),
 				array( 'dws_lpmwc_initialization_failure', $error ),
+				array( 'dws_lpmwc/boot/failed', $error ),
 			),
 			$fired
 		);
@@ -162,6 +147,8 @@ final class DeprecatedApiTest extends TestCase {
 			),
 			$this->deprecated
 		);
+		self::assertSame( PHP_INT_MIN, has_action( 'dws_lpmwc/boot/succeeded', 'dws_lpmwc_fire_v1_initialized' ) );
+		self::assertSame( PHP_INT_MIN, has_action( 'dws_lpmwc/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure' ) );
 	}
 
 	public function test_a_payment_method_is_locked_for_a_user_when_it_is_listed_and_no_strategy_unlocks_it(): void {
@@ -176,7 +163,6 @@ final class DeprecatedApiTest extends TestCase {
 		$seen = array();
 		$spy  = static function ( mixed ...$args ) use ( &$seen ): mixed {
 			$seen[] = $args;
-
 			return $args[0];
 		};
 		add_filter( $v1, $spy, 10, 3 );
@@ -200,7 +186,6 @@ final class DeprecatedApiTest extends TestCase {
 		$seen     = array();
 		$spy      = static function ( mixed ...$args ) use ( &$seen ): mixed {
 			$seen[] = $args;
-
 			return $args[0];
 		};
 		add_filter( $v1, $spy, 10, 3 );

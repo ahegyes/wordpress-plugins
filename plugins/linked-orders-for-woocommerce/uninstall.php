@@ -31,7 +31,6 @@ try {
 	require_once __DIR__ . '/includes/footprint.php';
 	require_once __DIR__ . '/includes/options.php';
 	$dws_lowc_footprint  = dws_lowc_get_footprint();
-	$dws_lowc_consent    = DWS_LOWC_OPTION_DELETE_DATA;
 	$dws_lowc_meta_types = MetaTypes::DEFINITIONS;
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
@@ -46,11 +45,20 @@ try {
 	return;
 }
 
-Uninstaller::run(
-	$dws_lowc_file,
-	$dws_lowc_footprint,
-	array(
-		'consent'    => array( 'option' => $dws_lowc_consent ),
-		'meta_types' => $dws_lowc_meta_types,
-	)
-);
+try {
+	Uninstaller::run(
+		$dws_lowc_file,
+		$dws_lowc_footprint,
+		array(
+			'consent'    => array( 'option' => DWS_LOWC_OPTION_DELETE_DATA ),
+			'meta_types' => $dws_lowc_meta_types,
+		)
+	);
+} catch ( RuntimeException $exception ) {
+	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
+		throw $exception;
+	}
+
+	// wp_die() ends the request before WordPress deletes the files, so the next uninstall retries, and shows the reason where a throw shows only the critical-error page.
+	wp_die( esc_html( $exception->getMessage() ), '', array( 'response' => 500 ) );
+}

@@ -15,6 +15,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Returns the order types whose orders can be linked.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -55,12 +57,13 @@ function dws_lowc_get_supported_order_types(): array {
  */
 function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
 	$name = $post_type->labels->singular_name ?? null;
-
 	return is_string( $name ) ? $name : $post_type->label;
 }
 
 /**
  * Returns whether an order is of a type that can be linked, or null when it is not an order.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -75,12 +78,13 @@ function dws_lowc_is_supported_order( $order ): ?bool {
 	}
 
 	$order = wc_get_order( $order );
-
 	return $order instanceof WC_Order ? in_array( $order->get_type(), dws_lowc_get_supported_order_types(), true ) : null;
 }
 
 /**
  * Returns the statuses, without their 'wc-' prefix, that an order must have for a child to be created from it.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -92,7 +96,7 @@ function dws_lowc_is_supported_order( $order ): ?bool {
  */
 function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_order', ?WC_Order $order = null ): array {
 	$statuses   = array_map( array( OrderUtil::class, 'remove_status_prefix' ), array_keys( wc_get_order_statuses() ) );
-	$order_type = null === $order ? $order_type : $order->get_type();
+	$order_type = is_null( $order ) ? $order_type : $order->get_type();
 
 	/**
 	 * Filters the statuses an order must have for a child to be created from it.
@@ -138,6 +142,8 @@ function dws_lowc_get_create_child_url( int $parent_id ): string {
  * Creates an order linked as the child of a supported order, with the parent's customer and addresses, and returns its id.
  *
  * Returns null when the parent is missing or unsupported, or when the creator is not callable or creates no supported order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -230,7 +236,6 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 	$child->save();
 	if ( true !== dws_lowc_link_orders( $parent_id, $child->get_id() ) ) {
 		$child->delete( true );
-
 		return new WP_Error( 'dws_lowc_link_refused', __( 'another order was being linked at the same time. Please try again.', 'linked-orders-for-woocommerce' ) );
 	}
 

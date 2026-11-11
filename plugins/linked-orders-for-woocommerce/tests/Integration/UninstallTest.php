@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Plugin;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\AfterClass;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -10,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class UninstallTest extends TestCase {
+	use RunsRequestsTrait;
+
 	protected const int USER = 1;
 
 	#[AfterClass]
@@ -23,7 +26,7 @@ final class UninstallTest extends TestCase {
 		$source = (string) \file_get_contents( DWS_LOWC_FILE );
 		\file_put_contents( DWS_LOWC_FILE, (string) \preg_replace( '/^(\s*\*\s*Requires PHP:\s*).*$/m', '${1}99.0', $source ) );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
-		\ini_set( 'error_log', $log ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- The child process's stderr would fail the test.
+		\ini_set( 'error_log', $log );
 
 		try {
 			include \dirname( DWS_LOWC_FILE ) . '/uninstall.php';
@@ -40,18 +43,47 @@ final class UninstallTest extends TestCase {
 		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
 		$php = 'uninstall_plugin( "linked-orders-for-woocommerce/linked-orders-for-woocommerce.php" ); echo wp_json_encode( array( defined( "DWS_LOWC_FILE" ), get_option( "' . DWS_LOWC_OPTION_DELETE_DATA . '" ) ) );';
 
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' --skip-plugins=linked-orders-for-woocommerce eval ' . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The uninstall needs a request without the plugin.
+		$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
 
 		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request would.
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval "" 2>&1', $restored, $restore_status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The restore needs a request with the plugin.
+		$restored = self::request( '' );
 		wp_cache_flush();
 		wp_roles()->for_site();
 
-		self::assertSame( 0, $status, \implode( "\n", $output ) );
-		self::assertSame( '[false,false]', (string) \end( $output ) );
-		self::assertSame( 0, $restore_status, \implode( "\n", $restored ) );
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( '[false,false]', $request['last'], $request['output'] );
+		self::assertSame( 0, $restored['status'], $restored['output'] );
 		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
 		self::assertTrue( get_role( 'shop_manager' )?->has_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN ) );
+	}
+
+	#[RunInSeparateProcess]
+	public function test_a_web_uninstall_whose_engine_fails_ends_with_its_message_and_keeps_the_consent(): void {
+		global $wpdb;
+
+		\define( 'WP_UNINSTALL_PLUGIN', plugin_basename( DWS_LOWC_FILE ) );
+		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		$failing = "DELETE FROM `$wpdb->options` WHERE `option_name` = '" . Plugin::PREFIX . "_revision'";
+		add_filter( 'query', static fn ( string $query ): string => \str_contains( $query, $failing ) ? 'SELECT * FROM dws_lowc_missing_table' : $query );
+		add_filter( 'wp_die_handler', static fn (): \Closure => static fn ( string $message, string $title, array $args ): never => throw new \LogicException( $args['response'] . ' ' . $message ) );
+		$wpdb->suppress_errors();
+
+		try {
+			include \dirname( DWS_LOWC_FILE ) . '/uninstall.php';
+			self::fail( 'The uninstall finished.' );
+		} catch ( \LogicException $died ) {
+			self::assertStringStartsWith( '500 Uninstall could not remove everything: option ' . Plugin::PREFIX . '_revision', $died->getMessage() );
+			self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+		} finally {
+			remove_all_filters( 'query' );
+			delete_option( DWS_LOWC_OPTION_DELETE_DATA );
+			delete_option( Plugin::PREFIX . '_revision' );
+			wp_cache_flush();
+			wp_roles()->for_site();
+			// The other tests share the database, so the runner stores again what a new site starts with, and the grants act again.
+			dws_lowc_plugin()->migrations?->run();
+			do_action( 'wp_loaded' );
+		}
 	}
 
 	#[RunInSeparateProcess]

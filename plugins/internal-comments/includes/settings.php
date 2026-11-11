@@ -26,6 +26,8 @@ const DWS_IC_SETTINGS_GROUPS = array(
 /**
  * Returns the stored value of a setting, or null for a setting that is not stored or a group v1 did not have.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -36,17 +38,18 @@ const DWS_IC_SETTINGS_GROUPS = array(
  */
 function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
 	$field = dws_ic_find_setting( $field_id, $group );
-	if ( null === $field ) {
+	if ( is_null( $field ) ) {
 		return null;
 	}
 
 	$row = get_option( DWS_IC_SETTINGS_GROUPS[ $field[0] ] );
-
 	return is_array( $row ) && array_key_exists( $field[1], $row ) ? $row[ $field[1] ] : null;
 }
 
 /**
  * Returns the validated value of a setting, filtered, or null for a group v1 did not have.
+ *
+ * @api
  *
  * @since   1.1.0
  * @version 2.0.0
@@ -58,7 +61,7 @@ function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
  */
 function dws_ic_get_validated_setting( string $field_id, ?string $group = null ) {
 	$field = dws_ic_find_setting( $field_id, $group );
-	if ( null === $field ) {
+	if ( is_null( $field ) ) {
 		return null;
 	}
 
@@ -85,7 +88,7 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 	 * @param       string $field_id The field's v1 id.
 	 */
 	$value = apply_filters_deprecated( "internal_comments/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'dws_ic/settings/validated_value' );
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		/**
 		 * Filters the validated value of a setting read through the settings page, after its group's filter.
 		 *
@@ -115,6 +118,8 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 /**
  * Returns the names of the post types selected for internal comments, as stored, so a post type that registers late stays selected.
  *
+ * @api
+ *
  * @since   1.0.0
  * @version 2.0.0
  *
@@ -122,12 +127,13 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
  */
 function dws_ic_get_selected_post_types(): array {
 	$selected = dws_ic_get_raw_setting( DWS_IC_SETTING_POST_TYPES, 'general' );
-
 	return is_array( $selected ) ? array_values( array_filter( $selected, 'is_string' ) ) : array();
 }
 
 /**
  * Returns whether internal comments can be marked private.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 2.0.0
@@ -152,7 +158,7 @@ function dws_ic_are_enabled_private_comments(): bool {
  * @return  array{0: string, 1: string}|null
  */
 function dws_ic_find_setting( string $field_id, ?string $group ): ?array {
-	if ( null === $group ) {
+	if ( is_null( $group ) ) {
 		if ( false === strpos( $field_id, '/' ) ) {
 			return null;
 		}

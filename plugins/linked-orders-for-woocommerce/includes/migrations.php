@@ -25,7 +25,9 @@ function dws_lowc_get_migration_steps(): array {
 }
 
 /**
- * Stores the settings' defaults, autoloaded, so a site that never saved them reads them without a query, and keeps every value a v1 site stored.
+ * Stores the settings' defaults.
+ *
+ * Every value a v1 site stored stays as it is.
  *
  * @since   2.0.0
  * @version 2.0.0

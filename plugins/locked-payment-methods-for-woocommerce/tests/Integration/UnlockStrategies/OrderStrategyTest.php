@@ -5,31 +5,31 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategi
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
-use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorage;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( OrderStrategy::class )]
 final class OrderStrategyTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
+	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
 
 	protected const string FORM = 'dws_lpmwc_order';
 
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
 
 	protected static OrderStrategy $strategy;
 
 	protected static array $hooks = array();
 
 	protected static int $admin;
-
-	protected array $stored = array();
 
 	// Orders are off by default, so the booted plugin runs no order strategy; the class hooks one of its own, as the plugin does with the switch on.
 	#[\Override]
@@ -51,22 +51,16 @@ final class OrderStrategyTest extends TestCase {
 	#[\Override]
 	public static function tearDownAfterClass(): void {
 		wp_delete_user( self::$admin );
-		$GLOBALS['wp_filter'] = self::$hooks; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Unhooks the class's strategy and its form.
+		$GLOBALS['wp_filter'] = self::$hooks;
 	}
 
 	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
+	protected function lock_the_methods(): void {
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
+	protected function clean_up(): void {
 		unset( $_POST[ self::FORM ], $_POST[ self::FORM . '_nonce' ] );
 		wp_set_current_user( 0 );
 	}

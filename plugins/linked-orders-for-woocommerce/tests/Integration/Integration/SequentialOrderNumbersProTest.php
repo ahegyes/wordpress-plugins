@@ -3,14 +3,14 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration\Integration;
 
 use DeepWebSolutions\LinkedOrders\Integration\SequentialOrderNumbersPro;
-use DeepWebSolutions\LinkedOrders\Tests\Integration\OrderStorage;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( SequentialOrderNumbersPro::class )]
 final class SequentialOrderNumbersProTest extends TestCase {
-	use OrderStorage;
+	use OrderStorageTrait;
 
 	public function test_the_integration_loads_only_beside_the_plugin(): void {
 		self::assertFalse( SequentialOrderNumbersPro::should_load() );
@@ -21,7 +21,7 @@ final class SequentialOrderNumbersProTest extends TestCase {
 	public function test_a_linked_child_is_numbered_before_it_is_saved(): void {
 		require_once \dirname( __DIR__, 2 ) . '/Fixtures/sequential-order-numbers-pro.php';
 		self::assertTrue( SequentialOrderNumbersPro::should_load() );
-		( new SequentialOrderNumbersPro() )->register_hooks();
+		new SequentialOrderNumbersPro()->register_hooks();
 		wp_set_current_user( 1 );
 
 		$id = dws_lowc_create_linked_child( $this->create_order()->get_id() );

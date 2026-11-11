@@ -23,4 +23,19 @@
 			</property>
 		</properties>
 	</rule>
+
+	<!-- Every global the plugin declares starts with its prefix or sits in its namespace. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="dws_lowc"/>
+				<element value="DeepWebSolutions\LinkedOrders"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- v1 named the model class, which the plugin keeps as API. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound">
+		<exclude-pattern>*/models/DWS_Order_Node\.php</exclude-pattern>
+	</rule>
 </ruleset>

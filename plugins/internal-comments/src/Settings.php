@@ -116,7 +116,6 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 	 */
 	public function add_settings_link( array $links ): array {
 		\array_unshift( $links, \sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'options-general.php?page=' . self::PAGE ) ), esc_html__( 'Settings', 'internal-comments' ) ) );
-
 		return $links;
 	}
 

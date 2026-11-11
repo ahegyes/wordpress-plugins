@@ -3,13 +3,16 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\AdminScreens;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( AdminScreens::class )]
 final class AdminScreensTest extends TestCase {
+	use RecordsDeprecationsTrait;
+
 	// WordPress reports a deprecated hook only when something listens on it.
 	protected const string V1_PRECEDING_COLUMN = 'internal_comments/wp_table_output/insert_after';
 
@@ -18,8 +21,6 @@ final class AdminScreensTest extends TestCase {
 	protected int $post;
 
 	protected mixed $stored;
-
-	protected array $deprecated = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -57,8 +58,6 @@ final class AdminScreensTest extends TestCase {
 			)
 		);
 		wp_set_current_user( self::$users['administrator'] );
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
@@ -67,31 +66,23 @@ final class AdminScreensTest extends TestCase {
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
 		wp_set_current_user( 0 );
 		unset( $_GET['comment_type'] );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_posts_list_column_follows_the_comments_column_and_passes_v1s_filter_first(): void {
 		$seen = array();
 		$v1   = static function ( string $column, ?string $post_type ) use ( &$seen ): string {
 			$seen[] = array( 'v1', $column, $post_type );
-
 			return $column;
 		};
 		$v2   = static function ( string $column, ?string $post_type ) use ( &$seen ): string {
 			$seen[] = array( 'v2', $column, $post_type );
-
 			return 'title';
 		};
 		add_filter( self::V1_PRECEDING_COLUMN, $v1, 10, 2 );
 		add_filter( 'dws_ic/list_table/preceding_column', $v2, 10, 2 );
 
 		try {
-			$columns = ( new AdminScreens() )->add_column(
+			$columns = new AdminScreens()->add_column(
 				array(
 					'cb'       => '',
 					'title'    => 'Title',
@@ -109,8 +100,8 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( array( array( 'v1', 'comments', 'post' ), array( 'v2', 'comments', 'post' ) ), $seen );
 		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'dws_ic/list_table/preceding_column' ) ), $this->deprecated );
 		wp_set_current_user( self::$users['editor'] );
-		self::assertArrayHasKey( 'dws-internal-comments', ( new AdminScreens() )->add_column( array( 'title' => 'Title' ), 'post' ) );
-		self::assertSame( array( 'title' => 'Title' ), ( new AdminScreens() )->add_column( array( 'title' => 'Title' ), 'page' ) );
+		self::assertArrayHasKey( 'dws-internal-comments', new AdminScreens()->add_column( array( 'title' => 'Title' ), 'post' ) );
+		self::assertSame( array( 'title' => 'Title' ), new AdminScreens()->add_column( array( 'title' => 'Title' ), 'page' ) );
 	}
 
 	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
@@ -189,14 +180,14 @@ final class AdminScreensTest extends TestCase {
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
-			$args = ( new AdminScreens() )->filter_list_table_args(
+			$args = new AdminScreens()->filter_list_table_args(
 				array(
 					'post_id' => $this->post,
 					'type'    => DWS_IC_COMMENT_TYPE,
 					'status'  => 'all',
 				)
 			);
-			$rows = ( new \WP_Comment_Query( $args ) )->comments;
+			$rows = new \WP_Comment_Query( $args )->comments;
 			$all  = get_comments( array( 'post_id' => $this->post, 'type' => DWS_IC_COMMENT_TYPE, 'status' => DWS_IC_COMMENT_STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
 		} finally {
 			get_role( 'editor' )?->remove_cap( DWS_IC_CAP_SEE_TABLE );
@@ -208,10 +199,10 @@ final class AdminScreensTest extends TestCase {
 
 	public function test_the_comments_screen_offers_only_the_actions_an_internal_comment_supports(): void {
 		$comment = get_comment( $this->comment( 'Row' ) );
-		$actions = array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
+		$actions = \array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
 
 		self::assertInstanceOf( \WP_Comment::class, $comment );
-		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( ( new AdminScreens() )->filter_row_actions( $actions, $comment ) ) );
+		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( new AdminScreens()->filter_row_actions( $actions, $comment ) ) );
 	}
 
 	public function test_the_edit_screen_of_an_internal_comment_shows_its_revisions_and_its_author_its_privacy(): void {
@@ -232,7 +223,7 @@ final class AdminScreensTest extends TestCase {
 		);
 		$screens = new AdminScreens();
 
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The row registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		$screens->add_revisions_meta_box( get_comment( $comment ) );
 		$box = $wp_meta_boxes['comment']['normal']['default']['dws-internal-comments-revisions'] ?? null;
 		self::assertIsArray( $box );
@@ -266,10 +257,9 @@ final class AdminScreensTest extends TestCase {
 	public function test_the_comment_edit_screen_hides_the_fields_an_internal_comment_keeps(): void {
 		$screens = new AdminScreens();
 		$styles  = static function ( int $comment ) use ( $screens ): string {
-			$GLOBALS['comment'] = get_comment( $comment ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Stands in for the edit screen's comment.
+			$GLOBALS['comment'] = get_comment( $comment );
 			try {
 				$screens->enqueue_comment_screen_style( 'comment.php' );
-
 				return \implode( '', (array) wp_styles()->get_data( 'internal-comments-comment-screen', 'after' ) );
 			} finally {
 				unset( $GLOBALS['comment'] );
@@ -291,14 +281,13 @@ final class AdminScreensTest extends TestCase {
 		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
 		wp_trash_comment( $internal );
 		wp_trash_comment( $public );
-		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 
 		$counts      = static function (): array {
 			wp_set_current_user( self::$users['editor'] );
 			wp_get_current_user()->get_role_caps(); // An earlier row can leave the editor current with capabilities its role has since lost.
 			$editor = (int) wp_count_comments()->trash;
 			wp_set_current_user( self::$users['administrator'] );
-
 			return array( $editor, (int) wp_count_comments()->trash );
 		};
 		$woocommerce = has_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ) );
@@ -335,7 +324,7 @@ final class AdminScreensTest extends TestCase {
 		);
 		wp_trash_comment( (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $product ), get_user_by( 'id', self::$users['administrator'] ) ?: null ) );
 		wp_trash_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
-		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 		\WC_Comments::delete_comments_count_cache();
 		wp_cache_delete( 'comments-0', 'counts' );
 
@@ -362,7 +351,7 @@ final class AdminScreensTest extends TestCase {
 		wp_trash_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
 		$revision = get_option( 'dws_ic_revision' );
 		update_option( 'dws_ic_revision', 1 );
-		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Sets the screen without firing current_screen, which other plugins hook with admin-only code.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 		\WC_Comments::delete_comments_count_cache();
 		wp_cache_delete( 'comments-0', 'counts' );
 
@@ -384,7 +373,7 @@ final class AdminScreensTest extends TestCase {
 	}
 
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
-		( new AdminScreens() )->enqueue_list_assets( 'edit.php' );
+		new AdminScreens()->enqueue_list_assets( 'edit.php' );
 
 		self::assertTrue( wp_script_is( 'internal-comments-quick-view' ) );
 		self::assertTrue( wp_style_is( 'internal-comments-quick-view' ) );
@@ -394,8 +383,7 @@ final class AdminScreensTest extends TestCase {
 
 	protected function cell(): \Dom\HTMLDocument {
 		\ob_start();
-		( new AdminScreens() )->render_cell( 'dws-internal-comments', $this->post );
-
+		new AdminScreens()->render_cell( 'dws-internal-comments', $this->post );
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

@@ -31,6 +31,8 @@ $dws_lowc_header = get_file_data(
 /**
  * The plugin's untranslated name.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lowc_get_plugin_name().
@@ -39,6 +41,8 @@ define( 'DWS_LOWC_NAME', $dws_lowc_header['Name'] );
 
 /**
  * The plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -49,6 +53,8 @@ define( 'DWS_LOWC_VERSION', $dws_lowc_header['Version'] );
 /**
  * The path of the plugin's main file.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use DWS_LOWC_FILE.
@@ -58,6 +64,8 @@ define( 'DWS_LOWC_PATH', DWS_LOWC_FILE );
 /**
  * The oldest PHP version the plugin runs on.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0
@@ -66,6 +74,8 @@ define( 'DWS_LOWC_MIN_PHP', $dws_lowc_header['RequiresPHP'] );
 
 /**
  * The oldest WordPress version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -88,6 +98,8 @@ const DWS_LOWC_V1_COMPONENTS = array( 'actions', 'autocompletion', 'output', 'me
 /**
  * Returns the plugin's name, translated once init has fired.
  *
+ * @api
+ *
  * @since       1.0.0
  * @version     2.0.0
  * @deprecated  2.0.0 Use dws_lowc_get_plugin_name().
@@ -96,12 +108,13 @@ const DWS_LOWC_V1_COMPONENTS = array( 'actions', 'autocompletion', 'output', 'me
  */
 function dws_lowc_name(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lowc_get_plugin_name()' );
-
 	return dws_lowc_get_plugin_name();
 }
 
 /**
  * Returns the plugin's version.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -111,12 +124,13 @@ function dws_lowc_name(): string {
  */
 function dws_lowc_version(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lowc_get_plugin_version()' );
-
 	return dws_lowc_get_plugin_version();
 }
 
 /**
  * Returns the path of the plugin's main file.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -126,12 +140,13 @@ function dws_lowc_version(): string {
  */
 function dws_lowc_path(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LOWC_PATH;
 }
 
 /**
  * Returns the oldest PHP version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -141,12 +156,13 @@ function dws_lowc_path(): string {
  */
 function dws_lowc_min_php(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LOWC_MIN_PHP;
 }
 
 /**
  * Returns the oldest WordPress version the plugin runs on.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -156,12 +172,13 @@ function dws_lowc_min_php(): string {
  */
 function dws_lowc_min_wp(): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return DWS_LOWC_MIN_WP;
 }
 
 /**
  * Returns a hook name as v1 built it for the plugin.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -174,12 +191,13 @@ function dws_lowc_min_wp(): string {
  */
 function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return dws_lowc_join_v1_hook_tag( 'linked_orders_for_woocommerce', $name, $extra );
 }
 
 /**
  * Returns a hook name as v1 built it for one of its components, or null for an id v1 had no component for.
+ *
+ * @api
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -193,7 +211,6 @@ function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_lowc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-
 	return in_array( $component_id, DWS_LOWC_V1_COMPONENTS, true ) ? dws_lowc_join_v1_hook_tag( 'linked_orders_for_woocommerce/' . str_replace( '-', '_', $component_id ), $name, $extra ) : null;
 }
 

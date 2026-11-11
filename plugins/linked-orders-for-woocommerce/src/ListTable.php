@@ -49,7 +49,7 @@ final class ListTable implements ComponentInterface {
 	 */
 	public function add_depth_column( \WP_Screen $screen ): void {
 		$type = $this->can_see() ? self::get_list_type( $screen ) : null;
-		if ( null === $type ) {
+		if ( \is_null( $type ) ) {
 			return;
 		}
 
@@ -96,7 +96,6 @@ final class ListTable implements ComponentInterface {
 		$preceding = apply_filters( 'dws_lowc/list_table/preceding_column', $preceding, $type, $columns );
 		$position  = \array_search( $preceding, \array_keys( $columns ), true );
 		$position  = false === $position ? \count( $columns ) : $position + 1;
-
 		return \array_slice( $columns, 0, $position, true ) + array( 'dws_lo_depth' => _x( 'Depth', 'list table heading', 'linked-orders-for-woocommerce' ) ) + \array_slice( $columns, $position, null, true );
 	}
 
@@ -113,7 +112,7 @@ final class ListTable implements ComponentInterface {
 	 */
 	public function render_depth_cell( string $column, mixed $post_or_order ): void {
 		$node = 'dws_lo_depth' === $column ? dws_lowc_get_order_node( $post_or_order ) : null;
-		if ( null === $node ) {
+		if ( \is_null( $node ) ) {
 			return;
 		}
 
@@ -158,7 +157,7 @@ final class ListTable implements ComponentInterface {
 	 */
 	public function render_filters( string $type ): void {
 		$post_type = $this->can_see() && \in_array( $type, dws_lowc_get_supported_order_types(), true ) ? get_post_type_object( $type ) : null;
-		if ( null === $post_type ) {
+		if ( \is_null( $post_type ) ) {
 			return;
 		}
 
@@ -209,7 +208,7 @@ final class ListTable implements ComponentInterface {
 			$query_vars['meta_query'] = self::add_meta_clauses( $query_vars['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
 		}
 		$tree = self::get_tree_filter( $query_vars['post__in'] ?? null );
-		if ( null !== $tree ) {
+		if ( ! \is_null( $tree ) ) {
 			$query_vars['post__in'] = $tree;
 		}
 
@@ -242,7 +241,7 @@ final class ListTable implements ComponentInterface {
 			$args['meta_query'] = self::add_meta_clauses( $args['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
 		}
 		$tree = self::get_tree_filter( $args['id'] ?? null );
-		if ( null !== $tree ) {
+		if ( ! \is_null( $tree ) ) {
 			$args['id'] = $tree;
 		}
 
@@ -262,7 +261,7 @@ final class ListTable implements ComponentInterface {
 	 */
 	public function add_row_actions( array $actions, \WC_Order $order ): array {
 		$node = $this->can_see() ? dws_lowc_get_order_node( $order ) : null;
-		if ( null === $node ) {
+		if ( \is_null( $node ) ) {
 			return $actions;
 		}
 
@@ -309,7 +308,7 @@ final class ListTable implements ComponentInterface {
 	 * @return  void
 	 */
 	public function enqueue_assets(): void {
-		if ( ! $this->can_see() || null === self::get_list_type( get_current_screen() ) ) {
+		if ( ! $this->can_see() || \is_null( self::get_list_type( get_current_screen() ) ) ) {
 			return;
 		}
 
@@ -350,7 +349,7 @@ final class ListTable implements ComponentInterface {
 	 */
 	protected static function get_list_type( ?\WP_Screen $screen ): ?string {
 		foreach ( dws_lowc_get_supported_order_types() as $type ) {
-			if ( null !== $screen && ( OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( $type ) : "edit-$type" ) === $screen->id ) {
+			if ( ! \is_null( $screen ) && ( OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( $type ) : "edit-$type" ) === $screen->id ) {
 				return $type;
 			}
 		}
@@ -382,7 +381,6 @@ final class ListTable implements ComponentInterface {
 			)
 		);
 		$stored  = \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null;
-
 		return \max( dws_lowc_get_max_depth(), $stored ?? 0 );
 	}
 
@@ -396,7 +394,6 @@ final class ListTable implements ComponentInterface {
 	 */
 	protected static function get_depth_filter(): ?int {
 		$depth = \filter_var( self::get_query_arg( '_dws_lo_depth' ), \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 0 ) ) );
-
 		return false === $depth ? null : $depth;
 	}
 
@@ -410,7 +407,7 @@ final class ListTable implements ComponentInterface {
 	 */
 	protected static function get_depth_clauses(): array {
 		$depth = self::get_depth_filter();
-		if ( null === $depth ) {
+		if ( \is_null( $depth ) ) {
 			return array();
 		}
 
@@ -418,7 +415,6 @@ final class ListTable implements ComponentInterface {
 			'key'   => '_dws_lo_depth',
 			'value' => (string) $depth,
 		);
-
 		return array(
 			0 === $depth ? array(
 				'relation' => 'OR',
@@ -463,7 +459,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$root  = dws_lowc_get_root_order( $pivot );
-		$tree  = null === $root ? array() : dws_lowc_get_orders_tree( $root->get_order() ) ?? array();
+		$tree  = \is_null( $root ) ? array() : dws_lowc_get_orders_tree( $root->get_order() ) ?? array();
 		$found = \is_array( $found ) ? \filter_var( $found, \FILTER_VALIDATE_INT, \FILTER_REQUIRE_ARRAY | \FILTER_NULL_ON_FAILURE ) : null;
 		if ( \is_array( $found ) && array() !== $found ) {
 			$tree = \array_intersect( $tree, $found );

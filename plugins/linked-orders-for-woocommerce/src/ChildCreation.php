@@ -66,7 +66,7 @@ final class ChildCreation implements ComponentInterface {
 			)
 		) ?? 0;
 		$node      = dws_lowc_get_order_node( $parent_id );
-		if ( null === $node ) {
+		if ( \is_null( $node ) ) {
 			/* translators: %d: The parent order's id. */
 			$this->notices->add( new Notice( 'linked-child-missing-parent', esc_html( \sprintf( __( 'There is no order %d to create a linked child for.', 'linked-orders-for-woocommerce' ), $parent_id ) ) ) );
 			wp_safe_redirect( wp_get_referer() ?: admin_url( 'index.php' ) );

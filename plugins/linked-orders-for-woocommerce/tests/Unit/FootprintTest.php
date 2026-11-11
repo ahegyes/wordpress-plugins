@@ -17,7 +17,7 @@ final class FootprintTest extends TestCase {
 	}
 
 	public function test_every_kind_is_one_the_uninstall_engine_removes(): void {
-		$doc = (string) ( new \ReflectionClass( Uninstaller::class ) )->getDocComment();
+		$doc = (string) new \ReflectionClass( Uninstaller::class )->getDocComment();
 		self::assertSame( 1, \preg_match( '/@phpstan-type Footprint (.+)$/m', $doc, $type ) );
 		\preg_match_all( '/(\w+)\?:/', $type[1], $kinds );
 

@@ -3,13 +3,16 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\MetaBox;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( MetaBox::class )]
 final class MetaBoxTest extends TestCase {
+	use RecordsDeprecationsTrait;
+
 	protected static array $users = array();
 
 	protected int $post;
@@ -17,8 +20,6 @@ final class MetaBoxTest extends TestCase {
 	protected int $page;
 
 	protected mixed $stored;
-
-	protected array $deprecated = array();
 
 	// WordPress reports a deprecated hook only when something listens on it.
 	protected const array V1_HOOKS = array(
@@ -75,36 +76,19 @@ final class MetaBoxTest extends TestCase {
 				)
 			);
 		}
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
-		foreach ( self::V1_HOOKS as $hook ) {
-			add_filter( $hook, array( $this, 'listen' ) );
-		}
+		$this->listen_on( ...self::V1_HOOKS );
 	}
 
 	#[After]
 	protected function delete_posts(): void {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Each row registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		wp_delete_post( $this->post, true );
 		wp_delete_post( $this->page, true );
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
 		wp_set_current_user( 0 );
 		wp_dequeue_script( 'internal-comments-meta-box' );
 		wp_dequeue_style( 'internal-comments-meta-box' );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-		foreach ( self::V1_HOOKS as $hook ) {
-			remove_filter( $hook, array( $this, 'listen' ) );
-		}
-	}
-
-	public function listen( mixed $value = null ): mixed {
-		return $value;
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_meta_box_shows_on_a_selected_post_type_to_users_with_the_capability(): void {
@@ -146,7 +130,7 @@ final class MetaBoxTest extends TestCase {
 		$comment = $this->comment( 'Hooked' );
 		$classes = static fn ( array $classes ): array => \array_merge( $classes, array( 'from-v2' ) );
 		$action  = static function ( \DWS_Internal_Comment $comment ): void {
-			echo '<span class="from-action">' . \esc_html( (string) $comment->comment_ID ) . '</span>';
+			echo '<span class="from-action">' . esc_html( (string) $comment->comment_ID ) . '</span>';
 		};
 		add_filter( 'dws_ic/meta_box/comment_classes', $classes );
 		add_action( 'dws_ic/meta_box/before_comment_actions', $action );
@@ -177,11 +161,11 @@ final class MetaBoxTest extends TestCase {
 	}
 
 	public function test_the_edit_screen_of_a_selected_post_loads_the_meta_boxs_assets(): void {
-		$GLOBALS['post'] = get_post( $this->post ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The edit screen sets its post.
+		$GLOBALS['post'] = get_post( $this->post );
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
-			( new MetaBox() )->enqueue_assets( 'post.php' );
+			new MetaBox()->enqueue_assets( 'post.php' );
 		} finally {
 			unset( $GLOBALS['post'] );
 		}
@@ -192,11 +176,10 @@ final class MetaBoxTest extends TestCase {
 
 	protected function registers( string $role, int $post ): bool {
 		global $wp_meta_boxes;
-		$wp_meta_boxes = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Each check registers the meta boxes anew.
+		$wp_meta_boxes = array();
 		wp_set_current_user( self::$users[ $role ] );
 		$type = (string) get_post_type( $post );
 		do_action( 'add_meta_boxes', $type, get_post( $post ) );
-
 		return isset( $wp_meta_boxes[ $type ]['normal']['core']['dws-internal-comments'] );
 	}
 
@@ -207,7 +190,6 @@ final class MetaBoxTest extends TestCase {
 		$box = $wp_meta_boxes['post']['normal']['core']['dws-internal-comments'];
 		\ob_start();
 		\call_user_func( $box['callback'], get_post( $this->post ), $box );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

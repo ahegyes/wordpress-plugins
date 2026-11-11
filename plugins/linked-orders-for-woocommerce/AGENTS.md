@@ -41,6 +41,7 @@ changelog/                   the pending entries changelog:write turns into CHAN
 composer packages-install    # dependencies, then php-scoper into vendor-prefixed/
 composer test:unit
 composer test:integration    # starts .wp-env.tests.json, then runs test:integration:run, which builds the scripts first
+composer test:integration:multisite  # starts .wp-env.multisite.json, then runs the Integration suite's multisite group, which the default run skips
 composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
 composer changelog:add       # stages an entry in changelog/, which the release step in the monorepo's CONTRIBUTING.md writes
 npm run setup                # both installs, the scripts' build, then the development site
@@ -55,8 +56,9 @@ Run wp-scripts only through the npm scripts or `node_modules/.bin/wp-scripts`: `
 
 - `.wp-env.json`: development, as `local`, on port 8822, behind `npm run setup` and `wp-env:*`. The framework rethrows boot and migration failures there.
 - `.wp-env.tests.json`: Integration and end to end, as `production`, on port 8823, behind `wp-env:tests:*`, `composer test:integration` and `npm run test:e2e`. The end-to-end suite deactivates and reactivates WooCommerce there.
+- `.wp-env.multisite.json`: a network with WooCommerce and the plugin network-activated, as `production`, on port 8828, behind `wp-env:multisite:*` and `composer test:integration:multisite`, for the Integration suite's `multisite` group.
 
-Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI runs Integration and end to end on every WordPress branch from the entry's `Requires at least` up, and nightly on WordPress trunk.
+Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI runs Integration and end to end on every WordPress branch from the entry's `Requires at least` up, and nightly on WordPress trunk.
 
 ## Conventions
 
@@ -66,10 +68,14 @@ Both run PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI run
 4. **Add-ons.** An add-on extends a base plugin only through the base plugin's documented hooks. It reads a template-built base plugin's slug, name and version only through that plugin's `{prefix}_get_plugin_*()` getters, from `plugins_loaded` on, since the add-on may load first, and behind `function_exists()`, since a base plugin below its floors or with a partial build may stay active without defining them.
 5. **Request reads.** An integer or boolean is read as `filter_var( wp_unslash( $_POST['key'] ?? '' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? $default` (`FILTER_VALIDATE_BOOL` for a boolean, where an absent key reads false, as an unchecked checkbox posts nothing), and a string through an `is_string()` guard and the field's sanitizer; never `filter_input()`, the `default` filter option or a cast on request input.
 6. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-lowc_` keys and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
-7. **Order storage.** Order code goes through WC CRUD, `get_edit_order_url()` and WooCommerce's screen ids and list hooks, never the posts table, and every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorage`: posts and the order tables, each with the sync on and off. Rows that check only the order of hooks, or a stand-in plugin, use one.
+7. **Order storage.** Order code goes through WC CRUD, `get_edit_order_url()` and WooCommerce's screen ids and list hooks, never the posts table, and every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait`: posts and the order tables, each with the sync on and off. Rows that check only the order of hooks, or a stand-in plugin, use one.
 8. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name, and `DeprecatedHooksTest` names the pair.
 9. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_lowc_is_relaxed()` (the template's recipes). The entry loads them before the floor check, so they parse on PHP 7.4 and call only WordPress APIs present at the oldest WordPress the bootstrap package runs on, or guard them, which `phpstan.safeguards.neon` checks.
 10. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails.
+
+## Contract
+
+The plugin's contract is the elements tagged `@api`, the hooks it fires, and its option, meta and capability names and REST routes; breaking it ships as the next major. Every other function, constant and class, `src/` included, is internal and changes in any release.
 
 ## Style
 

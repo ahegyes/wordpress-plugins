@@ -4,6 +4,10 @@
 
 Report it privately through [GitHub's security advisory form](https://github.com/ahegyes/wordpress-plugins/security/advisories/new), never in a public issue. The first response comes within 7 days.
 
+## Supported versions
+
+For each plugin, only the latest 2.x release receives security fixes. 1.x receives none.
+
 ## Scope
 
 In scope: every plugin under `plugins/`, its prefixing configuration and its workflows, and the monorepo's own workflows.

@@ -105,14 +105,11 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 */
 	public static function is_available(): bool {
 		$version = \defined( 'GROUPS_CORE_VERSION' ) ? \constant( 'GROUPS_CORE_VERSION' ) : null;
-
 		return \is_string( $version ) && \class_exists( \Groups_User::class ) && \version_compare( $version, '2.11.0', '>=' );
 	}
 
 	/**
 	 * Returns whether a group of the user, or a group above one, unlocks the payment method.
-	 *
-	 * @internal
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -128,7 +125,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		}
 
 		$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
-		foreach ( (array) ( new \Groups_User( $user_id ) )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
+		foreach ( (array) new \Groups_User( $user_id )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
 			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
 				return true;
 			}
@@ -175,7 +172,6 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		}
 
 		$value = dws_lpmwc_get_groups_unlocked_payment_method_ids()[ $group_id ] ?? array();
-
 		return $output . '<div class="field"><p>' . esc_html( $field['title'] ) . '</p>' . Forms::render_control( $field, $value, self::ENTRY . '[' . self::FIELD . ']', self::FIELD ) . '</div>';
 	}
 

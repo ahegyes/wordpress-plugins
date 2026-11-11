@@ -3,21 +3,22 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( UserProfileStrategy::class )]
 final class UserProfileStrategyTest extends TestCase {
+	use RestoresOptionsTrait;
+
 	protected const string FORM = 'dws_lpmwc_user_profile';
 
-	protected const array KEYS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
 
 	protected static array $users = array();
-
-	protected array $stored = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -40,20 +41,14 @@ final class UserProfileStrategyTest extends TestCase {
 
 	// The form evaluates its definition and saves an object once per request, so every row edits a customer of its own.
 	#[Before]
-	protected function store_rows(): void {
+	protected function create_the_customer(): void {
 		self::$users['customer'] = self::create_user( 'customer' );
-		foreach ( self::KEYS as $key ) {
-			$this->stored[ $key ] = get_option( $key );
-		}
 		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
 		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $key => $value ) {
-			false === $value ? delete_option( $key ) : update_option( $key, $value );
-		}
+	protected function clean_up(): void {
 		wp_delete_user( self::$users['customer'] );
 		foreach ( self::$users as $user ) {
 			delete_user_meta( $user, self::key() );
@@ -253,7 +248,6 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected static function create_user( string $role ): int {
 		$login = \uniqid( "lpm-profiles-$role-" );
-
 		return (int) wp_insert_user(
 			array(
 				'user_login' => $login,
@@ -266,7 +260,6 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected static function key(): string {
 		global $wpdb;
-
 		return $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS;
 	}
 
@@ -277,7 +270,6 @@ final class UserProfileStrategyTest extends TestCase {
 	protected static function render( int $user_id ): \Dom\HTMLDocument {
 		\ob_start();
 		do_action( 'edit_user_profile', get_userdata( $user_id ) );
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 
@@ -302,7 +294,7 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	protected static function queried_users( ?array $args = null ): array {
-		return \array_map( 'intval', ( new \WP_User_Query( $args ?? self::query_args() ) )->get_results() );
+		return \array_map( 'intval', new \WP_User_Query( $args ?? self::query_args() )->get_results() );
 	}
 
 	protected static function query_args(): array {

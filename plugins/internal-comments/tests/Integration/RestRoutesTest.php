@@ -2,13 +2,17 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\RestRoutes;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( RestRoutes::class )]
 final class RestRoutesTest extends TestCase {
+	use RecordsDeprecationsTrait;
+
 	protected static array $users = array();
 
 	protected int $post;
@@ -69,11 +73,7 @@ final class RestRoutesTest extends TestCase {
 				)
 			);
 		}
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
-		foreach ( self::V1_HOOKS as $hook ) {
-			add_filter( $hook, array( $this, 'listen' ) );
-		}
+		$this->listen_on( ...self::V1_HOOKS );
 	}
 
 	#[After]
@@ -82,19 +82,10 @@ final class RestRoutesTest extends TestCase {
 		wp_delete_post( $this->page, true );
 		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
 		wp_set_current_user( 0 );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-		foreach ( self::V1_HOOKS as $hook ) {
-			remove_filter( $hook, array( $this, 'listen' ) );
-		}
 	}
 
-	public function listen( mixed $value = null ): mixed {
-		return $value;
-	}
-
-	public function record_deprecated_hook( string $hook ): void {
-		$this->seen[] = "deprecated:$hook";
+	public function record_deprecation( string $name, string $replacement ): void {
+		$this->seen[] = "deprecated:$name";
 	}
 
 	public function test_posting_a_comment_stores_its_text_and_answers_with_the_list(): void {

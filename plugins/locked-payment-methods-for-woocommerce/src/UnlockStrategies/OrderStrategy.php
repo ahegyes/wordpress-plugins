@@ -109,8 +109,6 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	/**
 	 * Returns whether the order's grants list holds the payment method.
 	 *
-	 * @internal
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *

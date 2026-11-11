@@ -4,21 +4,22 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
 use DeepWebSolutions\InternalComments\Settings;
+use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\InternalComments\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( Settings::class )]
 final class SettingsTest extends TestCase {
-	protected const array ROWS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
+	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
 
 	protected static OptionsPage $page;
-
-	protected array $stored = array();
-
-	protected array $deprecated = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -29,7 +30,7 @@ final class SettingsTest extends TestCase {
 
 	#[\Override]
 	public static function tearDownAfterClass(): void {
-		foreach ( self::ROWS as $row ) {
+		foreach ( self::OPTIONS as $row ) {
 			remove_filter( "pre_update_option_$row", array( self::$page, 'sanitize_submission' ) );
 			remove_filter( "option_page_capability_$row", array( self::$page, 'get_capability' ) );
 			unregister_setting( $row, $row );
@@ -44,31 +45,17 @@ final class SettingsTest extends TestCase {
 	}
 
 	#[Before]
-	protected function store_rows(): void {
-		foreach ( self::ROWS as $row ) {
-			$this->stored[ $row ] = get_option( $row );
-		}
+	protected function forget_the_settings_errors(): void {
 		$GLOBALS['wp_settings_errors'] = array();
-		add_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		add_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ), 10, 2 );
 	}
 
 	#[After]
-	protected function restore_rows(): void {
-		foreach ( $this->stored as $row => $value ) {
-			false === $value ? delete_option( $row ) : update_option( $row, $value );
-		}
+	protected function forget_the_tab(): void {
 		unset( $_GET['tab'] );
-		remove_filter( 'deprecated_hook_trigger_error', '__return_false' );
-		remove_action( 'deprecated_hook_run', array( $this, 'record_deprecated_hook' ) );
-	}
-
-	public function record_deprecated_hook( string $hook, string $replacement ): void {
-		$this->deprecated[] = array( $hook, $replacement );
 	}
 
 	public function test_the_page_keeps_v1s_slug_parent_capability_and_tabs(): void {
-		$page = ( new Settings() )->get_options_page( Settings::PAGE );
+		$page = new Settings()->get_options_page( Settings::PAGE );
 
 		self::assertSame( 'dws-internal-comments', Settings::PAGE );
 		self::assertSame( 'options-general.php', $page['parent'] );
@@ -151,7 +138,6 @@ final class SettingsTest extends TestCase {
 		$v2_hook  = "dws_ic/settings/{$group}_fields";
 		$v1_extra = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v1', \array_keys( $fields ) );
-
 			return $fields + array(
 				'extra' => array(
 					'type'  => 'text',
@@ -161,14 +147,13 @@ final class SettingsTest extends TestCase {
 		};
 		$v2_spy   = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v2', \array_column( $fields, 'id' ) );
-
 			return $fields;
 		};
 		add_filter( $v1_hook, $v1_extra );
 		add_filter( $v2_hook, $v2_spy );
 
 		try {
-			$tabs = ( new Settings() )->get_options_page( Settings::PAGE )['tabs'];
+			$tabs = new Settings()->get_options_page( Settings::PAGE )['tabs'];
 		} finally {
 			remove_filter( $v1_hook, $v1_extra );
 			remove_filter( $v2_hook, $v2_spy );
@@ -186,7 +171,7 @@ final class SettingsTest extends TestCase {
 		$links = apply_filters( "plugin_action_links_{$basename}", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
 		$meta  = apply_filters( 'plugin_row_meta', array(), $basename, array(), 'all' );
 
-		self::assertStringContainsString( \esc_url( admin_url( 'options-general.php?page=dws-internal-comments' ) ), (string) \reset( $links ) );
+		self::assertStringContainsString( esc_url( admin_url( 'options-general.php?page=dws-internal-comments' ) ), (string) \reset( $links ) );
 		self::assertStringContainsString( 'https://wordpress.org/support/plugin/internal-comments/', \implode( '', $meta ) );
 		self::assertSame( array(), apply_filters( 'plugin_row_meta', array(), 'another-plugin/another-plugin.php', array(), 'all' ) );
 	}
@@ -197,7 +182,6 @@ final class SettingsTest extends TestCase {
 		$_GET['tab']        = $tab;
 		\ob_start();
 		self::$page->render_page();
-
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

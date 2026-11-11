@@ -1,6 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the plugin's accessor, boots it on plugins_loaded, unschedules its jobs on deactivation, declares its WooCommerce feature compatibility and loads the files in includes/.
+ * Hooks the plugin into WordPress and loads the files in includes/.
+ *
+ * It also fires v1's boot hooks, dws_lpmwc_initialized and dws_lpmwc_initialization_failure, at the earliest priority of the v2 hooks that replace them.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -28,8 +30,8 @@ foreach ( $dws_lpmwc_includes as $dws_lpmwc_include ) {
 // The hooks come last, so an include that throws leaves nothing of the plugin hooked.
 add_action( 'plugins_loaded', 'dws_lpmwc_boot', 15 );
 add_action( 'before_woocommerce_init', 'dws_lpmwc_declare_compatibility' );
-add_action( 'dws_lpmwc/boot/succeeded', 'dws_lpmwc_fire_v1_initialized' );
-add_action( 'dws_lpmwc/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure' );
+add_action( 'dws_lpmwc/boot/succeeded', 'dws_lpmwc_fire_v1_initialized', PHP_INT_MIN );
+add_action( 'dws_lpmwc/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure', PHP_INT_MIN );
 register_deactivation_hook( DWS_LPMWC_FILE, 'dws_lpmwc_deactivate' );
 
 /**
@@ -59,10 +61,13 @@ function dws_lpmwc_plugin(): Plugin {
  */
 function dws_lpmwc_boot(): void {
 	try {
-		dws_lpmwc_plugin()->boot();
+		$plugin = dws_lpmwc_plugin();
 	} catch ( Throwable $error ) {
 		dws_lpmwc_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->boot(); // PluginBoot reports a failed composition itself, and a hook listener's throw is not a build error.
 }
 
 /**
@@ -75,14 +80,19 @@ function dws_lpmwc_boot(): void {
  */
 function dws_lpmwc_deactivate(): void {
 	try {
-		dws_lpmwc_plugin()->deactivate();
+		$plugin = dws_lpmwc_plugin();
 	} catch ( Throwable $error ) {
 		dws_lpmwc_handle_build_error( $error );
+		return;
 	}
+
+	$plugin->deactivate();
 }
 
 /**
- * Declares that the plugin works with WooCommerce's order tables, which its tests cover on both order storages.
+ * Declares that the plugin works with WooCommerce's order tables.
+ *
+ * Each WooCommerce feature flag is declared from evidence, here the tests that cover both order storages.
  *
  * @since   2.0.0
  * @version 2.0.0

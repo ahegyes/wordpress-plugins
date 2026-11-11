@@ -2,11 +2,12 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Permissions;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass( Permissions::class )]
 final class PermissionsTest extends TestCase {
 	protected static array $users = array();
 
@@ -168,7 +169,6 @@ final class PermissionsTest extends TestCase {
 			)
 		);
 		$this->posts[] = $post;
-
 		return $post;
 	}
 
@@ -261,7 +261,7 @@ final class PermissionsTest extends TestCase {
 		$post   = $this->post( 'administrator' );
 		$stop   = static function (): callable {
 			return static function ( mixed $message ): void {
-				throw new \RuntimeException( 'Refused: ' . \print_r( $message, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Names the refusal.
+				throw new \RuntimeException( 'Refused: ' . \print_r( $message, true ) );
 			};
 		};
 		$refuse = function ( string $type ) use ( $post ): bool {
@@ -296,7 +296,7 @@ final class PermissionsTest extends TestCase {
 			$with = $refuse( DWS_IC_COMMENT_TYPE );
 		} finally {
 			get_role( 'editor' )?->add_cap( DWS_IC_CAP_INSERT );
-			$GLOBALS['wp_filter']['wp_ajax_replyto-comment'] = $hooked; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Puts WooCommerce's handler back.
+			$GLOBALS['wp_filter']['wp_ajax_replyto-comment'] = $hooked;
 			remove_filter( 'wp_doing_ajax', '__return_true' );
 			remove_filter( 'wp_die_ajax_handler', $stop );
 		}

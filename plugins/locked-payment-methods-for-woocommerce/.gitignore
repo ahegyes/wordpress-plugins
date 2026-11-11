@@ -1,6 +1,14 @@
 vendor-prefixed
 tests/.cache
-.wp-env.override.json
+.wp-env*.override.json
+
+# Secret material is never tracked, so these match at any depth as a backstop against an accidental git add.
+.env*
+*.pem
+*.key
+id_rsa*
+.npmrc
+auth.json
 
 # Created by https://www.toptal.com/developers/gitignore/api/node,linux,macos,phpunit,windows,composer,phpstorm+all,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=node,linux,macos,phpunit,windows,composer,phpstorm+all,visualstudiocode

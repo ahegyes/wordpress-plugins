@@ -16,7 +16,7 @@ use DeepWebSolutions\InternalComments\Scoped\Psr\Log\LoggerInterface as PsrLogge
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Composes the plugin from its logger, scheduler, migrations and components, inside the framework's boot boundary.
+ * Composes the plugin inside the framework's boot boundary.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -72,7 +72,7 @@ final class Plugin {
 	 *
 	 * @var     PluginBoot
 	 */
-	public readonly PluginBoot $boot;
+	public readonly PluginBoot $boundary;
 
 	/**
 	 * The scheduler, which the components and the deactivation callback share.
@@ -127,7 +127,7 @@ final class Plugin {
 	public function __construct() {
 		$this->logger    = new ErrorLogLogger( self::SLUG );
 		$this->scheduler = new Scheduler( self::PREFIX );
-		$this->boot      = new PluginBoot( DWS_IC_FILE, self::PREFIX, $this->logger );
+		$this->boundary  = new PluginBoot( DWS_IC_FILE, self::PREFIX, $this->logger );
 	}
 
 	// endregion
@@ -143,7 +143,7 @@ final class Plugin {
 	 * @return  void
 	 */
 	public function boot(): void {
-		$this->boot->run( $this->compose( ... ) );
+		$this->boundary->run( $this->compose( ... ) );
 	}
 
 	/**
@@ -191,7 +191,6 @@ final class Plugin {
 
 		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );
-
 		return true;
 	}
 
