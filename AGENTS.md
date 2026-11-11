@@ -49,4 +49,4 @@ Each plugin's `AGENTS.md` states its code style, the template's. Markdown keeps 
 ## Limitations
 
 - CI runs twice per change: the root's lanes on the pull request, and the mirror's own after the split.
-- Each plugin's Integration suite runs twice: in the plugin's own environments and in the shared one, which leaves out the rows of a plugin the shared environment does not install, such as Locked Payment Methods' Groups and WooCommerce Memberships groups.
+- Each plugin's Integration suite runs twice: in the plugin's own environments and in the shared one, which leaves out the rows of a plugin the shared environment does not install, such as Locked Payment Methods' Groups group.

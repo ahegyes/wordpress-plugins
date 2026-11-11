@@ -48,7 +48,7 @@
 			"npm --prefix=. run plugins:build",
 			"node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/linked-orders-for-woocommerce vendor/bin/phpunit --testsuite=Integration",
 			"node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/internal-comments vendor/bin/phpunit --testsuite=Integration",
-			"node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/locked-payment-methods-for-woocommerce vendor/bin/phpunit --testsuite=Integration --exclude-group groups --exclude-group wc-memberships"
+			"node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/locked-payment-methods-for-woocommerce vendor/bin/phpunit --testsuite=Integration --exclude-group groups"
 		],
 		"test:integration:ci": [
 			"Composer\\Config::disableProcessTimeout",
