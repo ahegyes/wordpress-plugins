@@ -2,6 +2,8 @@
 /**
  * Hooks the plugin into WordPress and loads the files in includes/.
  *
+ * It also fires v1's boot hooks, dws_lpmwc_initialized and dws_lpmwc_initialization_failure, at the earliest priority of the v2 hooks that replace them.
+ *
  * @since   2.0.0
  * @version 2.0.0
  *
