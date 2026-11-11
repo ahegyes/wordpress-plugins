@@ -38,6 +38,7 @@ changelog/                   the pending entries changelog:write turns into CHAN
 composer packages-install    # dependencies, then php-scoper into vendor-prefixed/
 composer test:unit
 composer test:integration    # starts .wp-env.tests.json, then runs test:integration:run
+composer test:integration:multisite  # starts .wp-env.multisite.json, then runs the Integration suite's multisite group, which the default run skips
 composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
 composer changelog:add       # stages an entry in changelog/, which the release step in the monorepo's CONTRIBUTING.md writes
 npm run setup                # both installs, then the development site
@@ -51,8 +52,9 @@ Run wp-scripts only through the npm scripts or `node_modules/.bin/wp-scripts`: `
 
 - `.wp-env.json`: development, as `local`, on port 8826, behind `npm run setup` and `wp-env:*`. The framework rethrows boot and migration failures there.
 - `.wp-env.tests.json`: Integration and end to end, as `production`, on port 8827, behind `wp-env:tests:*`, `composer test:integration` and `npm run test:e2e`. The end-to-end suite deactivates and reactivates WooCommerce there.
+- `.wp-env.multisite.json`: a network with WooCommerce and the plugin network-activated, as `production`, on port 8830, behind `wp-env:multisite:*` and `composer test:integration:multisite`, for the Integration suite's `multisite` group.
 
-Both run PHP 8.5 with WooCommerce and Groups from `vendor/` and WooCommerce's order tables on; CI runs Integration and end to end on every WordPress branch from the entry's `Requires at least` up, and nightly on WordPress trunk. The monorepo's shared environment runs the Integration suite beside Linked Orders and Internal Comments, without the `groups` and `wc-memberships` groups.
+Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on, and the development and tests sites with Groups too; CI runs Integration and end to end on every WordPress branch from the entry's `Requires at least` up, and nightly on WordPress trunk. The monorepo's shared environment runs the Integration suite beside Linked Orders and Internal Comments, without the `groups` and `multisite` groups, and its multisite environment runs the `multisite` group.
 
 ## Conventions
 
@@ -82,5 +84,5 @@ Both run PHP 8.5 with WooCommerce and Groups from `vendor/` and WooCommerce's or
 
 - Integration and end to end share the tests site, so a row that changes shared data in a separate process flushes the parent's object cache.
 - The Memberships rows run against a double of its one function and its three hooks, since Memberships is a paid plugin absent from WP Packages; they are unverified against a licensed copy.
-- No environment runs a multisite network, so the migration that copies v1's user grants into every site's list runs only on a single site in the suites.
+- The `multisite` group seeds no v1 user grants, so their copy into every site's list is exercised only on a single site.
 - The bundled GitHub updater ships inert, since the entry file has no `Update URI`, and wordpress.org's reviewers may ask to remove it.

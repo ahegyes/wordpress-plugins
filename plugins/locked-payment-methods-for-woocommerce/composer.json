@@ -123,7 +123,19 @@
 			"Composer\\Config::disableProcessTimeout",
 			"@putenv CI=1",
 			"npm --prefix=. run build",
-			"node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/locked-payment-methods-for-woocommerce vendor/bin/phpunit --testsuite=Integration"
+			"node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/plugins/locked-payment-methods-for-woocommerce vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite"
+		],
+		"test:integration:multisite": [
+			"Composer\\Config::disableProcessTimeout",
+			"@putenv CI=1",
+			"npm --prefix=. run wp-env:multisite:start",
+			"@test:integration:multisite:run"
+		],
+		"test:integration:multisite:run": [
+			"Composer\\Config::disableProcessTimeout",
+			"@putenv CI=1",
+			"npm --prefix=. run build",
+			"node_modules/.bin/wp-env --config .wp-env.multisite.json run cli --env-cwd=wp-content/plugins/locked-payment-methods-for-woocommerce vendor/bin/phpunit --testsuite=Integration --group=multisite"
 		],
 
 		"quality-check": [

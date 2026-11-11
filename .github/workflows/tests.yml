@@ -76,6 +76,17 @@ jobs:
       composer-script: 'test:integration:ci'
       wp-env-config-file: '.wp-env.tests.json'
 
+  multisite-integration:
+    name: Integration (multisite)
+    needs: plugins
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    with:
+      project-path: '.'
+      php-version: '8.5'
+      wp-version: ${{ needs.plugins.outputs.newest-wordpress }}
+      composer-script: 'test:integration:multisite:ci'
+      wp-env-config-file: '.wp-env.multisite.json'
+
   shared-e2e:
     name: E2E (shared environment)
     needs: plugins
