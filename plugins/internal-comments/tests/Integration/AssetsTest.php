@@ -34,12 +34,12 @@ final class AssetsTest extends TestCase {
 	}
 
 	public function test_a_stylesheet_registers_with_its_generated_version_and_its_right_to_left_variant(): void {
-		self::assertTrue( dws_ic_register_style( self::HANDLE, 'tests/Fixtures/built.css', 'print' ) );
+		self::assertTrue( dws_ic_register_style( self::HANDLE, 'tests/Fixtures/built.css' ) );
 
 		$style = wp_styles()->registered[ self::HANDLE ];
 		self::assertSame( plugins_url( 'tests/Fixtures/built.css', DWS_IC_FILE ), $style->src );
 		self::assertSame( 'fixture', $style->ver );
-		self::assertSame( 'print', $style->args );
+		self::assertSame( 'all', $style->args );
 		self::assertSame( 'replace', $style->extra['rtl'] ?? null );
 	}
 }
