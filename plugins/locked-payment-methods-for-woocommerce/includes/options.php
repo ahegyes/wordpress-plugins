@@ -8,8 +8,6 @@
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
-use DeepWebSolutions\LockedPaymentMethods\Plugin;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -20,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_DELETE_DATA = Plugin::PREFIX . '_delete_data';
+const DWS_LPMWC_OPTION_DELETE_DATA = 'dws_lpmwc_delete_data';
 
 /**
  * The option that holds the ids of the payment methods locked for every customer whom no unlock strategy unlocks.
@@ -30,7 +28,7 @@ const DWS_LPMWC_OPTION_DELETE_DATA = Plugin::PREFIX . '_delete_data';
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_LOCKED_METHODS = Plugin::PREFIX . '_locked_payment_methods';
+const DWS_LPMWC_OPTION_LOCKED_METHODS = 'dws_lpmwc_locked_payment_methods';
 
 /**
  * The option that holds 'yes' where users with the full-access roles may use every locked payment method.
@@ -40,7 +38,7 @@ const DWS_LPMWC_OPTION_LOCKED_METHODS = Plugin::PREFIX . '_locked_payment_method
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES = Plugin::PREFIX . '_unlock_via_user_roles';
+const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES = 'dws_lpmwc_unlock_via_user_roles';
 
 /**
  * The option that holds the roles whose users may use every locked payment method while that strategy is on.
@@ -50,7 +48,7 @@ const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES = Plugin::PREFIX . '_unlock_via_use
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_FULL_ACCESS_ROLES = Plugin::PREFIX . '_full_access_user_roles';
+const DWS_LPMWC_OPTION_FULL_ACCESS_ROLES = 'dws_lpmwc_full_access_user_roles';
 
 /**
  * The option that holds 'yes' where a user's profile can unlock locked payment methods for that user.
@@ -60,7 +58,7 @@ const DWS_LPMWC_OPTION_FULL_ACCESS_ROLES = Plugin::PREFIX . '_full_access_user_r
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES = Plugin::PREFIX . '_unlock_via_user_profiles';
+const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES = 'dws_lpmwc_unlock_via_user_profiles';
 
 /**
  * The option that holds 'yes' where an order can unlock locked payment methods for paying that order.
@@ -70,7 +68,7 @@ const DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES = Plugin::PREFIX . '_unlock_via_
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS = Plugin::PREFIX . '_unlock_via_orders';
+const DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS = 'dws_lpmwc_unlock_via_orders';
 
 /**
  * The option that holds 'yes' where a Groups group can unlock locked payment methods for its members.
@@ -80,7 +78,7 @@ const DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS = Plugin::PREFIX . '_unlock_via_orders'
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS = Plugin::PREFIX . '_unlock_via_groups';
+const DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS = 'dws_lpmwc_unlock_via_groups';
 
 /**
  * The option that holds 'yes' where a WooCommerce Memberships plan can unlock locked payment methods for its active members.
@@ -90,7 +88,7 @@ const DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS = Plugin::PREFIX . '_unlock_via_groups'
  *
  * @var     string
  */
-const DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS = Plugin::PREFIX . '_unlock_via_wc_memberships';
+const DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS = 'dws_lpmwc_unlock_via_wc_memberships';
 
 /**
  * The value each option reads as while nothing valid is stored.

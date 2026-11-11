@@ -40,12 +40,12 @@ final class PartialDeployTest extends TestCase {
 	}
 
 	public function test_the_peer_getters_a_partial_deploy_defines_still_answer(): void {
-		$root = \dirname( DWS_LPMWC_FILE ) . '/src/Plugin.php'; // options.php reads it at include time, after metadata.php has loaded.
-		\rename( $root, "$root.hidden" );
+		$include = \dirname( DWS_LPMWC_FILE ) . '/includes/zz-throws.php'; // It loads after metadata.php.
+		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
 			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lpmwc_boot" ), dws_lpmwc_get_plugin_slug(), dws_lpmwc_get_plugin_name(), dws_lpmwc_get_plugin_version() ) );' );
 		} finally {
-			\rename( "$root.hidden", $root );
+			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
