@@ -7,6 +7,7 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\StoresLinksTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -17,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 final class LinkingTest extends TestCase {
 	use OrderStorageTrait;
 	use RunsRequestsTrait;
+	use StoresLinksTrait;
 
 	protected int $user = 0;
 
@@ -531,14 +533,6 @@ final class LinkingTest extends TestCase {
 		remove_filter( $hook, $this->storage_filters[ $hook ] );
 		$this->storage_filters[ $hook ] = static fn (): string => $caching ? 'yes' : 'no';
 		add_filter( $hook, $this->storage_filters[ $hook ] );
-	}
-
-	// Stands in for links v1 stored without the checks a link makes now.
-	protected static function store_links( \WC_Order $order, int $depth, int $parent_id, array $child_ids ): void {
-		$order->update_meta_data( '_dws_lo_depth', (string) $depth );
-		$order->update_meta_data( '_dws_lo_parent', 0 === $parent_id ? '' : (string) $parent_id );
-		$order->update_meta_data( '_dws_lo_children', $child_ids );
-		$order->save();
 	}
 
 	protected static function fail_saving( int $order_id ): \Closure {
