@@ -9,7 +9,7 @@ Pending entries live in [`changelog/`](./changelog) — add via `composer change
 ## 2.0.0 - unreleased
 
 ### Changed
-- Rebuilt on the v2 framework, which boots the plugin only where its floors and WooCommerce are met and otherwise shows a notice.
+- Rebuilt on the v2 framework, which boots the plugin only where its floors and WooCommerce are met and otherwise shows a notice. The plugin grants its capabilities by itself, so v1's install and update notice and its AJAX actions are gone.
 
 ## 1.2.2 - 2022-07-12
 

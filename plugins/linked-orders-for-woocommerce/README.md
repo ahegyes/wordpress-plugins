@@ -6,7 +6,7 @@ An order can have children, and each child its own, down to a maximum depth; a w
 
 ## Requirements
 
-The entry file's headers state the floors: `Requires PHP`, `Requires at least` for WordPress, and `Requires Plugins` with `WC requires at least` for WooCommerce. On a site below them, WordPress shows its own notice and none of the plugin's features load.
+The entry file's headers state the floors: `Requires PHP`, `Requires at least` for WordPress, and `Requires Plugins` with `WC requires at least` for WooCommerce. Below the PHP or WordPress floor WordPress shows its own notice, below WooCommerce's the plugin shows one, and none of the plugin's features load.
 
 ## Installation
 

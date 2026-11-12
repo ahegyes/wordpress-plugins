@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+The maximum depth setting rejects a value that is not a whole number of 1 or more and keeps the stored value, where v1 saved it and corrected it on read.
