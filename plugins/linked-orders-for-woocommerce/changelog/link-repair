@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+The update to 2.0.0 makes each child whose parent order v1 deleted the root of its own tree, lists each child that its parent's children lost among them again, and stores each child one level below its parent.

@@ -45,8 +45,8 @@ final class UninstallTest extends TestCase {
 
 		$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
 
-		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request would.
-		$restored = self::request( '' );
+		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request and the runner's scheduled hook would.
+		$restored = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
 		wp_cache_flush();
 		wp_roles()->for_site();
 
@@ -80,8 +80,9 @@ final class UninstallTest extends TestCase {
 			delete_option( Plugin::PREFIX . '_revision' );
 			wp_cache_flush();
 			wp_roles()->for_site();
-			// The other tests share the database, so the runner stores again what a new site starts with, and the grants act again.
+			// The other tests share the database, so the runner and its scheduled hook store again what a new site starts with, and the grants act again.
 			dws_lowc_plugin()->migrations?->run();
+			do_action( Plugin::PREFIX . '_revision/migration/run' );
 			do_action( 'wp_loaded' );
 		}
 	}
@@ -125,13 +126,14 @@ final class UninstallTest extends TestCase {
 			}
 		}
 
-		// The other tests share the database, so the roles get their capabilities back and the runner stores again what a new site starts with.
+		// The other tests share the database, so the roles get their capabilities back and the runner and its scheduled hook store again what a new site starts with.
 		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
 			foreach ( $capabilities as $capability ) {
 				get_role( $role )?->add_cap( $capability );
 			}
 		}
 		dws_lowc_plugin()->migrations?->run();
+		do_action( Plugin::PREFIX . '_revision/migration/run' );
 		foreach ( $linked as $id => $hpos ) {
 			$storage = static fn (): string => $hpos;
 			add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
@@ -175,8 +177,9 @@ final class UninstallTest extends TestCase {
 			)
 		);
 
-		// The other tests share the database, so the runner stores again what a new site starts with.
+		// The other tests share the database, so the runner and its scheduled hook store again what a new site starts with.
 		dws_lowc_plugin()->migrations?->run();
+		do_action( Plugin::PREFIX . '_revision/migration/run' );
 		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
 	}
 }
