@@ -1,4 +1,4 @@
 Significance: major
 Type: changed
 
-Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.2, and declares compatibility with WooCommerce's order tables.
+Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.3, and declares compatibility with WooCommerce's order tables.

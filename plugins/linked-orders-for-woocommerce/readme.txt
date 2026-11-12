@@ -22,7 +22,7 @@ Linked orders work whether WooCommerce stores orders in its own order tables or 
 
 == Installation ==
 
-This plugin requires WooCommerce 11.2 or newer to run. If you're running a lower version, please update first. After you made sure that you're running a supported version of WooCommerce, you may install `Linked Orders for WooCommerce` either manually or through your site's plugins page.
+This plugin requires WooCommerce 11.3 or newer to run. If you're running a lower version, please update first. After you made sure that you're running a supported version of WooCommerce, you may install `Linked Orders for WooCommerce` either manually or through your site's plugins page.
 
 ### INSTALL FROM WITHIN WORDPRESS
 
@@ -68,7 +68,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.2. Hooks move to dws_lowc/ names and their v1 names still fire, deprecated, but eight settings hooks, the v1 framework's notice-markup hooks and its accessors, such as dws_lowc_instance(), are removed.
+Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.3. Hooks move to dws_lowc/ names and their v1 names still fire, deprecated, but eight settings hooks, the v1 framework's notice-markup hooks and its accessors, such as dws_lowc_instance(), are removed.
 
 == Changelog ==
 

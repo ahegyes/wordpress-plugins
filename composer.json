@@ -23,7 +23,7 @@
 		"php": ">=8.5"
 	},
 	"require-dev": {
-		"wp-plugin/woocommerce": "^11.2"
+		"wp-plugin/woocommerce": "^11.3"
 	},
 
 	"minimum-stability": "dev",
