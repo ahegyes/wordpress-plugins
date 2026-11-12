@@ -4,7 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Support;
 
 use PHPUnit\Framework\Attributes\After;
 
-// Another plugin's order type, which v1 1.2.0 linked once its filter named the type.
+// Another plugin's order type, which v1 1.2.0 linked once its filter named the type, and which names its own add-child and box phrases, as Quote Requests does for its quotes.
 trait RegistersOrderTypeTrait {
 	protected const string ORDER_TYPE = 'dws_lowc_test_order';
 
@@ -19,6 +19,8 @@ trait RegistersOrderTypeTrait {
 				'labels'          => array(
 					'name'          => 'Test orders',
 					'singular_name' => 'Test order',
+					'linked_orders_for_woocommerce_add_new_child' => 'Add new child test order',
+					'linked_orders_for_woocommerce_linked_items' => 'Linked test orders',
 				),
 				'public'          => false,
 				'show_ui'         => true,

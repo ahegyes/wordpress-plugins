@@ -103,7 +103,7 @@ final class ChildCreationTest extends TestCase {
 		$location = $this->request( (string) $parent->get_id() );
 
 		self::assertSame( $parent->get_edit_order_url(), $location );
-		self::assertSame( array( 'No linked child can be created for order #' . $parent->get_order_number() . '.' ), \array_map( static fn ( Notice $notice ): string => $notice->message, $this->notices->get_notices( NoticeScope::User, $user ) ) );
+		self::assertSame( array( 'Order #' . $parent->get_order_number() . ' cannot have a new linked child.' ), \array_map( static fn ( Notice $notice ): string => $notice->message, $this->notices->get_notices( NoticeScope::User, $user ) ) );
 		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
 	}
 
@@ -121,7 +121,7 @@ final class ChildCreationTest extends TestCase {
 		}
 
 		self::assertSame( $parent->get_edit_order_url(), $location );
-		self::assertSame( array( 'The linked child of order #' . $parent->get_order_number() . ' could not be created: The &lt;b&gt;store&lt;/b&gt; is closed.' ), $this->get_messages() );
+		self::assertSame( array( 'Order #' . $parent->get_order_number() . ' could not get a linked child: The &lt;b&gt;store&lt;/b&gt; is closed.' ), $this->get_messages() );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -151,7 +151,7 @@ final class ChildCreationTest extends TestCase {
 			remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
 		}
 
-		self::assertSame( array( 'The linked child of order #' . $parent->get_order_number() . ' could not be created: Its creator returned no order.' ), $this->get_messages() );
+		self::assertSame( array( 'Order #' . $parent->get_order_number() . ' could not get a linked child: Its creator returned no order.' ), $this->get_messages() );
 	}
 
 	public function test_a_parent_id_that_is_not_a_whole_number_names_no_order(): void {

@@ -59,10 +59,10 @@ test.describe( 'Linked orders', () => {
 		);
 		await expect(
 			page.locator( `#order-${ child } td.column-dws_lo_depth` )
-		).toHaveText( 'Child order (level 2)' );
+		).toHaveText( 'Child (level 2)' );
 		await expect(
 			page.locator( `#order-${ parent.id } td.column-dws_lo_depth` )
-		).toHaveText( 'Root order' );
+		).toHaveText( 'Root' );
 		const listResults = await new AxeBuilder( { page } )
 			.include( '#dws_lo_depth_filter_dropdown' )
 			.analyze();

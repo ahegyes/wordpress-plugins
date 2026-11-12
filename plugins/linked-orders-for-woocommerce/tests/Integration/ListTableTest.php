@@ -67,8 +67,8 @@ final class ListTableTest extends TestCase {
 
 		self::assertSame( array( 'cb', 'order_number', 'order_total', 'dws_lo_depth', 'wc_actions' ), \array_keys( apply_filters( "manage_{$screen}_columns", self::COLUMNS ) ) );
 		self::assertSame( 'Depth', apply_filters( "manage_{$screen}_columns", self::COLUMNS )['dws_lo_depth'] );
-		self::assertSame( 'Root order', $this->render_cell( $root->get_id() ) );
-		self::assertSame( 'Child order (level 2)', $this->render_cell( $child->get_id() ) );
+		self::assertSame( 'Root', $this->render_cell( $root->get_id() ) );
+		self::assertSame( 'Child (level 2)', $this->render_cell( $child->get_id() ) );
 		self::assertSame( '', $this->render_cell( $child->get_id(), 'order_total' ) );
 	}
 
@@ -100,11 +100,11 @@ final class ListTableTest extends TestCase {
 		$filters = $this->parse_filters();
 
 		$label = $filters->querySelector( 'label[for="dws_lo_depth_filter_dropdown"]' );
-		self::assertSame( 'Order depth', \trim( (string) $label?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Filter by depth', \trim( (string) $label?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertContains( 'screen-reader-text', \explode( ' ', (string) $label?->getAttribute( 'class' ) ) );
 		$options = \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) );
 		self::assertSame( array( '', '0', '1', '2', '3' ), \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', $options ) );
-		self::assertSame( array( 'All depths', 'Root orders', 'Child orders (level 2)', 'Child orders (level 3)', 'Child orders (level 4)' ), \array_map( static fn ( \Dom\Element $option ): string => \trim( $option->textContent ), $options ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( array( 'All depths', 'Roots', 'Children (level 2)', 'Children (level 3)', 'Children (level 4)' ), \array_map( static fn ( \Dom\Element $option ): string => \trim( $option->textContent ), $options ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertTrue( $options[3]->hasAttribute( 'selected' ) );
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_guest_customer_user"]' ) );
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
@@ -161,7 +161,7 @@ final class ListTableTest extends TestCase {
 			$_SERVER['REQUEST_URI'] = $uri;
 		}
 
-		self::assertSame( array( 'Showing orders billed to guest+bar@example.com. Remove this filter', 'Showing orders linked to #' . $order->get_order_number() . '. Remove this filter' ), \array_map( static fn ( \Dom\Element $line ): string => \preg_replace( '/\s+/', ' ', \trim( $line->textContent ) ), $lines ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( array( 'Billed to guest+bar@example.com. Remove this filter', 'Linked to #' . $order->get_order_number() . '. Remove this filter' ), \array_map( static fn ( \Dom\Element $line ): string => \preg_replace( '/\s+/', ' ', \trim( $line->textContent ) ), $lines ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( array( '/wp-admin/admin.php?page=wc-orders&_dws_lo_depth=1&_dws_linked_order_id=' . $order->get_id(), '/wp-admin/admin.php?page=wc-orders&_dws_lo_depth=1&_guest_customer_user=guest%2Bbar%40example.com' ), \array_map( static fn ( \Dom\Element $line ): string => (string) $line->querySelector( 'a' )?->getAttribute( 'href' ), $lines ) );
 	}
 
@@ -266,13 +266,13 @@ final class ListTableTest extends TestCase {
 
 		self::assertSame( array( 'view_all_customer_orders', 'view_all_linked_orders', 'create_empty_linked_child', 'complete' ), \array_keys( $actions ) );
 		self::assertSame( add_query_arg( '_customer_user', 1, $list ), $actions['view_all_customer_orders']['url'] );
-		self::assertSame( 'View all customer orders', $actions['view_all_customer_orders']['name'] );
-		self::assertSame( 'View all customer orders (opens in a new tab)', $actions['view_all_customer_orders']['title'] ?? null );
+		self::assertSame( 'View all from this customer', $actions['view_all_customer_orders']['name'] );
+		self::assertSame( 'View all from this customer (opens in a new tab)', $actions['view_all_customer_orders']['title'] ?? null );
 		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), $actions['view_all_linked_orders']['url'] );
-		self::assertSame( 'View all linked orders', $actions['view_all_linked_orders']['name'] );
-		self::assertSame( 'View all linked orders (opens in a new tab)', $actions['view_all_linked_orders']['title'] ?? null );
+		self::assertSame( 'View all linked', $actions['view_all_linked_orders']['name'] );
+		self::assertSame( 'View all linked (opens in a new tab)', $actions['view_all_linked_orders']['title'] ?? null );
 		self::assertArrayNotHasKey( 'title', $actions['create_empty_linked_child'] );
-		self::assertSame( 'Create empty linked order', $actions['create_empty_linked_child']['name'] );
+		self::assertSame( 'Add new child order', $actions['create_empty_linked_child']['name'] );
 		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
 	}
 
@@ -361,9 +361,11 @@ final class ListTableTest extends TestCase {
 		$list   = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders--' . self::ORDER_TYPE ) : admin_url( 'edit.php?post_type=' . self::ORDER_TYPE );
 
 		self::assertSame( 'Depth', apply_filters( "manage_{$screen}_columns", self::COLUMNS )['dws_lo_depth'] ?? null );
-		self::assertSame( 'Child order (level 2)', $this->render_cell( $child->get_id(), 'dws_lo_depth', self::ORDER_TYPE ) );
-		self::assertSame( 'Test order depth', \trim( (string) $this->parse_filters( self::ORDER_TYPE )->querySelector( 'label[for="dws_lo_depth_filter_dropdown"]' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), apply_filters( 'woocommerce_admin_order_actions', array(), wc_get_order( $root->get_id() ) )['view_all_linked_orders']['url'] ?? null );
+		self::assertSame( 'Child (level 2)', $this->render_cell( $child->get_id(), 'dws_lo_depth', self::ORDER_TYPE ) );
+		self::assertSame( 'Filter by depth', \trim( (string) $this->parse_filters( self::ORDER_TYPE )->querySelector( 'label[for="dws_lo_depth_filter_dropdown"]' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		$actions = apply_filters( 'woocommerce_admin_order_actions', array(), wc_get_order( $root->get_id() ) );
+		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), $actions['view_all_linked_orders']['url'] ?? null );
+		self::assertSame( 'Add new child test order', $actions['create_empty_linked_child']['name'] ?? null );
 	}
 
 	protected function open_list( string $type = 'shop_order' ): string {
