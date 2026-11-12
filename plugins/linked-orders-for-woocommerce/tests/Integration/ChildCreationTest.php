@@ -54,9 +54,10 @@ final class ChildCreationTest extends TestCase {
 		throw new \UnexpectedValueException( $location );
 	}
 
+	// A death throws no RuntimeException, so a request that redirected instead, through the redirect's exception, fails the row.
 	public function get_die_handler(): callable {
 		return static function ( mixed $message ): never {
-			throw new \RuntimeException( \is_string( $message ) ? $message : 'wp_die' );
+			throw new class( \is_string( $message ) ? $message : 'wp_die' ) extends \LogicException {};
 		};
 	}
 
@@ -74,15 +75,18 @@ final class ChildCreationTest extends TestCase {
 		self::assertSame( array(), $this->notices->get_notices( NoticeScope::User, 1 ) );
 	}
 
-	public function test_a_request_without_a_valid_nonce_dies(): void {
-		$parent_id             = (string) $this->create_order()->get_id();
-		$_GET['parent_id']     = $parent_id;
-		$_REQUEST['parent_id'] = $parent_id;
+	public function test_a_request_without_a_valid_nonce_dies_without_a_child(): void {
+		$parent                = $this->create_order();
+		$_GET['parent_id']     = (string) $parent->get_id();
+		$_REQUEST['parent_id'] = (string) $parent->get_id();
 		$_REQUEST['_wpnonce']  = 'invalid';
 
-		$this->expectException( \RuntimeException::class );
-
-		do_action( self::ACTION );
+		try {
+			do_action( self::ACTION );
+			self::fail( 'The request did not die.' );
+		} catch ( \LogicException ) {
+			self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+		}
 	}
 
 	public function test_a_missing_parent_returns_to_the_referring_screen_with_a_notice(): void {
