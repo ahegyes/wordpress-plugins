@@ -32,7 +32,7 @@ final class AutocompletionTest extends TestCase {
 		foreach ( array( $child, $grandchild ) as $descendant ) {
 			$stored = wc_get_order( $descendant->get_id() );
 			self::assertSame( 'completed', $stored->get_status() );
-			self::assertSame( array( 'Status set when a linked ancestor was completed. Order status changed from Pending payment to Completed.' ), \array_values( \array_filter( \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ), static fn ( string $content ): bool => \str_starts_with( $content, 'Status set when a linked ancestor was completed.' ) ) ) );
+			self::assertSame( array( 'Status set by Linked Orders\' autocompletion. Order status changed from Pending payment to Completed.' ), \array_values( \array_filter( \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ), static fn ( string $content ): bool => \str_starts_with( $content, 'Status set by Linked Orders\' autocompletion.' ) ) ) );
 		}
 	}
 
@@ -85,7 +85,7 @@ final class AutocompletionTest extends TestCase {
 		self::assertSame( array( $root->get_id(), $child->get_id(), $other->get_id(), $other_child->get_id(), $other_grandchild->get_id(), $grandchild->get_id() ), $seen );
 		foreach ( array( $child, $grandchild, $other_child, $other_grandchild ) as $descendant ) {
 			self::assertSame( 'completed', wc_get_order( $descendant->get_id() )->get_status() );
-			self::assertCount( 1, \array_filter( wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ), static fn ( \stdClass $note ): bool => \str_starts_with( $note->content, 'Status set when a linked ancestor was completed.' ) ) );
+			self::assertCount( 1, \array_filter( wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ), static fn ( \stdClass $note ): bool => \str_starts_with( $note->content, 'Status set by Linked Orders\' autocompletion.' ) ) );
 		}
 	}
 
@@ -129,6 +129,7 @@ final class AutocompletionTest extends TestCase {
 		}
 
 		self::assertSame( 'processing', wc_get_order( $root->get_id() )->get_status() );
+		self::assertSame( array( 'Status set by Linked Orders\' autocompletion. Order status changed from Completed to Processing.' ), \array_values( \array_filter( \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $root->get_id() ) ) ), static fn ( string $content ): bool => \str_starts_with( $content, 'Status set by Linked Orders\' autocompletion.' ) ) ) );
 		self::assertSame( 'pending', wc_get_order( $child->get_id() )->get_status() );
 		self::assertSame( 'processing', wc_get_order( $grandchild->get_id() )->get_status() );
 	}
