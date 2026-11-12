@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+A link whose child order fails to save returns false and leaves the parent as it was, rather than listing a child that names no parent.

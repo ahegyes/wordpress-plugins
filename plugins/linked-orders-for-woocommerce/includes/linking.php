@@ -52,9 +52,9 @@ function dws_lowc_is_root_order( $order ): ?bool {
 }
 
 /**
- * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, or when another request still links orders after five seconds, and null when either order has no node.
+ * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, when another request still links orders after five seconds, or when the child's save does not store its parent, and null when either order has no node.
  *
- * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock. A link holds it for milliseconds, so the next one waits for it rather than refusing at once.
+ * A link reads and rewrites the parent's list of children, so one lock serializes links across requests, and each reads both orders' meta from the database once it holds the lock. A link holds it for milliseconds, so the next one waits for it rather than refusing at once. WooCommerce logs a save that fails and returns as if it had saved, so the parent lists the child only once the child's parent reads back from the database.
  *
  * @api
  *
@@ -85,27 +85,47 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 	}
 
 	try {
-		// This request may hold either order as loaded before another request linked it, and WooCommerce's order-tables data caching answers even a forced read from that load, so the reads run with the caching off, and the saves, with it back on, clear what it kept.
-		$no_data_caching = static fn (): string => 'no';
-		add_filter( 'pre_option_woocommerce_hpos_datastore_caching_enabled', $no_data_caching, PHP_INT_MAX );
-		try {
-			$parent->get_order()->read_meta_data( true );
-			$child->get_order()->read_meta_data( true );
-		} finally {
-			remove_filter( 'pre_option_woocommerce_hpos_datastore_caching_enabled', $no_data_caching, PHP_INT_MAX );
-		}
-
+		dws_lowc_refresh_links( $parent->get_order(), $child->get_order() );
 		if ( ! $parent->add_child( $child ) ) {
 			return false;
 		}
 
-		$parent->save();
 		$child->save();
+		dws_lowc_refresh_links( $child->get_order() );
+		if ( (string) $parent->get_order()->get_id() !== $child->get_order()->get_meta( '_dws_lo_parent' ) ) {
+			return false;
+		}
+
+		$parent->save();
 	} finally {
 		$lock->release( $owner );
 	}
 
 	return true;
+}
+
+/**
+ * Reads orders' meta again from the database, past WooCommerce's order-tables data caching.
+ *
+ * This request may hold an order as loaded before another request changed its links, and the caching answers even a forced read from that load, so the reads run with the caching off, and the saves that follow, with it back on, clear what it kept.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   WC_Order ...$orders The orders.
+ *
+ * @return  void
+ */
+function dws_lowc_refresh_links( WC_Order ...$orders ): void {
+	$no_data_caching = static fn (): string => 'no';
+	add_filter( 'pre_option_woocommerce_hpos_datastore_caching_enabled', $no_data_caching, PHP_INT_MAX );
+	try {
+		foreach ( $orders as $order ) {
+			$order->read_meta_data( true );
+		}
+	} finally {
+		remove_filter( 'pre_option_woocommerce_hpos_datastore_caching_enabled', $no_data_caching, PHP_INT_MAX );
+	}
 }
 
 /**
