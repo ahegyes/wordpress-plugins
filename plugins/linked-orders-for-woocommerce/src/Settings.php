@@ -71,7 +71,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 
 			$wc_fields = array();
 			foreach ( $group_fields as $id => $field ) {
-				$wc_fields[] = array( 'id' => "dws-lowc_{$group}_$id" ) + $field;
+				$wc_fields[] = array( 'id' => \is_string( $field['id'] ?? null ) ? $field['id'] : "dws-lowc_{$group}_$id" ) + $field;
 			}
 
 			/**

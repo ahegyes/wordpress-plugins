@@ -143,7 +143,7 @@ function dws_lowc_get_max_depth(): int {
 /**
  * Returns a setting's group without its '-settings' suffix, its field id and its option, which is null for a group v1 did not have.
  *
- * As in v1, a read without a group names the group in the field id, such as 'general/max-depth', and a field an extension adds to a group lives in the option WooCommerce saves it under, `dws-lowc_{group}_{field}`. An id read without a group that names none has an empty group.
+ * As in v1, a read without a group names the group in the field id, such as 'general/max-depth', and a field an extension adds to a group without an id of its own lives in the option WooCommerce saves it under, `dws-lowc_{group}_{field}`. An id read without a group that names none has an empty group.
  *
  * @since   2.0.0
  * @version 2.0.0
