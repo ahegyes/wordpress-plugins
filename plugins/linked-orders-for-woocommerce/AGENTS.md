@@ -17,6 +17,7 @@ src/                         the composition root and its components only
 ├── MetaBox.php              the parent, children and add-child button beside an order's editor, on either storage
 ├── ListTable.php            the orders list's depth column, filters and row actions, on either storage
 ├── Autocompletion.php       completes an order's descendants when it completes, where the setting is on
+├── OrderDeletion.php        makes the children of an order deleted for good the roots of their trees
 └── Integration/             SequentialOrderNumbersPro, gated on wc_seq_order_number_pro()
 models/DWS_Order_Node.php    v1's global node class on the classmap, reading and saving the _dws_lo_ order meta
 includes/                    hook-free code as dws_lowc_ functions and DWS_LOWC_ constants, loaded in name order, _-prefixed files skipped

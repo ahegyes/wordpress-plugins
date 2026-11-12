@@ -62,6 +62,7 @@ final class Plugin {
 		MetaBox::class,
 		ListTable::class,
 		Autocompletion::class,
+		OrderDeletion::class,
 		Integration\SequentialOrderNumbersPro::class,
 	);
 
