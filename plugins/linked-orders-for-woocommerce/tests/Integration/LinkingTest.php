@@ -295,6 +295,29 @@ final class LinkingTest extends TestCase {
 		new \DWS_Order_Node( \PHP_INT_MAX );
 	}
 
+	// A user who may edit orders may still not edit another user's, which WooCommerce checks before it opens one.
+	#[DataProvider( 'storages' )]
+	public function test_a_child_is_created_only_by_a_user_who_may_edit_that_order( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order      = $this->create_order();
+		$this->user = wp_insert_user(
+			array(
+				'user_login' => 'dws-lowc-linking-editor',
+				'user_pass'  => wp_generate_password(),
+				'role'       => 'subscriber',
+			)
+		);
+		self::assertIsInt( $this->user );
+		$editor = new \WP_User( $this->user );
+		$editor->add_cap( 'edit_shop_orders' );
+		$editor->add_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN );
+
+		self::assertFalse( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $this->user ) );
+
+		$editor->add_cap( 'edit_others_shop_orders' );
+		self::assertTrue( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $this->user ) );
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_a_child_can_be_created_below_the_maximum_depth_by_a_user_who_may_edit_the_order( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
