@@ -33,18 +33,6 @@ const DWS_LOWC_CREATE_CHILD_ACTION = 'dws_lowc_create_linked_child';
 const DWS_LOWC_CREATE_CHILD_NONCE = 'dws_create_linked_child';
 
 /**
- * The label key under which an order type names the phrase that adds a linked child to one of its orders, such as "Add new child quote".
- *
- * @api
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LOWC_LABEL_ADD_NEW_CHILD = 'linked_orders_for_woocommerce_add_new_child';
-
-/**
  * Returns the order types whose orders can be linked.
  *
  * @api
@@ -93,7 +81,7 @@ function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
 }
 
 /**
- * Returns the phrase that adds a linked child to an order of the given type.
+ * Returns the phrase that adds a linked child to an order of the given type, which the type registers as its `linked_orders_for_woocommerce_add_new_child` label.
  *
  * A child takes the type its creator makes, which only the type's registrant knows, so the registrant words the whole phrase, for its own translation.
  *
@@ -105,7 +93,7 @@ function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
  * @return  string
  */
 function dws_lowc_get_add_child_phrase( WP_Post_Type $post_type ): string {
-	$phrase = $post_type->labels->{DWS_LOWC_LABEL_ADD_NEW_CHILD} ?? null;
+	$phrase = $post_type->labels->linked_orders_for_woocommerce_add_new_child ?? null;
 	return is_string( $phrase ) && '' !== $phrase ? $phrase : __( 'Add new child order', 'linked-orders-for-woocommerce' );
 }
 

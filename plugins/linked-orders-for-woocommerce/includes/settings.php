@@ -11,16 +11,6 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The ids of v1's settings groups, in the order the plugin's section shows them.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     list<string>
- */
-const DWS_LOWC_SETTINGS_GROUPS = array( 'general', 'plugin' );
-
-/**
  * Returns the stored value of a setting, or null for a setting that is not stored or a group v1 did not have.
  *
  * @api
@@ -165,5 +155,5 @@ function dws_lowc_find_setting( string $field_id, ?string $group ): array {
 		$group = substr( $group, 0, -9 );
 	}
 
-	return array( $group, $field_id, in_array( $group, DWS_LOWC_SETTINGS_GROUPS, true ) ? "dws-lowc_{$group}_$field_id" : null );
+	return array( $group, $field_id, in_array( $group, array( 'general', 'plugin' ), true ) ? "dws-lowc_{$group}_$field_id" : null );
 }
