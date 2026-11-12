@@ -215,7 +215,7 @@ function dws_lowc_get_component_hook_tag( string $component_id, string $name, $e
 }
 
 /**
- * Returns a hook name joined and sanitized as v1 did: the non-empty parts joined with slashes, spaces and backslashes as underscores, lowercased.
+ * Returns a hook name joined and sanitized as v1 did: the non-empty parts joined with slashes, spaces and backslashes as underscores, bytes below 32 and above 127 stripped, lowercased.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -227,7 +227,7 @@ function dws_lowc_get_component_hook_tag( string $component_id, string $name, $e
  * @return  string
  */
 function dws_lowc_join_v1_hook_tag( string $root, string $name, $extra ): string {
-	return strtolower( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( $root, $name ), is_array( $extra ) ? $extra : array( $extra ) ), 'boolval' ) ) ) );
+	return strtolower( filter_var( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( $root, $name ), is_array( $extra ) ? $extra : array( $extra ) ), 'boolval' ) ) ), FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_NULL_ON_FAILURE ) ?? '' );
 }
 
 /**

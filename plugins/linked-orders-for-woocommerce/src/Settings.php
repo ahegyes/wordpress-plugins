@@ -89,7 +89,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 				array(
 					array(
 						'type'  => 'title',
-						'id'    => "dws-lowc_$group",
+						'id'    => "dws-lowc_{$group}_start",
 						'title' => 'general' === $group ? __( 'General settings', 'linked-orders-for-woocommerce' ) : __( 'Plugin settings', 'linked-orders-for-woocommerce' ),
 					),
 				),
@@ -97,7 +97,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 				array(
 					array(
 						'type' => 'sectionend',
-						'id'   => "dws-lowc_$group",
+						'id'   => "dws-lowc_{$group}_end",
 					),
 				)
 			);

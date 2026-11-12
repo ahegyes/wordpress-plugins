@@ -127,7 +127,7 @@ final class Plugin {
 	 * @version 2.0.0
 	 */
 	public function __construct() {
-		$this->logger    = new WooCommerceLogger( self::SLUG, \defined( 'DWS_LOWC_DEBUG' ) && true === \constant( 'DWS_LOWC_DEBUG' ) ? 'debug' : null );
+		$this->logger    = new WooCommerceLogger( self::SLUG, \defined( 'DWS_LOWC_DEBUG' ) && true === \filter_var( \constant( 'DWS_LOWC_DEBUG' ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ? 'debug' : null );
 		$this->scheduler = new Scheduler( self::PREFIX );
 		$this->boundary  = new PluginBoot( DWS_LOWC_FILE, self::PREFIX, $this->logger );
 	}
