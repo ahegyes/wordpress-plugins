@@ -163,14 +163,19 @@ final class SettingsTest extends TestCase {
 		self::assertSame( array( array( $v1_hook, $v2_hook ) ), $this->deprecated );
 	}
 
-	public function test_the_plugin_row_links_to_the_section_and_to_the_support_forum(): void {
+	// v1 keyed its row links and named them for screen readers, and other plugins find them by key.
+	public function test_the_plugin_row_links_to_the_section_and_to_the_support_forum_under_v1s_keys(): void {
 		$basename = plugin_basename( DWS_LOWC_FILE );
 
 		$links = apply_filters( "plugin_action_links_{$basename}", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
 		$meta  = apply_filters( 'plugin_row_meta', array(), $basename, array(), 'all' );
 
-		self::assertStringContainsString( esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), (string) \reset( $links ) );
-		self::assertStringContainsString( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/', \implode( '', $meta ) );
+		self::assertSame( array( 'settings', 'deactivate' ), \array_keys( $links ) );
+		self::assertStringContainsString( esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), $links['settings'] );
+		self::assertStringContainsString( 'aria-label="View settings"', $links['settings'] );
+		self::assertSame( array( 'support' ), \array_keys( $meta ) );
+		self::assertStringContainsString( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/', $meta['support'] );
+		self::assertStringContainsString( 'aria-label="Visit community forums"', $meta['support'] );
 		self::assertSame( array(), apply_filters( 'plugin_row_meta', array(), 'another-plugin/another-plugin.php', array(), 'all' ) );
 	}
 
