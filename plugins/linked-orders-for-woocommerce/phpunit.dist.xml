@@ -21,6 +21,8 @@
 	</testsuites>
 
 	<php>
+		<!-- WordPress and WooCommerce hold about 100 MB before the first row, near the container's 128 MB CLI default; 256M is WordPress's own admin ceiling. -->
+		<ini name="memory_limit" value="256M"/>
 		<env name="WP_ENVIRONMENT_TYPE" value="production"/>
 	</php>
 
