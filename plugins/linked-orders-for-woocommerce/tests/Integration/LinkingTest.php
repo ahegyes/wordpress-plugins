@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
@@ -220,17 +221,56 @@ final class LinkingTest extends TestCase {
 		self::assertTrue( dws_lowc_is_supported_order( $order->get_id() ) );
 	}
 
+	// The depth column, the depth filter and the maximum depth read the stored depth, so the children of an order deleted for good become roots in their meta, while a trashed order, which can come back, keeps them.
 	#[DataProvider( 'storages' )]
-	public function test_a_child_whose_parent_was_deleted_is_its_own_root( bool $hpos, bool $sync ): void {
+	public function test_an_order_deleted_for_good_leaves_its_children_as_roots( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent     = $this->create_order();
+		$child      = $this->create_order();
+		$grandchild = $this->create_order();
+		$sibling    = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $child->get_id(), $grandchild->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $sibling->get_id() ) );
+
+		wc_get_order( $parent->get_id() )->delete();
+		self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_id() );
+
+		wc_get_order( $parent->get_id() )->delete( true );
+
+		foreach ( array( $child, $sibling ) as $root ) {
+			$stored = wc_get_order( $root->get_id() );
+			self::assertSame( '0', (string) $stored->get_meta( '_dws_lo_depth' ) );
+			self::assertSame( '', (string) $stored->get_meta( '_dws_lo_parent' ) );
+			self::assertTrue( dws_lowc_is_root_order( $root->get_id() ) );
+		}
+
+		self::assertSame( '1', (string) wc_get_order( $grandchild->get_id() )->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( $child->get_id(), dws_lowc_get_root_order( $grandchild->get_id() )?->get_id() );
+		self::assertSame( array( $child->get_id(), $grandchild->get_id() ), dws_lowc_get_orders_tree( $child->get_id() ) );
+	}
+
+	// The posts storage's orders list and WordPress's scheduled trash emptying delete an order through the posts API, which fires no WooCommerce action, while on the order tables the order's post is a placeholder WordPress deletes or a copy WooCommerce keeps.
+	#[DataProvider( 'storages' )]
+	public function test_deleting_an_order_post_for_good_roots_its_children_only_on_the_posts_storage( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$parent = $this->create_order();
 		$child  = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
 
-		$parent->delete( true );
+		try {
+			self::assertSame( ! ( $hpos && $sync ), wp_delete_post( $parent->get_id(), true ) instanceof \WP_Post );
 
-		self::assertSame( $child->get_id(), dws_lowc_get_root_order( $child->get_id() )?->get_id() );
-		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
+			$stored = wc_get_order( $child->get_id() );
+			self::assertSame( $hpos, wc_get_order( $parent->get_id() ) instanceof \WC_Order );
+			self::assertSame( $hpos ? '1' : '0', (string) $stored->get_meta( '_dws_lo_depth' ) );
+			self::assertSame( $hpos ? (string) $parent->get_id() : '', (string) $stored->get_meta( '_dws_lo_parent' ) );
+		} finally {
+			// Deleted the usual way, an order whose placeholder is gone leaves a deletion still to sync, which the tests site's next start refuses, so its order-tables rows go directly.
+			if ( $hpos && ! $sync ) {
+				wc_get_container()->get( OrdersTableDataStore::class )->delete_order_data_from_custom_order_tables( $parent->get_id() );
+			}
+		}
 	}
 
 	#[DataProvider( 'storages' )]
