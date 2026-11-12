@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+Creating a linked child of an order needs permission to edit that order, as WooCommerce asks before it opens one, rather than permission to edit orders at all.

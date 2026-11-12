@@ -8,7 +8,9 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Conditi
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Gives a linked child its sequential number from WooCommerce Sequential Order Numbers Pro, which numbers only orders created through checkout or the editor.
+ * Gives a linked child its sequential number from WooCommerce Sequential Order Numbers Pro.
+ *
+ * That plugin numbers only orders created through checkout or the editor.
  *
  * @since   2.0.0
  * @version 2.0.0

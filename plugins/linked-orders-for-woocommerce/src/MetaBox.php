@@ -42,13 +42,22 @@ final class MetaBox implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_meta_box( string $screen_id, mixed $post_or_order ): void {
-		$node = current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) && current_user_can( DWS_LOWC_CAP_SEE_METABOX ) ? dws_lowc_get_order_node( $post_or_order ) : null;
+		if ( ! current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) || ! current_user_can( DWS_LOWC_CAP_SEE_METABOX ) ) {
+			return;
+		}
+
+		$node = dws_lowc_get_order_node( $post_or_order );
 		if ( \is_null( $node ) ) {
 			return;
 		}
 
-		/* translators: %s: The order type's plural name. */
-		add_meta_box( 'dws-linked-orders', \sprintf( _x( 'Linked %s', 'metabox heading', 'linked-orders-for-woocommerce' ), $node->get_post_type()->label ), array( $this, 'render_meta_box' ), $screen_id, 'side' );
+		add_meta_box(
+			'dws-linked-orders',
+			esc_html_x( 'Linked orders', 'metabox heading', 'linked-orders-for-woocommerce' ),
+			array( $this, 'render_meta_box' ),
+			$screen_id,
+			'side'
+		);
 	}
 
 	/**
@@ -69,13 +78,14 @@ final class MetaBox implements ComponentInterface {
 
 		$parent     = $node->get_parent();
 		$can_create = $node->can_create_child();
-		$type_name  = dws_lowc_get_singular_name( $node->get_post_type() );
+		$new_tab    = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
 		if ( ! \is_null( $parent ) ) {
 			?>
 			<div class="dws-linked-orders__parent">
-				<?php echo esc_html_x( 'Parent', 'metabox', 'linked-orders-for-woocommerce' ); ?>:
+				<?php echo esc_html_x( 'Parent:', 'metabox', 'linked-orders-for-woocommerce' ); ?>
 				<a href="<?php echo esc_url( $parent->get_order()->get_edit_order_url() ); ?>" target="_blank">
 					<?php echo wp_kses_post( $parent->get_formatted_name() ); ?>
+					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
 				</a>
 			</div>
 			<hr/>
@@ -87,25 +97,36 @@ final class MetaBox implements ComponentInterface {
 			<div class="dws-linked-orders__no-children">
 				<?php esc_html_e( 'There are no attached children.', 'linked-orders-for-woocommerce' ); ?>
 				<?php if ( ! $can_create ) : ?>
-					<?php /* translators: %s: The order type's singular name. */ ?>
-					<?php echo esc_html( \sprintf( _x( 'New children cannot be added to this %s.', 'metabox', 'linked-orders-for-woocommerce' ), $type_name ) ); ?>
+					<?php echo esc_html( dws_lowc_get_child_refusal( $node ) ); ?>
 				<?php endif; ?>
 			</div>
 			<?php
 		} else {
 			?>
 			<div class="dws-linked-orders__children">
-				<?php esc_html_e( 'Attached children', 'linked-orders-for-woocommerce' ); ?>:
+				<?php esc_html_e( 'Attached children:', 'linked-orders-for-woocommerce' ); ?>
 				<ul class="dws-linked-orders__children-list">
 					<?php foreach ( $node->get_children() as $child ) : ?>
 						<li id="linked-order-<?php echo esc_attr( (string) $child->get_order()->get_id() ); ?>" class="dws-linked-order">
 							<a href="<?php echo esc_url( $child->get_order()->get_edit_order_url() ); ?>" target="_blank">
 								<?php echo wp_kses_post( $child->get_formatted_name() ); ?>
+								<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
 							</a>
 						</li>
 					<?php endforeach; ?>
 				</ul>
 			</div>
+			<?php
+		}
+
+		if ( ! \is_null( $parent ) || $node->has_children() ) {
+			?>
+			<p>
+				<a class="dws-linked-orders__tree" href="<?php echo esc_url( add_query_arg( '_dws_linked_order_id', $node->get_order()->get_id(), dws_lowc_get_list_url( $node->get_post_type() ) ) ); ?>" target="_blank">
+					<?php esc_html_e( 'View all linked', 'linked-orders-for-woocommerce' ); ?>
+					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
+				</a>
+			</p>
 			<?php
 		}
 
@@ -115,8 +136,7 @@ final class MetaBox implements ComponentInterface {
 
 		?>
 		<a class="button button-alt" href="<?php echo esc_url( dws_lowc_get_create_child_url( $node->get_order()->get_id() ) ); ?>">
-			<?php /* translators: %s: The order type's singular name. */ ?>
-			<?php echo esc_html( \sprintf( _x( 'Add new child %s', 'metabox', 'linked-orders-for-woocommerce' ), $type_name ) ); ?>
+			<?php echo esc_html( dws_lowc_get_add_child_phrase( $node->get_post_type() ) ); ?>
 		</a>
 		<?php
 

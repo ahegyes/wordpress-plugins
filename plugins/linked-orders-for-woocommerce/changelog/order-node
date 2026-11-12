@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+DWS_Order_Node is final, and its constructor throws InvalidArgumentException for an order that is not of a supported type.

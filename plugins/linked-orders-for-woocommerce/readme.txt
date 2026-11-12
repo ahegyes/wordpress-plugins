@@ -22,7 +22,7 @@ Linked orders work whether WooCommerce stores orders in its own order tables or 
 
 == Installation ==
 
-This plugin requires WooCommerce 11.2 or newer to run. If you're running a lower version, please update first. After you made sure that you're running a supported version of WooCommerce, you may install `Linked Orders for WooCommerce` either manually or through your site's plugins page.
+This plugin requires WooCommerce 11.3 or newer to run. If you're running a lower version, please update first. After you made sure that you're running a supported version of WooCommerce, you may install `Linked Orders for WooCommerce` either manually or through your site's plugins page.
 
 ### INSTALL FROM WITHIN WORDPRESS
 
@@ -42,7 +42,7 @@ If the minimum required version of WooCommerce is present, you will find a secti
 
 1. Choose the maximum depth level you want to allow.
 1. Choose whether to autocomplete descendant orders upon completion of a parent order.
-1. Choose whether to remove the plugin's data when it is uninstalled.
+1. Choose whether deleting the plugin also deletes its settings and the links between orders.
 
 == Frequently Asked Questions ==
 
@@ -68,7 +68,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.2. Hooks move to dws_lowc/ names and their v1 names still fire, deprecated, but eight settings hooks, the v1 framework's notice-markup hooks and its accessors, such as dws_lowc_instance(), are removed.
+Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.3. Hooks move to dws_lowc/ names, their v1 names still firing, deprecated. Removed: eight settings hooks, v1's notice-markup hooks and accessors, and Freemius with dws_lowc_fs_loaded. dws_lowc_link_orders() refuses a child that has children.
 
 == Changelog ==
 

@@ -8,8 +8,8 @@
  * Version:              2.0.0
  * Requires at least:    7.1
  * Requires PHP:         8.5
- * WC requires at least: 11.2
- * WC tested up to:      11.2
+ * WC requires at least: 11.3
+ * WC tested up to:      11.3
  * Author:               Contributors
  * Author URI:           https://github.com/ahegyes
  * License:              GPL-3.0-or-later

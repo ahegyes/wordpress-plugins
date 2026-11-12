@@ -29,7 +29,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 *
 	 * @var     string
 	 */
-	public const string SECTION = 'dws-linked-orders';
+	protected const string SECTION = 'dws-linked-orders';
 
 	// endregion
 
@@ -56,8 +56,46 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 */
 	#[\Override]
 	public function get_section_fields( string $tab_id, string $section_id ): array {
+		// v1's groups, with checkboxes in place of its yes-or-no selects.
+		$groups = array(
+			'general' => array(
+				'title'  => __( 'General settings', 'linked-orders-for-woocommerce' ),
+				'fields' => array(
+					'max-depth'                => array(
+						'title'             => __( 'Maximum linked orders depth', 'linked-orders-for-woocommerce' ),
+						'type'              => 'number',
+						'custom_attributes' => array(
+							'min'  => '1',
+							'max'  => '99',
+							'step' => '1',
+						),
+						'default'           => (string) DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_MAX_DEPTH ],
+						'desc'              => __( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', 'linked-orders-for-woocommerce' ),
+						'validate'          => 'dws_lowc_validate_max_depth',
+					),
+					'autocomplete-descendants' => array(
+						'title'   => __( 'Autocomplete descendant orders', 'linked-orders-for-woocommerce' ),
+						'type'    => 'checkbox',
+						'desc'    => __( 'Set every descendant order to completed when its parent order is completed', 'linked-orders-for-woocommerce' ),
+						'default' => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_AUTOCOMPLETE ] ),
+					),
+				),
+			),
+			'plugin'  => array(
+				'title'  => __( 'Plugin settings', 'linked-orders-for-woocommerce' ),
+				'fields' => array(
+					'remove-data-uninstall' => array(
+						'title'   => __( 'Remove all data on uninstallation', 'linked-orders-for-woocommerce' ),
+						'type'    => 'checkbox',
+						'desc'    => __( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', 'linked-orders-for-woocommerce' ),
+						'default' => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ] ),
+					),
+				),
+			),
+		);
+
 		$fields = array();
-		foreach ( DWS_LOWC_SETTINGS_GROUPS as $group ) {
+		foreach ( $groups as $group => $definition ) {
 			/**
 			 * Filters a group's fields, keyed by their v1 ids.
 			 *
@@ -67,11 +105,11 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 			 *
 			 * @param       array<string, Field> $fields The group's fields.
 			 */
-			$group_fields = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group}_settings/get_group_fields", array( $this->get_group_fields( $group ) ), '2.0.0', "dws_lowc/settings/{$group}_fields" );
+			$group_fields = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group}_settings/get_group_fields", array( $definition['fields'] ), '2.0.0', "dws_lowc/settings/{$group}_fields" );
 
 			$wc_fields = array();
 			foreach ( $group_fields as $id => $field ) {
-				$wc_fields[] = array( 'id' => "dws-lowc_{$group}_$id" ) + $field;
+				$wc_fields[] = array( 'id' => \is_string( $field['id'] ?? null ) ? $field['id'] : "dws-lowc_{$group}_$id" ) + $field;
 			}
 
 			/**
@@ -89,15 +127,15 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 				array(
 					array(
 						'type'  => 'title',
-						'id'    => "dws-lowc_$group",
-						'title' => 'general' === $group ? __( 'General Settings', 'linked-orders-for-woocommerce' ) : __( 'Plugin Settings', 'linked-orders-for-woocommerce' ),
+						'id'    => "dws-lowc_{$group}_start",
+						'title' => $definition['title'],
 					),
 				),
 				$wc_fields,
 				array(
 					array(
 						'type' => 'sectionend',
-						'id'   => "dws-lowc_$group",
+						'id'   => "dws-lowc_{$group}_end",
 					),
 				)
 			);
@@ -134,7 +172,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	}
 
 	/**
-	 * Adds the link to the plugin's section to its row on the Plugins screen.
+	 * Adds the link to the plugin's section first in its row on the Plugins screen, under v1's settings key.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -144,12 +182,11 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 * @return  string[]
 	 */
 	public function add_settings_link( array $links ): array {
-		\array_unshift( $links, \sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), esc_html__( 'Settings', 'linked-orders-for-woocommerce' ) ) );
-		return $links;
+		return array( 'settings' => \sprintf( '<a href="%s" aria-label="%s">%s</a>', esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), esc_attr__( 'View settings', 'linked-orders-for-woocommerce' ), esc_html__( 'Settings', 'linked-orders-for-woocommerce' ) ) ) + $links;
 	}
 
 	/**
-	 * Adds the link to the plugin's support forum to its row on the Plugins screen.
+	 * Adds the link to the plugin's support forum to its row on the Plugins screen, under v1's support key.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -161,58 +198,10 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 */
 	public function add_support_link( array $meta, string $basename ): array {
 		if ( plugin_basename( DWS_LOWC_FILE ) === $basename ) {
-			$meta[] = \sprintf( '<a href="%s">%s</a>', esc_url( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/' ), esc_html__( 'Community support', 'linked-orders-for-woocommerce' ) );
+			$meta['support'] = \sprintf( '<a href="%s" aria-label="%s">%s</a>', esc_url( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/' ), esc_attr__( 'Visit community forums', 'linked-orders-for-woocommerce' ), esc_html__( 'Community support', 'linked-orders-for-woocommerce' ) );
 		}
 
 		return $meta;
-	}
-
-	// endregion
-
-	// region HELPERS
-
-	/**
-	 * Returns a group's fields, keyed by their v1 ids, as v1 defined them but for checkboxes in place of yes-or-no selects.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $group The group's v1 id.
-	 *
-	 * @return  array<string, Field>
-	 */
-	protected function get_group_fields( string $group ): array {
-		if ( 'general' === $group ) {
-			return array(
-				'max-depth'                => array(
-					'title'             => __( 'Maximum linked orders depth', 'linked-orders-for-woocommerce' ),
-					'type'              => 'number',
-					'custom_attributes' => array(
-						'min'  => '1',
-						'max'  => '99',
-						'step' => '1',
-					),
-					'default'           => (string) DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_MAX_DEPTH ],
-					'desc_tip'          => __( 'The maximum number of linked orders levels. Root orders are considered level 0.', 'linked-orders-for-woocommerce' ),
-					'validate'          => 'dws_lowc_validate_max_depth',
-				),
-				'autocomplete-descendants' => array(
-					'title'   => __( 'Autocomplete descendant orders', 'linked-orders-for-woocommerce' ),
-					'type'    => 'checkbox',
-					'desc'    => __( 'Set every descendant order to completed when its parent order is completed', 'linked-orders-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_AUTOCOMPLETE ] ),
-				),
-			);
-		}
-
-		return array(
-			'remove-data-uninstall' => array(
-				'title'   => __( 'Remove all data on uninstallation', 'linked-orders-for-woocommerce' ),
-				'type'    => 'checkbox',
-				'desc'    => __( 'Delete the plugin\'s data when it is uninstalled, so it must be configured again if it is installed later', 'linked-orders-for-woocommerce' ),
-				'default' => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ] ),
-			),
-		);
 	}
 
 	// endregion

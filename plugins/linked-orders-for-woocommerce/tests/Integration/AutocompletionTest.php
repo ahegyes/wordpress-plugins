@@ -4,7 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Autocompletion;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
-use PHPUnit\Framework\Attributes\After;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,18 +13,13 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( Autocompletion::class )]
 final class AutocompletionTest extends TestCase {
 	use OrderStorageTrait;
+	use RestoresOptionsTrait;
 
-	protected mixed $stored = false;
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_AUTOCOMPLETE );
 
 	#[Before]
-	protected function store_setting(): void {
-		$this->stored = get_option( DWS_LOWC_OPTION_AUTOCOMPLETE );
+	protected function enable_autocompletion(): void {
 		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
-	}
-
-	#[After]
-	protected function restore_setting(): void {
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, $this->stored );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -37,7 +32,7 @@ final class AutocompletionTest extends TestCase {
 		foreach ( array( $child, $grandchild ) as $descendant ) {
 			$stored = wc_get_order( $descendant->get_id() );
 			self::assertSame( 'completed', $stored->get_status() );
-			self::assertContains( 'Child Order autocompleted. Order status changed from Pending payment to Completed.', \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ) );
+			self::assertSame( array( 'Status set by Linked Orders\' autocompletion. Order status changed from Pending payment to Completed.' ), \array_values( \array_filter( \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ), static fn ( string $content ): bool => \str_starts_with( $content, 'Status set by Linked Orders\' autocompletion.' ) ) ) );
 		}
 	}
 
@@ -61,6 +56,37 @@ final class AutocompletionTest extends TestCase {
 		}
 
 		self::assertSame( array( $root->get_id(), $child->get_id() ), \array_slice( $seen, 0, 2 ) );
+	}
+
+	// Completing each descendant fires the completion hook again, so a pass covers each order once, while an order outside the pass that a callback completes still completes its own descendants.
+	#[DataProvider( 'storages' )]
+	public function test_each_order_of_a_tree_is_completed_once_and_with_one_note( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		list( $root, $child, $grandchild )              = $this->create_tree();
+		list( $other, $other_child, $other_grandchild ) = $this->create_tree();
+
+		$seen   = array();
+		$record = static function ( bool $should, int $order_id ) use ( &$seen, $child, $other ): bool {
+			$seen[] = $order_id;
+			if ( $child->get_id() === $order_id ) {
+				wc_get_order( $other->get_id() )->update_status( 'completed' );
+			}
+
+			return $should;
+		};
+		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
+
+		try {
+			$root->update_status( 'completed' );
+		} finally {
+			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $record );
+		}
+
+		self::assertSame( array( $root->get_id(), $child->get_id(), $other->get_id(), $other_child->get_id(), $other_grandchild->get_id(), $grandchild->get_id() ), $seen );
+		foreach ( array( $child, $grandchild, $other_child, $other_grandchild ) as $descendant ) {
+			self::assertSame( 'completed', wc_get_order( $descendant->get_id() )->get_status() );
+			self::assertCount( 1, \array_filter( wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ), static fn ( \stdClass $note ): bool => \str_starts_with( $note->content, 'Status set by Linked Orders\' autocompletion.' ) ) );
+		}
 	}
 
 	#[DataProvider( 'storages' )]
@@ -102,6 +128,8 @@ final class AutocompletionTest extends TestCase {
 			remove_filter( 'dws_lowc/autocompletion/completed_status', $status );
 		}
 
+		self::assertSame( 'processing', wc_get_order( $root->get_id() )->get_status() );
+		self::assertSame( array( 'Status set by Linked Orders\' autocompletion. Order status changed from Completed to Processing.' ), \array_values( \array_filter( \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $root->get_id() ) ) ), static fn ( string $content ): bool => \str_starts_with( $content, 'Status set by Linked Orders\' autocompletion.' ) ) ) );
 		self::assertSame( 'pending', wc_get_order( $child->get_id() )->get_status() );
 		self::assertSame( 'processing', wc_get_order( $grandchild->get_id() )->get_status() );
 	}

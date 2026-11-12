@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+The orders list shows which tree or billing email it is filtered by, with a link that removes the filter, and the Linked Orders box links to the order's tree in the orders list.

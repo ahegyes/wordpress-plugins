@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+dws_lowc_create_linked_child() returns null, leaving the order as it is, when its creator returns the parent or an order that already has a parent or children.

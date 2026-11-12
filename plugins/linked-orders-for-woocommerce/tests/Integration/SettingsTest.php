@@ -6,6 +6,7 @@ use DeepWebSolutions\LinkedOrders\Settings;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\BeforeClass;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -21,8 +22,8 @@ final class SettingsTest extends TestCase {
 
 	protected static \WC_Settings_Page $advanced;
 
-	#[\Override]
-	public static function setUpBeforeClass(): void {
+	#[BeforeClass]
+	public static function build_the_advanced_tab(): void {
 		require_once WC_ABSPATH . 'includes/admin/class-wc-admin-settings.php';
 		// WooCommerce builds its settings pages once per request, so the class shares one build of the Advanced tab.
 		foreach ( \WC_Admin_Settings::get_settings_pages() as $page ) {
@@ -65,7 +66,7 @@ final class SettingsTest extends TestCase {
 
 		$form = $this->render();
 
-		self::assertSame( array( 'General Settings', 'Plugin Settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( array( 'General settings', 'Plugin settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'value' ) );
 		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'min' ) );
 		self::assertSame( '99', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'max' ) );
@@ -73,6 +74,24 @@ final class SettingsTest extends TestCase {
 		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_AUTOCOMPLETE )?->hasAttribute( 'checked' ) );
 		self::assertSame( 'checkbox', $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->getAttribute( 'type' ) );
 		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->hasAttribute( 'checked' ) );
+	}
+
+	// The help says what each setting does where the merchant reads it, counting levels as the orders list does, and the consent names what deleting the plugin erases.
+	public function test_the_maximum_depth_and_the_consent_explain_themselves_beside_their_fields(): void {
+		$form = $this->render();
+
+		self::assertSame( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', \trim( (string) $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->parentElement?->querySelector( '.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertStringContainsString( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', (string) $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->parentElement?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+	}
+
+	// WooCommerce fires an action named after each group's title and end ids, which v1's listeners hook.
+	public function test_the_groups_keep_v1s_ids_for_the_actions_woocommerce_fires_around_them(): void {
+		$hooks  = array( 'woocommerce_settings_dws-lowc_general_start', 'woocommerce_settings_dws-lowc_general_end_end', 'woocommerce_settings_dws-lowc_plugin_start', 'woocommerce_settings_dws-lowc_plugin_end_end' );
+		$before = \array_map( 'did_action', $hooks );
+
+		$this->render();
+
+		self::assertSame( array( 1, 1, 1, 1 ), \array_map( static fn ( string $hook, int $count ): int => did_action( $hook ) - $count, $hooks, $before ) );
 	}
 
 	public function test_the_checkboxes_store_yes_and_no_as_v1s_selects_did(): void {
@@ -145,14 +164,40 @@ final class SettingsTest extends TestCase {
 		self::assertSame( array( array( $v1_hook, $v2_hook ) ), $this->deprecated );
 	}
 
-	public function test_the_plugin_row_links_to_the_section_and_to_the_support_forum(): void {
+	// A v1 field keyed by its v1 id may name its own option, which the field's id gives.
+	public function test_a_v1_fields_own_id_names_its_option(): void {
+		$extra = static fn ( array $fields ): array => $fields + array(
+			'extra' => array(
+				'id'    => 'dws_lowc_test_extension_option',
+				'type'  => 'text',
+				'title' => 'Extra',
+			),
+		);
+		add_filter( 'linked_orders_for_woocommerce/general_settings/get_group_fields', $extra );
+
+		try {
+			$ids = \array_column( new Settings()->get_section_fields( 'advanced', self::SECTION ), 'id' );
+		} finally {
+			remove_filter( 'linked_orders_for_woocommerce/general_settings/get_group_fields', $extra );
+		}
+
+		self::assertContains( 'dws_lowc_test_extension_option', $ids );
+		self::assertNotContains( 'dws-lowc_general_extra', $ids );
+	}
+
+	// v1 keyed its row links and named them for screen readers, and other plugins find them by key.
+	public function test_the_plugin_row_links_to_the_section_and_to_the_support_forum_under_v1s_keys(): void {
 		$basename = plugin_basename( DWS_LOWC_FILE );
 
 		$links = apply_filters( "plugin_action_links_{$basename}", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
 		$meta  = apply_filters( 'plugin_row_meta', array(), $basename, array(), 'all' );
 
-		self::assertStringContainsString( esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), (string) \reset( $links ) );
-		self::assertStringContainsString( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/', \implode( '', $meta ) );
+		self::assertSame( array( 'settings', 'deactivate' ), \array_keys( $links ) );
+		self::assertStringContainsString( esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), $links['settings'] );
+		self::assertStringContainsString( 'aria-label="View settings"', $links['settings'] );
+		self::assertSame( array( 'support' ), \array_keys( $meta ) );
+		self::assertStringContainsString( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/', $meta['support'] );
+		self::assertStringContainsString( 'aria-label="Visit community forums"', $meta['support'] );
 		self::assertSame( array(), apply_filters( 'plugin_row_meta', array(), 'another-plugin/another-plugin.php', array(), 'all' ) );
 	}
 

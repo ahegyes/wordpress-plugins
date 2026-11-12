@@ -1,4 +1,4 @@
 Significance: patch
 Type: fixed
 
-A child whose parent order was deleted shows as its own root, rather than failing the screens that show its tree.
+Deleting an order for good makes its children the roots of their own trees, rather than leaving them the children of an order that no longer exists.

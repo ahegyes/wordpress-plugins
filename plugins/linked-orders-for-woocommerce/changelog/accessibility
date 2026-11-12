@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Screen readers hear that the order links and the list actions that open a new tab do so, and the orders list names its depth filter.

@@ -27,7 +27,7 @@ Here is a short overview of the features this plugin offers:
 
 == Installation ==
 
-There are no prerequisites other than the minimum WordPress and PHP versions. Internal comments on WooCommerce orders need WooCommerce 11.2 or newer.
+There are no prerequisites other than the minimum WordPress and PHP versions. Internal comments on WooCommerce orders need WooCommerce 11.3 or newer.
 
 ### INSTALL FROM WITHIN WORDPRESS
 

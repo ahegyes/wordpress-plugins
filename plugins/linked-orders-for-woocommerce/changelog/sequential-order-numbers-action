@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+The Sequential Order Numbers Pro integration numbers a linked child on dws_lowc/linked_order/created, so a listener of the deprecated linked_orders_for_woocommerce/created_linked_order action sees the child unnumbered; a listener of dws_lowc/linked_order/created at a priority after 10 sees the number and can replace it.

@@ -26,30 +26,17 @@ final class PartialDeployTest extends TestCase {
 		self::assertSame( '[false,true]', $request['last'] );
 	}
 
-	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing(): void {
-		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-throws.php';
-		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
-		try {
-			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lowc_boot" ), false !== has_action( "all_admin_notices", "dws_lowc_render_build_notice" ) ) );' );
-		} finally {
-			\unlink( $include );
-		}
-
-		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( '[false,true]', $request['last'] );
-	}
-
-	public function test_the_peer_getters_a_partial_deploy_defines_still_answer(): void {
+	public function test_an_include_that_throws_shows_the_build_notice_boots_nothing_and_keeps_the_peer_getters(): void {
 		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-throws.php'; // It loads after metadata.php.
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lowc_boot" ), dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) );' );
+			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lowc_boot" ), false !== has_action( "all_admin_notices", "dws_lowc_render_build_notice" ), dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) );' );
 		} finally {
 			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( wp_json_encode( array( false, dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) ), $request['last'] );
+		self::assertSame( wp_json_encode( array( false, true, dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) ), $request['last'] );
 	}
 
 	public function test_a_deactivation_whose_composition_root_cannot_be_built_is_reported_as_a_build_error(): void {
@@ -67,8 +54,9 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
+		$stored = get_option( DWS_LOWC_OPTION_DELETE_DATA );
 		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
-		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
+		$log = (string) \tempnam( \sys_get_temp_dir(), Plugin::PREFIX . '-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
 			static function ( string $class_name ): void {
@@ -80,12 +68,14 @@ final class PartialDeployTest extends TestCase {
 			true
 		);
 
-		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
-		self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
-		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
-
-		\unlink( $log );
-		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'no' );
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
+			self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+			self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
+		} finally {
+			\unlink( $log );
+			false === $stored ? delete_option( DWS_LOWC_OPTION_DELETE_DATA ) : update_option( DWS_LOWC_OPTION_DELETE_DATA, $stored );
+		}
 	}
 
 	public function test_a_build_error_is_logged_with_its_location_once_an_hour(): void {

@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+v1's DeepWebSolutions\WC_Plugins\LinkedOrders classes and the capability constants they declared, whose capability names the DWS_LOWC_CAP_ constants now hold.

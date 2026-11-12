@@ -6,7 +6,7 @@ An order can have children, and each child its own, down to a maximum depth; a w
 
 ## Requirements
 
-The entry file's headers state the floors: `Requires PHP`, `Requires at least` for WordPress, and `Requires Plugins` with `WC requires at least` for WooCommerce. On a site below them, WordPress shows its own notice and none of the plugin's features load.
+The entry file's headers state the floors: `Requires PHP`, `Requires at least` for WordPress, and `Requires Plugins` with `WC requires at least` for WooCommerce. Below the PHP or WordPress floor WordPress shows its own notice, below WooCommerce's the plugin shows one, and none of the plugin's features load.
 
 ## Installation
 
@@ -14,11 +14,13 @@ Install the plugin from the WordPress plugin directory under Plugins → Add New
 
 ## Extending
 
-Other plugins link and walk orders through the functions in `includes/linking.php` and `includes/post-type.php`, such as `dws_lowc_link_orders()`, `dws_lowc_get_root_order()` and `dws_lowc_create_linked_child()`, and the `DWS_Order_Node` class they return. Every hook is named `dws_lowc/area/name`, and each one v1 fired under `linked_orders_for_woocommerce/` still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
+Other plugins link two orders through `dws_lowc_link_orders()`, create a linked child through `dws_lowc_create_linked_child()`, which returns the child's id, and walk a tree through `dws_lowc_get_order_node()`, `dws_lowc_get_root_order()` and `dws_lowc_get_orders_tree()`, whose nodes are `DWS_Order_Node` objects. Every hook is named `dws_lowc/area/name`, and each one v1 fired under `linked_orders_for_woocommerce/` still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
+
+A child takes the type its creator makes, so an order type whose registrant swaps in a creator through `dws_lowc/linked_order/creation_args` also words the add-child phrase through the `linked_orders_for_woocommerce_add_new_child` label it registers, such as "Add new child quote"; without it the plugin says "Add new child order".
 
 ## Development
 
-Development needs PHP and Composer at the `Requires PHP` floor or later, Node.js and npm at `package.json`'s `engines`, Docker for `@wordpress/env`, and a POSIX shell for `npm run start`.
+Development needs PHP and Composer at the `Requires PHP` floor or later, Node.js and npm at `package.json`'s `engines`, and Docker for `@wordpress/env`.
 
 Install the dependencies, prefix the framework into `vendor-prefixed/`, build the scripts and start the development site on <http://localhost:8822>:
 

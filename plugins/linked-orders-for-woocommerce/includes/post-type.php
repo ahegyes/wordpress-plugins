@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Keeps v1's order-type API: which order types can be linked, which statuses allow a new child, and the creation of a linked child.
+ * Keeps v1's order-type API: which order types can be linked, which statuses allow a new child, and the creation of a linked child, and words the phrase that adds one.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -11,6 +11,26 @@
 use Automattic\WooCommerce\Utilities\OrderUtil;
 
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * The admin-post action that creates a linked child.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_CREATE_CHILD_ACTION = 'dws_lowc_create_linked_child';
+
+/**
+ * The nonce action that guards the creation of a linked child.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_CREATE_CHILD_NONCE = 'dws_create_linked_child';
 
 /**
  * Returns the order types whose orders can be linked.
@@ -58,6 +78,23 @@ function dws_lowc_get_supported_order_types(): array {
 function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
 	$name = $post_type->labels->singular_name ?? null;
 	return is_string( $name ) ? $name : $post_type->label;
+}
+
+/**
+ * Returns the phrase that adds a linked child to an order of the given type, which the type registers as its `linked_orders_for_woocommerce_add_new_child` label.
+ *
+ * A child takes the type its creator makes, which only the type's registrant knows, so the registrant words the whole phrase, for its own translation.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   WP_Post_Type $post_type The post type object of the parent's order type.
+ *
+ * @return  string
+ */
+function dws_lowc_get_add_child_phrase( WP_Post_Type $post_type ): string {
+	$phrase = $post_type->labels->linked_orders_for_woocommerce_add_new_child ?? null;
+	return is_string( $phrase ) && '' !== $phrase ? $phrase : __( 'Add new child order', 'linked-orders-for-woocommerce' );
 }
 
 /**
@@ -125,6 +162,38 @@ function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_o
 }
 
 /**
+ * Returns the URL of an order type's admin list, on the storage WooCommerce uses for orders.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   WP_Post_Type $post_type The post type object of the order type.
+ *
+ * @return  string
+ */
+function dws_lowc_get_list_url( WP_Post_Type $post_type ): string {
+	return OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders' . ( 'shop_order' === $post_type->name ? '' : '--' . $post_type->name ) ) : admin_url( 'edit.php?post_type=' . $post_type->name );
+}
+
+/**
+ * Returns why no child can be created from an order, naming the setting where the order is at the maximum depth.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   DWS_Order_Node $node The order's node.
+ *
+ * @return  string
+ */
+function dws_lowc_get_child_refusal( DWS_Order_Node $node ): string {
+	$label  = dws_lowc_get_singular_name( $node->get_post_type() );
+	$number = $node->get_order()->get_order_number();
+	return dws_lowc_get_max_depth() <= $node->get_depth()
+		? sprintf( /* translators: 1: The order type's singular name. 2: The order number. */ __( '%1$s #%2$s is at the maximum linked orders depth, set under WooCommerce > Settings > Advanced > Linked Orders.', 'linked-orders-for-woocommerce' ), $label, $number )
+		: sprintf( /* translators: 1: The order type's singular name. 2: The order number. */ __( '%1$s #%2$s cannot have a new linked child.', 'linked-orders-for-woocommerce' ), $label, $number );
+}
+
+/**
  * Returns the URL that creates a linked child of an order through the plugin's admin-post action, with its nonce.
  *
  * @since   2.0.0
@@ -135,13 +204,13 @@ function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_o
  * @return  string
  */
 function dws_lowc_get_create_child_url( int $parent_id ): string {
-	return wp_nonce_url( admin_url( 'admin-post.php?action=dws_lowc_create_linked_child&parent_id=' . $parent_id ), 'dws_create_linked_child' );
+	return wp_nonce_url( admin_url( 'admin-post.php?action=' . DWS_LOWC_CREATE_CHILD_ACTION . '&parent_id=' . $parent_id ), DWS_LOWC_CREATE_CHILD_NONCE );
 }
 
 /**
  * Creates an order linked as the child of a supported order, with the parent's customer and addresses, and returns its id.
  *
- * Returns null when the parent is missing or unsupported, or when the creator is not callable or creates no supported order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
+ * The creator must create a new order, because a refused link deletes what it returned, so the function refuses the parent and any order with a parent or children before it changes them. An existing order without links that a creator returns is still deleted when the link gives up waiting for another request's. Returns null when the parent is missing or unsupported, or when the creator is not callable or returns no such order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
  *
  * @api
  *
@@ -201,14 +270,15 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 		return $child;
 	}
 
-	if ( ! $child instanceof WC_Order || true !== dws_lowc_is_supported_order( $child ) ) {
-		_doing_it_wrong( __FUNCTION__, esc_html__( 'The linked child\'s create_function returned no order of a supported type.', 'linked-orders-for-woocommerce' ), '1.0.0' );
+	$node = $child instanceof WC_Order ? dws_lowc_get_order_node( $child ) : null;
+	if ( ! $child instanceof WC_Order || is_null( $node ) || $parent_id === $child->get_id() || $node->has_parent() || $node->has_children() ) {
+		_doing_it_wrong( __FUNCTION__, esc_html__( 'The linked child\'s create_function returned no new order of a supported type.', 'linked-orders-for-woocommerce' ), '1.0.0' );
 		return null;
 	}
 
 	$child->set_address( $parent->get_address( 'billing' ), 'billing' );
 	$child->set_address( $parent->get_address( 'shipping' ), 'shipping' );
-	$child->add_meta_data( '_dws_lo_created_by', (string) get_current_user_id() );
+	$child->add_meta_data( DWS_LOWC_META_CREATED_BY, (string) get_current_user_id() );
 
 	/**
 	 * Fires when a linked child has been created, before it is saved and linked.
@@ -236,7 +306,7 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 	$child->save();
 	if ( true !== dws_lowc_link_orders( $parent_id, $child->get_id() ) ) {
 		$child->delete( true );
-		return new WP_Error( 'dws_lowc_link_refused', __( 'another order was being linked at the same time. Please try again.', 'linked-orders-for-woocommerce' ) );
+		return new WP_Error( 'dws_lowc_link_refused', __( 'Another link was being saved at the same time. Try again.', 'linked-orders-for-woocommerce' ) );
 	}
 
 	return $child->get_id();

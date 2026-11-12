@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * @since   2.0.0
  * @version 2.0.0
  *
- * @return  array{option_prefixes: list<non-empty-string>, user_meta_site_prefixes: list<non-empty-string>, user_meta_global_prefixes: list<non-empty-string>, network_options: list<non-empty-string>, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
+ * @return  array{option_prefixes: list<non-empty-string>, options: list<non-empty-string>, meta_prefixes: array<string, list<non-empty-string>>, user_meta_site_prefixes: list<non-empty-string>, user_meta_global_prefixes: list<non-empty-string>, user_meta_global: list<non-empty-string>, network_options: list<non-empty-string>, capabilities: list<non-empty-string>, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
  */
 function dws_lowc_get_footprint(): array {
 	return array(

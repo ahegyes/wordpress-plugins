@@ -86,16 +86,6 @@ define( 'DWS_LOWC_MIN_WP', $dws_lowc_header['RequiresWP'] );
 unset( $dws_lowc_header );
 
 /**
- * The ids of v1's components, whose hook tags took the id with dashes as underscores.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     list<string>
- */
-const DWS_LOWC_V1_COMPONENTS = array( 'actions', 'autocompletion', 'output', 'metabox-output', 'list-table-output', 'permissions', 'output-permissions', 'settings', 'general-settings', 'plugin-settings', 'integrations', 'wc-sequential-order-numbers-pro-integration' );
-
-/**
  * Returns the plugin's name, translated once init has fired.
  *
  * @api
@@ -191,11 +181,11 @@ function dws_lowc_min_wp(): string {
  */
 function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return dws_lowc_join_v1_hook_tag( 'linked_orders_for_woocommerce', $name, $extra );
+	return implode( '/', array_filter( array_merge( array( 'linked_orders_for_woocommerce', $name ), (array) $extra ), 'boolval' ) );
 }
 
 /**
- * Returns a hook name as v1 built it for one of its components, or null for an id v1 had no component for.
+ * Returns a hook name as v1 built it for one of its components, whose id takes underscores for its dashes.
  *
  * @api
  *
@@ -207,27 +197,11 @@ function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
  * @param       string               $name         The hook's name.
  * @param       string|array<string> $extra        The name's further parts.
  *
- * @return      string|null
+ * @return      string
  */
-function dws_lowc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
+function dws_lowc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return in_array( $component_id, DWS_LOWC_V1_COMPONENTS, true ) ? dws_lowc_join_v1_hook_tag( 'linked_orders_for_woocommerce/' . str_replace( '-', '_', $component_id ), $name, $extra ) : null;
-}
-
-/**
- * Returns a hook name joined and sanitized as v1 did: the non-empty parts joined with slashes, spaces and backslashes as underscores, lowercased.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string               $root  The name's root.
- * @param   string               $name  The hook's name.
- * @param   string|array<string> $extra The name's further parts.
- *
- * @return  string
- */
-function dws_lowc_join_v1_hook_tag( string $root, string $name, $extra ): string {
-	return strtolower( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( $root, $name ), is_array( $extra ) ? $extra : array( $extra ) ), 'boolval' ) ) ) );
+	return implode( '/', array_filter( array_merge( array( 'linked_orders_for_woocommerce', str_replace( '-', '_', $component_id ), $name ), (array) $extra ), 'boolval' ) );
 }
 
 /**

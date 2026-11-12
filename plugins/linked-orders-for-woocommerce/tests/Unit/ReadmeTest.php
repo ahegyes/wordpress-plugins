@@ -16,6 +16,15 @@ final class ReadmeTest extends TestCase {
 		self::assertSame( $entry['Requires PHP'], $readme['Requires PHP'] );
 	}
 
+	// The floor rises with WooCommerce's releases, and the readme names it in prose a field read cannot reach.
+	public function test_the_readme_names_the_woocommerce_floor_where_it_installs_and_upgrades(): void {
+		$readme = (string) \file_get_contents( \dirname( __DIR__, 2 ) . '/readme.txt' );
+		$floor  = 'WooCommerce ' . self::read_fields( 'linked-orders-for-woocommerce.php' )['WC requires at least'];
+
+		self::assertMatchesRegularExpression( '/== Installation ==\s+[^=]*' . \preg_quote( $floor, '/' ) . '\b/', $readme );
+		self::assertMatchesRegularExpression( '/== Upgrade Notice ==\s+= 2\.0\.0 =\s+[^\n]*' . \preg_quote( $floor, '/' ) . '\b/', $readme );
+	}
+
 	// Plugin Check refuses a Tested up to in the entry, in any case, as WordPress reads headers, so the readme holds the only one.
 	public function test_the_entry_leaves_tested_up_to_to_the_readme(): void {
 		self::assertDoesNotMatchRegularExpression( '/^(?:[ \t]*<\?(?:php)?)?[ \t\/*#@]*Tested up to:/mi', (string) \file_get_contents( \dirname( __DIR__, 2 ) . '/linked-orders-for-woocommerce.php' ) );

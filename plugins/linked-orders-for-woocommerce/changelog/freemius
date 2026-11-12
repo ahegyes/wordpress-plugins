@@ -1,4 +1,4 @@
 Significance: major
 Type: removed
 
-Freemius: its SDK, its opt-in screens and the dws_lowc_fs_loaded action.
+Freemius: its SDK, its opt-in screens, dws_lowc_fs(), dws_lowc_fs_init(), dws_lowc_fs_settings_url() and the dws_lowc_fs_loaded action.

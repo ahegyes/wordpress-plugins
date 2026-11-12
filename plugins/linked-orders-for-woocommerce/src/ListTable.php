@@ -48,7 +48,7 @@ final class ListTable implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_depth_column( \WP_Screen $screen ): void {
-		$type = $this->can_see() ? self::get_list_type( $screen ) : null;
+		$type = $this->can_see() ? $this->get_list_type( $screen ) : null;
 		if ( \is_null( $type ) ) {
 			return;
 		}
@@ -68,7 +68,7 @@ final class ListTable implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function insert_depth_column( array $columns ): array {
-		$type = self::get_list_type( get_current_screen() );
+		$type = $this->get_list_type( get_current_screen() );
 
 		/**
 		 * Filters the id of the column the depth column follows.
@@ -117,9 +117,11 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$depth = $node->get_depth();
-		$name  = dws_lowc_get_singular_name( $node->get_post_type() );
-		/* translators: 1: The order type's singular name. 2: The order's level, where the root is level 1. */
-		$label = 0 === $depth ? \sprintf( _x( 'Root %s', 'list table content', 'linked-orders-for-woocommerce' ), $name ) : \sprintf( _x( 'Child %1$s (level %2$d)', 'list table content', 'linked-orders-for-woocommerce' ), $name, $depth + 1 );
+		$label = 0 === $depth ? _x( 'Root', 'list table content', 'linked-orders-for-woocommerce' ) : \sprintf(
+			/* translators: %d: The order's level, where the root is level 1. */
+			_x( 'Child (level %d)', 'list table content', 'linked-orders-for-woocommerce' ),
+			$depth + 1
+		);
 
 		/**
 		 * Filters an order's depth label in the orders list.
@@ -156,27 +158,64 @@ final class ListTable implements ComponentInterface {
 	 * @return  void
 	 */
 	public function render_filters( string $type ): void {
-		$post_type = $this->can_see() && \in_array( $type, dws_lowc_get_supported_order_types(), true ) ? get_post_type_object( $type ) : null;
-		if ( \is_null( $post_type ) ) {
+		$post_type = \in_array( $type, dws_lowc_get_supported_order_types(), true ) ? get_post_type_object( $type ) : null;
+		if ( ! $this->can_see() || \is_null( $post_type ) ) {
 			return;
 		}
 
-		$selected = self::get_depth_filter();
-		$name     = dws_lowc_get_singular_name( $post_type );
+		// The Trash view lists trashed orders, and another plugin's order type may register its statuses only as post statuses, so the deepest stored order is read in every status.
+		$deepest  = wc_get_orders(
+			dws_lowc_get_meta_key_args( DWS_LOWC_META_DEPTH ) + array(
+				'type'    => $type,
+				'status'  => \array_values( get_post_stati() ),
+				'limit'   => 1,
+				'return'  => 'ids',
+				'orderby' => 'meta_value_num',
+				'order'   => 'DESC',
+			)
+		);
+		$deepest  = \max( dws_lowc_get_max_depth(), ( \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null ) ?? 0 );
+		$selected = $this->get_depth_filter();
+		$email    = $this->get_guest_email();
+		$pivot    = $this->get_tree_pivot();
 		?>
-		<input type="hidden" name="_guest_customer_user" value="<?php echo esc_attr( self::get_query_arg( '_guest_customer_user' ) ); ?>"/>
-		<input type="hidden" name="_dws_linked_order_id" value="<?php echo esc_attr( self::get_query_arg( '_dws_linked_order_id' ) ); ?>"/>
+		<label class="screen-reader-text" for="dws_lo_depth_filter_dropdown"><?php esc_html_e( 'Filter by depth', 'linked-orders-for-woocommerce' ); ?></label>
+		<input type="hidden" name="_guest_customer_user" value="<?php echo esc_attr( $email ); ?>"/>
+		<input type="hidden" name="_dws_linked_order_id" value="<?php echo esc_attr( (string) $pivot ); ?>"/>
 		<select name="_dws_lo_depth" id="dws_lo_depth_filter_dropdown">
-			<?php /* translators: %s: The order type's singular name. */ ?>
-			<option value=""><?php echo esc_html( \sprintf( __( 'All %s depths', 'linked-orders-for-woocommerce' ), $name ) ); ?></option>
-			<?php /* translators: %s: The order type's plural name. */ ?>
-			<option value="0" <?php selected( 0, $selected ); ?>><?php echo esc_html( \sprintf( _x( 'Root %s', 'list table filter', 'linked-orders-for-woocommerce' ), $post_type->label ) ); ?></option>
-			<?php for ( $depth = 1, $deepest = self::get_deepest_level( $type ); $depth <= $deepest; $depth++ ) : ?>
-				<?php /* translators: 1: The order type's plural name. 2: The level, where the root is level 1. */ ?>
-				<option value="<?php echo esc_attr( (string) $depth ); ?>" <?php selected( $depth, $selected ); ?>><?php echo esc_html( \sprintf( _x( 'Child %1$s (level %2$d)', 'list table filter', 'linked-orders-for-woocommerce' ), $post_type->label, $depth + 1 ) ); ?></option>
+			<option value=""><?php esc_html_e( 'All depths', 'linked-orders-for-woocommerce' ); ?></option>
+			<option value="0" <?php selected( 0, $selected ); ?>><?php echo esc_html_x( 'Roots', 'list table filter', 'linked-orders-for-woocommerce' ); ?></option>
+			<?php for ( $depth = 1; $depth <= $deepest; $depth++ ) : ?>
+				<option value="<?php echo esc_attr( (string) $depth ); ?>" <?php selected( $depth, $selected ); ?>><?php echo esc_html( \sprintf( /* translators: %d: The level, where the root is level 1. */ _x( 'Children (level %d)', 'list table filter', 'linked-orders-for-woocommerce' ), $depth + 1 ) ); ?></option>
 			<?php endfor; ?>
 		</select>
 		<?php
+		$lines = array();
+		if ( '' !== $email ) {
+			$lines['_guest_customer_user'] = \sprintf(
+				/* translators: %s: The billing email address. */
+				__( 'Billed to %s.', 'linked-orders-for-woocommerce' ),
+				$email
+			);
+		}
+
+		if ( ! \is_null( $pivot ) ) {
+			$order                         = wc_get_order( $pivot );
+			$lines['_dws_linked_order_id'] = \sprintf(
+				/* translators: %s: The order number. */
+				__( 'Linked to #%s.', 'linked-orders-for-woocommerce' ),
+				$order instanceof \WC_Order ? $order->get_order_number() : $pivot
+			);
+		}
+
+		foreach ( $lines as $key => $line ) {
+			?>
+			<span class="dws-linked-orders__filter">
+				<?php echo esc_html( $line ); ?>
+				<a href="<?php echo esc_url( remove_query_arg( array( $key, 'paged' ) ) ); ?>"><?php esc_html_e( 'Remove this filter', 'linked-orders-for-woocommerce' ); ?></a>
+			</span>
+			<?php
+		}
 	}
 
 	/**
@@ -195,8 +234,8 @@ final class ListTable implements ComponentInterface {
 			return $query_vars;
 		}
 
-		$clauses = self::get_depth_clauses();
-		$email   = self::get_query_arg( '_guest_customer_user' );
+		$clauses = $this->get_depth_clauses();
+		$email   = $this->get_guest_email();
 		if ( '' !== $email ) {
 			$clauses[] = array(
 				'key'   => '_billing_email',
@@ -205,9 +244,9 @@ final class ListTable implements ComponentInterface {
 		}
 
 		if ( array() !== $clauses ) {
-			$query_vars['meta_query'] = self::add_meta_clauses( $query_vars['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
+			$query_vars['meta_query'] = $this->add_meta_clauses( $query_vars['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
 		}
-		$tree = self::get_tree_filter( $query_vars['post__in'] ?? null );
+		$tree = $this->get_tree_filter( $query_vars['post__in'] ?? null );
 		if ( ! \is_null( $tree ) ) {
 			$query_vars['post__in'] = $tree;
 		}
@@ -230,17 +269,17 @@ final class ListTable implements ComponentInterface {
 			return $args;
 		}
 
-		$email = self::get_query_arg( '_guest_customer_user' );
+		$email = $this->get_guest_email();
 		if ( '' !== $email ) {
 			$args['billing_email'] = $email;
 		}
 
 		// WooCommerce counts the list from its cache only when the query holds none but its own arguments, so an unfiltered list gets no meta query.
-		$clauses = self::get_depth_clauses();
+		$clauses = $this->get_depth_clauses();
 		if ( array() !== $clauses ) {
-			$args['meta_query'] = self::add_meta_clauses( $args['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
+			$args['meta_query'] = $this->add_meta_clauses( $args['meta_query'] ?? null, $clauses ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filters are meta values.
 		}
-		$tree = self::get_tree_filter( $args['id'] ?? null );
+		$tree = $this->get_tree_filter( $args['id'] ?? null );
 		if ( ! \is_null( $tree ) ) {
 			$args['id'] = $tree;
 		}
@@ -260,29 +299,38 @@ final class ListTable implements ComponentInterface {
 	 * @return  array<string, array<string, string>>
 	 */
 	public function add_row_actions( array $actions, \WC_Order $order ): array {
-		$node = $this->can_see() ? dws_lowc_get_order_node( $order ) : null;
+		if ( ! $this->can_see() ) {
+			return $actions;
+		}
+
+		$node = dws_lowc_get_order_node( $order );
 		if ( \is_null( $node ) ) {
 			return $actions;
 		}
 
-		$added     = array();
-		$type      = $node->get_post_type();
-		$list      = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders' . ( 'shop_order' === $type->name ? '' : '--' . $type->name ) ) : admin_url( 'edit.php?post_type=' . $type->name );
-		$customers = 0 !== $order->get_customer_id() ? array( '_customer_user', (string) $order->get_customer_id() ) : array( '_guest_customer_user', \rawurlencode( $order->get_billing_email() ) );
-		if ( '' !== $customers[1] && '' === self::get_query_arg( $customers[0] ) ) {
+		$added          = array();
+		$new_tab        = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
+		$list           = dws_lowc_get_list_url( $node->get_post_type() );
+		$customer_key   = 0 !== $order->get_customer_id() ? '_customer_user' : '_guest_customer_user';
+		$customer_value = 0 !== $order->get_customer_id() ? (string) $order->get_customer_id() : \rawurlencode( $order->get_billing_email() );
+		if ( '' !== $customer_value && ( ! isset( $_GET[ $customer_key ] ) || '' === $_GET[ $customer_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
+			$name                              = __( 'View all from this customer', 'linked-orders-for-woocommerce' );
 			$added['view_all_customer_orders'] = array(
-				'url'    => add_query_arg( $customers[0], $customers[1], $list ),
-				/* translators: %s: The order type's plural name. */
-				'name'   => \sprintf( __( 'View all customer %s', 'linked-orders-for-woocommerce' ), $type->label ),
+				'url'    => add_query_arg( $customer_key, $customer_value, $list ),
+				'name'   => $name,
+				'title'  => "{$name} {$new_tab}",
 				'action' => 'view-all-customer-orders',
 			);
 		}
 
-		if ( '' === self::get_query_arg( '_dws_linked_order_id' ) && ( $node->has_parent() || $node->has_children() ) ) {
+		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
+		$children = $order->get_meta( DWS_LOWC_META_CHILDREN );
+		if ( \is_null( $this->get_tree_pivot() ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
+			$name                            = __( 'View all linked', 'linked-orders-for-woocommerce' );
 			$added['view_all_linked_orders'] = array(
 				'url'    => add_query_arg( '_dws_linked_order_id', $order->get_id(), $list ),
-				/* translators: %s: The order type's plural name. */
-				'name'   => \sprintf( __( 'View all linked %s', 'linked-orders-for-woocommerce' ), $type->label ),
+				'name'   => $name,
+				'title'  => "{$name} {$new_tab}",
 				'action' => 'view-all-linked-orders',
 			);
 		}
@@ -290,8 +338,7 @@ final class ListTable implements ComponentInterface {
 		if ( $node->can_create_child() ) {
 			$added['create_empty_linked_child'] = array(
 				'url'    => dws_lowc_get_create_child_url( $order->get_id() ),
-				/* translators: %s: The order type's singular name. */
-				'name'   => \sprintf( __( 'Create empty linked %s', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $type ) ),
+				'name'   => dws_lowc_get_add_child_phrase( $node->get_post_type() ),
 				'action' => 'create-empty-linked-child',
 			);
 		}
@@ -308,7 +355,7 @@ final class ListTable implements ComponentInterface {
 	 * @return  void
 	 */
 	public function enqueue_assets(): void {
-		if ( ! $this->can_see() || \is_null( self::get_list_type( get_current_screen() ) ) ) {
+		if ( ! $this->can_see() || \is_null( $this->get_list_type( get_current_screen() ) ) ) {
 			return;
 		}
 
@@ -347,7 +394,7 @@ final class ListTable implements ComponentInterface {
 	 *
 	 * @return  string|null
 	 */
-	protected static function get_list_type( ?\WP_Screen $screen ): ?string {
+	protected function get_list_type( ?\WP_Screen $screen ): ?string {
 		foreach ( dws_lowc_get_supported_order_types() as $type ) {
 			if ( ! \is_null( $screen ) && ( OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( $type ) : "edit-$type" ) === $screen->id ) {
 				return $type;
@@ -358,33 +405,6 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the deepest level the depth filter offers: the maximum depth, or the deepest stored order of the type where one is deeper, in any registered status, since the Trash view lists trashed orders and another plugin's order type may register its statuses only as post statuses.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $type The order type.
-	 *
-	 * @return  int
-	 */
-	protected static function get_deepest_level( string $type ): int {
-		// The order tables take the depth key only in a meta query, which the posts store refuses, passing a top-level key to WP_Query instead.
-		$depth   = OrderUtil::custom_orders_table_usage_is_enabled() ? array( 'meta_query' => array( array( 'key' => '_dws_lo_depth' ) ) ) : array( 'meta_key' => '_dws_lo_depth' ); // phpcs:ignore WordPress.DB.SlowDBQuery -- One row, ordered by the depth meta.
-		$deepest = wc_get_orders(
-			$depth + array(
-				'type'    => $type,
-				'status'  => \array_values( get_post_stati() ),
-				'limit'   => 1,
-				'return'  => 'ids',
-				'orderby' => 'meta_value_num',
-				'order'   => 'DESC',
-			)
-		);
-		$stored  = \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null;
-		return \max( dws_lowc_get_max_depth(), $stored ?? 0 );
-	}
-
-	/**
 	 * Returns the depth the list is filtered by, or null when it is not filtered by depth.
 	 *
 	 * @since   2.0.0
@@ -392,9 +412,15 @@ final class ListTable implements ComponentInterface {
 	 *
 	 * @return  int|null
 	 */
-	protected static function get_depth_filter(): ?int {
-		$depth = \filter_var( self::get_query_arg( '_dws_lo_depth' ), \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 0 ) ) );
-		return false === $depth ? null : $depth;
+	protected function get_depth_filter(): ?int {
+		return \filter_var(
+			wp_unslash( $_GET['_dws_lo_depth'] ?? '' ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
+			\FILTER_VALIDATE_INT,
+			array(
+				'options' => array( 'min_range' => 0 ),
+				'flags'   => \FILTER_NULL_ON_FAILURE,
+			)
+		);
 	}
 
 	/**
@@ -405,14 +431,14 @@ final class ListTable implements ComponentInterface {
 	 *
 	 * @return  list<array<int|string, mixed>>
 	 */
-	protected static function get_depth_clauses(): array {
-		$depth = self::get_depth_filter();
+	protected function get_depth_clauses(): array {
+		$depth = $this->get_depth_filter();
 		if ( \is_null( $depth ) ) {
 			return array();
 		}
 
 		$clause = array(
-			'key'   => '_dws_lo_depth',
+			'key'   => DWS_LOWC_META_DEPTH,
 			'value' => (string) $depth,
 		);
 		return array(
@@ -420,7 +446,7 @@ final class ListTable implements ComponentInterface {
 				'relation' => 'OR',
 				$clause,
 				array(
-					'key'     => '_dws_lo_depth',
+					'key'     => DWS_LOWC_META_DEPTH,
 					'compare' => 'NOT EXISTS',
 				),
 			) : $clause,
@@ -428,7 +454,9 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns a meta query that requires both the query already in place and each of the list's clauses, whatever relation the query in place uses.
+	 * Returns a meta query that requires the query in place and each of the list's clauses.
+	 *
+	 * Joining both under AND holds whatever relation the query in place uses.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -438,12 +466,14 @@ final class ListTable implements ComponentInterface {
 	 *
 	 * @return  array<int|string, mixed>
 	 */
-	protected static function add_meta_clauses( mixed $meta_query, array $clauses ): array {
+	protected function add_meta_clauses( mixed $meta_query, array $clauses ): array {
 		return \array_merge( array( 'relation' => 'AND' ), \is_array( $meta_query ) && array() !== $meta_query ? array( $meta_query ) : array(), $clauses );
 	}
 
 	/**
-	 * Returns the ids of the tree the list is filtered by, narrowed to the ids a search found, none for an order without a node, or null when the list is not filtered by tree.
+	 * Returns the ids of the tree the list is filtered by, or null when the list is not filtered by tree.
+	 *
+	 * The ids narrow to those a search found, and an order without a node yields none.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -452,9 +482,9 @@ final class ListTable implements ComponentInterface {
 	 *
 	 * @return  list<int>|null
 	 */
-	protected static function get_tree_filter( mixed $found ): ?array {
-		$pivot = \filter_var( self::get_query_arg( '_dws_linked_order_id' ), \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
-		if ( false === $pivot ) {
+	protected function get_tree_filter( mixed $found ): ?array {
+		$pivot = $this->get_tree_pivot();
+		if ( \is_null( $pivot ) ) {
 			return null;
 		}
 
@@ -470,17 +500,34 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns a list filter from the request, sanitized, or an empty string when it is absent.
+	 * Returns the id of the order whose tree the list is filtered by, or null when it is not filtered by a tree.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $key The filter's query key.
+	 * @return  int|null
+	 */
+	protected function get_tree_pivot(): ?int {
+		return \filter_var(
+			wp_unslash( $_GET['_dws_linked_order_id'] ?? '' ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
+			\FILTER_VALIDATE_INT,
+			array(
+				'options' => array( 'min_range' => 1 ),
+				'flags'   => \FILTER_NULL_ON_FAILURE,
+			)
+		);
+	}
+
+	/**
+	 * Returns the billing email the list is filtered by, or an empty string when it is not filtered by one.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
 	 *
 	 * @return  string
 	 */
-	protected static function get_query_arg( string $key ): string {
-		return isset( $_GET[ $key ] ) && \is_string( $_GET[ $key ] ) ? sanitize_text_field( wp_unslash( $_GET[ $key ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
+	protected function get_guest_email(): string {
+		return \is_string( $_GET['_guest_customer_user'] ?? null ) ? sanitize_text_field( wp_unslash( $_GET['_guest_customer_user'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
 	}
 
 	// endregion

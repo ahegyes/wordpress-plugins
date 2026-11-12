@@ -2,10 +2,14 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
+use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\StoresLinksTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -14,10 +18,18 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class LinkingTest extends TestCase {
+	use CreatesUsersTrait;
 	use OrderStorageTrait;
+	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
+	use StoresLinksTrait;
 
-	protected int $user = 0;
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
+
+	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
+	public static function storages_and_data_caching(): array {
+		return self::storages() + array( 'hpos-with-data-caching' => array( true, false, true ) );
+	}
 
 	#[Before]
 	protected function log_in(): void {
@@ -27,11 +39,6 @@ final class LinkingTest extends TestCase {
 	#[After]
 	protected function log_out(): void {
 		wp_set_current_user( 0 );
-		if ( 0 !== $this->user ) {
-			require_once ABSPATH . 'wp-admin/includes/user.php';
-			wp_delete_user( $this->user );
-			$this->user = 0;
-		}
 	}
 
 	#[DataProvider( 'storages' )]
@@ -95,8 +102,8 @@ final class LinkingTest extends TestCase {
 		global $wpdb;
 		$parent = $this->create_order();
 		$child  = $this->create_order();
-		$php    = '$lock = new DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\Storage\\Lock( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
+		$php    = '$lock = new ' . Lock::class . '( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
+		\exec( self::command( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
 
 		$held  = static fn (): bool => ! \is_null( $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'dws_lowc_linking'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Watches the other request's lock row past the options cache.
 		$tries = 0;
@@ -133,7 +140,6 @@ final class LinkingTest extends TestCase {
 		self::assertGreaterThanOrEqual( 5.0, \microtime( true ) - $started );
 
 		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
-		self::assertFalse( dws_lowc_link_orders( $child->get_id(), $child->get_id() ) );
 		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
 	}
 
@@ -171,6 +177,32 @@ final class LinkingTest extends TestCase {
 		self::assertSame( array( $other->get_id() ), dws_lowc_get_orders_tree( $other->get_id() ) );
 	}
 
+	// v1 linked orders without refusing a cycle, and every node a walk builds reads the supported types, so the filter ends an endless walk rather than letting it hang the suite.
+	#[DataProvider( 'storages' )]
+	public function test_a_walk_stops_at_an_order_it_has_already_visited( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$first  = $this->create_order();
+		$second = $this->create_order();
+		self::store_links( $first, 1, $second->get_id(), array( $second->get_id() ) );
+		self::store_links( $second, 1, $first->get_id(), array( $first->get_id() ) );
+		$nodes = 0;
+		$bound = static function ( array $types ) use ( &$nodes ): array {
+			if ( ++$nodes > 1000 ) {
+				throw new \RuntimeException( 'The walk did not stop.' );
+			}
+
+			return $types;
+		};
+		add_filter( 'dws_lowc/post_type/supported_order_types', $bound );
+
+		try {
+			self::assertSame( array( $first->get_id(), $second->get_id() ), dws_lowc_get_orders_tree( $first->get_id() ) );
+			self::assertSame( $second->get_id(), dws_lowc_get_root_order( $first->get_id() )?->get_id() );
+		} finally {
+			remove_filter( 'dws_lowc/post_type/supported_order_types', $bound );
+		}
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_an_order_that_is_missing_or_not_supported_has_no_node( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
@@ -194,17 +226,56 @@ final class LinkingTest extends TestCase {
 		self::assertTrue( dws_lowc_is_supported_order( $order->get_id() ) );
 	}
 
+	// The depth column, the depth filter and the maximum depth read the stored depth, so the children of an order deleted for good become roots in their meta, while a trashed order, which can come back, keeps them.
 	#[DataProvider( 'storages' )]
-	public function test_a_child_whose_parent_was_deleted_is_its_own_root( bool $hpos, bool $sync ): void {
+	public function test_an_order_deleted_for_good_leaves_its_children_as_roots( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent     = $this->create_order();
+		$child      = $this->create_order();
+		$grandchild = $this->create_order();
+		$sibling    = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $child->get_id(), $grandchild->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $sibling->get_id() ) );
+
+		wc_get_order( $parent->get_id() )->delete();
+		self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_id() );
+
+		wc_get_order( $parent->get_id() )->delete( true );
+
+		foreach ( array( $child, $sibling ) as $root ) {
+			$stored = wc_get_order( $root->get_id() );
+			self::assertSame( '0', (string) $stored->get_meta( '_dws_lo_depth' ) );
+			self::assertSame( '', (string) $stored->get_meta( '_dws_lo_parent' ) );
+			self::assertTrue( dws_lowc_is_root_order( $root->get_id() ) );
+		}
+
+		self::assertSame( '1', (string) wc_get_order( $grandchild->get_id() )->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( $child->get_id(), dws_lowc_get_root_order( $grandchild->get_id() )?->get_id() );
+		self::assertSame( array( $child->get_id(), $grandchild->get_id() ), dws_lowc_get_orders_tree( $child->get_id() ) );
+	}
+
+	// The posts storage's orders list and WordPress's scheduled trash emptying delete an order through the posts API, which fires no WooCommerce action, while on the order tables the order's post is a placeholder WordPress deletes or a copy WooCommerce keeps.
+	#[DataProvider( 'storages' )]
+	public function test_deleting_an_order_post_for_good_roots_its_children_only_on_the_posts_storage( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$parent = $this->create_order();
 		$child  = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
 
-		$parent->delete( true );
+		try {
+			self::assertSame( ! ( $hpos && $sync ), wp_delete_post( $parent->get_id(), true ) instanceof \WP_Post );
 
-		self::assertSame( $child->get_id(), dws_lowc_get_root_order( $child->get_id() )?->get_id() );
-		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
+			$stored = wc_get_order( $child->get_id() );
+			self::assertSame( $hpos, wc_get_order( $parent->get_id() ) instanceof \WC_Order );
+			self::assertSame( $hpos ? '1' : '0', (string) $stored->get_meta( '_dws_lo_depth' ) );
+			self::assertSame( $hpos ? (string) $parent->get_id() : '', (string) $stored->get_meta( '_dws_lo_parent' ) );
+		} finally {
+			// Deleted the usual way, an order whose placeholder is gone leaves a deletion still to sync, which the tests site's next start refuses, so its order-tables rows go directly.
+			if ( $hpos && ! $sync ) {
+				wc_get_container()->get( OrdersTableDataStore::class )->delete_order_data_from_custom_order_tables( $parent->get_id() );
+			}
+		}
 	}
 
 	#[DataProvider( 'storages' )]
@@ -227,34 +298,37 @@ final class LinkingTest extends TestCase {
 		new \DWS_Order_Node( \PHP_INT_MAX );
 	}
 
+	// A user who may edit orders may still not edit another user's, which WooCommerce checks before it opens one.
+	#[DataProvider( 'storages' )]
+	public function test_a_child_is_created_only_by_a_user_who_may_edit_that_order( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order  = $this->create_order();
+		$user   = $this->create_user( 'dws-lowc-linking-editor', 'subscriber' );
+		$editor = new \WP_User( $user );
+		$editor->add_cap( 'edit_shop_orders' );
+		$editor->add_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN );
+
+		self::assertFalse( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $user ) );
+
+		$editor->add_cap( 'edit_others_shop_orders' );
+		self::assertTrue( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $user ) );
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_a_child_can_be_created_below_the_maximum_depth_by_a_user_who_may_edit_the_order( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$root  = $this->create_order();
 		$child = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
-		$stored = get_option( DWS_LOWC_OPTION_MAX_DEPTH );
 
-		try {
-			update_option( DWS_LOWC_OPTION_MAX_DEPTH, '1' );
-			self::assertTrue( dws_lowc_get_order_node( $root->get_id() )?->can_create_child() );
-			self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
+		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '1' );
+		self::assertTrue( dws_lowc_get_order_node( $root->get_id() )?->can_create_child() );
+		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
-			update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
-			self::assertTrue( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
-		} finally {
-			update_option( DWS_LOWC_OPTION_MAX_DEPTH, $stored );
-		}
+		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
+		self::assertTrue( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
-		$this->user = wp_insert_user(
-			array(
-				'user_login' => 'dws-lowc-linking-customer',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'customer',
-			)
-		);
-		self::assertIsInt( $this->user );
-		self::assertFalse( dws_lowc_get_order_node( $root->get_id() )?->can_create_child( $this->user ) );
+		self::assertFalse( dws_lowc_get_order_node( $root->get_id() )?->can_create_child( $this->create_user( 'dws-lowc-linking-customer', 'customer' ) ) );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -338,7 +412,7 @@ final class LinkingTest extends TestCase {
 		$this->use_storage( $hpos, $sync );
 		$parent  = $this->create_order();
 		$created = 0;
-		$record  = function ( \WC_Order $child ) use ( &$created ): void {
+		$record  = static function ( \WC_Order $child ) use ( &$created ): void {
 			$created = $child->get_id();
 		};
 		add_action( 'dws_lowc/linked_order/created', $record );
@@ -359,17 +433,98 @@ final class LinkingTest extends TestCase {
 		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
 	}
 
+	// WooCommerce's creator opens and saves the order an order_id names, and a refused link deletes what the creator returned.
+	#[DataProvider( 'storages' )]
+	public function test_a_linked_child_is_not_created_from_the_parent_or_an_order_already_linked( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+		$root   = $this->create_order();
+		$linked = $this->create_order();
+		$parent->set_address( array( 'city' => 'London' ), 'billing' );
+		$parent->save();
+		$linked->set_address( array( 'city' => 'Paris' ), 'billing' );
+		$linked->save();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $linked->get_id() ) );
+		$wrong = array();
+		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		$record = static function ( string $function_name ) use ( &$wrong ): void {
+			$wrong[] = $function_name;
+		};
+		add_action( 'doing_it_wrong_run', $record );
+
+		try {
+			self::assertNull( dws_lowc_create_linked_child( $parent->get_id(), array( 'order_id' => $parent->get_id() ) ) );
+			self::assertNull( dws_lowc_create_linked_child( $parent->get_id(), array( 'order_id' => $linked->get_id() ) ) );
+		} finally {
+			remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+			remove_action( 'doing_it_wrong_run', $record );
+		}
+
+		self::assertSame( array( 'dws_lowc_create_linked_child', 'dws_lowc_create_linked_child' ), $wrong );
+		foreach ( array( $parent, $linked ) as $order ) {
+			$stored = wc_get_order( $order->get_id() );
+			self::assertInstanceOf( \WC_Order::class, $stored );
+			self::assertSame( '', $stored->get_meta( '_dws_lo_created_by' ) );
+		}
+
+		self::assertSame( 'Paris', wc_get_order( $linked->get_id() )->get_billing_city() );
+		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+		self::assertSame( $root->get_id(), dws_lowc_get_order_node( $linked->get_id() )?->get_parent()?->get_id() );
+	}
+
+	// WooCommerce catches what a save throws and logs it, as it does a failed database write, so a link reads the child's parent back before it saves the parent.
+	#[DataProvider( 'storages' )]
+	public function test_a_link_is_refused_and_the_parent_left_unsaved_when_the_child_is_not_saved( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+		$child  = $this->create_order();
+		$fail   = self::fail_saving( $child->get_id() );
+
+		try {
+			self::assertFalse( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		} finally {
+			remove_action( 'woocommerce_before_order_object_save', $fail );
+		}
+
+		self::assertSame( '', wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
+		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_a_linked_child_that_is_not_saved_is_deleted_and_an_error_returned( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent  = $this->create_order();
+		$created = 0;
+		$fail    = null;
+		$record  = static function ( \WC_Order $child ) use ( &$created, &$fail ): void {
+			$created = $child->get_id();
+			$fail    = self::fail_saving( $created );
+		};
+		add_action( 'dws_lowc/linked_order/created', $record );
+
+		try {
+			$result = dws_lowc_create_linked_child( $parent->get_id() );
+		} finally {
+			remove_action( 'dws_lowc/linked_order/created', $record );
+			if ( $fail instanceof \Closure ) {
+				remove_action( 'woocommerce_before_order_object_save', $fail );
+			}
+		}
+
+		$this->orders[] = \is_int( $result ) ? $result : $created;
+		self::assertInstanceOf( \WP_Error::class, $result );
+		self::assertSame( 'dws_lowc_link_refused', $result->get_error_code() );
+		self::assertFalse( wc_get_order( $created ) );
+		self::assertSame( '', wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_a_creator_error_is_returned( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$error = new \WP_Error( 'failed', 'Failed.' );
 
 		self::assertSame( $error, dws_lowc_create_linked_child( $this->create_order()->get_id(), array( 'create_function' => static fn (): \WP_Error => $error ) ) );
-	}
-
-	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
-	public static function storages_and_data_caching(): array {
-		return self::storages() + array( 'hpos-with-data-caching' => array( true, false, true ) );
 	}
 
 	// The trait keeps the order tables' data caching off, which these rows also need on.
@@ -379,6 +534,16 @@ final class LinkingTest extends TestCase {
 		remove_filter( $hook, $this->storage_filters[ $hook ] );
 		$this->storage_filters[ $hook ] = static fn (): string => $caching ? 'yes' : 'no';
 		add_filter( $hook, $this->storage_filters[ $hook ] );
+	}
+
+	protected static function fail_saving( int $order_id ): \Closure {
+		$fail = static function ( \WC_Order $order ) use ( $order_id ): void {
+			if ( $order_id === $order->get_id() ) {
+				throw new \RuntimeException( 'The save failed.' );
+			}
+		};
+		add_action( 'woocommerce_before_order_object_save', $fail );
+		return $fail;
 	}
 
 	// The other request runs on the row's storage, as the shared tests site stores orders on the order tables.

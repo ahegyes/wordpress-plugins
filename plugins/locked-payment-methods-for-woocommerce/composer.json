@@ -58,11 +58,11 @@
 		"johnpbloch/wordpress-core": "^7.1",
 		"laravel/serializable-closure": "^2.2",
 		"php-di/php-di": "^7.1.1",
-		"php-stubs/woocommerce-stubs": "^11.2",
+		"php-stubs/woocommerce-stubs": "^11.3",
 		"phpunit/phpunit": "^13",
 		"pronamic/changelog-md-to-wordpress-plugin-readme-txt": "^1.0",
 		"wp-plugin/groups": "^4.8",
-		"wp-plugin/woocommerce": "^11.2"
+		"wp-plugin/woocommerce": "^11.3"
 	},
 
 	"minimum-stability": "dev",

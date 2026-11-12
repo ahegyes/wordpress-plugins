@@ -7,11 +7,29 @@ use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PluginBootTest extends TestCase {
 	use RunsRequestsTrait;
+
+	public static function debug_definitions(): array {
+		return array(
+			'true' => array( 'true', 100 ),
+			'yes'  => array( "'yes'", 100 ),
+			'one'  => array( '1', 100 ),
+			'no'   => array( "'no'", null ),
+		);
+	}
+
+	// v1 read the debug constant as a boolean, so a site that defines it as 'yes' or 1 still logs debug records.
+	#[DataProvider( 'debug_definitions' )]
+	public function test_the_debug_constant_reads_as_a_boolean_as_v1_read_it( string $definition, ?int $threshold ): void {
+		$request = self::request( '$plugin = dws_lowc_plugin(); $logger = new ReflectionProperty( $plugin, "logger" )->getValue( $plugin ); echo wp_json_encode( new ReflectionProperty( $logger, "threshold" )->getValue( $logger ) );', "--exec=define( 'DWS_LOWC_DEBUG', {$definition} );" );
+
+		self::assertSame( wp_json_encode( $threshold ), $request['last'] );
+	}
 
 	public function test_the_plugin_boots_every_component_but_the_integration_with_an_absent_plugin(): void {
 		$plugin = dws_lowc_plugin();
@@ -58,8 +76,15 @@ final class PluginBootTest extends TestCase {
 		self::assertLessThan( $bootstrap, $safeguards );
 	}
 
-	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {
+	// The update's second step runs its batches only from the runner's scheduled hook, so from the revision before it a request of its own fires the hook as the scheduler would, and this process then reads the revision afresh.
+	public function test_the_stored_data_reaches_the_revision_of_the_code_once_the_runners_hook_runs(): void {
 		self::assertInstanceOf( MigrationRunner::class, dws_lowc_plugin()->migrations );
+		update_option( Plugin::PREFIX . '_revision', 1 );
+
+		$request = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
+		wp_cache_flush();
+
+		self::assertSame( 0, $request['status'], $request['output'] );
 		self::assertSame( \count( dws_lowc_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 	}
 

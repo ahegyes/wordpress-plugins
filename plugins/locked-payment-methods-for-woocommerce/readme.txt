@@ -30,7 +30,7 @@ Developers can lock and unlock payment methods by their own rules through the pl
 
 == Installation ==
 
-This plugin requires WooCommerce 11.2 or newer. If you're running a lower version, please update it first.
+This plugin requires WooCommerce 11.3 or newer. If you're running a lower version, please update it first.
 
 ### INSTALL FROM WITHIN WORDPRESS
 
@@ -46,7 +46,7 @@ This plugin requires WooCommerce 11.2 or newer. If you're running a lower versio
 
 ### AFTER ACTIVATION
 
-If WooCommerce 11.2 or newer is active, you will find a section called `Locked Payment Methods` under `WooCommerce` → `Settings` → `Advanced`, which the plugin's `Settings` link on the `Plugins` page also opens. There you will be able to:
+If WooCommerce 11.3 or newer is active, you will find a section called `Locked Payment Methods` under `WooCommerce` → `Settings` → `Advanced`, which the plugin's `Settings` link on the `Plugins` page also opens. There you will be able to:
 
 1. Choose which payment methods are locked by default.
 1. Choose which ways of unlocking them you use, and which user roles have access to every payment method.
@@ -79,7 +79,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.2. Settings move to WooCommerce → Settings → Advanced, and a customer's unlocked payment methods become per site. Only an explicit false unlocks a payment method. Read the changelog before updating.
+Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.3. Settings move to WooCommerce → Settings → Advanced, and a customer's unlocked payment methods become per site. Only an explicit false unlocks a payment method. Read the changelog before updating.
 
 == Changelog ==
 

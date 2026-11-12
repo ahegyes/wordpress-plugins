@@ -8,7 +8,8 @@ use PHPUnit\Framework\Attributes\Before;
 trait RestoresOptionsTrait {
 	protected array $stored_options = array();
 
-	#[Before]
+	// The snapshot runs before every other hook, so a class's own setup cannot taint it.
+	#[Before( priority: 1 )]
 	protected function store_options(): void {
 		foreach ( self::OPTIONS as $key ) {
 			$this->stored_options[ $key ] = get_option( $key );
