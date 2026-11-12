@@ -134,7 +134,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	}
 
 	/**
-	 * Adds the link to the plugin's section to its row on the Plugins screen.
+	 * Adds the link to the plugin's section first in its row on the Plugins screen, under v1's settings key.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -144,12 +144,11 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 * @return  string[]
 	 */
 	public function add_settings_link( array $links ): array {
-		\array_unshift( $links, \sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), esc_html__( 'Settings', 'linked-orders-for-woocommerce' ) ) );
-		return $links;
+		return array( 'settings' => \sprintf( '<a href="%s" aria-label="%s">%s</a>', esc_url( admin_url( 'admin.php?page=wc-settings&tab=advanced&section=' . self::SECTION ) ), esc_attr__( 'View settings', 'linked-orders-for-woocommerce' ), esc_html__( 'Settings', 'linked-orders-for-woocommerce' ) ) ) + $links;
 	}
 
 	/**
-	 * Adds the link to the plugin's support forum to its row on the Plugins screen.
+	 * Adds the link to the plugin's support forum to its row on the Plugins screen, under v1's support key.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -161,7 +160,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 */
 	public function add_support_link( array $meta, string $basename ): array {
 		if ( plugin_basename( DWS_LOWC_FILE ) === $basename ) {
-			$meta[] = \sprintf( '<a href="%s">%s</a>', esc_url( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/' ), esc_html__( 'Community support', 'linked-orders-for-woocommerce' ) );
+			$meta['support'] = \sprintf( '<a href="%s" aria-label="%s">%s</a>', esc_url( 'https://wordpress.org/support/plugin/linked-orders-for-woocommerce/' ), esc_attr__( 'Visit community forums', 'linked-orders-for-woocommerce' ), esc_html__( 'Community support', 'linked-orders-for-woocommerce' ) );
 		}
 
 		return $meta;
