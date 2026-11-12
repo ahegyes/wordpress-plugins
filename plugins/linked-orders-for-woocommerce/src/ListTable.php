@@ -164,6 +164,8 @@ final class ListTable implements ComponentInterface {
 		$selected = self::get_depth_filter();
 		$name     = dws_lowc_get_singular_name( $post_type );
 		?>
+		<?php /* translators: %s: The order type's singular name. */ ?>
+		<label class="screen-reader-text" for="dws_lo_depth_filter_dropdown"><?php echo esc_html( \sprintf( __( '%s depth', 'linked-orders-for-woocommerce' ), $name ) ); ?></label>
 		<input type="hidden" name="_guest_customer_user" value="<?php echo esc_attr( self::get_query_arg( '_guest_customer_user' ) ); ?>"/>
 		<input type="hidden" name="_dws_linked_order_id" value="<?php echo esc_attr( self::get_query_arg( '_dws_linked_order_id' ) ); ?>"/>
 		<select name="_dws_lo_depth" id="dws_lo_depth_filter_dropdown">
@@ -266,14 +268,17 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$added     = array();
+		$new_tab   = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
 		$type      = $node->get_post_type();
 		$list      = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders' . ( 'shop_order' === $type->name ? '' : '--' . $type->name ) ) : admin_url( 'edit.php?post_type=' . $type->name );
 		$customers = 0 !== $order->get_customer_id() ? array( '_customer_user', (string) $order->get_customer_id() ) : array( '_guest_customer_user', \rawurlencode( $order->get_billing_email() ) );
 		if ( '' !== $customers[1] && '' === self::get_query_arg( $customers[0] ) ) {
+			/* translators: %s: The order type's plural name. */
+			$name                              = \sprintf( __( 'View all customer %s', 'linked-orders-for-woocommerce' ), $type->label );
 			$added['view_all_customer_orders'] = array(
 				'url'    => add_query_arg( $customers[0], $customers[1], $list ),
-				/* translators: %s: The order type's plural name. */
-				'name'   => \sprintf( __( 'View all customer %s', 'linked-orders-for-woocommerce' ), $type->label ),
+				'name'   => $name,
+				'title'  => "{$name} {$new_tab}",
 				'action' => 'view-all-customer-orders',
 			);
 		}
@@ -281,10 +286,12 @@ final class ListTable implements ComponentInterface {
 		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
 		$children = $order->get_meta( '_dws_lo_children' );
 		if ( '' === self::get_query_arg( '_dws_linked_order_id' ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
+			/* translators: %s: The order type's plural name. */
+			$name                            = \sprintf( __( 'View all linked %s', 'linked-orders-for-woocommerce' ), $type->label );
 			$added['view_all_linked_orders'] = array(
 				'url'    => add_query_arg( '_dws_linked_order_id', $order->get_id(), $list ),
-				/* translators: %s: The order type's plural name. */
-				'name'   => \sprintf( __( 'View all linked %s', 'linked-orders-for-woocommerce' ), $type->label ),
+				'name'   => $name,
+				'title'  => "{$name} {$new_tab}",
 				'action' => 'view-all-linked-orders',
 			);
 		}

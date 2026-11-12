@@ -70,12 +70,14 @@ final class MetaBox implements ComponentInterface {
 		$parent     = $node->get_parent();
 		$can_create = $node->can_create_child();
 		$type_name  = dws_lowc_get_singular_name( $node->get_post_type() );
+		$new_tab    = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
 		if ( ! \is_null( $parent ) ) {
 			?>
 			<div class="dws-linked-orders__parent">
 				<?php echo esc_html_x( 'Parent', 'metabox', 'linked-orders-for-woocommerce' ); ?>:
 				<a href="<?php echo esc_url( $parent->get_order()->get_edit_order_url() ); ?>" target="_blank">
 					<?php echo wp_kses_post( $parent->get_formatted_name() ); ?>
+					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
 				</a>
 			</div>
 			<hr/>
@@ -101,6 +103,7 @@ final class MetaBox implements ComponentInterface {
 						<li id="linked-order-<?php echo esc_attr( (string) $child->get_order()->get_id() ); ?>" class="dws-linked-order">
 							<a href="<?php echo esc_url( $child->get_order()->get_edit_order_url() ); ?>" target="_blank">
 								<?php echo wp_kses_post( $child->get_formatted_name() ); ?>
+								<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
 							</a>
 						</li>
 					<?php endforeach; ?>
