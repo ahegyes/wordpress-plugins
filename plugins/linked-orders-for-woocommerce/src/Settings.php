@@ -29,7 +29,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 *
 	 * @var     string
 	 */
-	public const string SECTION = 'dws-linked-orders';
+	protected const string SECTION = 'dws-linked-orders';
 
 	// endregion
 
