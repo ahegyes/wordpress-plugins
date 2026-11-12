@@ -69,12 +69,11 @@ final class MetaBox implements ComponentInterface {
 
 		$parent     = $node->get_parent();
 		$can_create = $node->can_create_child();
-		$type_name  = dws_lowc_get_singular_name( $node->get_post_type() );
 		$new_tab    = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
 		if ( ! \is_null( $parent ) ) {
 			?>
 			<div class="dws-linked-orders__parent">
-				<?php echo esc_html_x( 'Parent', 'metabox', 'linked-orders-for-woocommerce' ); ?>:
+				<?php echo esc_html_x( 'Parent:', 'metabox', 'linked-orders-for-woocommerce' ); ?>
 				<a href="<?php echo esc_url( $parent->get_order()->get_edit_order_url() ); ?>" target="_blank">
 					<?php echo wp_kses_post( $parent->get_formatted_name() ); ?>
 					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
@@ -89,15 +88,14 @@ final class MetaBox implements ComponentInterface {
 			<div class="dws-linked-orders__no-children">
 				<?php esc_html_e( 'There are no attached children.', 'linked-orders-for-woocommerce' ); ?>
 				<?php if ( ! $can_create ) : ?>
-					<?php /* translators: %s: The order type's singular name. */ ?>
-					<?php echo esc_html( \sprintf( _x( 'New children cannot be added to this %s.', 'metabox', 'linked-orders-for-woocommerce' ), $type_name ) ); ?>
+					<?php echo esc_html( dws_lowc_get_child_refusal( $node ) ); ?>
 				<?php endif; ?>
 			</div>
 			<?php
 		} else {
 			?>
 			<div class="dws-linked-orders__children">
-				<?php esc_html_e( 'Attached children', 'linked-orders-for-woocommerce' ); ?>:
+				<?php esc_html_e( 'Attached children:', 'linked-orders-for-woocommerce' ); ?>
 				<ul class="dws-linked-orders__children-list">
 					<?php foreach ( $node->get_children() as $child ) : ?>
 						<li id="linked-order-<?php echo esc_attr( (string) $child->get_order()->get_id() ); ?>" class="dws-linked-order">
@@ -112,14 +110,24 @@ final class MetaBox implements ComponentInterface {
 			<?php
 		}
 
+		if ( ! \is_null( $parent ) || $node->has_children() ) {
+			?>
+			<p>
+				<a class="dws-linked-orders__tree" href="<?php echo esc_url( add_query_arg( '_dws_linked_order_id', $node->get_order()->get_id(), dws_lowc_get_list_url( $node->get_post_type() ) ) ); ?>" target="_blank">
+					<?php esc_html_e( 'View all linked orders', 'linked-orders-for-woocommerce' ); ?>
+					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
+				</a>
+			</p>
+			<?php
+		}
+
 		if ( ! $can_create ) {
 			return;
 		}
 
 		?>
 		<a class="button button-alt" href="<?php echo esc_url( dws_lowc_get_create_child_url( $node->get_order()->get_id() ) ); ?>">
-			<?php /* translators: %s: The order type's singular name. */ ?>
-			<?php echo esc_html( \sprintf( _x( 'Add new child %s', 'metabox', 'linked-orders-for-woocommerce' ), $type_name ) ); ?>
+			<?php echo esc_html_x( 'Add new child order', 'metabox', 'linked-orders-for-woocommerce' ); ?>
 		</a>
 		<?php
 

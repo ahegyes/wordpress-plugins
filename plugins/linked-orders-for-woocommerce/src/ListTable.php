@@ -117,9 +117,8 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$depth = $node->get_depth();
-		$name  = dws_lowc_get_singular_name( $node->get_post_type() );
-		/* translators: 1: The order type's singular name. 2: The order's level, where the root is level 1. */
-		$label = 0 === $depth ? \sprintf( _x( 'Root %s', 'list table content', 'linked-orders-for-woocommerce' ), $name ) : \sprintf( _x( 'Child %1$s (level %2$d)', 'list table content', 'linked-orders-for-woocommerce' ), $name, $depth + 1 );
+		/* translators: %d: The order's level, where the root is level 1. */
+		$label = 0 === $depth ? _x( 'Root order', 'list table content', 'linked-orders-for-woocommerce' ) : \sprintf( _x( 'Child order (level %d)', 'list table content', 'linked-orders-for-woocommerce' ), $depth + 1 );
 
 		/**
 		 * Filters an order's depth label in the orders list.
@@ -169,16 +168,36 @@ final class ListTable implements ComponentInterface {
 		<input type="hidden" name="_guest_customer_user" value="<?php echo esc_attr( self::get_query_arg( '_guest_customer_user' ) ); ?>"/>
 		<input type="hidden" name="_dws_linked_order_id" value="<?php echo esc_attr( self::get_query_arg( '_dws_linked_order_id' ) ); ?>"/>
 		<select name="_dws_lo_depth" id="dws_lo_depth_filter_dropdown">
-			<?php /* translators: %s: The order type's singular name. */ ?>
-			<option value=""><?php echo esc_html( \sprintf( __( 'All %s depths', 'linked-orders-for-woocommerce' ), $name ) ); ?></option>
-			<?php /* translators: %s: The order type's plural name. */ ?>
-			<option value="0" <?php selected( 0, $selected ); ?>><?php echo esc_html( \sprintf( _x( 'Root %s', 'list table filter', 'linked-orders-for-woocommerce' ), $post_type->label ) ); ?></option>
+			<option value=""><?php esc_html_e( 'All depths', 'linked-orders-for-woocommerce' ); ?></option>
+			<option value="0" <?php selected( 0, $selected ); ?>><?php echo esc_html_x( 'Root orders', 'list table filter', 'linked-orders-for-woocommerce' ); ?></option>
 			<?php for ( $depth = 1, $deepest = self::get_deepest_level( $type ); $depth <= $deepest; $depth++ ) : ?>
-				<?php /* translators: 1: The order type's plural name. 2: The level, where the root is level 1. */ ?>
-				<option value="<?php echo esc_attr( (string) $depth ); ?>" <?php selected( $depth, $selected ); ?>><?php echo esc_html( \sprintf( _x( 'Child %1$s (level %2$d)', 'list table filter', 'linked-orders-for-woocommerce' ), $post_type->label, $depth + 1 ) ); ?></option>
+				<?php /* translators: %d: The level, where the root is level 1. */ ?>
+				<option value="<?php echo esc_attr( (string) $depth ); ?>" <?php selected( $depth, $selected ); ?>><?php echo esc_html( \sprintf( _x( 'Child orders (level %d)', 'list table filter', 'linked-orders-for-woocommerce' ), $depth + 1 ) ); ?></option>
 			<?php endfor; ?>
 		</select>
 		<?php
+		$lines = array();
+		$email = self::get_query_arg( '_guest_customer_user' );
+		if ( '' !== $email ) {
+			/* translators: %s: The billing email address. */
+			$lines['_guest_customer_user'] = \sprintf( __( 'Showing orders billed to %s.', 'linked-orders-for-woocommerce' ), $email );
+		}
+
+		$pivot = self::get_tree_pivot();
+		if ( ! \is_null( $pivot ) ) {
+			$order = wc_get_order( $pivot );
+			/* translators: %s: The order number. */
+			$lines['_dws_linked_order_id'] = \sprintf( __( 'Showing orders linked to #%s.', 'linked-orders-for-woocommerce' ), $order instanceof \WC_Order ? $order->get_order_number() : $pivot );
+		}
+
+		foreach ( $lines as $key => $line ) {
+			?>
+			<span class="dws-linked-orders__filter">
+				<?php echo esc_html( $line ); ?>
+				<a href="<?php echo esc_url( remove_query_arg( array( $key, 'paged' ) ) ); ?>"><?php esc_html_e( 'Remove this filter', 'linked-orders-for-woocommerce' ); ?></a>
+			</span>
+			<?php
+		}
 	}
 
 	/**
@@ -269,12 +288,10 @@ final class ListTable implements ComponentInterface {
 
 		$added     = array();
 		$new_tab   = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
-		$type      = $node->get_post_type();
-		$list      = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders' . ( 'shop_order' === $type->name ? '' : '--' . $type->name ) ) : admin_url( 'edit.php?post_type=' . $type->name );
+		$list      = dws_lowc_get_list_url( $node->get_post_type() );
 		$customers = 0 !== $order->get_customer_id() ? array( '_customer_user', (string) $order->get_customer_id() ) : array( '_guest_customer_user', \rawurlencode( $order->get_billing_email() ) );
 		if ( '' !== $customers[1] && '' === self::get_query_arg( $customers[0] ) ) {
-			/* translators: %s: The order type's plural name. */
-			$name                              = \sprintf( __( 'View all customer %s', 'linked-orders-for-woocommerce' ), $type->label );
+			$name                              = __( 'View all customer orders', 'linked-orders-for-woocommerce' );
 			$added['view_all_customer_orders'] = array(
 				'url'    => add_query_arg( $customers[0], $customers[1], $list ),
 				'name'   => $name,
@@ -286,8 +303,7 @@ final class ListTable implements ComponentInterface {
 		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
 		$children = $order->get_meta( '_dws_lo_children' );
 		if ( '' === self::get_query_arg( '_dws_linked_order_id' ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
-			/* translators: %s: The order type's plural name. */
-			$name                            = \sprintf( __( 'View all linked %s', 'linked-orders-for-woocommerce' ), $type->label );
+			$name                            = __( 'View all linked orders', 'linked-orders-for-woocommerce' );
 			$added['view_all_linked_orders'] = array(
 				'url'    => add_query_arg( '_dws_linked_order_id', $order->get_id(), $list ),
 				'name'   => $name,
@@ -299,8 +315,7 @@ final class ListTable implements ComponentInterface {
 		if ( $node->can_create_child() ) {
 			$added['create_empty_linked_child'] = array(
 				'url'    => dws_lowc_get_create_child_url( $order->get_id() ),
-				/* translators: %s: The order type's singular name. */
-				'name'   => \sprintf( __( 'Create empty linked %s', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $type ) ),
+				'name'   => __( 'Create empty linked order', 'linked-orders-for-woocommerce' ),
 				'action' => 'create-empty-linked-child',
 			);
 		}
@@ -462,8 +477,8 @@ final class ListTable implements ComponentInterface {
 	 * @return  list<int>|null
 	 */
 	protected static function get_tree_filter( mixed $found ): ?array {
-		$pivot = \filter_var( self::get_query_arg( '_dws_linked_order_id' ), \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
-		if ( false === $pivot ) {
+		$pivot = self::get_tree_pivot();
+		if ( \is_null( $pivot ) ) {
 			return null;
 		}
 
@@ -476,6 +491,19 @@ final class ListTable implements ComponentInterface {
 
 		// An empty list would drop the filter, so an id no order has keeps the list empty.
 		return array() === $tree ? array( 0 ) : \array_values( $tree );
+	}
+
+	/**
+	 * Returns the id of the order whose tree the list is filtered by, or null when it is not filtered by a tree.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  int|null
+	 */
+	protected static function get_tree_pivot(): ?int {
+		$pivot = \filter_var( self::get_query_arg( '_dws_linked_order_id' ), \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
+		return false === $pivot ? null : $pivot;
 	}
 
 	/**

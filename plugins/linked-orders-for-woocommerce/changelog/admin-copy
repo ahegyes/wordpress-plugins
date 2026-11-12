@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+Notices say why no child can be created, naming the maximum depth setting where it applies, and name orders by number; the maximum depth help shows under its field, the data-removal setting says that the links between orders are deleted too, and labels read in sentence case.

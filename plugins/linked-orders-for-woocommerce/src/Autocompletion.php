@@ -115,8 +115,7 @@ final class Autocompletion implements ComponentInterface {
 				 */
 				$status = apply_filters( 'dws_lowc/autocompletion/completed_status', $status, $node->get_order() );
 
-				/* translators: %s: The order type's singular name. */
-				$node->get_order()->update_status( $status, \sprintf( __( 'Child %s autocompleted.', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $node->get_post_type() ) ) );
+				$node->get_order()->update_status( $status, __( 'Child order autocompleted.', 'linked-orders-for-woocommerce' ) );
 			}
 		} finally {
 			$this->covered = \array_diff_key( $this->covered, $pass );

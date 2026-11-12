@@ -125,6 +125,39 @@ function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_o
 }
 
 /**
+ * Returns the URL of an order type's admin list, on the storage WooCommerce uses for orders.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   WP_Post_Type $post_type The post type object of the order type.
+ *
+ * @return  string
+ */
+function dws_lowc_get_list_url( WP_Post_Type $post_type ): string {
+	return OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders' . ( 'shop_order' === $post_type->name ? '' : '--' . $post_type->name ) ) : admin_url( 'edit.php?post_type=' . $post_type->name );
+}
+
+/**
+ * Returns why no child can be created from an order, naming the setting where the order is at the maximum depth.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   DWS_Order_Node $node The order's node.
+ *
+ * @return  string
+ */
+function dws_lowc_get_child_refusal( DWS_Order_Node $node ): string {
+	$number = $node->get_order()->get_order_number();
+	return dws_lowc_get_max_depth() <= $node->get_depth()
+		/* translators: %s: The order number. */
+		? sprintf( __( 'Order #%s is at the maximum linked orders depth, set under WooCommerce > Settings > Advanced > Linked Orders.', 'linked-orders-for-woocommerce' ), $number )
+		/* translators: %s: The order number. */
+		: sprintf( __( 'No linked child can be created for order #%s.', 'linked-orders-for-woocommerce' ), $number );
+}
+
+/**
  * Returns the URL that creates a linked child of an order through the plugin's admin-post action, with its nonce.
  *
  * @since   2.0.0
@@ -237,7 +270,7 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 	$child->save();
 	if ( true !== dws_lowc_link_orders( $parent_id, $child->get_id() ) ) {
 		$child->delete( true );
-		return new WP_Error( 'dws_lowc_link_refused', __( 'another order was being linked at the same time. Please try again.', 'linked-orders-for-woocommerce' ) );
+		return new WP_Error( 'dws_lowc_link_refused', __( 'Another order was being linked at the same time. Try again.', 'linked-orders-for-woocommerce' ) );
 	}
 
 	return $child->get_id();

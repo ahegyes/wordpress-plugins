@@ -42,7 +42,7 @@ If the minimum required version of WooCommerce is present, you will find a secti
 
 1. Choose the maximum depth level you want to allow.
 1. Choose whether to autocomplete descendant orders upon completion of a parent order.
-1. Choose whether to remove the plugin's data when it is uninstalled.
+1. Choose whether deleting the plugin also deletes its settings and the links between orders.
 
 == Frequently Asked Questions ==
 

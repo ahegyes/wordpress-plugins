@@ -74,8 +74,7 @@ final class ChildCreation implements ComponentInterface {
 		}
 
 		if ( ! $node->can_create_child() ) {
-			/* translators: %d: The parent order's id. */
-			$this->notices->add( new Notice( 'linked-child-not-allowed', esc_html( \sprintf( __( 'You may not create a linked child for order %d.', 'linked-orders-for-woocommerce' ), $parent_id ) ) ) );
+			$this->notices->add( new Notice( 'linked-child-not-allowed', esc_html( dws_lowc_get_child_refusal( $node ) ) ) );
 		} else {
 			$child = dws_lowc_create_linked_child( $parent_id );
 			$order = \is_int( $child ) ? wc_get_order( $child ) : null;
@@ -84,9 +83,9 @@ final class ChildCreation implements ComponentInterface {
 				exit;
 			}
 
-			$reason = is_wp_error( $child ) ? $child->get_error_message() : __( 'its creator returned no order.', 'linked-orders-for-woocommerce' );
-			/* translators: 1: The parent order's id. 2: Why the child could not be created. */
-			$this->notices->add( new Notice( 'linked-child-failed', esc_html( \sprintf( __( 'The linked child of order %1$d could not be created: %2$s', 'linked-orders-for-woocommerce' ), $parent_id, $reason ) ) ) );
+			$reason = is_wp_error( $child ) ? $child->get_error_message() : __( 'Its creator returned no order.', 'linked-orders-for-woocommerce' );
+			/* translators: 1: The parent order's number. 2: Why the child could not be created. */
+			$this->notices->add( new Notice( 'linked-child-failed', esc_html( \sprintf( __( 'The linked child of order #%1$s could not be created: %2$s', 'linked-orders-for-woocommerce' ), $node->get_order()->get_order_number(), $reason ) ) ) );
 		}
 
 		wp_safe_redirect( wp_get_referer() ?: $node->get_order()->get_edit_order_url() );

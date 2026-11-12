@@ -90,7 +90,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 					array(
 						'type'  => 'title',
 						'id'    => "dws-lowc_$group",
-						'title' => 'general' === $group ? __( 'General Settings', 'linked-orders-for-woocommerce' ) : __( 'Plugin Settings', 'linked-orders-for-woocommerce' ),
+						'title' => 'general' === $group ? __( 'General settings', 'linked-orders-for-woocommerce' ) : __( 'Plugin settings', 'linked-orders-for-woocommerce' ),
 					),
 				),
 				$wc_fields,
@@ -193,7 +193,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 						'step' => '1',
 					),
 					'default'           => (string) DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_MAX_DEPTH ],
-					'desc_tip'          => __( 'The maximum number of linked orders levels. Root orders are considered level 0.', 'linked-orders-for-woocommerce' ),
+					'desc'              => __( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', 'linked-orders-for-woocommerce' ),
 					'validate'          => 'dws_lowc_validate_max_depth',
 				),
 				'autocomplete-descendants' => array(
@@ -209,7 +209,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 			'remove-data-uninstall' => array(
 				'title'   => __( 'Remove all data on uninstallation', 'linked-orders-for-woocommerce' ),
 				'type'    => 'checkbox',
-				'desc'    => __( 'Delete the plugin\'s data when it is uninstalled, so it must be configured again if it is installed later', 'linked-orders-for-woocommerce' ),
+				'desc'    => __( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', 'linked-orders-for-woocommerce' ),
 				'default' => wc_bool_to_string( DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_DELETE_DATA ] ),
 			),
 		);
