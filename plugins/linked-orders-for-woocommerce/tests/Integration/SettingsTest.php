@@ -65,7 +65,7 @@ final class SettingsTest extends TestCase {
 
 		$form = $this->render();
 
-		self::assertSame( array( 'General Settings', 'Plugin Settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( array( 'General settings', 'Plugin settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'value' ) );
 		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'min' ) );
 		self::assertSame( '99', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'max' ) );
@@ -73,6 +73,14 @@ final class SettingsTest extends TestCase {
 		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_AUTOCOMPLETE )?->hasAttribute( 'checked' ) );
 		self::assertSame( 'checkbox', $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->getAttribute( 'type' ) );
 		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->hasAttribute( 'checked' ) );
+	}
+
+	// The help says what each setting does where the merchant reads it, counting levels as the orders list does, and the consent names what deleting the plugin erases.
+	public function test_the_maximum_depth_and_the_consent_explain_themselves_beside_their_fields(): void {
+		$form = $this->render();
+
+		self::assertSame( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', \trim( (string) $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->parentElement?->querySelector( '.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertStringContainsString( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', (string) $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->parentElement?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
 
 	public function test_the_checkboxes_store_yes_and_no_as_v1s_selects_did(): void {

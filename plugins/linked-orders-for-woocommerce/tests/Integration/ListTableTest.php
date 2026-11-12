@@ -68,8 +68,8 @@ final class ListTableTest extends TestCase {
 
 		self::assertSame( array( 'cb', 'order_number', 'order_total', 'dws_lo_depth', 'wc_actions' ), \array_keys( apply_filters( "manage_{$screen}_columns", self::COLUMNS ) ) );
 		self::assertSame( 'Depth', apply_filters( "manage_{$screen}_columns", self::COLUMNS )['dws_lo_depth'] );
-		self::assertSame( 'Root Order', $this->render_cell( $root->get_id() ) );
-		self::assertSame( 'Child Order (level 2)', $this->render_cell( $child->get_id() ) );
+		self::assertSame( 'Root order', $this->render_cell( $root->get_id() ) );
+		self::assertSame( 'Child order (level 2)', $this->render_cell( $child->get_id() ) );
 		self::assertSame( '', $this->render_cell( $child->get_id(), 'order_total' ) );
 	}
 
@@ -113,7 +113,7 @@ final class ListTableTest extends TestCase {
 		self::assertContains( 'screen-reader-text', \explode( ' ', (string) $label?->getAttribute( 'class' ) ) );
 		$options = \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) );
 		self::assertSame( array( '', '0', '1', '2', '3' ), \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', $options ) );
-		self::assertSame( array( 'All Order depths', 'Root Orders', 'Child Orders (level 2)', 'Child Orders (level 3)', 'Child Orders (level 4)' ), \array_map( static fn ( \Dom\Element $option ): string => \trim( $option->textContent ), $options ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( array( 'All depths', 'Root orders', 'Child orders (level 2)', 'Child orders (level 3)', 'Child orders (level 4)' ), \array_map( static fn ( \Dom\Element $option ): string => \trim( $option->textContent ), $options ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertTrue( $options[3]->hasAttribute( 'selected' ) );
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_guest_customer_user"]' ) );
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
@@ -145,6 +145,30 @@ final class ListTableTest extends TestCase {
 			remove_filter( 'wc_order_statuses', $accepted );
 			unset( $GLOBALS['wp_post_statuses']['wc-dws-lowc-custom'] );
 		}
+	}
+
+	// The tree and guest filters come from a row's link, not the filter bar, and the bar's hidden fields keep them, so the bar says which is on and links to the list without it.
+	#[DataProvider( 'storages' )]
+	public function test_an_active_tree_or_guest_filter_shows_with_a_link_that_removes_it( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order = $this->create_order();
+		$this->open_list();
+		$uri                    = $_SERVER['REQUEST_URI'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Restored unchanged after the row.
+		$_SERVER['REQUEST_URI'] = '/wp-admin/admin.php?page=wc-orders&paged=2&_dws_lo_depth=1&_dws_linked_order_id=' . $order->get_id() . '&_guest_customer_user=guest%2Bbar%40example.com';
+		$_GET['_dws_lo_depth']  = '1';
+
+		try {
+			self::assertNull( $this->parse_filters()->querySelector( '.dws-linked-orders__filter' ) );
+
+			$_GET['_dws_linked_order_id'] = (string) $order->get_id();
+			$_GET['_guest_customer_user'] = 'guest+bar@example.com';
+			$lines                        = \iterator_to_array( $this->parse_filters()->querySelectorAll( '.dws-linked-orders__filter' ) );
+		} finally {
+			$_SERVER['REQUEST_URI'] = $uri;
+		}
+
+		self::assertSame( array( 'Showing orders billed to guest+bar@example.com. Remove this filter', 'Showing orders linked to #' . $order->get_order_number() . '. Remove this filter' ), \array_map( static fn ( \Dom\Element $line ): string => \preg_replace( '/\s+/', ' ', \trim( $line->textContent ) ), $lines ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( array( '/wp-admin/admin.php?page=wc-orders&_dws_lo_depth=1&_dws_linked_order_id=' . $order->get_id(), '/wp-admin/admin.php?page=wc-orders&_dws_lo_depth=1&_guest_customer_user=guest%2Bbar%40example.com' ), \array_map( static fn ( \Dom\Element $line ): string => (string) $line->querySelector( 'a' )?->getAttribute( 'href' ), $lines ) );
 	}
 
 	// WooCommerce counts the order tables' list from its cache only when the query holds no argument beyond its own.
@@ -248,13 +272,13 @@ final class ListTableTest extends TestCase {
 
 		self::assertSame( array( 'view_all_customer_orders', 'view_all_linked_orders', 'create_empty_linked_child', 'complete' ), \array_keys( $actions ) );
 		self::assertSame( add_query_arg( '_customer_user', 1, $list ), $actions['view_all_customer_orders']['url'] );
-		self::assertSame( 'View all customer Orders', $actions['view_all_customer_orders']['name'] );
-		self::assertSame( 'View all customer Orders (opens in a new tab)', $actions['view_all_customer_orders']['title'] ?? null );
+		self::assertSame( 'View all customer orders', $actions['view_all_customer_orders']['name'] );
+		self::assertSame( 'View all customer orders (opens in a new tab)', $actions['view_all_customer_orders']['title'] ?? null );
 		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), $actions['view_all_linked_orders']['url'] );
-		self::assertSame( 'View all linked Orders', $actions['view_all_linked_orders']['name'] );
-		self::assertSame( 'View all linked Orders (opens in a new tab)', $actions['view_all_linked_orders']['title'] ?? null );
+		self::assertSame( 'View all linked orders', $actions['view_all_linked_orders']['name'] );
+		self::assertSame( 'View all linked orders (opens in a new tab)', $actions['view_all_linked_orders']['title'] ?? null );
 		self::assertArrayNotHasKey( 'title', $actions['create_empty_linked_child'] );
-		self::assertSame( 'Create empty linked Order', $actions['create_empty_linked_child']['name'] );
+		self::assertSame( 'Create empty linked order', $actions['create_empty_linked_child']['name'] );
 		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
 	}
 
@@ -337,6 +361,10 @@ final class ListTableTest extends TestCase {
 		}
 
 		return \trim( (string) \ob_get_clean() );
+	}
+
+	protected function parse_filters(): \Dom\HTMLDocument {
+		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
 	}
 
 	protected function render_filters(): string {

@@ -37,7 +37,7 @@ final class AutocompletionTest extends TestCase {
 		foreach ( array( $child, $grandchild ) as $descendant ) {
 			$stored = wc_get_order( $descendant->get_id() );
 			self::assertSame( 'completed', $stored->get_status() );
-			self::assertContains( 'Child Order autocompleted. Order status changed from Pending payment to Completed.', \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ) );
+			self::assertContains( 'Child order autocompleted. Order status changed from Pending payment to Completed.', \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ) );
 		}
 	}
 
@@ -90,7 +90,7 @@ final class AutocompletionTest extends TestCase {
 		self::assertSame( array( $root->get_id(), $child->get_id(), $other->get_id(), $other_child->get_id(), $other_grandchild->get_id(), $grandchild->get_id() ), $seen );
 		foreach ( array( $child, $grandchild, $other_child, $other_grandchild ) as $descendant ) {
 			self::assertSame( 'completed', wc_get_order( $descendant->get_id() )->get_status() );
-			self::assertCount( 1, \array_filter( wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ), static fn ( \stdClass $note ): bool => \str_starts_with( $note->content, 'Child Order autocompleted.' ) ) );
+			self::assertCount( 1, \array_filter( wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ), static fn ( \stdClass $note ): bool => \str_starts_with( $note->content, 'Child order autocompleted.' ) ) );
 		}
 	}
 

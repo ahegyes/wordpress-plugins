@@ -111,7 +111,7 @@ final class ChildCreationTest extends TestCase {
 		$location = $this->request( (string) $parent->get_id() );
 
 		self::assertSame( $parent->get_edit_order_url(), $location );
-		self::assertSame( array( 'You may not create a linked child for order ' . $parent->get_id() . '.' ), \array_map( static fn ( Notice $notice ): string => $notice->message, $this->notices->get_notices( NoticeScope::User, $this->user ) ) );
+		self::assertSame( array( 'No linked child can be created for order #' . $parent->get_order_number() . '.' ), \array_map( static fn ( Notice $notice ): string => $notice->message, $this->notices->get_notices( NoticeScope::User, $this->user ) ) );
 		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
 	}
 
@@ -129,7 +129,37 @@ final class ChildCreationTest extends TestCase {
 		}
 
 		self::assertSame( $parent->get_edit_order_url(), $location );
-		self::assertSame( array( 'The linked child of order ' . $parent->get_id() . ' could not be created: The &lt;b&gt;store&lt;/b&gt; is closed.' ), $this->get_messages() );
+		self::assertSame( array( 'The linked child of order #' . $parent->get_order_number() . ' could not be created: The &lt;b&gt;store&lt;/b&gt; is closed.' ), $this->get_messages() );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_an_order_at_the_maximum_depth_returns_with_the_setting_that_limits_it( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+		$child  = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+
+		$this->request( (string) $child->get_id() );
+
+		self::assertSame( array( 'Order #' . $child->get_order_number() . ' is at the maximum linked orders depth, set under WooCommerce &gt; Settings &gt; Advanced &gt; Linked Orders.' ), $this->get_messages() );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_a_creator_that_returns_no_order_is_named_in_a_sentence( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent  = $this->create_order();
+		$creator = static fn ( array $args ): array => array( 'create_function' => '__return_zero' ) + $args;
+		add_filter( 'dws_lowc/linked_order/creation_args', $creator );
+		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+
+		try {
+			$this->request( (string) $parent->get_id() );
+		} finally {
+			remove_filter( 'dws_lowc/linked_order/creation_args', $creator );
+			remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		}
+
+		self::assertSame( array( 'The linked child of order #' . $parent->get_order_number() . ' could not be created: Its creator returned no order.' ), $this->get_messages() );
 	}
 
 	public function test_a_parent_id_that_is_not_a_whole_number_names_no_order(): void {

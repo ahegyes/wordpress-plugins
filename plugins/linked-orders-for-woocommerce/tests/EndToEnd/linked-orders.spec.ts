@@ -31,7 +31,7 @@ test.describe( 'Linked orders', () => {
 		);
 		const box = page.locator( '#dws-linked-orders' );
 		await expect( box ).toContainText( 'There are no attached children.' );
-		await box.getByRole( 'link', { name: 'Add new child Order' } ).click();
+		await box.getByRole( 'link', { name: 'Add new child order' } ).click();
 
 		await expect( page ).toHaveURL( /[?&]action=edit&id=\d+/ );
 		const child = Number(
@@ -53,10 +53,10 @@ test.describe( 'Linked orders', () => {
 		);
 		await expect(
 			page.locator( `#order-${ child } td.column-dws_lo_depth` )
-		).toHaveText( 'Child Order (level 2)' );
+		).toHaveText( 'Child order (level 2)' );
 		await expect(
 			page.locator( `#order-${ parent.id } td.column-dws_lo_depth` )
-		).toHaveText( 'Root Order' );
+		).toHaveText( 'Root order' );
 		const listResults = await new AxeBuilder( { page } )
 			.include( '.tablenav.top' )
 			.analyze();
