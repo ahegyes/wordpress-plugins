@@ -83,6 +83,16 @@ final class SettingsTest extends TestCase {
 		self::assertStringContainsString( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', (string) $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->parentElement?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
 
+	// WooCommerce fires an action named after each group's title and end ids, which v1's listeners hook.
+	public function test_the_groups_keep_v1s_ids_for_the_actions_woocommerce_fires_around_them(): void {
+		$hooks  = array( 'woocommerce_settings_dws-lowc_general_start', 'woocommerce_settings_dws-lowc_general_end_end', 'woocommerce_settings_dws-lowc_plugin_start', 'woocommerce_settings_dws-lowc_plugin_end_end' );
+		$before = \array_map( 'did_action', $hooks );
+
+		$this->render();
+
+		self::assertSame( array( 1, 1, 1, 1 ), \array_map( static fn ( string $hook, int $count ): int => did_action( $hook ) - $count, $hooks, $before ) );
+	}
+
 	public function test_the_checkboxes_store_yes_and_no_as_v1s_selects_did(): void {
 		$this->save(
 			array(

@@ -134,4 +134,46 @@ final class SettingsApiTest extends TestCase {
 		self::assertSame( $expected, $seen );
 		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'dws_lowc/settings/validated_value' ), $deprecated ), $this->deprecated );
 	}
+
+	// v1 read every id through the section's filter, so an extension answered for an id no group maps.
+	public function test_a_section_read_of_an_id_no_group_maps_passes_the_v1_section_filter(): void {
+		$seen    = array();
+		$section = static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
+			$seen[] = array( $value, $field_id );
+			return "extension:{$field_id}";
+		};
+		add_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $section, 10, 2 );
+
+		try {
+			$values = array( dws_lowc_get_validated_setting( 'extension-field' ), dws_lowc_get_validated_setting( 'other/field' ), dws_lowc_get_validated_setting( 'field', 'other' ) );
+		} finally {
+			remove_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $section );
+		}
+
+		self::assertSame( array( 'extension:extension-field', 'extension:other/field', null ), $values );
+		self::assertSame( array( array( null, 'extension-field' ), array( null, 'other/field' ) ), $seen );
+		self::assertSame( \array_fill( 0, 2, array( 'linked_orders_for_woocommerce/settings/get_validated_option_value', 'dws_lowc/settings/validated_value' ) ), $this->deprecated );
+	}
+
+	// The v1 filter's deprecation names the v2 filter, so an extension that moves its callback there still answers.
+	public function test_a_section_read_of_an_id_no_group_maps_passes_the_v2_filter_after_the_v1_one(): void {
+		$seen = array();
+		$v1   = static fn ( mixed $value, string $field_id ): string => "v1:{$field_id}";
+		$v2   = static function ( mixed $value, string $field_id, string $group ) use ( &$seen ): string {
+			$seen[] = array( $value, $field_id, $group );
+			return "v2:{$field_id}";
+		};
+		add_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $v1, 10, 2 );
+		add_filter( 'dws_lowc/settings/validated_value', $v2, 10, 3 );
+
+		try {
+			$values = array( dws_lowc_get_validated_setting( 'extension-field' ), dws_lowc_get_validated_setting( 'other/field' ), dws_lowc_get_validated_setting( 'other-settings/field' ), dws_lowc_get_validated_setting( 'field', 'other' ) );
+		} finally {
+			remove_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $v1 );
+			remove_filter( 'dws_lowc/settings/validated_value', $v2 );
+		}
+
+		self::assertSame( array( 'v2:extension-field', 'v2:field', 'v2:field', null ), $values );
+		self::assertSame( array( array( 'v1:extension-field', 'extension-field', '' ), array( 'v1:other/field', 'field', 'other' ), array( 'v1:other-settings/field', 'field', 'other' ) ), $seen );
+	}
 }
