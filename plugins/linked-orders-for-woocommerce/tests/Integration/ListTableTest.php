@@ -108,6 +108,9 @@ final class ListTableTest extends TestCase {
 
 		$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
 
+		$label = $filters->querySelector( 'label[for="dws_lo_depth_filter_dropdown"]' );
+		self::assertSame( 'Order depth', \trim( (string) $label?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertContains( 'screen-reader-text', \explode( ' ', (string) $label?->getAttribute( 'class' ) ) );
 		$options = \iterator_to_array( $filters->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) );
 		self::assertSame( array( '', '0', '1', '2', '3' ), \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', $options ) );
 		self::assertSame( array( 'All Order depths', 'Root Orders', 'Child Orders (level 2)', 'Child Orders (level 3)', 'Child Orders (level 4)' ), \array_map( static fn ( \Dom\Element $option ): string => \trim( $option->textContent ), $options ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
@@ -246,8 +249,11 @@ final class ListTableTest extends TestCase {
 		self::assertSame( array( 'view_all_customer_orders', 'view_all_linked_orders', 'create_empty_linked_child', 'complete' ), \array_keys( $actions ) );
 		self::assertSame( add_query_arg( '_customer_user', 1, $list ), $actions['view_all_customer_orders']['url'] );
 		self::assertSame( 'View all customer Orders', $actions['view_all_customer_orders']['name'] );
+		self::assertSame( 'View all customer Orders (opens in a new tab)', $actions['view_all_customer_orders']['title'] ?? null );
 		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), $actions['view_all_linked_orders']['url'] );
 		self::assertSame( 'View all linked Orders', $actions['view_all_linked_orders']['name'] );
+		self::assertSame( 'View all linked Orders (opens in a new tab)', $actions['view_all_linked_orders']['title'] ?? null );
+		self::assertArrayNotHasKey( 'title', $actions['create_empty_linked_child'] );
 		self::assertSame( 'Create empty linked Order', $actions['create_empty_linked_child']['name'] );
 		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
 	}

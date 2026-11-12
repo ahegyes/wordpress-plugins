@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 // The tests environment stores orders in WooCommerce's order tables; the Integration suite covers the posts storage.
@@ -41,6 +42,10 @@ test.describe( 'Linked orders', () => {
 		await expect(
 			page.locator( '#dws-linked-orders .dws-linked-orders__parent' )
 		).toContainText( `Order #${ parent.id }` );
+		const boxResults = await new AxeBuilder( { page } )
+			.include( '#dws-linked-orders' )
+			.analyze();
+		expect( boxResults.violations ).toEqual( [] );
 
 		await page.goto( '/wp-admin/admin.php?page=wc-orders' );
 		await expect( page.locator( 'thead #dws_lo_depth' ) ).toHaveText(
@@ -52,6 +57,10 @@ test.describe( 'Linked orders', () => {
 		await expect(
 			page.locator( `#order-${ parent.id } td.column-dws_lo_depth` )
 		).toHaveText( 'Root Order' );
+		const listResults = await new AxeBuilder( { page } )
+			.include( '.tablenav.top' )
+			.analyze();
+		expect( listResults.violations ).toEqual( [] );
 	} );
 
 	test( 'the plugin row opens the section on the Advanced tab', async ( {
@@ -69,5 +78,9 @@ test.describe( 'Linked orders', () => {
 		await expect(
 			page.getByLabel( 'Maximum linked orders depth' )
 		).toHaveValue( '1' );
+		const results = await new AxeBuilder( { page } )
+			.include( '#mainform' )
+			.analyze();
+		expect( results.violations ).toEqual( [] );
 	} );
 } );

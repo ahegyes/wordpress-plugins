@@ -98,9 +98,13 @@ final class MetaBoxTest extends TestCase {
 
 		$parent = $box->querySelector( '.dws-linked-orders__parent a' );
 		self::assertSame( wc_get_order( $root->get_id() )->get_edit_order_url(), $parent?->getAttribute( 'href' ) );
-		self::assertSame( 'Order #' . $root->get_order_number() . ' - Pending payment', \trim( (string) $parent?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Order #' . $root->get_order_number() . ' - Pending payment (opens in a new tab)', \preg_replace( '/\s+/', ' ', \trim( (string) $parent?->textContent ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		$link = $box->querySelector( '#linked-order-' . $child->get_id() . ' a' );
 		self::assertSame( wc_get_order( $child->get_id() )->get_edit_order_url(), $link?->getAttribute( 'href' ) );
+		foreach ( array( $parent, $link ) as $opens_tab ) {
+			self::assertSame( '_blank', $opens_tab?->getAttribute( 'target' ) );
+			self::assertSame( '(opens in a new tab)', \trim( (string) $opens_tab?->querySelector( '.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		}
 		$button = $box->querySelector( 'a.button' );
 		self::assertSame( 'Add new child Order', \trim( (string) $button?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		\parse_str( (string) wp_parse_url( (string) $button?->getAttribute( 'href' ), \PHP_URL_QUERY ), $query );
