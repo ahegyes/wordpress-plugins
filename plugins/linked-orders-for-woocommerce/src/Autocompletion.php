@@ -87,7 +87,12 @@ final class Autocompletion implements ComponentInterface {
 				 * @param   bool $should_autocomplete Whether the descendant is completed.
 				 * @param   int  $descendant_id       The descendant's id.
 				 */
-				$node = true === apply_filters( 'dws_lowc/autocompletion/should_autocomplete', $should_autocomplete, $descendant_id ) ? dws_lowc_get_order_node( $descendant_id ) : null;
+				$should_autocomplete = apply_filters( 'dws_lowc/autocompletion/should_autocomplete', $should_autocomplete, $descendant_id );
+				if ( true !== $should_autocomplete ) {
+					continue;
+				}
+
+				$node = dws_lowc_get_order_node( $descendant_id );
 				if ( \is_null( $node ) ) {
 					continue;
 				}

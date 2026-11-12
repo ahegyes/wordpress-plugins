@@ -42,13 +42,26 @@ final class MetaBox implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_meta_box( string $screen_id, mixed $post_or_order ): void {
-		$node = current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) && current_user_can( DWS_LOWC_CAP_SEE_METABOX ) ? dws_lowc_get_order_node( $post_or_order ) : null;
+		if ( ! current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) || ! current_user_can( DWS_LOWC_CAP_SEE_METABOX ) ) {
+			return;
+		}
+
+		$node = dws_lowc_get_order_node( $post_or_order );
 		if ( \is_null( $node ) ) {
 			return;
 		}
 
-		/* translators: %s: The order type's plural name. */
-		add_meta_box( 'dws-linked-orders', \sprintf( _x( 'Linked %s', 'metabox heading', 'linked-orders-for-woocommerce' ), $node->get_post_type()->label ), array( $this, 'render_meta_box' ), $screen_id, 'side' );
+		add_meta_box(
+			'dws-linked-orders',
+			\sprintf(
+				/* translators: %s: The order type's plural name. */
+				_x( 'Linked %s', 'metabox heading', 'linked-orders-for-woocommerce' ),
+				$node->get_post_type()->label
+			),
+			array( $this, 'render_meta_box' ),
+			$screen_id,
+			'side'
+		);
 	}
 
 	/**

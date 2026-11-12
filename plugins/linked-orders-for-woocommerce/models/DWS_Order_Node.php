@@ -232,7 +232,7 @@ final class DWS_Order_Node {
 	 */
 	public function get_children(): array {
 		$this->maybe_read();
-		$this->children ??= array_values( array_filter( array_map( static fn ( ?int $id ): ?DWS_Order_Node => dws_lowc_get_order_node( $id ), $this->child_ids ) ) );
+		$this->children ??= array_values( array_filter( array_map( 'dws_lowc_get_order_node', $this->child_ids ) ) );
 		return $this->children;
 	}
 
@@ -246,6 +246,73 @@ final class DWS_Order_Node {
 	 */
 	public function has_children(): bool {
 		return array() !== $this->get_children();
+	}
+
+	/**
+	 * Returns the order's name as its type, number and status, such as "Order #123 - Processing".
+	 *
+	 * @since   1.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  string
+	 */
+	public function get_formatted_name(): string {
+		/**
+		 * Filters the status name in an order's formatted name.
+		 *
+		 * @since       1.0.0
+		 * @version     2.0.0
+		 * @deprecated  2.0.0 Use dws_lowc/node/status_name.
+		 *
+		 * @param       string         $status_name The status name.
+		 * @param       WP_Post_Type   $post_type   The post type object of the order's type.
+		 * @param       WC_Order       $order       The order.
+		 * @param       DWS_Order_Node $node        The order's node.
+		 */
+		$status_name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/status_name', array( wc_get_order_status_name( $this->order->get_status() ), $this->post_type, $this->order, $this ), '2.0.0', 'dws_lowc/node/status_name' );
+
+		/**
+		 * Filters the status name in an order's formatted name.
+		 *
+		 * @since   2.0.0
+		 * @version 2.0.0
+		 *
+		 * @param   string         $status_name The status name.
+		 * @param   WP_Post_Type   $post_type   The post type object of the order's type.
+		 * @param   WC_Order       $order       The order.
+		 * @param   DWS_Order_Node $node        The order's node.
+		 */
+		$status_name = apply_filters( 'dws_lowc/node/status_name', $status_name, $this->post_type, $this->order, $this );
+		$name        = sprintf(
+			/* translators: 1: The order type's singular name. 2: The order number. 3: The order status's name. */
+			__( '%1$s #%2$s - %3$s', 'linked-orders-for-woocommerce' ),
+			dws_lowc_get_singular_name( $this->post_type ),
+			$this->order->get_order_number(),
+			$status_name
+		);
+
+		/**
+		 * Filters an order's formatted name.
+		 *
+		 * @since       1.0.0
+		 * @version     2.0.0
+		 * @deprecated  2.0.0 Use dws_lowc/node/formatted_name.
+		 *
+		 * @param       string         $name The formatted name.
+		 * @param       DWS_Order_Node $node The order's node.
+		 */
+		$name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/get_formatted_name', array( $name, $this ), '2.0.0', 'dws_lowc/node/formatted_name' );
+
+		/**
+		 * Filters an order's formatted name.
+		 *
+		 * @since   2.0.0
+		 * @version 2.0.0
+		 *
+		 * @param   string         $name The formatted name.
+		 * @param   DWS_Order_Node $node The order's node.
+		 */
+		return apply_filters( 'dws_lowc/node/formatted_name', $name, $this );
 	}
 
 	// endregion
@@ -323,73 +390,6 @@ final class DWS_Order_Node {
 		$child->set_parent( $this );
 		$this->children = array( ...$this->get_children(), $child );
 		return true;
-	}
-
-	/**
-	 * Returns the order's name as its type, number and status, such as "Order #123 - Processing".
-	 *
-	 * @since   1.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  string
-	 */
-	public function get_formatted_name(): string {
-		/**
-		 * Filters the status name in an order's formatted name.
-		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/status_name.
-		 *
-		 * @param       string         $status_name The status name.
-		 * @param       WP_Post_Type   $post_type   The post type object of the order's type.
-		 * @param       WC_Order       $order       The order.
-		 * @param       DWS_Order_Node $node        The order's node.
-		 */
-		$status_name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/status_name', array( wc_get_order_status_name( $this->order->get_status() ), $this->post_type, $this->order, $this ), '2.0.0', 'dws_lowc/node/status_name' );
-
-		/**
-		 * Filters the status name in an order's formatted name.
-		 *
-		 * @since   2.0.0
-		 * @version 2.0.0
-		 *
-		 * @param   string         $status_name The status name.
-		 * @param   WP_Post_Type   $post_type   The post type object of the order's type.
-		 * @param   WC_Order       $order       The order.
-		 * @param   DWS_Order_Node $node        The order's node.
-		 */
-		$status_name = apply_filters( 'dws_lowc/node/status_name', $status_name, $this->post_type, $this->order, $this );
-		$name        = sprintf(
-			/* translators: 1: The order type's singular name. 2: The order number. 3: The order status's name. */
-			__( '%1$s #%2$s - %3$s', 'linked-orders-for-woocommerce' ),
-			dws_lowc_get_singular_name( $this->post_type ),
-			$this->order->get_order_number(),
-			$status_name
-		);
-
-		/**
-		 * Filters an order's formatted name.
-		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/formatted_name.
-		 *
-		 * @param       string         $name The formatted name.
-		 * @param       DWS_Order_Node $node The order's node.
-		 */
-		$name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/get_formatted_name', array( $name, $this ), '2.0.0', 'dws_lowc/node/formatted_name' );
-
-		/**
-		 * Filters an order's formatted name.
-		 *
-		 * @since   2.0.0
-		 * @version 2.0.0
-		 *
-		 * @param   string         $name The formatted name.
-		 * @param   DWS_Order_Node $node The order's node.
-		 */
-		return apply_filters( 'dws_lowc/node/formatted_name', $name, $this );
 	}
 
 	/**

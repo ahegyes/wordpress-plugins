@@ -151,10 +151,8 @@ function dws_lowc_get_list_url( WP_Post_Type $post_type ): string {
 function dws_lowc_get_child_refusal( DWS_Order_Node $node ): string {
 	$number = $node->get_order()->get_order_number();
 	return dws_lowc_get_max_depth() <= $node->get_depth()
-		/* translators: %s: The order number. */
-		? sprintf( __( 'Order #%s is at the maximum linked orders depth, set under WooCommerce > Settings > Advanced > Linked Orders.', 'linked-orders-for-woocommerce' ), $number )
-		/* translators: %s: The order number. */
-		: sprintf( __( 'No linked child can be created for order #%s.', 'linked-orders-for-woocommerce' ), $number );
+		? sprintf( /* translators: %s: The order number. */ __( 'Order #%s is at the maximum linked orders depth, set under WooCommerce > Settings > Advanced > Linked Orders.', 'linked-orders-for-woocommerce' ), $number )
+		: sprintf( /* translators: %s: The order number. */ __( 'No linked child can be created for order #%s.', 'linked-orders-for-woocommerce' ), $number );
 }
 
 /**

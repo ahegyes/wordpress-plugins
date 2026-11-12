@@ -67,8 +67,7 @@ final class ChildCreation implements ComponentInterface {
 		) ?? 0;
 		$node      = dws_lowc_get_order_node( $parent_id );
 		if ( \is_null( $node ) ) {
-			/* translators: %d: The parent order's id. */
-			$this->notices->add( new Notice( 'linked-child-missing-parent', esc_html( \sprintf( __( 'There is no order %d to create a linked child for.', 'linked-orders-for-woocommerce' ), $parent_id ) ) ) );
+			$this->notices->add( new Notice( 'linked-child-missing-parent', esc_html( \sprintf( /* translators: %d: The parent order's id. */ __( 'There is no order %d to create a linked child for.', 'linked-orders-for-woocommerce' ), $parent_id ) ) ) );
 			wp_safe_redirect( wp_get_referer() ?: admin_url( 'index.php' ) );
 			exit;
 		}
@@ -84,8 +83,7 @@ final class ChildCreation implements ComponentInterface {
 			}
 
 			$reason = is_wp_error( $child ) ? $child->get_error_message() : __( 'Its creator returned no order.', 'linked-orders-for-woocommerce' );
-			/* translators: 1: The parent order's number. 2: Why the child could not be created. */
-			$this->notices->add( new Notice( 'linked-child-failed', esc_html( \sprintf( __( 'The linked child of order #%1$s could not be created: %2$s', 'linked-orders-for-woocommerce' ), $node->get_order()->get_order_number(), $reason ) ) ) );
+			$this->notices->add( new Notice( 'linked-child-failed', esc_html( \sprintf( /* translators: 1: The parent order's number. 2: Why the child could not be created. */ __( 'The linked child of order #%1$s could not be created: %2$s', 'linked-orders-for-woocommerce' ), $node->get_order()->get_order_number(), $reason ) ) ) );
 		}
 
 		wp_safe_redirect( wp_get_referer() ?: $node->get_order()->get_edit_order_url() );
