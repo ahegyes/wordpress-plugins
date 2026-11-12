@@ -166,7 +166,7 @@ function dws_lowc_min_wp(): string {
 }
 
 /**
- * Returns a hook name as v1 built it for the plugin.
+ * Returns a hook name under the plugin's v1 root, its non-empty parts joined with slashes.
  *
  * @api
  *
@@ -185,7 +185,7 @@ function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
 }
 
 /**
- * Returns a hook name as v1 built it for one of its components, whose id takes underscores for its dashes.
+ * Returns a hook name under one of v1's components, its id's dashes as underscores and its non-empty parts joined with slashes.
  *
  * @api
  *
