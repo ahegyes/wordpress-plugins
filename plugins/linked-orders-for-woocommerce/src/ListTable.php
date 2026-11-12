@@ -278,7 +278,9 @@ final class ListTable implements ComponentInterface {
 			);
 		}
 
-		if ( '' === self::get_query_arg( '_dws_linked_order_id' ) && ( $node->has_parent() || $node->has_children() ) ) {
+		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
+		$children = $order->get_meta( '_dws_lo_children' );
+		if ( '' === self::get_query_arg( '_dws_linked_order_id' ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
 			$added['view_all_linked_orders'] = array(
 				'url'    => add_query_arg( '_dws_linked_order_id', $order->get_id(), $list ),
 				/* translators: %s: The order type's plural name. */

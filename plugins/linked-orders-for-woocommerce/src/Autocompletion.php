@@ -13,6 +13,20 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Compone
  * @version 2.0.0
  */
 final class Autocompletion implements ComponentInterface {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The ids of the orders a pass in progress covers, whose completion it already handles.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array<int, true>
+	 */
+	protected array $covered = array();
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -33,6 +47,8 @@ final class Autocompletion implements ComponentInterface {
 	/**
 	 * Sets the order and each of its descendants, the order first, to completed, with a note, unless a filter keeps one or names another status; the order itself, already completed, changes only through a filter.
 	 *
+	 * Completing a descendant fires this hook again, so an order a pass in progress covers starts no pass of its own.
+	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
@@ -41,62 +57,69 @@ final class Autocompletion implements ComponentInterface {
 	 * @return  void
 	 */
 	public function complete_descendants( int $order_id ): void {
-		if ( true !== dws_lowc_get_validated_setting( 'autocomplete-descendants', 'general' ) ) {
+		if ( isset( $this->covered[ $order_id ] ) || true !== dws_lowc_get_validated_setting( 'autocomplete-descendants', 'general' ) ) {
 			return;
 		}
 
-		foreach ( dws_lowc_get_orders_tree( $order_id ) ?? array() as $descendant_id ) {
-			/**
-			 * Filters whether a descendant of a completed order is completed too.
-			 *
-			 * @since       1.0.0
-			 * @version     2.0.0
-			 * @deprecated  2.0.0 Use dws_lowc/autocompletion/should_autocomplete.
-			 *
-			 * @param       bool $should_autocomplete Whether the descendant is completed.
-			 * @param       int  $descendant_id       The descendant's id.
-			 */
-			$should_autocomplete = apply_filters_deprecated( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', array( true, $descendant_id ), '2.0.0', 'dws_lowc/autocompletion/should_autocomplete' );
+		$tree = dws_lowc_get_orders_tree( $order_id ) ?? array();
+		$pass = \array_diff_key( \array_fill_keys( $tree, true ), $this->covered );
+		try {
+			$this->covered += $pass;
+			foreach ( $tree as $descendant_id ) {
+				/**
+				 * Filters whether a descendant of a completed order is completed too.
+				 *
+				 * @since       1.0.0
+				 * @version     2.0.0
+				 * @deprecated  2.0.0 Use dws_lowc/autocompletion/should_autocomplete.
+				 *
+				 * @param       bool $should_autocomplete Whether the descendant is completed.
+				 * @param       int  $descendant_id       The descendant's id.
+				 */
+				$should_autocomplete = apply_filters_deprecated( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', array( true, $descendant_id ), '2.0.0', 'dws_lowc/autocompletion/should_autocomplete' );
 
-			/**
-			 * Filters whether a descendant of a completed order is completed too.
-			 *
-			 * @since   2.0.0
-			 * @version 2.0.0
-			 *
-			 * @param   bool $should_autocomplete Whether the descendant is completed.
-			 * @param   int  $descendant_id       The descendant's id.
-			 */
-			$node = true === apply_filters( 'dws_lowc/autocompletion/should_autocomplete', $should_autocomplete, $descendant_id ) ? dws_lowc_get_order_node( $descendant_id ) : null;
-			if ( \is_null( $node ) ) {
-				continue;
+				/**
+				 * Filters whether a descendant of a completed order is completed too.
+				 *
+				 * @since   2.0.0
+				 * @version 2.0.0
+				 *
+				 * @param   bool $should_autocomplete Whether the descendant is completed.
+				 * @param   int  $descendant_id       The descendant's id.
+				 */
+				$node = true === apply_filters( 'dws_lowc/autocompletion/should_autocomplete', $should_autocomplete, $descendant_id ) ? dws_lowc_get_order_node( $descendant_id ) : null;
+				if ( \is_null( $node ) ) {
+					continue;
+				}
+
+				/**
+				 * Filters the status a descendant of a completed order is set to.
+				 *
+				 * @since       1.0.0
+				 * @version     2.0.0
+				 * @deprecated  2.0.0 Use dws_lowc/autocompletion/completed_status.
+				 *
+				 * @param       string    $status     The status, without its 'wc-' prefix.
+				 * @param       \WC_Order $descendant The descendant.
+				 */
+				$status = apply_filters_deprecated( 'linked_orders_for_woocommerce/autocompletion/completed_status', array( 'completed', $node->get_order() ), '2.0.0', 'dws_lowc/autocompletion/completed_status' );
+
+				/**
+				 * Filters the status a descendant of a completed order is set to.
+				 *
+				 * @since   2.0.0
+				 * @version 2.0.0
+				 *
+				 * @param   string    $status     The status, without its 'wc-' prefix.
+				 * @param   \WC_Order $descendant The descendant.
+				 */
+				$status = apply_filters( 'dws_lowc/autocompletion/completed_status', $status, $node->get_order() );
+
+				/* translators: %s: The order type's singular name. */
+				$node->get_order()->update_status( $status, \sprintf( __( 'Child %s autocompleted.', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $node->get_post_type() ) ) );
 			}
-
-			/**
-			 * Filters the status a descendant of a completed order is set to.
-			 *
-			 * @since       1.0.0
-			 * @version     2.0.0
-			 * @deprecated  2.0.0 Use dws_lowc/autocompletion/completed_status.
-			 *
-			 * @param       string    $status     The status, without its 'wc-' prefix.
-			 * @param       \WC_Order $descendant The descendant.
-			 */
-			$status = apply_filters_deprecated( 'linked_orders_for_woocommerce/autocompletion/completed_status', array( 'completed', $node->get_order() ), '2.0.0', 'dws_lowc/autocompletion/completed_status' );
-
-			/**
-			 * Filters the status a descendant of a completed order is set to.
-			 *
-			 * @since   2.0.0
-			 * @version 2.0.0
-			 *
-			 * @param   string    $status     The status, without its 'wc-' prefix.
-			 * @param   \WC_Order $descendant The descendant.
-			 */
-			$status = apply_filters( 'dws_lowc/autocompletion/completed_status', $status, $node->get_order() );
-
-			/* translators: %s: The order type's singular name. */
-			$node->get_order()->update_status( $status, \sprintf( __( 'Child %s autocompleted.', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $node->get_post_type() ) ) );
+		} finally {
+			$this->covered = \array_diff_key( $this->covered, $pass );
 		}
 	}
 
