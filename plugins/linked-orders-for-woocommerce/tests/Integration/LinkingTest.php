@@ -398,6 +398,53 @@ final class LinkingTest extends TestCase {
 		self::assertSame( $root->get_id(), dws_lowc_get_order_node( $linked->get_id() )?->get_parent()?->get_id() );
 	}
 
+	// WooCommerce catches what a save throws and logs it, as it does a failed database write, so a link reads the child's parent back before it saves the parent.
+	#[DataProvider( 'storages' )]
+	public function test_a_link_is_refused_and_the_parent_left_unsaved_when_the_child_is_not_saved( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+		$child  = $this->create_order();
+		$fail   = self::fail_saving( $child->get_id() );
+
+		try {
+			self::assertFalse( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		} finally {
+			remove_action( 'woocommerce_before_order_object_save', $fail );
+		}
+
+		self::assertSame( '', wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
+		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_a_linked_child_that_is_not_saved_is_deleted_and_an_error_returned( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent  = $this->create_order();
+		$created = 0;
+		$fail    = null;
+		$record  = static function ( \WC_Order $child ) use ( &$created, &$fail ): void {
+			$created = $child->get_id();
+			$fail    = self::fail_saving( $created );
+		};
+		add_action( 'dws_lowc/linked_order/created', $record );
+
+		try {
+			$result = dws_lowc_create_linked_child( $parent->get_id() );
+		} finally {
+			remove_action( 'dws_lowc/linked_order/created', $record );
+			if ( $fail instanceof \Closure ) {
+				remove_action( 'woocommerce_before_order_object_save', $fail );
+			}
+		}
+
+		$this->orders[] = \is_int( $result ) ? $result : $created;
+		self::assertInstanceOf( \WP_Error::class, $result );
+		self::assertSame( 'dws_lowc_link_refused', $result->get_error_code() );
+		self::assertFalse( wc_get_order( $created ) );
+		self::assertSame( '', wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_a_creator_error_is_returned( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
@@ -418,6 +465,16 @@ final class LinkingTest extends TestCase {
 		remove_filter( $hook, $this->storage_filters[ $hook ] );
 		$this->storage_filters[ $hook ] = static fn (): string => $caching ? 'yes' : 'no';
 		add_filter( $hook, $this->storage_filters[ $hook ] );
+	}
+
+	protected static function fail_saving( int $order_id ): \Closure {
+		$fail = static function ( \WC_Order $order ) use ( $order_id ): void {
+			if ( $order_id === $order->get_id() ) {
+				throw new \RuntimeException( 'The save failed.' );
+			}
+		};
+		add_action( 'woocommerce_before_order_object_save', $fail );
+		return $fail;
 	}
 
 	// The other request runs on the row's storage, as the shared tests site stores orders on the order tables.
