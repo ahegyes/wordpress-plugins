@@ -8,6 +8,8 @@ use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RegistersOrderTypeTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,6 +21,10 @@ final class ListTableTest extends TestCase {
 	use CreatesUsersTrait;
 	use LoadsAdminScreensTrait;
 	use OrderStorageTrait;
+	use RegistersOrderTypeTrait;
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
 
 	protected const array COLUMNS = array(
 		'cb'           => '',
@@ -35,14 +41,19 @@ final class ListTableTest extends TestCase {
 	// A screen's column hooks stay for the rest of the process, as they stay for the rest of a request; WooCommerce adds its own only in admin requests, so clearing them removes none of its.
 	#[After]
 	protected function leave_screen(): void {
-		foreach ( array( 'edit-shop_order', 'woocommerce_page_wc-orders', 'admin_page_wc-orders' ) as $screen ) {
-			remove_all_filters( "manage_{$screen}_columns" );
-			remove_all_actions( "manage_{$screen}_custom_column" );
+		foreach ( array( 'shop_order', self::ORDER_TYPE ) as $type ) {
+			$suffix = 'shop_order' === $type ? '' : "--$type";
+			foreach ( array( "edit-$type", "woocommerce_page_wc-orders$suffix", "admin_page_wc-orders$suffix" ) as $screen ) {
+				remove_all_filters( "manage_{$screen}_columns" );
+				remove_all_actions( "manage_{$screen}_custom_column" );
+			}
+			remove_all_actions( "manage_{$type}_posts_custom_column" );
 		}
-		remove_all_actions( 'manage_shop_order_posts_custom_column' );
 		unset( $GLOBALS['current_screen'], $GLOBALS['typenow'], $_GET['_dws_lo_depth'], $_GET['_guest_customer_user'], $_GET['_dws_linked_order_id'], $_GET['_customer_user'] );
 		wp_dequeue_script( Plugin::SLUG . '-orders-list-table' );
 		wp_dequeue_style( Plugin::SLUG . '-orders-list-table-icons' );
+		wp_deregister_script( Plugin::SLUG . '-orders-list-table' );
+		wp_deregister_style( Plugin::SLUG . '-orders-list-table-icons' );
 		wp_set_current_user( 0 );
 	}
 
@@ -86,7 +97,7 @@ final class ListTableTest extends TestCase {
 		$this->open_list();
 		$_GET['_dws_lo_depth'] = '2';
 
-		$filters = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
+		$filters = $this->parse_filters();
 
 		$label = $filters->querySelector( 'label[for="dws_lo_depth_filter_dropdown"]' );
 		self::assertSame( 'Order depth', \trim( (string) $label?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
@@ -97,6 +108,9 @@ final class ListTableTest extends TestCase {
 		self::assertTrue( $options[3]->hasAttribute( 'selected' ) );
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_guest_customer_user"]' ) );
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
+
+		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '5' );
+		self::assertSame( array( '', '0', '1', '2', '3', '4', '5' ), \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', \iterator_to_array( $this->parse_filters()->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) ) ) );
 	}
 
 	// v1 read the deepest depth from every order of the type, whatever its status: the Trash, which the list's Trash view shows, or a status another plugin registers only as a post status.
@@ -310,49 +324,76 @@ final class ListTableTest extends TestCase {
 		self::assertArrayNotHasKey( 'view_all_customer_orders', apply_filters( 'woocommerce_admin_order_actions', array(), $guest ) );
 	}
 
-	public function test_the_list_loads_the_script_and_the_icons_only_on_order_lists(): void {
-		$this->open_list();
-		do_action( 'admin_enqueue_scripts', 'edit.php' );
+	// The order tables' editor shares its list's screen, so only the posts storage tells the two apart; a request registers the assets once, so each screen starts without them.
+	#[DataProvider( 'storages' )]
+	public function test_the_list_loads_the_script_and_the_icons_only_on_order_lists_for_a_user_who_sees_the_column( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$enqueued = static function ( string $screen ): bool {
+			wp_dequeue_script( Plugin::SLUG . '-orders-list-table' );
+			wp_dequeue_style( Plugin::SLUG . '-orders-list-table-icons' );
+			wp_deregister_script( Plugin::SLUG . '-orders-list-table' );
+			wp_deregister_style( Plugin::SLUG . '-orders-list-table-icons' );
+			set_current_screen( $screen );
+			do_action( 'admin_enqueue_scripts', 'edit.php' );
+			return wp_script_is( Plugin::SLUG . '-orders-list-table' ) && wp_style_is( Plugin::SLUG . '-orders-list-table-icons' );
+		};
+		$list     = $this->open_list();
 
-		self::assertTrue( wp_script_is( Plugin::SLUG . '-orders-list-table' ) );
-		self::assertTrue( wp_style_is( Plugin::SLUG . '-orders-list-table-icons' ) );
+		self::assertTrue( $enqueued( $list ) );
+		self::assertFalse( $enqueued( 'edit-post' ) );
+		if ( ! $hpos ) {
+			self::assertFalse( $enqueued( 'shop_order' ) );
+		}
 
-		wp_dequeue_script( Plugin::SLUG . '-orders-list-table' );
-		wp_dequeue_style( Plugin::SLUG . '-orders-list-table-icons' );
-		set_current_screen( 'edit-post' );
-		do_action( 'admin_enqueue_scripts', 'edit.php' );
-
-		self::assertFalse( wp_script_is( Plugin::SLUG . '-orders-list-table' ) );
+		wp_set_current_user( $this->create_user( 'dws-lowc-list-table-assets-editor', 'editor' ) );
+		self::assertFalse( $enqueued( $list ) );
 	}
 
-	protected function open_list(): string {
-		$screen = OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( 'shop-order' ) : 'edit-shop_order';
+	// v1 1.2.0 linked any order type its filter named, such as another plugin's.
+	#[DataProvider( 'storages' )]
+	public function test_another_plugins_order_type_gets_the_column_the_filter_and_links_to_its_own_list( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$this->register_order_type();
+		$root  = $this->create_typed_order();
+		$child = $this->create_typed_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		$screen = $this->open_list( self::ORDER_TYPE );
+		$list   = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders--' . self::ORDER_TYPE ) : admin_url( 'edit.php?post_type=' . self::ORDER_TYPE );
+
+		self::assertSame( 'Depth', apply_filters( "manage_{$screen}_columns", self::COLUMNS )['dws_lo_depth'] ?? null );
+		self::assertSame( 'Child order (level 2)', $this->render_cell( $child->get_id(), 'dws_lo_depth', self::ORDER_TYPE ) );
+		self::assertSame( 'Test order depth', \trim( (string) $this->parse_filters( self::ORDER_TYPE )->querySelector( 'label[for="dws_lo_depth_filter_dropdown"]' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), apply_filters( 'woocommerce_admin_order_actions', array(), wc_get_order( $root->get_id() ) )['view_all_linked_orders']['url'] ?? null );
+	}
+
+	protected function open_list( string $type = 'shop_order' ): string {
+		$screen = OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_page_screen_id( $type ) : "edit-$type";
 		set_current_screen( $screen );
-		$GLOBALS['typenow'] = 'shop_order';
+		$GLOBALS['typenow'] = $type;
 		return $screen;
 	}
 
-	protected function render_cell( int $order_id, string $column = 'dws_lo_depth' ): string {
+	protected function render_cell( int $order_id, string $column = 'dws_lo_depth', string $type = 'shop_order' ): string {
 		\ob_start();
 		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
-			do_action( 'manage_' . wc_get_page_screen_id( 'shop-order' ) . '_custom_column', $column, wc_get_order( $order_id ) );
+			do_action( 'manage_' . wc_get_page_screen_id( $type ) . '_custom_column', $column, wc_get_order( $order_id ) );
 		} else {
-			do_action( 'manage_shop_order_posts_custom_column', $column, $order_id );
+			do_action( "manage_{$type}_posts_custom_column", $column, $order_id );
 		}
 
 		return \trim( (string) \ob_get_clean() );
 	}
 
-	protected function parse_filters(): \Dom\HTMLDocument {
-		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters() . '</body></html>', \LIBXML_NOERROR );
+	protected function parse_filters( string $type = 'shop_order' ): \Dom\HTMLDocument {
+		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $this->render_filters( $type ) . '</body></html>', \LIBXML_NOERROR );
 	}
 
-	protected function render_filters(): string {
+	protected function render_filters( string $type = 'shop_order' ): string {
 		\ob_start();
 		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
-			do_action( 'woocommerce_order_list_table_restrict_manage_orders', 'shop_order', 'top' );
+			do_action( 'woocommerce_order_list_table_restrict_manage_orders', $type, 'top' );
 		} else {
-			do_action( 'restrict_manage_posts', 'shop_order', 'top' );
+			do_action( 'restrict_manage_posts', $type, 'top' );
 		}
 
 		return \trim( (string) \ob_get_clean() );

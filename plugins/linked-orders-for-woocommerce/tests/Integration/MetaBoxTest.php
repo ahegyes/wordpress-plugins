@@ -7,6 +7,7 @@ use DeepWebSolutions\LinkedOrders\MetaBox;
 use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RegistersOrderTypeTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -19,6 +20,7 @@ final class MetaBoxTest extends TestCase {
 	use CreatesUsersTrait;
 	use LoadsAdminScreensTrait;
 	use OrderStorageTrait;
+	use RegistersOrderTypeTrait;
 	use RestoresOptionsTrait;
 
 	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
@@ -110,6 +112,22 @@ final class MetaBoxTest extends TestCase {
 		self::assertNull( $this->render( $this->create_order()->get_id() )->querySelector( 'a.dws-linked-orders__tree' ) );
 	}
 
+	// v1 1.2.0 linked any order type its filter named, such as another plugin's.
+	#[DataProvider( 'storages' )]
+	public function test_another_plugins_order_type_gets_the_box_with_a_link_to_its_own_list( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$this->register_order_type();
+		$root  = $this->create_typed_order();
+		$child = $this->create_typed_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		$list = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders--' . self::ORDER_TYPE ) : admin_url( 'edit.php?post_type=' . self::ORDER_TYPE );
+
+		self::assertSame( 'Linked Test orders', $this->register( wc_get_order( $root->get_id() ), wc_get_page_screen_id( self::ORDER_TYPE ) )['title'] ?? null );
+		$box = $this->render( $root->get_id(), wc_get_page_screen_id( self::ORDER_TYPE ) );
+		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), $box->querySelector( 'a.dws-linked-orders__tree' )?->getAttribute( 'href' ) );
+		self::assertStringStartsWith( 'Test order #' . $child->get_order_number(), \trim( (string) $box->querySelector( '#linked-order-' . $child->get_id() . ' a' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+	}
+
 	// The posts editor passes its post to the box and the order-tables editor its order, so a row passes what its storage's editor does.
 	protected function register( \WC_Order|\WP_Post $post_or_order, ?string $screen = null ): ?array {
 		global $wp_meta_boxes;
@@ -122,10 +140,10 @@ final class MetaBoxTest extends TestCase {
 		return $wp_meta_boxes[ $screen ]['side']['default']['dws-linked-orders'] ?? null;
 	}
 
-	protected function render( int $order_id ): \Dom\HTMLDocument {
+	protected function render( int $order_id, ?string $screen = null ): \Dom\HTMLDocument {
 		$order = OrderUtil::custom_orders_table_usage_is_enabled() ? wc_get_order( $order_id ) : get_post( $order_id );
 		self::assertTrue( $order instanceof \WC_Order || $order instanceof \WP_Post );
-		$box = $this->register( $order );
+		$box = $this->register( $order, $screen );
 		self::assertIsArray( $box );
 
 		\ob_start();

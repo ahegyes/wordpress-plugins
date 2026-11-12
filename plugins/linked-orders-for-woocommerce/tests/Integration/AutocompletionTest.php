@@ -32,7 +32,7 @@ final class AutocompletionTest extends TestCase {
 		foreach ( array( $child, $grandchild ) as $descendant ) {
 			$stored = wc_get_order( $descendant->get_id() );
 			self::assertSame( 'completed', $stored->get_status() );
-			self::assertContains( 'Child order autocompleted. Order status changed from Pending payment to Completed.', \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ) );
+			self::assertSame( array( 'Child order autocompleted. Order status changed from Pending payment to Completed.' ), \array_values( \array_filter( \array_map( static fn ( \stdClass $note ): string => $note->content, wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ) ), static fn ( string $content ): bool => \str_starts_with( $content, 'Child order autocompleted.' ) ) ) );
 		}
 	}
 
@@ -128,6 +128,7 @@ final class AutocompletionTest extends TestCase {
 			remove_filter( 'dws_lowc/autocompletion/completed_status', $status );
 		}
 
+		self::assertSame( 'processing', wc_get_order( $root->get_id() )->get_status() );
 		self::assertSame( 'pending', wc_get_order( $child->get_id() )->get_status() );
 		self::assertSame( 'processing', wc_get_order( $grandchild->get_id() )->get_status() );
 	}
