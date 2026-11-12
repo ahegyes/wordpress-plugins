@@ -47,7 +47,9 @@ final class ChildCreation implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Creates a linked child of the requested order and opens it, or returns to the referring screen, or else the parent, with a notice saying why it was not created.
+	 * Creates a linked child of the requested order and opens it.
+	 *
+	 * Otherwise the request returns to the referring screen, or else the parent, with a notice that says why.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

@@ -52,7 +52,9 @@ function dws_lowc_is_root_order( $order ): ?bool {
 }
 
 /**
- * Links one order as the child of another, returning false unless the child is another order with neither a parent nor children, when another request still links orders after five seconds, or when the child's save does not store its parent, and null when either order has no node.
+ * Links two orders as parent and child.
+ *
+ * It returns false when the child is the parent or has a parent or children, when another request still links orders after five seconds, or when the child's save does not store its parent, and null when either order has no node.
  *
  * A link reads and rewrites the parent's list of children, so it holds the linking lock and reads both orders' meta from the database under it. WooCommerce logs a save that fails and returns as if it had saved, so the parent lists the child only once the child's parent reads back from the database.
  *
@@ -226,7 +228,9 @@ function dws_lowc_refresh_links( WC_Order ...$orders ): void {
 }
 
 /**
- * Returns the node at the top of an order's tree, which is the order's own for a root or for a child whose parent was deleted, or null when the order has no node.
+ * Returns the node at the top of an order's tree, or null when the order has no node.
+ *
+ * A root is its own top, and so is a child whose parent was deleted.
  *
  * The walk stops below an order it has already visited, since v1 stored links without refusing a cycle.
  *

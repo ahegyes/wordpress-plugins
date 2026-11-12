@@ -215,7 +215,9 @@ function dws_lowc_get_component_hook_tag( string $component_id, string $name, $e
 }
 
 /**
- * Returns a hook name joined and sanitized as v1 did: the non-empty parts joined with slashes, spaces and backslashes as underscores, bytes below 32 and above 127 stripped, lowercased.
+ * Returns a hook name joined and sanitized as v1 did.
+ *
+ * Its non-empty parts are joined with slashes, spaces and backslashes become underscores, bytes below 32 and above 127 go, and the name is lowercased.
  *
  * @since   2.0.0
  * @version 2.0.0

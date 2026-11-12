@@ -11,7 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The ids of v1's settings groups, in the order the plugin's section shows them; a field of a group lives in the option `dws-lowc_{group}_{field}`.
+ * The ids of v1's settings groups, in the order the plugin's section shows them.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -129,7 +129,9 @@ function dws_lowc_validate_setting( $value, string $field_id, ?string $group = n
 }
 
 /**
- * Returns the deepest level a linked order can be created at: the validated setting, at least 1 as stored, or what v1's and v2's filters make it.
+ * Returns the deepest level a linked order can be created at.
+ *
+ * It reads the validated setting, at least 1 as stored, through v1's and v2's filters.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -143,7 +145,7 @@ function dws_lowc_get_max_depth(): int {
 /**
  * Returns a setting's group without its '-settings' suffix, its field id and its option, which is null for a group v1 did not have.
  *
- * As in v1, a read without a group names the group in the field id, such as 'general/max-depth', and a field an extension adds to a group without an id of its own lives in the option WooCommerce saves it under, `dws-lowc_{group}_{field}`. An id read without a group that names none has an empty group.
+ * As in v1, a read without a group names the group in the field id, such as 'general/max-depth', and a field an extension adds to a group without an id of its own lives in the option WooCommerce saves it under, dws-lowc_{group}_{field}. An id read without a group that names none has an empty group.
  *
  * @since   2.0.0
  * @version 2.0.0

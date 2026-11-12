@@ -45,7 +45,9 @@ final class Autocompletion implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Sets the order and each of its descendants, the order first, to completed, with a note, unless a filter keeps one or names another status; the order itself, already completed, changes only through a filter.
+	 * Completes an order's descendants.
+	 *
+	 * Each order of the tree, the completed one first, is set to completed with a note, unless a filter keeps it or names another status. The completed order itself changes only through a filter.
 	 *
 	 * Completing a descendant fires this hook again, so an order a pass in progress covers starts no pass of its own.
 	 *

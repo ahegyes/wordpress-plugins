@@ -455,7 +455,9 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns a meta query that requires both the query already in place and each of the list's clauses, whatever relation the query in place uses.
+	 * Returns a meta query that requires the query in place and each of the list's clauses.
+	 *
+	 * Joining both under AND holds whatever relation the query in place uses.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -470,7 +472,9 @@ final class ListTable implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the ids of the tree the list is filtered by, narrowed to the ids a search found, none for an order without a node, or null when the list is not filtered by tree.
+	 * Returns the ids of the tree the list is filtered by, or null when the list is not filtered by tree.
+	 *
+	 * The ids narrow to those a search found, and an order without a node yields none.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

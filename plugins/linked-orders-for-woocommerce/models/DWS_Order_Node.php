@@ -3,7 +3,9 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Wraps an order of a supported type with its place in a tree of linked orders, which it reads from the order's meta once and saves back to it; it loads its parent's and children's orders only when asked for them.
+ * Wraps an order of a supported type with its place in a tree of linked orders.
+ *
+ * It reads the place from the order's meta once and saves it back, and loads its parent's and children's orders only when asked for them.
  *
  * It keeps v1's global name, which other plugins type-hint, and calls to it that name no method of its own reach the order.
  *
@@ -123,7 +125,9 @@ final class DWS_Order_Node {
 	}
 
 	/**
-	 * Returns a property of the order through WooCommerce's legacy getter, which reads every order property, or null when the order has none of that name.
+	 * Returns a property of the order, or null when the order has none of that name.
+	 *
+	 * WooCommerce's legacy getter reads every order property.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -393,7 +397,9 @@ final class DWS_Order_Node {
 	}
 
 	/**
-	 * Returns whether a user may create a child of the order: the user may edit the order and create linked children, the order is above the maximum depth, and its status allows a new child.
+	 * Returns whether a user may create a child of the order.
+	 *
+	 * The user may edit the order and create linked children, the order is above the maximum depth, and its status allows a new child.
 	 *
 	 * @since   1.0.0
 	 * @version 2.0.0
