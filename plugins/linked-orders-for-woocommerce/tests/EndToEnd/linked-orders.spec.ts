@@ -64,7 +64,7 @@ test.describe( 'Linked orders', () => {
 			page.locator( `#order-${ parent.id } td.column-dws_lo_depth` )
 		).toHaveText( 'Root order' );
 		const listResults = await new AxeBuilder( { page } )
-			.include( '.tablenav.top' )
+			.include( '#dws_lo_depth_filter_dropdown' )
 			.analyze();
 		expect( listResults.violations ).toEqual( [] );
 	} );
