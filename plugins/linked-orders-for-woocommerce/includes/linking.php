@@ -8,6 +8,7 @@
  * @package DeepWebSolutions\LinkedOrders
  */
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
@@ -265,6 +266,22 @@ function dws_lowc_refresh_links( WC_Order ...$orders ): void {
 	} finally {
 		remove_filter( 'pre_option_woocommerce_hpos_datastore_caching_enabled', $no_data_caching, PHP_INT_MAX );
 	}
+}
+
+/**
+ * Returns the wc_get_orders() arguments that match the orders storing a meta key, on the storage WooCommerce uses for orders.
+ *
+ * The order tables take a key only in a meta query, which the posts store refuses, so WP_Query gets it as a top-level key, which also lets it order by the key's value.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   string $key The meta key.
+ *
+ * @return  array<string, mixed>
+ */
+function dws_lowc_get_meta_key_args( string $key ): array {
+	return OrderUtil::custom_orders_table_usage_is_enabled() ? array( 'meta_query' => array( array( 'key' => $key ) ) ) : array( 'meta_key' => $key ); // phpcs:ignore WordPress.DB.SlowDBQuery -- Callers read one row or walk the linked orders once.
 }
 
 /**

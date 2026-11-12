@@ -164,9 +164,8 @@ final class ListTable implements ComponentInterface {
 		}
 
 		// The Trash view lists trashed orders, and another plugin's order type may register its statuses only as post statuses, so the deepest stored order is read in every status.
-		$depth_key = OrderUtil::custom_orders_table_usage_is_enabled() ? array( 'meta_query' => array( array( 'key' => DWS_LOWC_META_DEPTH ) ) ) : array( 'meta_key' => DWS_LOWC_META_DEPTH ); // phpcs:ignore WordPress.DB.SlowDBQuery -- One row, ordered by the depth meta.
-		$deepest   = wc_get_orders(
-			$depth_key + array(
+		$deepest  = wc_get_orders(
+			dws_lowc_get_meta_key_args( DWS_LOWC_META_DEPTH ) + array(
 				'type'    => $type,
 				'status'  => \array_values( get_post_stati() ),
 				'limit'   => 1,
@@ -175,10 +174,10 @@ final class ListTable implements ComponentInterface {
 				'order'   => 'DESC',
 			)
 		);
-		$deepest   = \max( dws_lowc_get_max_depth(), ( \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null ) ?? 0 );
-		$selected  = $this->get_depth_filter();
-		$email     = $this->get_guest_email();
-		$pivot     = $this->get_tree_pivot();
+		$deepest  = \max( dws_lowc_get_max_depth(), ( \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null ) ?? 0 );
+		$selected = $this->get_depth_filter();
+		$email    = $this->get_guest_email();
+		$pivot    = $this->get_tree_pivot();
 		?>
 		<label class="screen-reader-text" for="dws_lo_depth_filter_dropdown"><?php echo esc_html( \sprintf( /* translators: %s: The order type's singular name. */ __( '%s depth', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $post_type ) ) ); ?></label>
 		<input type="hidden" name="_guest_customer_user" value="<?php echo esc_attr( $email ); ?>"/>
