@@ -51,16 +51,23 @@ final class DeprecatedHooksTest extends TestCase {
 		wp_set_current_user( 0 );
 	}
 
+	// A v1 filter returns a value of its own, so the v2 name receives what the v1 listener made of the value and the same further arguments.
 	#[DataProvider( 'renamed_hooks' )]
-	public function test_a_renamed_hook_fires_its_v1_literal_then_its_v2_name( string $v1_leaf, string $v2, string $trigger ): void {
+	public function test_a_renamed_hook_fires_its_v1_literal_then_its_v2_name_with_its_arguments( string $v1_leaf, string $v2, string $trigger ): void {
 		$v1    = "linked_orders_for_woocommerce/$v1_leaf";
 		$fired = array();
-		$spy   = static function ( mixed $value = null ) use ( &$fired ): mixed {
-			$fired[] = current_filter();
-			return $value;
+		$made  = static fn ( mixed $value ): mixed => match ( true ) {
+			\is_bool( $value ) => ! $value,
+			\is_string( $value ) => $value . ' (v1)',
+			\is_array( $value ) => $value + array( 'dws_lowc_v1' => 'dws_lowc_v1' ),
+			default => $value,
 		};
-		add_filter( $v1, $spy );
-		add_filter( $v2, $spy );
+		$spy   = static function ( mixed ...$arguments ) use ( &$fired, $made ): mixed {
+			$fired[] = array( current_filter(), $arguments );
+			return $made( $arguments[0] );
+		};
+		add_filter( $v1, $spy, 10, 9 );
+		add_filter( $v2, $spy, 10, 9 );
 
 		try {
 			$this->{$trigger}();
@@ -69,7 +76,10 @@ final class DeprecatedHooksTest extends TestCase {
 			remove_filter( $v2, $spy );
 		}
 
-		self::assertSame( array( $v1, $v2 ), $fired );
+		self::assertSame( array( $v1, $v2 ), \array_column( $fired, 0 ) );
+		list( $v1_arguments, $v2_arguments ) = \array_column( $fired, 1 );
+		self::assertSame( $made( $v1_arguments[0] ), $v2_arguments[0] );
+		self::assertSame( \array_slice( $v1_arguments, 1 ), \array_slice( $v2_arguments, 1, \count( $v1_arguments ) - 1 ) );
 		self::assertSame( array( array( $v1, $v2 ) ), $this->deprecated );
 	}
 
@@ -128,9 +138,6 @@ final class DeprecatedHooksTest extends TestCase {
 	}
 
 	protected function open_list(): string {
-		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
-		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		$screen = wc_get_page_screen_id( 'shop-order' );
 		set_current_screen( $screen );
 		return $screen;
