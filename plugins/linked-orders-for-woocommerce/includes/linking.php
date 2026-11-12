@@ -131,6 +131,8 @@ function dws_lowc_refresh_links( WC_Order ...$orders ): void {
 /**
  * Returns the node at the top of an order's tree, which is the order's own for a root or for a child whose parent was deleted, or null when the order has no node.
  *
+ * The walk stops below an order it has already visited, since v1 stored links without refusing a cycle.
+ *
  * @api
  *
  * @since   1.0.0
@@ -141,9 +143,16 @@ function dws_lowc_refresh_links( WC_Order ...$orders ): void {
  * @return  DWS_Order_Node|null
  */
 function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
-	$node = dws_lowc_get_order_node( $order );
-	while ( ! is_null( $node ) && $node->has_parent() ) {
-		$node = $node->get_parent();
+	$node    = dws_lowc_get_order_node( $order );
+	$visited = array();
+	while ( ! is_null( $node ) ) {
+		$visited[] = $node->get_order()->get_id();
+		$parent    = $node->get_parent();
+		if ( is_null( $parent ) || in_array( $parent->get_order()->get_id(), $visited, true ) ) {
+			break;
+		}
+
+		$node = $parent;
 	}
 
 	return $node;
@@ -151,6 +160,8 @@ function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
 
 /**
  * Returns the ids of an order and its descendants, each child before the next with its own descendants, or null when the order has no node.
+ *
+ * Each order is listed once, since v1 stored links without refusing a cycle.
  *
  * @api
  *
@@ -167,9 +178,17 @@ function dws_lowc_get_orders_tree( $order ): ?array {
 		return null;
 	}
 
-	$tree = array( $node->get_order()->get_id() );
-	foreach ( $node->get_children() as $child ) {
-		$tree = array_merge( $tree, dws_lowc_get_orders_tree( $child->get_order() ) ?? array() );
+	$tree    = array();
+	$pending = array( $node );
+	while ( array() !== $pending ) {
+		$current = array_pop( $pending );
+		$id      = $current->get_order()->get_id();
+		if ( in_array( $id, $tree, true ) ) {
+			continue;
+		}
+
+		$tree[]  = $id;
+		$pending = array_merge( $pending, array_reverse( $current->get_children() ) );
 	}
 
 	return $tree;
