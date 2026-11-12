@@ -163,6 +163,27 @@ final class SettingsTest extends TestCase {
 		self::assertSame( array( array( $v1_hook, $v2_hook ) ), $this->deprecated );
 	}
 
+	// A v1 field keyed by its v1 id may name its own option, which the field's id gives.
+	public function test_a_v1_fields_own_id_names_its_option(): void {
+		$extra = static fn ( array $fields ): array => $fields + array(
+			'extra' => array(
+				'id'    => 'dws_lowc_test_extension_option',
+				'type'  => 'text',
+				'title' => 'Extra',
+			),
+		);
+		add_filter( 'linked_orders_for_woocommerce/general_settings/get_group_fields', $extra );
+
+		try {
+			$ids = \array_column( new Settings()->get_section_fields( 'advanced', self::SECTION ), 'id' );
+		} finally {
+			remove_filter( 'linked_orders_for_woocommerce/general_settings/get_group_fields', $extra );
+		}
+
+		self::assertContains( 'dws_lowc_test_extension_option', $ids );
+		self::assertNotContains( 'dws-lowc_general_extra', $ids );
+	}
+
 	// v1 keyed its row links and named them for screen readers, and other plugins find them by key.
 	public function test_the_plugin_row_links_to_the_section_and_to_the_support_forum_under_v1s_keys(): void {
 		$basename = plugin_basename( DWS_LOWC_FILE );
