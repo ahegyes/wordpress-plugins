@@ -404,7 +404,8 @@ final class DWS_Order_Node {
 	 */
 	public function can_create_child( ?int $user_id = null ): bool {
 		$user       = $user_id ?? get_current_user_id();
-		$permission = user_can( $user, DWS_LOWC_CAP_CREATE_LINKED_CHILDREN, $this->order->get_id() ) && user_can( $user, 'edit_shop_orders', $this->order->get_id() );
+		$edit       = $this->post_type->cap->edit_post;
+		$permission = user_can( $user, DWS_LOWC_CAP_CREATE_LINKED_CHILDREN, $this->order->get_id() ) && ( ( is_string( $edit ) && user_can( $user, $edit, $this->order->get_id() ) ) || user_can( $user, 'manage_woocommerce' ) );
 		$depth      = dws_lowc_get_max_depth() > $this->get_depth();
 		$status     = $this->order->has_status( dws_lowc_get_valid_statuses_for_new_child( $this->post_type->name, $this->order ) );
 

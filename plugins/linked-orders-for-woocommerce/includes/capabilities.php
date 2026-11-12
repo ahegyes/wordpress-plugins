@@ -11,7 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The capability a user needs, beside edit_shop_orders on the parent order, to create a linked child order.
+ * The capability a user needs, beside permission to edit the parent order, to create a linked child order.
  *
  * @since   2.0.0
  * @version 2.0.0
