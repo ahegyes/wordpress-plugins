@@ -252,6 +252,37 @@ final class ListTableTest extends TestCase {
 		self::assertSame( 'create-empty-linked-child', $actions['create_empty_linked_child']['action'] );
 	}
 
+	// A list page builds every row, so a row reads only its own order's stored links, and offers its tree even where a related order was deleted.
+	#[DataProvider( 'storages' )]
+	public function test_a_row_offers_its_tree_from_its_stored_links_alone( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent  = $this->create_order();
+		$orphan  = $this->create_order();
+		$builds  = 0;
+		$counted = static function ( array $types ) use ( &$builds ): array {
+			++$builds;
+			return $types;
+		};
+		foreach ( array( array( $parent, 0, array( \PHP_INT_MAX ) ), array( $orphan, 1, array() ) ) as list( $order, $depth, $children ) ) {
+			$order->update_meta_data( '_dws_lo_depth', (string) $depth );
+			$order->update_meta_data( '_dws_lo_parent', 0 === $depth ? '' : (string) \PHP_INT_MAX );
+			$order->update_meta_data( '_dws_lo_children', $children );
+			$order->save();
+		}
+		$this->open_list();
+		add_filter( 'dws_lowc/post_type/supported_order_types', $counted );
+
+		try {
+			foreach ( array( $parent, $orphan ) as $order ) {
+				$builds = 0;
+				self::assertArrayHasKey( 'view_all_linked_orders', apply_filters( 'woocommerce_admin_order_actions', array(), wc_get_order( $order->get_id() ) ) );
+				self::assertSame( 1, $builds );
+			}
+		} finally {
+			remove_filter( 'dws_lowc/post_type/supported_order_types', $counted );
+		}
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_a_guest_row_offers_the_orders_of_its_billing_email_unless_the_list_shows_them( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );

@@ -63,6 +63,37 @@ final class AutocompletionTest extends TestCase {
 		self::assertSame( array( $root->get_id(), $child->get_id() ), \array_slice( $seen, 0, 2 ) );
 	}
 
+	// Completing each descendant fires the completion hook again, so a pass covers each order once, while an order outside the pass that a callback completes still completes its own descendants.
+	#[DataProvider( 'storages' )]
+	public function test_each_order_of_a_tree_is_completed_once_and_with_one_note( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		list( $root, $child, $grandchild )              = $this->create_tree();
+		list( $other, $other_child, $other_grandchild ) = $this->create_tree();
+
+		$seen   = array();
+		$record = static function ( bool $should, int $order_id ) use ( &$seen, $child, $other ): bool {
+			$seen[] = $order_id;
+			if ( $child->get_id() === $order_id ) {
+				wc_get_order( $other->get_id() )->update_status( 'completed' );
+			}
+
+			return $should;
+		};
+		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
+
+		try {
+			$root->update_status( 'completed' );
+		} finally {
+			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $record );
+		}
+
+		self::assertSame( array( $root->get_id(), $child->get_id(), $other->get_id(), $other_child->get_id(), $other_grandchild->get_id(), $grandchild->get_id() ), $seen );
+		foreach ( array( $child, $grandchild, $other_child, $other_grandchild ) as $descendant ) {
+			self::assertSame( 'completed', wc_get_order( $descendant->get_id() )->get_status() );
+			self::assertCount( 1, \array_filter( wc_get_order_notes( array( 'order_id' => $descendant->get_id() ) ), static fn ( \stdClass $note ): bool => \str_starts_with( $note->content, 'Child Order autocompleted.' ) ) );
+		}
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_completing_a_child_leaves_its_parent_alone( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
