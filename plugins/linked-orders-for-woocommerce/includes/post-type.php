@@ -141,7 +141,7 @@ function dws_lowc_get_create_child_url( int $parent_id ): string {
 /**
  * Creates an order linked as the child of a supported order, with the parent's customer and addresses, and returns its id.
  *
- * Returns null when the parent is missing or unsupported, or when the creator is not callable or creates no supported order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
+ * The creator must create a new order, because a refused link deletes what it returned, so the function refuses the parent and any order with a parent or children before it changes them. An existing order without links that a creator returns is still deleted when the link gives up waiting for another request's. Returns null when the parent is missing or unsupported, or when the creator is not callable or returns no such order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
  *
  * @api
  *
@@ -201,8 +201,9 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 		return $child;
 	}
 
-	if ( ! $child instanceof WC_Order || true !== dws_lowc_is_supported_order( $child ) ) {
-		_doing_it_wrong( __FUNCTION__, esc_html__( 'The linked child\'s create_function returned no order of a supported type.', 'linked-orders-for-woocommerce' ), '1.0.0' );
+	$node = $child instanceof WC_Order ? dws_lowc_get_order_node( $child ) : null;
+	if ( ! $child instanceof WC_Order || is_null( $node ) || $parent_id === $child->get_id() || $node->has_parent() || $node->has_children() ) {
+		_doing_it_wrong( __FUNCTION__, esc_html__( 'The linked child\'s create_function returned no new order of a supported type.', 'linked-orders-for-woocommerce' ), '1.0.0' );
 		return null;
 	}
 
