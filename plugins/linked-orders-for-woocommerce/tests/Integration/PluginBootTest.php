@@ -76,9 +76,10 @@ final class PluginBootTest extends TestCase {
 		self::assertLessThan( $bootstrap, $safeguards );
 	}
 
-	// The update's second step runs its batches only from the runner's scheduled hook, so a request of its own fires the hook as the scheduler would on a new site, and this process then reads the revision afresh.
+	// The update's second step runs its batches only from the runner's scheduled hook, so from the revision before it a request of its own fires the hook as the scheduler would, and this process then reads the revision afresh.
 	public function test_the_stored_data_reaches_the_revision_of_the_code_once_the_runners_hook_runs(): void {
 		self::assertInstanceOf( MigrationRunner::class, dws_lowc_plugin()->migrations );
+		update_option( Plugin::PREFIX . '_revision', 1 );
 
 		$request = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
 		wp_cache_flush();
