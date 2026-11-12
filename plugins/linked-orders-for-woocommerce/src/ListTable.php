@@ -164,7 +164,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		// The Trash view lists trashed orders, and another plugin's order type may register its statuses only as post statuses, so the deepest stored order is read in every status.
-		$depth_key = OrderUtil::custom_orders_table_usage_is_enabled() ? array( 'meta_query' => array( array( 'key' => '_dws_lo_depth' ) ) ) : array( 'meta_key' => '_dws_lo_depth' ); // phpcs:ignore WordPress.DB.SlowDBQuery -- One row, ordered by the depth meta.
+		$depth_key = OrderUtil::custom_orders_table_usage_is_enabled() ? array( 'meta_query' => array( array( 'key' => DWS_LOWC_META_DEPTH ) ) ) : array( 'meta_key' => DWS_LOWC_META_DEPTH ); // phpcs:ignore WordPress.DB.SlowDBQuery -- One row, ordered by the depth meta.
 		$deepest   = wc_get_orders(
 			$depth_key + array(
 				'type'    => $type,
@@ -325,7 +325,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
-		$children = $order->get_meta( '_dws_lo_children' );
+		$children = $order->get_meta( DWS_LOWC_META_CHILDREN );
 		if ( \is_null( $this->get_tree_pivot() ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
 			$name                            = __( 'View all linked orders', 'linked-orders-for-woocommerce' );
 			$added['view_all_linked_orders'] = array(
@@ -439,7 +439,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$clause = array(
-			'key'   => '_dws_lo_depth',
+			'key'   => DWS_LOWC_META_DEPTH,
 			'value' => (string) $depth,
 		);
 		return array(
@@ -447,7 +447,7 @@ final class ListTable implements ComponentInterface {
 				'relation' => 'OR',
 				$clause,
 				array(
-					'key'     => '_dws_lo_depth',
+					'key'     => DWS_LOWC_META_DEPTH,
 					'compare' => 'NOT EXISTS',
 				),
 			) : $clause,

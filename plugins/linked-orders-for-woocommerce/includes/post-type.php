@@ -13,6 +13,26 @@ use Automattic\WooCommerce\Utilities\OrderUtil;
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * The admin-post action that creates a linked child.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_CREATE_CHILD_ACTION = 'dws_lowc_create_linked_child';
+
+/**
+ * The nonce action that guards the creation of a linked child.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_CREATE_CHILD_NONCE = 'dws_create_linked_child';
+
+/**
  * Returns the order types whose orders can be linked.
  *
  * @api
@@ -166,7 +186,7 @@ function dws_lowc_get_child_refusal( DWS_Order_Node $node ): string {
  * @return  string
  */
 function dws_lowc_get_create_child_url( int $parent_id ): string {
-	return wp_nonce_url( admin_url( 'admin-post.php?action=dws_lowc_create_linked_child&parent_id=' . $parent_id ), 'dws_create_linked_child' );
+	return wp_nonce_url( admin_url( 'admin-post.php?action=' . DWS_LOWC_CREATE_CHILD_ACTION . '&parent_id=' . $parent_id ), DWS_LOWC_CREATE_CHILD_NONCE );
 }
 
 /**
@@ -240,7 +260,7 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 
 	$child->set_address( $parent->get_address( 'billing' ), 'billing' );
 	$child->set_address( $parent->get_address( 'shipping' ), 'shipping' );
-	$child->add_meta_data( '_dws_lo_created_by', (string) get_current_user_id() );
+	$child->add_meta_data( DWS_LOWC_META_CREATED_BY, (string) get_current_user_id() );
 
 	/**
 	 * Fires when a linked child has been created, before it is saved and linked.

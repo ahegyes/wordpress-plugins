@@ -87,7 +87,7 @@ function dws_lowc_repair_links(): bool {
 	$page = filter_var( get_option( 'dws_lowc_link_repair_page', 1 ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 1;
 
 	// The order tables take the parent key only in a meta query, which the posts store refuses, passing a top-level key to WP_Query instead.
-	$linked = OrderUtil::custom_orders_table_usage_is_enabled() ? array( 'meta_query' => array( array( 'key' => '_dws_lo_parent' ) ) ) : array( 'meta_key' => '_dws_lo_parent' ); // phpcs:ignore WordPress.DB.SlowDBQuery -- A one-time walk of the linked orders.
+	$linked = OrderUtil::custom_orders_table_usage_is_enabled() ? array( 'meta_query' => array( array( 'key' => DWS_LOWC_META_PARENT ) ) ) : array( 'meta_key' => DWS_LOWC_META_PARENT ); // phpcs:ignore WordPress.DB.SlowDBQuery -- A one-time walk of the linked orders.
 	$ids    = wc_get_orders(
 		$linked + array(
 			'type'    => dws_lowc_get_supported_order_types(),

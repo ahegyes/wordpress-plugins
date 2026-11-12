@@ -15,6 +15,46 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * The order meta key that holds an order's depth below its root, 0 for a root.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_META_DEPTH = '_dws_lo_depth';
+
+/**
+ * The order meta key that holds the id of an order's parent, empty for a root.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_META_PARENT = '_dws_lo_parent';
+
+/**
+ * The order meta key that holds the ids of an order's children.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_META_CHILDREN = '_dws_lo_children';
+
+/**
+ * The order meta key that holds the id of the user who created a linked child.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_META_CREATED_BY = '_dws_lo_created_by';
+
+/**
  * Returns an order's node, or null when the value names no order of a supported type.
  *
  * @api
@@ -89,7 +129,7 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 
 		$child->save();
 		dws_lowc_refresh_links( $child->get_order() );
-		if ( (string) $parent->get_order()->get_id() !== $child->get_order()->get_meta( '_dws_lo_parent' ) ) {
+		if ( (string) $parent->get_order()->get_id() !== $child->get_order()->get_meta( DWS_LOWC_META_PARENT ) ) {
 			return false;
 		}
 

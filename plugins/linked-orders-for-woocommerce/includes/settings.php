@@ -117,15 +117,16 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
  * @return  mixed
  */
 function dws_lowc_validate_setting( $value, string $field_id, ?string $group = null ) {
-	switch ( dws_lowc_find_setting( $field_id, $group )[2] ) {
-		case DWS_LOWC_OPTION_MAX_DEPTH:
-			return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 1, 1 );
-		case DWS_LOWC_OPTION_AUTOCOMPLETE:
-		case DWS_LOWC_OPTION_DELETE_DATA:
-			return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? false;
-		default:
-			return $value;
+	$key = dws_lowc_find_setting( $field_id, $group )[2];
+	if ( DWS_LOWC_OPTION_MAX_DEPTH === $key ) {
+		return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? DWS_LOWC_OPTION_DEFAULTS[ $key ], 1 );
 	}
+
+	if ( DWS_LOWC_OPTION_AUTOCOMPLETE === $key || DWS_LOWC_OPTION_DELETE_DATA === $key ) {
+		return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? DWS_LOWC_OPTION_DEFAULTS[ $key ];
+	}
+
+	return $value;
 }
 
 /**
@@ -139,7 +140,7 @@ function dws_lowc_validate_setting( $value, string $field_id, ?string $group = n
  * @return  int
  */
 function dws_lowc_get_max_depth(): int {
-	return filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 1;
+	return filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_MAX_DEPTH ];
 }
 
 /**

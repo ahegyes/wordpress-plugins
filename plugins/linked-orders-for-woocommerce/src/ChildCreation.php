@@ -39,7 +39,7 @@ final class ChildCreation implements ComponentInterface {
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_action( 'admin_post_dws_lowc_create_linked_child', array( $this, 'create_linked_child' ) );
+		add_action( 'admin_post_' . DWS_LOWC_CREATE_CHILD_ACTION, array( $this, 'create_linked_child' ) );
 	}
 
 	// endregion
@@ -57,7 +57,7 @@ final class ChildCreation implements ComponentInterface {
 	 * @return  never
 	 */
 	public function create_linked_child(): never {
-		check_admin_referer( 'dws_create_linked_child' );
+		check_admin_referer( DWS_LOWC_CREATE_CHILD_NONCE );
 
 		$parent_id = \filter_var(
 			wp_unslash( $_GET['parent_id'] ?? '' ),

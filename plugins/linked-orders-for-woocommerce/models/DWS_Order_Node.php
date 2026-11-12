@@ -452,9 +452,9 @@ final class DWS_Order_Node {
 	 * @return  void
 	 */
 	public function save(): void {
-		$this->order->update_meta_data( '_dws_lo_depth', (string) $this->get_depth() );
-		$this->order->update_meta_data( '_dws_lo_parent', (string) $this->get_parent()?->get_order()->get_id() );
-		$this->order->update_meta_data( '_dws_lo_children', array_map( static fn ( DWS_Order_Node $child ): int => $child->get_order()->get_id(), $this->get_children() ) );
+		$this->order->update_meta_data( DWS_LOWC_META_DEPTH, (string) $this->get_depth() );
+		$this->order->update_meta_data( DWS_LOWC_META_PARENT, (string) $this->get_parent()?->get_order()->get_id() );
+		$this->order->update_meta_data( DWS_LOWC_META_CHILDREN, array_map( static fn ( DWS_Order_Node $child ): int => $child->get_order()->get_id(), $this->get_children() ) );
 		$this->order->save();
 	}
 
@@ -476,9 +476,9 @@ final class DWS_Order_Node {
 		}
 
 		$this->is_read   = true;
-		$this->depth     = filter_var( $this->order->get_meta( '_dws_lo_depth' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
-		$this->parent_id = filter_var( $this->order->get_meta( '_dws_lo_parent' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
-		$children        = $this->order->get_meta( '_dws_lo_children' );
+		$this->depth     = filter_var( $this->order->get_meta( DWS_LOWC_META_DEPTH ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
+		$this->parent_id = filter_var( $this->order->get_meta( DWS_LOWC_META_PARENT ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
+		$children        = $this->order->get_meta( DWS_LOWC_META_CHILDREN );
 		$this->child_ids = is_array( $children ) ? filter_var( $children, FILTER_VALIDATE_INT, FILTER_REQUIRE_ARRAY | FILTER_NULL_ON_FAILURE ) : array();
 	}
 
