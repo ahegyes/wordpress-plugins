@@ -117,9 +117,9 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$depth = $node->get_depth();
-		$label = 0 === $depth ? _x( 'Root order', 'list table content', 'linked-orders-for-woocommerce' ) : \sprintf(
+		$label = 0 === $depth ? _x( 'Root', 'list table content', 'linked-orders-for-woocommerce' ) : \sprintf(
 			/* translators: %d: The order's level, where the root is level 1. */
-			_x( 'Child order (level %d)', 'list table content', 'linked-orders-for-woocommerce' ),
+			_x( 'Child (level %d)', 'list table content', 'linked-orders-for-woocommerce' ),
 			$depth + 1
 		);
 
@@ -179,14 +179,14 @@ final class ListTable implements ComponentInterface {
 		$email    = $this->get_guest_email();
 		$pivot    = $this->get_tree_pivot();
 		?>
-		<label class="screen-reader-text" for="dws_lo_depth_filter_dropdown"><?php echo esc_html( \sprintf( /* translators: %s: The order type's singular name. */ __( '%s depth', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $post_type ) ) ); ?></label>
+		<label class="screen-reader-text" for="dws_lo_depth_filter_dropdown"><?php esc_html_e( 'Filter by depth', 'linked-orders-for-woocommerce' ); ?></label>
 		<input type="hidden" name="_guest_customer_user" value="<?php echo esc_attr( $email ); ?>"/>
 		<input type="hidden" name="_dws_linked_order_id" value="<?php echo esc_attr( (string) $pivot ); ?>"/>
 		<select name="_dws_lo_depth" id="dws_lo_depth_filter_dropdown">
 			<option value=""><?php esc_html_e( 'All depths', 'linked-orders-for-woocommerce' ); ?></option>
-			<option value="0" <?php selected( 0, $selected ); ?>><?php echo esc_html_x( 'Root orders', 'list table filter', 'linked-orders-for-woocommerce' ); ?></option>
+			<option value="0" <?php selected( 0, $selected ); ?>><?php echo esc_html_x( 'Roots', 'list table filter', 'linked-orders-for-woocommerce' ); ?></option>
 			<?php for ( $depth = 1; $depth <= $deepest; $depth++ ) : ?>
-				<option value="<?php echo esc_attr( (string) $depth ); ?>" <?php selected( $depth, $selected ); ?>><?php echo esc_html( \sprintf( /* translators: %d: The level, where the root is level 1. */ _x( 'Child orders (level %d)', 'list table filter', 'linked-orders-for-woocommerce' ), $depth + 1 ) ); ?></option>
+				<option value="<?php echo esc_attr( (string) $depth ); ?>" <?php selected( $depth, $selected ); ?>><?php echo esc_html( \sprintf( /* translators: %d: The level, where the root is level 1. */ _x( 'Children (level %d)', 'list table filter', 'linked-orders-for-woocommerce' ), $depth + 1 ) ); ?></option>
 			<?php endfor; ?>
 		</select>
 		<?php
@@ -194,7 +194,7 @@ final class ListTable implements ComponentInterface {
 		if ( '' !== $email ) {
 			$lines['_guest_customer_user'] = \sprintf(
 				/* translators: %s: The billing email address. */
-				__( 'Showing orders billed to %s.', 'linked-orders-for-woocommerce' ),
+				__( 'Billed to %s.', 'linked-orders-for-woocommerce' ),
 				$email
 			);
 		}
@@ -203,7 +203,7 @@ final class ListTable implements ComponentInterface {
 			$order                         = wc_get_order( $pivot );
 			$lines['_dws_linked_order_id'] = \sprintf(
 				/* translators: %s: The order number. */
-				__( 'Showing orders linked to #%s.', 'linked-orders-for-woocommerce' ),
+				__( 'Linked to #%s.', 'linked-orders-for-woocommerce' ),
 				$order instanceof \WC_Order ? $order->get_order_number() : $pivot
 			);
 		}
@@ -314,7 +314,7 @@ final class ListTable implements ComponentInterface {
 		$customer_key   = 0 !== $order->get_customer_id() ? '_customer_user' : '_guest_customer_user';
 		$customer_value = 0 !== $order->get_customer_id() ? (string) $order->get_customer_id() : \rawurlencode( $order->get_billing_email() );
 		if ( '' !== $customer_value && ( ! isset( $_GET[ $customer_key ] ) || '' === $_GET[ $customer_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
-			$name                              = __( 'View all customer orders', 'linked-orders-for-woocommerce' );
+			$name                              = __( 'View all from this customer', 'linked-orders-for-woocommerce' );
 			$added['view_all_customer_orders'] = array(
 				'url'    => add_query_arg( $customer_key, $customer_value, $list ),
 				'name'   => $name,
@@ -326,7 +326,7 @@ final class ListTable implements ComponentInterface {
 		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
 		$children = $order->get_meta( DWS_LOWC_META_CHILDREN );
 		if ( \is_null( $this->get_tree_pivot() ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
-			$name                            = __( 'View all linked orders', 'linked-orders-for-woocommerce' );
+			$name                            = __( 'View all linked', 'linked-orders-for-woocommerce' );
 			$added['view_all_linked_orders'] = array(
 				'url'    => add_query_arg( '_dws_linked_order_id', $order->get_id(), $list ),
 				'name'   => $name,
@@ -338,7 +338,7 @@ final class ListTable implements ComponentInterface {
 		if ( $node->can_create_child() ) {
 			$added['create_empty_linked_child'] = array(
 				'url'    => dws_lowc_get_create_child_url( $order->get_id() ),
-				'name'   => __( 'Create empty linked order', 'linked-orders-for-woocommerce' ),
+				'name'   => dws_lowc_get_type_phrase( $node->get_post_type(), DWS_LOWC_LABEL_ADD_NEW_CHILD, __( 'Add new child order', 'linked-orders-for-woocommerce' ) ),
 				'action' => 'create-empty-linked-child',
 			);
 		}

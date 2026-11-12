@@ -33,6 +33,30 @@ const DWS_LOWC_CREATE_CHILD_ACTION = 'dws_lowc_create_linked_child';
 const DWS_LOWC_CREATE_CHILD_NONCE = 'dws_create_linked_child';
 
 /**
+ * The label key under which an order type names the phrase that adds a linked child to one of its orders, such as "Add new child quote".
+ *
+ * @api
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_LABEL_ADD_NEW_CHILD = 'linked_orders_for_woocommerce_add_new_child';
+
+/**
+ * The label key under which an order type names the title of its orders' Linked Orders box, such as "Linked quotes".
+ *
+ * @api
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @var     string
+ */
+const DWS_LOWC_LABEL_LINKED_ITEMS = 'linked_orders_for_woocommerce_linked_items';
+
+/**
  * Returns the order types whose orders can be linked.
  *
  * @api
@@ -78,6 +102,25 @@ function dws_lowc_get_supported_order_types(): array {
 function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
 	$name = $post_type->labels->singular_name ?? null;
 	return is_string( $name ) ? $name : $post_type->label;
+}
+
+/**
+ * Returns the phrase an order type registered under a label key, or the given fallback where it registered none.
+ *
+ * A child takes the type its creator makes, which only the type's registrant knows, so the registrant words the phrases that name it, each whole, for its own translation.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   WP_Post_Type $post_type The post type object of the order type.
+ * @param   string       $key       The label key.
+ * @param   string       $fallback  The plugin's own phrase.
+ *
+ * @return  string
+ */
+function dws_lowc_get_type_phrase( WP_Post_Type $post_type, string $key, string $fallback ): string {
+	$phrase = $post_type->labels->{$key} ?? null;
+	return is_string( $phrase ) && '' !== $phrase ? $phrase : $fallback;
 }
 
 /**
@@ -169,10 +212,11 @@ function dws_lowc_get_list_url( WP_Post_Type $post_type ): string {
  * @return  string
  */
 function dws_lowc_get_child_refusal( DWS_Order_Node $node ): string {
+	$label  = dws_lowc_get_singular_name( $node->get_post_type() );
 	$number = $node->get_order()->get_order_number();
 	return dws_lowc_get_max_depth() <= $node->get_depth()
-		? sprintf( /* translators: %s: The order number. */ __( 'Order #%s is at the maximum linked orders depth, set under WooCommerce > Settings > Advanced > Linked Orders.', 'linked-orders-for-woocommerce' ), $number )
-		: sprintf( /* translators: %s: The order number. */ __( 'No linked child can be created for order #%s.', 'linked-orders-for-woocommerce' ), $number );
+		? sprintf( /* translators: 1: The order type's singular name. 2: The order number. */ __( '%1$s #%2$s is at the maximum linked orders depth, set under WooCommerce > Settings > Advanced > Linked Orders.', 'linked-orders-for-woocommerce' ), $label, $number )
+		: sprintf( /* translators: 1: The order type's singular name. 2: The order number. */ __( '%1$s #%2$s cannot have a new linked child.', 'linked-orders-for-woocommerce' ), $label, $number );
 }
 
 /**
@@ -288,7 +332,7 @@ function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 	$child->save();
 	if ( true !== dws_lowc_link_orders( $parent_id, $child->get_id() ) ) {
 		$child->delete( true );
-		return new WP_Error( 'dws_lowc_link_refused', __( 'Another order was being linked at the same time. Try again.', 'linked-orders-for-woocommerce' ) );
+		return new WP_Error( 'dws_lowc_link_refused', __( 'Another link was being saved at the same time. Try again.', 'linked-orders-for-woocommerce' ) );
 	}
 
 	return $child->get_id();

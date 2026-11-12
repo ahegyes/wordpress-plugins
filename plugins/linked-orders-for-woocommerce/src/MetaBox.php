@@ -53,11 +53,7 @@ final class MetaBox implements ComponentInterface {
 
 		add_meta_box(
 			'dws-linked-orders',
-			\sprintf(
-				/* translators: %s: The order type's plural name. */
-				_x( 'Linked %s', 'metabox heading', 'linked-orders-for-woocommerce' ),
-				$node->get_post_type()->label
-			),
+			dws_lowc_get_type_phrase( $node->get_post_type(), DWS_LOWC_LABEL_LINKED_ITEMS, _x( 'Linked orders', 'metabox heading', 'linked-orders-for-woocommerce' ) ),
 			array( $this, 'render_meta_box' ),
 			$screen_id,
 			'side'
@@ -127,7 +123,7 @@ final class MetaBox implements ComponentInterface {
 			?>
 			<p>
 				<a class="dws-linked-orders__tree" href="<?php echo esc_url( add_query_arg( '_dws_linked_order_id', $node->get_order()->get_id(), dws_lowc_get_list_url( $node->get_post_type() ) ) ); ?>" target="_blank">
-					<?php esc_html_e( 'View all linked orders', 'linked-orders-for-woocommerce' ); ?>
+					<?php esc_html_e( 'View all linked', 'linked-orders-for-woocommerce' ); ?>
 					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
 				</a>
 			</p>
@@ -140,7 +136,7 @@ final class MetaBox implements ComponentInterface {
 
 		?>
 		<a class="button button-alt" href="<?php echo esc_url( dws_lowc_get_create_child_url( $node->get_order()->get_id() ) ); ?>">
-			<?php echo esc_html_x( 'Add new child order', 'metabox', 'linked-orders-for-woocommerce' ); ?>
+			<?php echo esc_html( dws_lowc_get_type_phrase( $node->get_post_type(), DWS_LOWC_LABEL_ADD_NEW_CHILD, __( 'Add new child order', 'linked-orders-for-woocommerce' ) ) ); ?>
 		</a>
 		<?php
 

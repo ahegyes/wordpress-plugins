@@ -85,7 +85,7 @@ final class ChildCreation implements ComponentInterface {
 			}
 
 			$reason = is_wp_error( $child ) ? $child->get_error_message() : __( 'Its creator returned no order.', 'linked-orders-for-woocommerce' );
-			$this->notices->add( new Notice( 'linked-child-failed', esc_html( \sprintf( /* translators: 1: The parent order's number. 2: Why the child could not be created. */ __( 'The linked child of order #%1$s could not be created: %2$s', 'linked-orders-for-woocommerce' ), $node->get_order()->get_order_number(), $reason ) ) ) );
+			$this->notices->add( new Notice( 'linked-child-failed', esc_html( \sprintf( /* translators: 1: The order type's singular name. 2: The parent order's number. 3: Why the child could not be created. */ __( '%1$s #%2$s could not get a linked child: %3$s', 'linked-orders-for-woocommerce' ), dws_lowc_get_singular_name( $node->get_post_type() ), $node->get_order()->get_order_number(), $reason ) ) ) );
 		}
 
 		wp_safe_redirect( wp_get_referer() ?: $node->get_order()->get_edit_order_url() );

@@ -16,6 +16,8 @@ Install the plugin from the WordPress plugin directory under Plugins → Add New
 
 Other plugins link two orders through `dws_lowc_link_orders()`, create a linked child through `dws_lowc_create_linked_child()`, which returns the child's id, and walk a tree through `dws_lowc_get_order_node()`, `dws_lowc_get_root_order()` and `dws_lowc_get_orders_tree()`, whose nodes are `DWS_Order_Node` objects. Every hook is named `dws_lowc/area/name`, and each one v1 fired under `linked_orders_for_woocommerce/` still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
 
+A child takes the type its creator makes, so an order type words its own add-child phrase and its Linked Orders box title through the `linked_orders_for_woocommerce_add_new_child` and `linked_orders_for_woocommerce_linked_items` labels it registers, such as "Add new child quote" and "Linked quotes"; without them the plugin says "Add new child order" and "Linked orders".
+
 ## Development
 
 Development needs PHP and Composer at the `Requires PHP` floor or later, Node.js and npm at `package.json`'s `engines`, and Docker for `@wordpress/env`.
