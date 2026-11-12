@@ -359,6 +359,45 @@ final class LinkingTest extends TestCase {
 		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
 	}
 
+	// WooCommerce's creator opens and saves the order an order_id names, and a refused link deletes what the creator returned.
+	#[DataProvider( 'storages' )]
+	public function test_a_linked_child_is_not_created_from_the_parent_or_an_order_already_linked( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+		$root   = $this->create_order();
+		$linked = $this->create_order();
+		$parent->set_address( array( 'city' => 'London' ), 'billing' );
+		$parent->save();
+		$linked->set_address( array( 'city' => 'Paris' ), 'billing' );
+		$linked->save();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $linked->get_id() ) );
+		$wrong = array();
+		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		$record = static function ( string $function_name ) use ( &$wrong ): void {
+			$wrong[] = $function_name;
+		};
+		add_action( 'doing_it_wrong_run', $record );
+
+		try {
+			self::assertNull( dws_lowc_create_linked_child( $parent->get_id(), array( 'order_id' => $parent->get_id() ) ) );
+			self::assertNull( dws_lowc_create_linked_child( $parent->get_id(), array( 'order_id' => $linked->get_id() ) ) );
+		} finally {
+			remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+			remove_action( 'doing_it_wrong_run', $record );
+		}
+
+		self::assertSame( array( 'dws_lowc_create_linked_child', 'dws_lowc_create_linked_child' ), $wrong );
+		foreach ( array( $parent, $linked ) as $order ) {
+			$stored = wc_get_order( $order->get_id() );
+			self::assertInstanceOf( \WC_Order::class, $stored );
+			self::assertSame( '', $stored->get_meta( '_dws_lo_created_by' ) );
+		}
+
+		self::assertSame( 'Paris', wc_get_order( $linked->get_id() )->get_billing_city() );
+		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
+		self::assertSame( $root->get_id(), dws_lowc_get_order_node( $linked->get_id() )?->get_parent()?->get_id() );
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_a_creator_error_is_returned( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
