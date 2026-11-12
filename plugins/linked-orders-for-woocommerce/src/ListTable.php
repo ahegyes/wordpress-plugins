@@ -338,7 +338,7 @@ final class ListTable implements ComponentInterface {
 		if ( $node->can_create_child() ) {
 			$added['create_empty_linked_child'] = array(
 				'url'    => dws_lowc_get_create_child_url( $order->get_id() ),
-				'name'   => dws_lowc_get_type_phrase( $node->get_post_type(), DWS_LOWC_LABEL_ADD_NEW_CHILD, __( 'Add new child order', 'linked-orders-for-woocommerce' ) ),
+				'name'   => dws_lowc_get_add_child_phrase( $node->get_post_type() ),
 				'action' => 'create-empty-linked-child',
 			);
 		}

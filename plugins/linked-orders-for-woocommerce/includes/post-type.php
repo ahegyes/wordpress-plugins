@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Keeps v1's order-type API: which order types can be linked, which statuses allow a new child, and the creation of a linked child.
+ * Keeps v1's order-type API: which order types can be linked, which statuses allow a new child, and the creation of a linked child, and words the phrase that adds one.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -43,18 +43,6 @@ const DWS_LOWC_CREATE_CHILD_NONCE = 'dws_create_linked_child';
  * @var     string
  */
 const DWS_LOWC_LABEL_ADD_NEW_CHILD = 'linked_orders_for_woocommerce_add_new_child';
-
-/**
- * The label key under which an order type names the title of its orders' Linked Orders box, such as "Linked quotes".
- *
- * @api
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LOWC_LABEL_LINKED_ITEMS = 'linked_orders_for_woocommerce_linked_items';
 
 /**
  * Returns the order types whose orders can be linked.
@@ -105,22 +93,20 @@ function dws_lowc_get_singular_name( WP_Post_Type $post_type ): string {
 }
 
 /**
- * Returns the phrase an order type registered under a label key, or the given fallback where it registered none.
+ * Returns the phrase that adds a linked child to an order of the given type.
  *
- * A child takes the type its creator makes, which only the type's registrant knows, so the registrant words the phrases that name it, each whole, for its own translation.
+ * A child takes the type its creator makes, which only the type's registrant knows, so the registrant words the whole phrase, for its own translation.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   WP_Post_Type $post_type The post type object of the order type.
- * @param   string       $key       The label key.
- * @param   string       $fallback  The plugin's own phrase.
+ * @param   WP_Post_Type $post_type The post type object of the parent's order type.
  *
  * @return  string
  */
-function dws_lowc_get_type_phrase( WP_Post_Type $post_type, string $key, string $fallback ): string {
-	$phrase = $post_type->labels->{$key} ?? null;
-	return is_string( $phrase ) && '' !== $phrase ? $phrase : $fallback;
+function dws_lowc_get_add_child_phrase( WP_Post_Type $post_type ): string {
+	$phrase = $post_type->labels->{DWS_LOWC_LABEL_ADD_NEW_CHILD} ?? null;
+	return is_string( $phrase ) && '' !== $phrase ? $phrase : __( 'Add new child order', 'linked-orders-for-woocommerce' );
 }
 
 /**

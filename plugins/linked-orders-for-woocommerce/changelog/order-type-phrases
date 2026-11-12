@@ -1,4 +1,4 @@
 Significance: minor
 Type: added
 
-An order type can word its add-child button and its Linked Orders box title through the linked_orders_for_woocommerce_add_new_child and linked_orders_for_woocommerce_linked_items labels, such as "Add new child quote", and the orders list and notices name an order's type only where it starts a sentence.
+An order type can word its add-child button and row action through the linked_orders_for_woocommerce_add_new_child label, such as "Add new child quote", and the orders list and notices name an order's type only where it starts a sentence.

@@ -122,7 +122,7 @@ final class Autocompletion implements ComponentInterface {
 				 */
 				$status = apply_filters( 'dws_lowc/autocompletion/completed_status', $status, $node->get_order() );
 
-				$node->get_order()->update_status( $status, __( 'Completed with its linked parent.', 'linked-orders-for-woocommerce' ) );
+				$node->get_order()->update_status( $status, __( 'Status set when a linked ancestor was completed.', 'linked-orders-for-woocommerce' ) );
 			}
 		} finally {
 			$this->covered = \array_diff_key( $this->covered, $pass );

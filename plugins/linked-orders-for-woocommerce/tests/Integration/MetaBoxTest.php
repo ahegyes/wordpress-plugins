@@ -122,7 +122,7 @@ final class MetaBoxTest extends TestCase {
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
 		$list = OrderUtil::custom_orders_table_usage_is_enabled() ? admin_url( 'admin.php?page=wc-orders--' . self::ORDER_TYPE ) : admin_url( 'edit.php?post_type=' . self::ORDER_TYPE );
 
-		self::assertSame( 'Linked test orders', $this->register( wc_get_order( $root->get_id() ), wc_get_page_screen_id( self::ORDER_TYPE ) )['title'] ?? null );
+		self::assertSame( 'Linked orders', $this->register( wc_get_order( $root->get_id() ), wc_get_page_screen_id( self::ORDER_TYPE ) )['title'] ?? null );
 		$box = $this->render( $root->get_id(), wc_get_page_screen_id( self::ORDER_TYPE ) );
 		self::assertSame( add_query_arg( '_dws_linked_order_id', $root->get_id(), $list ), $box->querySelector( 'a.dws-linked-orders__tree' )?->getAttribute( 'href' ) );
 		self::assertStringStartsWith( 'Test order #' . $child->get_order_number(), \trim( (string) $box->querySelector( '#linked-order-' . $child->get_id() . ' a' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.

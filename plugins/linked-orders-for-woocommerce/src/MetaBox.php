@@ -53,7 +53,7 @@ final class MetaBox implements ComponentInterface {
 
 		add_meta_box(
 			'dws-linked-orders',
-			dws_lowc_get_type_phrase( $node->get_post_type(), DWS_LOWC_LABEL_LINKED_ITEMS, _x( 'Linked orders', 'metabox heading', 'linked-orders-for-woocommerce' ) ),
+			esc_html_x( 'Linked orders', 'metabox heading', 'linked-orders-for-woocommerce' ),
 			array( $this, 'render_meta_box' ),
 			$screen_id,
 			'side'
@@ -136,7 +136,7 @@ final class MetaBox implements ComponentInterface {
 
 		?>
 		<a class="button button-alt" href="<?php echo esc_url( dws_lowc_get_create_child_url( $node->get_order()->get_id() ) ); ?>">
-			<?php echo esc_html( dws_lowc_get_type_phrase( $node->get_post_type(), DWS_LOWC_LABEL_ADD_NEW_CHILD, __( 'Add new child order', 'linked-orders-for-woocommerce' ) ) ); ?>
+			<?php echo esc_html( dws_lowc_get_add_child_phrase( $node->get_post_type() ) ); ?>
 		</a>
 		<?php
 

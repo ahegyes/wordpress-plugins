@@ -75,7 +75,7 @@ Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI ru
 
 ## Contract
 
-The plugin's contract is the elements tagged `@api`, the hooks it fires, its option, meta and capability names and REST routes, and the label keys an order type sets for it, `linked_orders_for_woocommerce_add_new_child` and `linked_orders_for_woocommerce_linked_items`; breaking it ships as the next major. Every other function, constant and class, `src/` included, is internal and changes in any release.
+The plugin's contract is the elements tagged `@api`, the hooks it fires, its option, meta and capability names and REST routes, and the `linked_orders_for_woocommerce_add_new_child` label an order type sets for it; breaking it ships as the next major. Every other function, constant and class, `src/` included, is internal and changes in any release.
 
 ## Style
 
