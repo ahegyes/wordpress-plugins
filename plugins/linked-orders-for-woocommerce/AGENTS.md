@@ -21,7 +21,7 @@ src/                         the composition root and its components only
 └── Integration/             SequentialOrderNumbersPro, gated on wc_seq_order_number_pro()
 models/DWS_Order_Node.php    v1's global node class on the classmap, reading and saving the _dws_lo_ order meta
 includes/                    hook-free code as dws_lowc_ functions and DWS_LOWC_ constants, loaded in name order, _-prefixed files skipped
-├── safeguards.php           restrictions that hold whenever the plugin cannot boot; loaded by the entry before the floor check
+├── safeguards.php           an empty slot for restrictions that hold whenever the plugin cannot boot; loaded by the entry before the floor check
 ├── capabilities.php         v1's four capabilities and the roles CapabilityGrants gives them
 ├── options.php              v1's option keys, their defaults and the depth validator
 ├── settings.php             v1's settings API: the raw, validated and validating reads, by v1 field id and group
@@ -46,7 +46,7 @@ composer test:integration:multisite  # starts .wp-env.multisite.json, then runs 
 composer quality-check       # manifest and changelog validation, PHPCS (both profiles), PHPStan (both profiles), Unit and Integration
 composer changelog:add       # stages an entry in changelog/, which the release step in the monorepo's CONTRIBUTING.md writes
 npm run setup                # both installs, the scripts' build, then the development site
-npm run build                # the orders list's assets through the local wp-scripts; npm run start watches them in a POSIX shell
+npm run build                # the orders list's assets through the local wp-scripts; npm run start watches them
 npm run lint:scripts         # ESLint, beside lint:styles (Stylelint) and lint:types (tsc)
 npm run test:e2e             # Playwright on .wp-env.tests.json, starting it if needed; the scripts must be built
 ```
@@ -64,15 +64,14 @@ Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI ru
 ## Conventions
 
 1. **Placement.** `src/` holds only the composition root and its components. Code that registers no hooks, such as keys, readers, v1's helper API, the footprint, migration steps and asset registrars, is `dws_lowc_` functions and `DWS_LOWC_` constants in `includes/`, which parses on PHP 7.4: no `mixed` or union types, typed constants, `match`, nullsafe calls or first-class callables there. `DWS_Order_Node` keeps v1's global name in `models/`, outside that limit. Container definitions are composition and stay in `Plugin::get_definitions()`.
-2. **Variants.** A component that exists only in one build variant is a child in a branch of its parent's `get_child_component_classes()`, never a second entry in `COMPONENTS`.
-3. **Request context.** `is_admin()` is false on REST requests and true in admin-ajax ones, so an admin-only feature decides the request context in its callbacks, never in `should_load()`.
-4. **Add-ons.** An add-on extends a base plugin only through the base plugin's documented hooks. It reads a template-built base plugin's slug, name and version only through that plugin's `{prefix}_get_plugin_*()` getters, from `plugins_loaded` on, since the add-on may load first, and behind `function_exists()`, since a base plugin below its floors or with a partial build may stay active without defining them.
-5. **Request reads.** An integer or boolean is read as `filter_var( wp_unslash( $_POST['key'] ?? '' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? $default` (`FILTER_VALIDATE_BOOL` for a boolean, where an absent key reads false, as an unchecked checkbox posts nothing), and a string through an `is_string()` guard and the field's sanitizer; never `filter_input()`, the `default` filter option or a cast on request input.
-6. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-lowc_` keys and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
-7. **Order storage.** Order code goes through WC CRUD, `get_edit_order_url()` and WooCommerce's screen ids and list hooks, never the posts table, and every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait`: posts and the order tables, each with the sync on and off. Rows that check only the order of hooks, or a stand-in plugin, use one.
-8. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name, and `DeprecatedHooksTest` names the pair.
-9. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_lowc_is_relaxed()` (the template's recipes). The entry loads them before the floor check, so they parse on PHP 7.4 and call only WordPress APIs present at the oldest WordPress the bootstrap package runs on, or guard them, which `phpstan.safeguards.neon` checks.
-10. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails.
+2. **Request context.** `is_admin()` is false on REST requests and true in admin-ajax ones, so an admin-only feature decides the request context in its callbacks, never in `should_load()`.
+3. **Add-ons.** An add-on extends a base plugin only through the base plugin's documented hooks. It reads a template-built base plugin's slug, name and version only through that plugin's `{prefix}_get_plugin_*()` getters, from `plugins_loaded` on, since the add-on may load first, and behind `function_exists()`, since a base plugin below its floors or with a partial build may stay active without defining them.
+4. **Request reads.** An integer or boolean is read as `filter_var( wp_unslash( $_POST['key'] ?? '' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? $default` (`FILTER_VALIDATE_BOOL` for a boolean, where an absent key reads false, as an unchecked checkbox posts nothing), and a string through an `is_string()` guard and the field's sanitizer; never `filter_input()`, the `default` filter option or a cast on request input.
+5. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-lowc_` keys and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
+6. **Order storage.** Order code goes through WC CRUD, `get_edit_order_url()` and WooCommerce's screen ids and list hooks, never the posts table, and every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait`: posts and the order tables, each with the sync on and off. Rows that check only the order of hooks, or a stand-in plugin, use one.
+7. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name, and `DeprecatedHooksTest` names the pair.
+8. **Safeguards.** `includes/safeguards.php` holds none yet. A safeguard added there follows the template's safeguard recipe: the entry loads the file before the floor check, so it parses on PHP 7.4 and calls only what its hook hands it, WordPress APIs present at the oldest WordPress the bootstrap package runs on and WooCommerce APIs present since 3.6, guarding anything newer, which `phpstan.safeguards.neon` checks for WordPress. A safeguard that calls WooCommerce is hooked from the file's one `woocommerce_loaded` callback, and it relaxes only through its own filter, with an explicit `false`, after `dws_lowc/boot/succeeded`.
+9. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails.
 
 ## Contract
 

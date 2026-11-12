@@ -14,11 +14,11 @@ Install the plugin from the WordPress plugin directory under Plugins → Add New
 
 ## Extending
 
-Other plugins link and walk orders through the functions in `includes/linking.php` and `includes/post-type.php`, such as `dws_lowc_link_orders()`, `dws_lowc_get_root_order()` and `dws_lowc_create_linked_child()`, and the `DWS_Order_Node` class they return. Every hook is named `dws_lowc/area/name`, and each one v1 fired under `linked_orders_for_woocommerce/` still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
+Other plugins link two orders through `dws_lowc_link_orders()`, create a linked child through `dws_lowc_create_linked_child()`, which returns the child's id, and walk a tree through `dws_lowc_get_order_node()`, `dws_lowc_get_root_order()` and `dws_lowc_get_orders_tree()`, whose nodes are `DWS_Order_Node` objects. Every hook is named `dws_lowc/area/name`, and each one v1 fired under `linked_orders_for_woocommerce/` still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
 
 ## Development
 
-Development needs PHP and Composer at the `Requires PHP` floor or later, Node.js and npm at `package.json`'s `engines`, Docker for `@wordpress/env`, and a POSIX shell for `npm run start`.
+Development needs PHP and Composer at the `Requires PHP` floor or later, Node.js and npm at `package.json`'s `engines`, and Docker for `@wordpress/env`.
 
 Install the dependencies, prefix the framework into `vendor-prefixed/`, build the scripts and start the development site on <http://localhost:8822>:
 
