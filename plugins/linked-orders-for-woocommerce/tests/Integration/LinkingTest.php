@@ -171,6 +171,32 @@ final class LinkingTest extends TestCase {
 		self::assertSame( array( $other->get_id() ), dws_lowc_get_orders_tree( $other->get_id() ) );
 	}
 
+	// v1 linked orders without refusing a cycle, and every node a walk builds reads the supported types, so the filter ends an endless walk rather than letting it hang the suite.
+	#[DataProvider( 'storages' )]
+	public function test_a_walk_stops_at_an_order_it_has_already_visited( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$first  = $this->create_order();
+		$second = $this->create_order();
+		self::store_links( $first, 1, $second->get_id(), array( $second->get_id() ) );
+		self::store_links( $second, 1, $first->get_id(), array( $first->get_id() ) );
+		$nodes = 0;
+		$bound = static function ( array $types ) use ( &$nodes ): array {
+			if ( ++$nodes > 1000 ) {
+				throw new \RuntimeException( 'The walk did not stop.' );
+			}
+
+			return $types;
+		};
+		add_filter( 'dws_lowc/post_type/supported_order_types', $bound );
+
+		try {
+			self::assertSame( array( $first->get_id(), $second->get_id() ), dws_lowc_get_orders_tree( $first->get_id() ) );
+			self::assertSame( $second->get_id(), dws_lowc_get_root_order( $first->get_id() )?->get_id() );
+		} finally {
+			remove_filter( 'dws_lowc/post_type/supported_order_types', $bound );
+		}
+	}
+
 	#[DataProvider( 'storages' )]
 	public function test_an_order_that_is_missing_or_not_supported_has_no_node( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
@@ -465,6 +491,14 @@ final class LinkingTest extends TestCase {
 		remove_filter( $hook, $this->storage_filters[ $hook ] );
 		$this->storage_filters[ $hook ] = static fn (): string => $caching ? 'yes' : 'no';
 		add_filter( $hook, $this->storage_filters[ $hook ] );
+	}
+
+	// Stands in for links v1 stored without the checks a link makes now.
+	protected static function store_links( \WC_Order $order, int $depth, int $parent_id, array $child_ids ): void {
+		$order->update_meta_data( '_dws_lo_depth', (string) $depth );
+		$order->update_meta_data( '_dws_lo_parent', 0 === $parent_id ? '' : (string) $parent_id );
+		$order->update_meta_data( '_dws_lo_children', $child_ids );
+		$order->save();
 	}
 
 	protected static function fail_saving( int $order_id ): \Closure {
