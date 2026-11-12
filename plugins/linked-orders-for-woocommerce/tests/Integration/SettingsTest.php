@@ -6,6 +6,7 @@ use DeepWebSolutions\LinkedOrders\Settings;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\BeforeClass;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -21,8 +22,8 @@ final class SettingsTest extends TestCase {
 
 	protected static \WC_Settings_Page $advanced;
 
-	#[\Override]
-	public static function setUpBeforeClass(): void {
+	#[BeforeClass]
+	public static function build_the_advanced_tab(): void {
 		require_once WC_ABSPATH . 'includes/admin/class-wc-admin-settings.php';
 		// WooCommerce builds its settings pages once per request, so the class shares one build of the Advanced tab.
 		foreach ( \WC_Admin_Settings::get_settings_pages() as $page ) {

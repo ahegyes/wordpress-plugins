@@ -5,7 +5,9 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
+use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\StoresLinksTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -16,11 +18,18 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class LinkingTest extends TestCase {
+	use CreatesUsersTrait;
 	use OrderStorageTrait;
+	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
 	use StoresLinksTrait;
 
-	protected int $user = 0;
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
+
+	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
+	public static function storages_and_data_caching(): array {
+		return self::storages() + array( 'hpos-with-data-caching' => array( true, false, true ) );
+	}
 
 	#[Before]
 	protected function log_in(): void {
@@ -30,11 +39,6 @@ final class LinkingTest extends TestCase {
 	#[After]
 	protected function log_out(): void {
 		wp_set_current_user( 0 );
-		if ( 0 !== $this->user ) {
-			require_once ABSPATH . 'wp-admin/includes/user.php';
-			wp_delete_user( $this->user );
-			$this->user = 0;
-		}
 	}
 
 	#[DataProvider( 'storages' )]
@@ -299,23 +303,16 @@ final class LinkingTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_a_child_is_created_only_by_a_user_who_may_edit_that_order( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		$order      = $this->create_order();
-		$this->user = wp_insert_user(
-			array(
-				'user_login' => 'dws-lowc-linking-editor',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'subscriber',
-			)
-		);
-		self::assertIsInt( $this->user );
-		$editor = new \WP_User( $this->user );
+		$order  = $this->create_order();
+		$user   = $this->create_user( 'dws-lowc-linking-editor', 'subscriber' );
+		$editor = new \WP_User( $user );
 		$editor->add_cap( 'edit_shop_orders' );
 		$editor->add_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN );
 
-		self::assertFalse( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $this->user ) );
+		self::assertFalse( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $user ) );
 
 		$editor->add_cap( 'edit_others_shop_orders' );
-		self::assertTrue( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $this->user ) );
+		self::assertTrue( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $user ) );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -324,28 +321,15 @@ final class LinkingTest extends TestCase {
 		$root  = $this->create_order();
 		$child = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
-		$stored = get_option( DWS_LOWC_OPTION_MAX_DEPTH );
 
-		try {
-			update_option( DWS_LOWC_OPTION_MAX_DEPTH, '1' );
-			self::assertTrue( dws_lowc_get_order_node( $root->get_id() )?->can_create_child() );
-			self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
+		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '1' );
+		self::assertTrue( dws_lowc_get_order_node( $root->get_id() )?->can_create_child() );
+		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
-			update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
-			self::assertTrue( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
-		} finally {
-			update_option( DWS_LOWC_OPTION_MAX_DEPTH, $stored );
-		}
+		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
+		self::assertTrue( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
-		$this->user = wp_insert_user(
-			array(
-				'user_login' => 'dws-lowc-linking-customer',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'customer',
-			)
-		);
-		self::assertIsInt( $this->user );
-		self::assertFalse( dws_lowc_get_order_node( $root->get_id() )?->can_create_child( $this->user ) );
+		self::assertFalse( dws_lowc_get_order_node( $root->get_id() )?->can_create_child( $this->create_user( 'dws-lowc-linking-customer', 'customer' ) ) );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -429,7 +413,7 @@ final class LinkingTest extends TestCase {
 		$this->use_storage( $hpos, $sync );
 		$parent  = $this->create_order();
 		$created = 0;
-		$record  = function ( \WC_Order $child ) use ( &$created ): void {
+		$record  = static function ( \WC_Order $child ) use ( &$created ): void {
 			$created = $child->get_id();
 		};
 		add_action( 'dws_lowc/linked_order/created', $record );
@@ -542,11 +526,6 @@ final class LinkingTest extends TestCase {
 		$error = new \WP_Error( 'failed', 'Failed.' );
 
 		self::assertSame( $error, dws_lowc_create_linked_child( $this->create_order()->get_id(), array( 'create_function' => static fn (): \WP_Error => $error ) ) );
-	}
-
-	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
-	public static function storages_and_data_caching(): array {
-		return self::storages() + array( 'hpos-with-data-caching' => array( true, false, true ) );
 	}
 
 	// The trait keeps the order tables' data caching off, which these rows also need on.

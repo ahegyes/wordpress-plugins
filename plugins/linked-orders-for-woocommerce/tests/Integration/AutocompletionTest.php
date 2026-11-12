@@ -4,7 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Autocompletion;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
-use PHPUnit\Framework\Attributes\After;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,18 +13,13 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( Autocompletion::class )]
 final class AutocompletionTest extends TestCase {
 	use OrderStorageTrait;
+	use RestoresOptionsTrait;
 
-	protected mixed $stored = false;
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_AUTOCOMPLETE );
 
 	#[Before]
-	protected function store_setting(): void {
-		$this->stored = get_option( DWS_LOWC_OPTION_AUTOCOMPLETE );
+	protected function enable_autocompletion(): void {
 		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
-	}
-
-	#[After]
-	protected function restore_setting(): void {
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, $this->stored );
 	}
 
 	#[DataProvider( 'storages' )]

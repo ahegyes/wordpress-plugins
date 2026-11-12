@@ -27,6 +27,30 @@ final class SettingsApiTest extends TestCase {
 		);
 	}
 
+	public static function paths(): array {
+		return array(
+			'group'           => array(
+				'max-depth',
+				'general',
+				array(
+					array( 'group', 2, 'max-depth' ),
+					array( 'v2', 4, 'max-depth', 'general' ),
+				),
+				array( 'linked_orders_for_woocommerce/general_settings/get_validated_option_value' ),
+			),
+			'group-in-the-id' => array(
+				'general/max-depth',
+				null,
+				array(
+					array( 'group', 2, 'max-depth' ),
+					array( 'section', 4, 'general/max-depth' ),
+					array( 'v2', 5, 'max-depth', 'general' ),
+				),
+				array( 'linked_orders_for_woocommerce/general_settings/get_validated_option_value', 'linked_orders_for_woocommerce/settings/get_validated_option_value' ),
+			),
+		);
+	}
+
 	#[DataProvider( 'stored_settings' )]
 	public function test_a_setting_reads_validated_by_its_v1_field_and_group( string $key, string $stored, string $field_id, ?string $group, int|bool $expected ): void {
 		update_option( $key, $stored );
@@ -71,30 +95,6 @@ final class SettingsApiTest extends TestCase {
 		self::assertSame( 7, dws_lowc_validate_setting( '7', 'general/max-depth' ) );
 		self::assertTrue( dws_lowc_validate_setting( 'yes', 'autocomplete-descendants', 'general' ) );
 		self::assertFalse( dws_lowc_validate_setting( 'maybe', 'remove-data-uninstall', 'plugin' ) );
-	}
-
-	public static function paths(): array {
-		return array(
-			'group'           => array(
-				'max-depth',
-				'general',
-				array(
-					array( 'group', 2, 'max-depth' ),
-					array( 'v2', 4, 'max-depth', 'general' ),
-				),
-				array( 'linked_orders_for_woocommerce/general_settings/get_validated_option_value' ),
-			),
-			'group-in-the-id' => array(
-				'general/max-depth',
-				null,
-				array(
-					array( 'group', 2, 'max-depth' ),
-					array( 'section', 4, 'general/max-depth' ),
-					array( 'v2', 5, 'max-depth', 'general' ),
-				),
-				array( 'linked_orders_for_woocommerce/general_settings/get_validated_option_value', 'linked_orders_for_woocommerce/settings/get_validated_option_value' ),
-			),
-		);
 	}
 
 	// v1 fired its section filter only for a read through the section, which names the group in the field id.

@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
+use PHPUnit\Framework\Attributes\BeforeClass;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -10,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
+
+	protected static array $header = array();
 
 
 	public static function hook_tags(): array {
@@ -27,8 +30,9 @@ final class DeprecatedApiTest extends TestCase {
 		);
 	}
 
-	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
-		$header = get_file_data(
+	#[BeforeClass]
+	public static function read_the_header(): void {
+		self::$header = get_file_data(
 			DWS_LOWC_FILE,
 			array(
 				'Version'     => 'Version',
@@ -36,12 +40,14 @@ final class DeprecatedApiTest extends TestCase {
 				'RequiresPHP' => 'Requires PHP',
 			)
 		);
+	}
 
+	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
 		self::assertSame( dws_lowc_get_plugin_name(), dws_lowc_name() );
-		self::assertSame( $header['Version'], dws_lowc_version() );
+		self::assertSame( self::$header['Version'], dws_lowc_version() );
 		self::assertSame( DWS_LOWC_FILE, dws_lowc_path() );
-		self::assertSame( $header['RequiresPHP'], dws_lowc_min_php() );
-		self::assertSame( $header['RequiresWP'], dws_lowc_min_wp() );
+		self::assertSame( self::$header['RequiresPHP'], dws_lowc_min_php() );
+		self::assertSame( self::$header['RequiresWP'], dws_lowc_min_wp() );
 		self::assertSame(
 			array(
 				array( 'dws_lowc_name', 'dws_lowc_get_plugin_name()' ),
@@ -55,20 +61,11 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_the_v1_constants_hold_the_plugin_header(): void {
-		$header = get_file_data(
-			DWS_LOWC_FILE,
-			array(
-				'Version'     => 'Version',
-				'RequiresWP'  => 'Requires at least',
-				'RequiresPHP' => 'Requires PHP',
-			)
-		);
-
 		self::assertSame( 'Linked Orders for WooCommerce', DWS_LOWC_NAME );
-		self::assertSame( $header['Version'], DWS_LOWC_VERSION );
+		self::assertSame( self::$header['Version'], DWS_LOWC_VERSION );
 		self::assertSame( DWS_LOWC_FILE, DWS_LOWC_PATH );
-		self::assertSame( $header['RequiresPHP'], DWS_LOWC_MIN_PHP );
-		self::assertSame( $header['RequiresWP'], DWS_LOWC_MIN_WP );
+		self::assertSame( self::$header['RequiresPHP'], DWS_LOWC_MIN_PHP );
+		self::assertSame( self::$header['RequiresWP'], DWS_LOWC_MIN_WP );
 	}
 
 	#[DataProvider( 'hook_tags' )]

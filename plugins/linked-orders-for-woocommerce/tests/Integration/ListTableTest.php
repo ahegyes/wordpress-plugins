@@ -5,16 +5,19 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\ListTable;
 use DeepWebSolutions\LinkedOrders\Plugin;
+use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\BeforeClass;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( ListTable::class )]
 final class ListTableTest extends TestCase {
+	use CreatesUsersTrait;
+	use LoadsAdminScreensTrait;
 	use OrderStorageTrait;
 
 	protected const array COLUMNS = array(
@@ -23,16 +26,6 @@ final class ListTableTest extends TestCase {
 		'order_total'  => 'Total',
 		'wc_actions'   => 'Actions',
 	);
-
-	protected int $user = 0;
-
-	// WordPress and WooCommerce load these only in admin requests.
-	#[BeforeClass]
-	public static function load_screen_api(): void {
-		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
-		require_once ABSPATH . 'wp-admin/includes/screen.php';
-	}
 
 	#[Before]
 	protected function log_in(): void {
@@ -51,11 +44,6 @@ final class ListTableTest extends TestCase {
 		wp_dequeue_script( Plugin::SLUG . '-orders-list-table' );
 		wp_dequeue_style( Plugin::SLUG . '-orders-list-table-icons' );
 		wp_set_current_user( 0 );
-		if ( 0 !== $this->user ) {
-			require_once ABSPATH . 'wp-admin/includes/user.php';
-			wp_delete_user( $this->user );
-			$this->user = 0;
-		}
 	}
 
 	#[DataProvider( 'storages' )]
@@ -76,15 +64,7 @@ final class ListTableTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_a_user_without_the_columns_capability_sees_the_list_unchanged( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		$this->user = wp_insert_user(
-			array(
-				'user_login' => 'dws-lowc-list-table-editor',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'editor',
-			)
-		);
-		self::assertIsInt( $this->user );
-		wp_set_current_user( $this->user );
+		wp_set_current_user( $this->create_user( 'dws-lowc-list-table-editor', 'editor' ) );
 		$screen = $this->open_list();
 		$order  = $this->create_order();
 

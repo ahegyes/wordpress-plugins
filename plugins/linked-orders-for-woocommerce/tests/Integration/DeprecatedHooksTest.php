@@ -2,8 +2,10 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -12,8 +14,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedHooksTest extends TestCase {
+	use LoadsAdminScreensTrait;
 	use OrderStorageTrait;
 	use RecordsDeprecationsTrait;
+	use RestoresOptionsTrait;
+
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_AUTOCOMPLETE );
 
 	public static function renamed_hooks(): array {
 		return array(
@@ -92,22 +98,13 @@ final class DeprecatedHooksTest extends TestCase {
 	// A lone order's tree is the order alone, so each autocompletion filter runs once.
 	protected function complete_order(): void {
 		$parent = $this->create_order();
-		$stored = get_option( DWS_LOWC_OPTION_AUTOCOMPLETE );
 		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
 
-		try {
-			wc_get_order( $parent->get_id() )->update_status( 'completed' );
-		} finally {
-			update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, $stored );
-		}
+		wc_get_order( $parent->get_id() )->update_status( 'completed' );
 	}
 
 	protected function render_meta_box(): void {
 		global $wp_meta_boxes;
-		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
-		require_once ABSPATH . 'wp-admin/includes/template.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
-		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		$order  = $this->create_order();
 		$screen = wc_get_page_screen_id( 'shop-order' );
 		do_action( 'add_meta_boxes', $screen, $order );

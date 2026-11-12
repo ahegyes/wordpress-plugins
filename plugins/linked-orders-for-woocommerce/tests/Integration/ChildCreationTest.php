@@ -8,6 +8,7 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNo
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\LinkedOrders\Scoped\Psr\Log\NullLogger;
+use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -17,13 +18,12 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( ChildCreation::class )]
 final class ChildCreationTest extends TestCase {
+	use CreatesUsersTrait;
 	use OrderStorageTrait;
 
 	protected const string ACTION = 'admin_post_dws_lowc_create_linked_child';
 
 	protected AdminNotices $notices;
-
-	protected int $user = 0;
 
 	#[Before]
 	protected function prepare_request(): void {
@@ -42,11 +42,6 @@ final class ChildCreationTest extends TestCase {
 		remove_filter( 'wp_die_handler', array( $this, 'get_die_handler' ) );
 		unset( $_GET['parent_id'], $_REQUEST['parent_id'], $_REQUEST['_wpnonce'], $_SERVER['HTTP_REFERER'] );
 		wp_set_current_user( 0 );
-		if ( 0 !== $this->user ) {
-			require_once ABSPATH . 'wp-admin/includes/user.php';
-			wp_delete_user( $this->user );
-			$this->user = 0;
-		}
 	}
 
 	// The redirect ends the request with exit, which the test replaces with a throw.
@@ -101,21 +96,14 @@ final class ChildCreationTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_a_user_who_may_not_create_a_child_returns_to_the_parent_with_a_notice( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		$parent     = $this->create_order();
-		$this->user = wp_insert_user(
-			array(
-				'user_login' => 'dws-lowc-child-creation-editor',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'editor',
-			)
-		);
-		self::assertIsInt( $this->user );
-		wp_set_current_user( $this->user );
+		$parent = $this->create_order();
+		$user   = $this->create_user( 'dws-lowc-child-creation-editor', 'editor' );
+		wp_set_current_user( $user );
 
 		$location = $this->request( (string) $parent->get_id() );
 
 		self::assertSame( $parent->get_edit_order_url(), $location );
-		self::assertSame( array( 'No linked child can be created for order #' . $parent->get_order_number() . '.' ), \array_map( static fn ( Notice $notice ): string => $notice->message, $this->notices->get_notices( NoticeScope::User, $this->user ) ) );
+		self::assertSame( array( 'No linked child can be created for order #' . $parent->get_order_number() . '.' ), \array_map( static fn ( Notice $notice ): string => $notice->message, $this->notices->get_notices( NoticeScope::User, $user ) ) );
 		self::assertSame( array(), dws_lowc_get_order_node( $parent->get_id() )?->get_children() );
 	}
 

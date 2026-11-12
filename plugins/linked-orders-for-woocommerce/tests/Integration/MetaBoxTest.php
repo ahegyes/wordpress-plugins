@@ -4,28 +4,24 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\MetaBox;
+use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\BeforeClass;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( MetaBox::class )]
 final class MetaBoxTest extends TestCase {
+	use CreatesUsersTrait;
+	use LoadsAdminScreensTrait;
 	use OrderStorageTrait;
+	use RestoresOptionsTrait;
 
-	protected int $user = 0;
-
-	// WordPress and WooCommerce load these only in admin requests.
-	#[BeforeClass]
-	public static function load_meta_box_api(): void {
-		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
-		require_once ABSPATH . 'wp-admin/includes/template.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
-		require_once ABSPATH . 'wp-admin/includes/screen.php';
-	}
+	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
 
 	#[Before]
 	protected function log_in(): void {
@@ -37,11 +33,6 @@ final class MetaBoxTest extends TestCase {
 		global $wp_meta_boxes;
 		$wp_meta_boxes = array();
 		wp_set_current_user( 0 );
-		if ( 0 !== $this->user ) {
-			require_once ABSPATH . 'wp-admin/includes/user.php';
-			wp_delete_user( $this->user );
-			$this->user = 0;
-		}
 	}
 
 	#[DataProvider( 'storages' )]
@@ -57,14 +48,7 @@ final class MetaBoxTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_the_box_is_not_added_for_a_user_without_its_capabilities_or_beside_other_editors( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		$this->user = wp_insert_user(
-			array(
-				'user_login' => 'dws-lowc-meta-box-editor',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'editor',
-			)
-		);
-		self::assertIsInt( $this->user );
+		$user  = $this->create_user( 'dws-lowc-meta-box-editor', 'editor' );
 		$order = $this->create_order();
 		$post  = get_post( wp_insert_post( array( 'post_title' => 'Not an order' ) ) );
 		self::assertInstanceOf( \WP_Post::class, $post );
@@ -72,7 +56,7 @@ final class MetaBoxTest extends TestCase {
 		try {
 			self::assertNull( $this->register( $post, 'post' ) );
 
-			wp_set_current_user( $this->user );
+			wp_set_current_user( $user );
 			self::assertNull( $this->register( $order ) );
 		} finally {
 			wp_delete_post( $post->ID, true );
@@ -82,7 +66,6 @@ final class MetaBoxTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_the_box_shows_the_parent_the_children_and_the_button_to_add_a_child( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		$stored = get_option( DWS_LOWC_OPTION_MAX_DEPTH );
 		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
 		$root  = $this->create_order();
 		$order = $this->create_order();
@@ -90,11 +73,7 @@ final class MetaBoxTest extends TestCase {
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $order->get_id() ) );
 		self::assertTrue( dws_lowc_link_orders( $order->get_id(), $child->get_id() ) );
 
-		try {
-			$box = $this->render( $order->get_id() );
-		} finally {
-			update_option( DWS_LOWC_OPTION_MAX_DEPTH, $stored );
-		}
+		$box = $this->render( $order->get_id() );
 
 		$parent = $box->querySelector( '.dws-linked-orders__parent a' );
 		self::assertSame( wc_get_order( $root->get_id() )->get_edit_order_url(), $parent?->getAttribute( 'href' ) );
