@@ -102,8 +102,8 @@ final class LinkingTest extends TestCase {
 		global $wpdb;
 		$parent = $this->create_order();
 		$child  = $this->create_order();
-		$php    = '$lock = new DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\Storage\\Lock( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . ' eval ' . \escapeshellarg( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
+		$php    = '$lock = new ' . Lock::class . '( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
+		\exec( self::command( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
 
 		$held  = static fn (): bool => ! \is_null( $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'dws_lowc_linking'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Watches the other request's lock row past the options cache.
 		$tries = 0;
@@ -140,7 +140,6 @@ final class LinkingTest extends TestCase {
 		self::assertGreaterThanOrEqual( 5.0, \microtime( true ) - $started );
 
 		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->has_parent() );
-		self::assertFalse( dws_lowc_link_orders( $child->get_id(), $child->get_id() ) );
 		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
 	}
 

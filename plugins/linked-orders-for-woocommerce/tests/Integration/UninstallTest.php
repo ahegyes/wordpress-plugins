@@ -17,7 +17,7 @@ final class UninstallTest extends TestCase {
 
 	#[AfterClass]
 	public static function forget_the_rows_the_uninstall_deleted(): void {
-		wp_cache_flush(); // The uninstall ran in a child process, so this process still caches the rows it deleted, such as a setting the tab saved.
+		wp_cache_flush(); // The uninstall ran in a child process, so this process still caches the rows it deleted, such as a setting the section saved.
 	}
 
 	#[RunInSeparateProcess]
@@ -25,17 +25,16 @@ final class UninstallTest extends TestCase {
 		\define( 'WP_UNINSTALL_PLUGIN', 'another-plugin/another-plugin.php' ); // A bulk uninstall keeps the first plugin's value for every later one.
 		$source = (string) \file_get_contents( DWS_LOWC_FILE );
 		\file_put_contents( DWS_LOWC_FILE, (string) \preg_replace( '/^(\s*\*\s*Requires PHP:\s*).*$/m', '${1}99.0', $source ) );
-		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
+		$log = (string) \tempnam( \sys_get_temp_dir(), Plugin::PREFIX . '-uninstall-' );
 		\ini_set( 'error_log', $log );
 
 		try {
 			include \dirname( DWS_LOWC_FILE ) . '/uninstall.php';
+			self::assertStringContainsString( 'below its PHP or WordPress floor', (string) \file_get_contents( $log ) );
 		} finally {
 			\file_put_contents( DWS_LOWC_FILE, $source );
+			\unlink( $log );
 		}
-
-		self::assertStringContainsString( 'below its PHP or WordPress floor', (string) \file_get_contents( $log ) );
-		\unlink( $log );
 	}
 
 	// WordPress uninstalls an inactive plugin, so the request loads uninstall.php alone, never the entry file or functions.php.
@@ -43,16 +42,15 @@ final class UninstallTest extends TestCase {
 		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
 		$php = 'uninstall_plugin( "linked-orders-for-woocommerce/linked-orders-for-woocommerce.php" ); echo wp_json_encode( array( defined( "DWS_LOWC_FILE" ), get_option( "' . DWS_LOWC_OPTION_DELETE_DATA . '" ) ) );';
 
-		$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
+		try {
+			$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
 
-		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request and the runner's scheduled hook would.
-		$restored = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
-		wp_cache_flush();
-		wp_roles()->for_site();
+			self::assertSame( 0, $request['status'], $request['output'] );
+			self::assertSame( '[false,false]', $request['last'], $request['output'] );
+		} finally {
+			self::restore_a_new_sites_data();
+		}
 
-		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( '[false,false]', $request['last'], $request['output'] );
-		self::assertSame( 0, $restored['status'], $restored['output'] );
 		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
 		self::assertTrue( get_role( 'shop_manager' )?->has_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN ) );
 	}
@@ -78,12 +76,7 @@ final class UninstallTest extends TestCase {
 			remove_all_filters( 'query' );
 			delete_option( DWS_LOWC_OPTION_DELETE_DATA );
 			delete_option( Plugin::PREFIX . '_revision' );
-			wp_cache_flush();
-			wp_roles()->for_site();
-			// The other tests share the database, so the runner and its scheduled hook store again what a new site starts with, and the grants act again.
-			dws_lowc_plugin()->migrations?->run();
-			do_action( Plugin::PREFIX . '_revision/migration/run' );
-			do_action( 'wp_loaded' );
+			self::restore_a_new_sites_data();
 		}
 	}
 
@@ -109,38 +102,34 @@ final class UninstallTest extends TestCase {
 			remove_filter( 'pre_option_woocommerce_custom_orders_table_data_sync_enabled', '__return_empty_string' );
 		}
 
-		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
-		wp_cache_flush();
-		wp_roles()->for_site();
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
+			wp_cache_flush();
+			wp_roles()->for_site();
 
-		$ids = \implode( ',', \array_map( 'intval', \array_keys( $linked ) ) );
-		self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
-		self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}wc_orders_meta WHERE order_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
-		foreach ( array( DWS_LOWC_OPTION_DELETE_DATA, 'linked_orders_for_woocommerce_version', 'linked_orders_for_woocommerce_original_version', '_linked_orders_for_woocommerce_admin_notices' ) as $option ) {
-			self::assertFalse( get_option( $option ), "The option $option is still stored." );
-		}
-		self::assertSame( '', get_user_meta( self::USER, '_linked_orders_for_woocommerce_admin_notices', true ) );
-		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
-			foreach ( $capabilities as $capability ) {
-				self::assertFalse( get_role( $role )?->has_cap( $capability ), "The $role role still holds $capability." );
+			$ids = \implode( ',', \array_map( 'intval', \array_keys( $linked ) ) );
+			self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
+			self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}wc_orders_meta WHERE order_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
+			foreach ( array( DWS_LOWC_OPTION_DELETE_DATA, 'linked_orders_for_woocommerce_version', 'linked_orders_for_woocommerce_original_version', '_linked_orders_for_woocommerce_admin_notices' ) as $option ) {
+				self::assertFalse( get_option( $option ), "The option $option is still stored." );
 			}
-		}
-
-		// The other tests share the database, so the roles get their capabilities back and the runner and its scheduled hook store again what a new site starts with.
-		foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
-			foreach ( $capabilities as $capability ) {
-				get_role( $role )?->add_cap( $capability );
+			self::assertSame( '', get_user_meta( self::USER, '_linked_orders_for_woocommerce_admin_notices', true ) );
+			foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
+				foreach ( $capabilities as $capability ) {
+					self::assertFalse( get_role( $role )?->has_cap( $capability ), "The $role role still holds $capability." );
+				}
 			}
-		}
-		dws_lowc_plugin()->migrations?->run();
-		do_action( Plugin::PREFIX . '_revision/migration/run' );
-		foreach ( $linked as $id => $hpos ) {
-			$storage = static fn (): string => $hpos;
-			add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
-			$order   = wc_get_order( $id );
-			self::assertInstanceOf( \WC_Order::class, $order );
-			$order->delete( true );
-			remove_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+		} finally {
+			self::restore_a_new_sites_data();
+			foreach ( $linked as $id => $hpos ) {
+				$storage = static fn (): string => $hpos;
+				add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+				$order   = wc_get_order( $id );
+				if ( $order instanceof \WC_Order ) {
+					$order->delete( true );
+				}
+				remove_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+			}
 		}
 	}
 
@@ -156,30 +145,39 @@ final class UninstallTest extends TestCase {
 		wp_schedule_single_event( \time() + HOUR_IN_SECONDS, "{$prefix}revision/migration/run" );
 		as_schedule_single_action( \time() + HOUR_IN_SECONDS, "{$prefix}seeded", array(), Plugin::PREFIX );
 
-		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
-		wp_cache_flush();
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
+			wp_cache_flush();
 
-		self::assertFalse( get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
-		self::assertFalse( get_option( "{$prefix}notices" ) );
-		self::assertFalse( get_network_option( null, "{$prefix}network_notices" ) );
-		self::assertFalse( get_transient( "{$prefix}boot_failure_seeded" ) );
-		self::assertFalse( get_user_option( "{$prefix}hidden_notices", self::USER ) );
-		self::assertSame( '', get_user_meta( self::USER, "{$prefix}network_hidden_notices", true ) );
-		self::assertFalse( wp_next_scheduled( "{$prefix}revision/migration/run" ) );
-		self::assertSame(
-			array(),
-			as_get_scheduled_actions(
-				array(
-					'group'  => Plugin::PREFIX,
-					'status' => 'pending',
-				),
-				'ids'
-			)
-		);
+			self::assertFalse( get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+			self::assertFalse( get_option( "{$prefix}notices" ) );
+			self::assertFalse( get_network_option( null, "{$prefix}network_notices" ) );
+			self::assertFalse( get_transient( "{$prefix}boot_failure_seeded" ) );
+			self::assertFalse( get_user_option( "{$prefix}hidden_notices", self::USER ) );
+			self::assertSame( '', get_user_meta( self::USER, "{$prefix}network_hidden_notices", true ) );
+			self::assertFalse( wp_next_scheduled( "{$prefix}revision/migration/run" ) );
+			self::assertSame(
+				array(),
+				as_get_scheduled_actions(
+					array(
+						'group'  => Plugin::PREFIX,
+						'status' => 'pending',
+					),
+					'ids'
+				)
+			);
+		} finally {
+			self::restore_a_new_sites_data();
+		}
 
-		// The other tests share the database, so the runner and its scheduled hook store again what a new site starts with.
-		dws_lowc_plugin()->migrations?->run();
-		do_action( Plugin::PREFIX . '_revision/migration/run' );
 		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+	}
+
+	// The rows share the database, so a request with the plugin stores again what a new site starts with and grants the capabilities again, as the site's next request and the runner's scheduled hook would, and this process then reads them afresh.
+	protected static function restore_a_new_sites_data(): void {
+		$restored = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
+		wp_cache_flush();
+		wp_roles()->for_site();
+		self::assertSame( 0, $restored['status'], $restored['output'] );
 	}
 }
