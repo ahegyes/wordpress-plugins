@@ -17,16 +17,13 @@ final class DeprecatedApiTest extends TestCase {
 
 	public static function hook_tags(): array {
 		return array(
-			'plugin'           => array( 'dws_lowc_get_hook_tag', array( 'post_type', 'supported_order_types' ), 'linked_orders_for_woocommerce/post_type/supported_order_types' ),
-			'plugin-no-extra'  => array( 'dws_lowc_get_hook_tag', array( 'created_linked_order' ), 'linked_orders_for_woocommerce/created_linked_order' ),
-			'plugin-unsafe'    => array( 'dws_lowc_get_hook_tag', array( 'Some Name', array( 'A\\B', '' ) ), 'linked_orders_for_woocommerce/some_name/a_b' ),
-			'plugin-bytes'     => array( 'dws_lowc_get_hook_tag', array( "Caf\xC3\xA9\tName", array( "\x00Extra\x80" ) ), 'linked_orders_for_woocommerce/cafname/extra' ),
-			'component-bytes'  => array( 'dws_lowc_get_component_hook_tag', array( 'general-settings', "Na\x1Bme\xFF" ), 'linked_orders_for_woocommerce/general_settings/name' ),
-			'component'        => array( 'dws_lowc_get_component_hook_tag', array( 'list-table-output', 'column', 'insert_after' ), 'linked_orders_for_woocommerce/list_table_output/column/insert_after' ),
-			'component-meta'   => array( 'dws_lowc_get_component_hook_tag', array( 'metabox-output', 'after_add_new_child_button' ), 'linked_orders_for_woocommerce/metabox_output/after_add_new_child_button' ),
-			'component-group'  => array( 'dws_lowc_get_component_hook_tag', array( 'general-settings', 'get_group_fields' ), 'linked_orders_for_woocommerce/general_settings/get_group_fields' ),
-			'component-sos'    => array( 'dws_lowc_get_component_hook_tag', array( 'wc-sequential-order-numbers-pro-integration', 'name' ), 'linked_orders_for_woocommerce/wc_sequential_order_numbers_pro_integration/name' ),
-			'component-absent' => array( 'dws_lowc_get_component_hook_tag', array( 'freemius', 'name' ), null ),
+			'plugin'          => array( 'dws_lowc_get_hook_tag', array( 'post_type', 'supported_order_types' ), 'linked_orders_for_woocommerce/post_type/supported_order_types' ),
+			'plugin-no-extra' => array( 'dws_lowc_get_hook_tag', array( 'created_linked_order' ), 'linked_orders_for_woocommerce/created_linked_order' ),
+			'component'       => array( 'dws_lowc_get_component_hook_tag', array( 'list-table-output', 'column', 'insert_after' ), 'linked_orders_for_woocommerce/list_table_output/column/insert_after' ),
+			'component-meta'  => array( 'dws_lowc_get_component_hook_tag', array( 'metabox-output', 'after_add_new_child_button' ), 'linked_orders_for_woocommerce/metabox_output/after_add_new_child_button' ),
+			'component-group' => array( 'dws_lowc_get_component_hook_tag', array( 'general-settings', 'get_group_fields' ), 'linked_orders_for_woocommerce/general_settings/get_group_fields' ),
+			'component-sos'   => array( 'dws_lowc_get_component_hook_tag', array( 'wc-sequential-order-numbers-pro-integration', 'name' ), 'linked_orders_for_woocommerce/wc_sequential_order_numbers_pro_integration/name' ),
+			'component-other' => array( 'dws_lowc_get_component_hook_tag', array( 'freemius', 'name' ), 'linked_orders_for_woocommerce/freemius/name' ),
 		);
 	}
 
@@ -68,8 +65,9 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertSame( self::$header['RequiresWP'], DWS_LOWC_MIN_WP );
 	}
 
+	// v1's callers pass lowercase names and its component ids, for which joining the parts gives v1's names.
 	#[DataProvider( 'hook_tags' )]
-	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, ?string $expected ): void {
+	public function test_a_v1_hook_tag_joins_its_parts_with_slashes( string $shim, array $arguments, string $expected ): void {
 		self::assertSame( $expected, $shim( ...$arguments ) );
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
 	}

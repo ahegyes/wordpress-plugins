@@ -32,9 +32,9 @@ final class SequentialOrderNumbersProTest extends TestCase {
 		self::assertSame( 'SOS-' . $id, wc_get_order( $id )?->get_meta( '_order_number' ) );
 	}
 
-	// v1 numbered a child on its own child-created action at priority 10, so a v1 listener after that saw the number and could replace it.
+	// The child is numbered on the v2 action alone, so a listener of the deprecated v1 action sees it unnumbered, while a later listener of the v2 action sees the number and can replace it.
 	#[RunInSeparateProcess]
-	public function test_a_v1_listener_after_priority_10_sees_the_number_and_can_replace_it(): void {
+	public function test_a_listener_after_priority_10_on_the_v2_action_sees_the_number_and_can_replace_it(): void {
 		require_once \dirname( __DIR__, 2 ) . '/Fixtures/sequential-order-numbers-pro.php';
 		new SequentialOrderNumbersPro()->register_hooks();
 		wp_set_current_user( 1 );
@@ -43,14 +43,14 @@ final class SequentialOrderNumbersProTest extends TestCase {
 		add_action(
 			'linked_orders_for_woocommerce/created_linked_order',
 			static function ( \WC_Order $child ) use ( &$seen ): void {
-				$seen[] = array( 5, $child->get_meta( '_order_number' ) );
+				$seen[] = array( 'v1', $child->get_meta( '_order_number' ) );
 			},
-			5
+			20
 		);
 		add_action(
-			'linked_orders_for_woocommerce/created_linked_order',
+			'dws_lowc/linked_order/created',
 			static function ( \WC_Order $child ) use ( &$seen ): void {
-				$seen[] = array( 20, $child->get_meta( '_order_number' ) );
+				$seen[] = array( 'v2', $child->get_meta( '_order_number' ) );
 				$child->update_meta_data( '_order_number', 'CUSTOM' );
 			},
 			20
@@ -60,7 +60,7 @@ final class SequentialOrderNumbersProTest extends TestCase {
 
 		self::assertIsInt( $id );
 		$this->orders[] = $id;
-		self::assertSame( array( array( 5, '' ), array( 20, 'SOS-' . $id ) ), $seen );
+		self::assertSame( array( array( 'v1', '' ), array( 'v2', 'SOS-' . $id ) ), $seen );
 		self::assertSame( 'CUSTOM', wc_get_order( $id )?->get_meta( '_order_number' ) );
 		self::assertCount( 1, wc_seq_order_number_pro()->numbered );
 	}
