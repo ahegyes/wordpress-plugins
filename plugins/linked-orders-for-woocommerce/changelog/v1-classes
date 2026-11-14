@@ -1,4 +1,4 @@
 Significance: major
 Type: removed
 
-v1's DeepWebSolutions\WC_Plugins\LinkedOrders classes and the capability constants they declared, whose capability names the DWS_LOWC_CAP_ constants now hold.
+v1's DeepWebSolutions\WC_Plugins\LinkedOrders classes and the capability constants they declared; the capabilities keep their names: create_dws_linked_children, see_dws_order_links, see_dws_linked_orders_metabox and see_dws_linked_orders_column.

@@ -7,30 +7,31 @@ v1 sites upgrade in place, so the port keeps v1's option keys, order meta, capab
 ## Layout
 
 ```
-linked-orders-for-woocommerce.php      the entry: safeguards, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader
-functions.php                dws_lowc_plugin(), the boot on plugins_loaded 15, deactivation, the order-tables declaration, v1's boot hooks, the includes/ loader
-uninstall.php                the framework's uninstall engine over the footprint, with v1's DWS_LOWC_OPTION_DELETE_DATA consent
-src/                         the composition root and its components only
-├── Plugin.php               SLUG, PREFIX (dws_lowc), COMPONENTS, the logger, the scheduler, the migration runner and the kernel
-├── Settings.php             the dws-linked-orders section on WooCommerce's Advanced tab, v1's two groups, and the plugin row's links
-├── ChildCreation.php        v1's admin_post_dws_lowc_create_linked_child action, with one-shot notices
+linked-orders-for-woocommerce.php      the entry: the safeguards, then, in one try, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader and functions.php, whose catch shows the build notice
+Safeguards.php               an empty slot for restrictions that hold whenever the plugin cannot boot, which the entry requires before the floor check
+functions.php                the @api dws_lowc_plugin(), the includes/ loader, then the boot on plugins_loaded 15, the order-tables declaration, v1's boot hooks and deactivation, as static closures
+uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with v1's Options::DELETE_DATA consent
+src/                         the plugin's classes, each named for its concept
+├── Plugin.php               SLUG, PREFIX (dws_lowc), COMPONENTS, FOOTPRINT, the identity, the logger, the scheduler, the migration runner and the kernel
+├── Options.php              v1's option keys, their defaults in stored form, v1's settings map and its lookup
+├── Capabilities.php         v1's four capabilities and the roles CapabilityGrants gives them
+├── Migrations.php           get_steps() over the protected steps, append-only
+├── LinkRepair.php           the batched step that repairs v1's links
+├── Linking.php              the link meta keys, rerooting, depths, the linking lock, the queries by link and the maximum depth
+├── OrderTypes.php           the order types' names, add-child phrase and admin lists
+├── Settings.php             the dws-linked-orders section on WooCommerce's Advanced tab, v1's two groups from Options' map, and the plugin row's links
+├── ChildCreation.php        v1's admin_post_dws_lowc_create_linked_child action, its URL and refusal, with one-shot notices
 ├── MetaBox.php              the parent, children and add-child button beside an order's editor, on either storage
 ├── ListTable.php            the orders list's depth column, filters and row actions, on either storage
 ├── Autocompletion.php       completes an order's descendants when it completes, where the setting is on
 ├── OrderDeletion.php        makes the children of an order deleted for good the roots of their trees
 └── Integration/             SequentialOrderNumbersPro, gated on wc_seq_order_number_pro()
 models/DWS_Order_Node.php    v1's global node class on the classmap, reading and saving the _dws_lo_ order meta
-includes/                    hook-free code as dws_lowc_ functions and DWS_LOWC_ constants, loaded in name order, _-prefixed files skipped
-├── safeguards.php           an empty slot for restrictions that hold whenever the plugin cannot boot; loaded by the entry before the floor check
-├── capabilities.php         v1's four capabilities and the roles CapabilityGrants gives them
-├── options.php              v1's option keys, their defaults and the depth validator
+includes/                    v1's @api functions and constants, grouped by topic, loaded in name order, _-prefixed files skipped
 ├── settings.php             v1's settings API: the raw, validated and validating reads, by v1 field id and group
 ├── post-type.php            v1's order-type API and dws_lowc_create_linked_child()
 ├── linking.php              v1's linking API: nodes, links, roots and trees
-├── deprecated.php           v1's root getters, hook-tag builders, constants and boot-hook relays, deprecated
-├── footprint.php            dws_lowc_get_footprint(), including what v1 stored under its own names
-├── migrations.php           dws_lowc_get_migration_steps() and one function per step, append-only
-├── assets.php               the *.asset.php reader and the script and style registrars
+├── deprecated.php           v1's root getters, hook-tag builders and constants, deprecated
 └── metadata.php             the slug, name and version getters, the plugin's surface for a peer plugin
 assets/src/                  the orders list's TypeScript and SCSS, built into assets/build/ (untracked)
 changelog/                   the pending entries changelog:write turns into CHANGELOG.md and readme.txt's changelog
@@ -63,15 +64,15 @@ Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI ru
 
 ## Conventions
 
-1. **Placement.** `src/` holds only the composition root and its components. Code that registers no hooks, such as keys, readers, v1's helper API, the footprint, migration steps and asset registrars, is `dws_lowc_` functions and `DWS_LOWC_` constants in `includes/`, which parses on PHP 7.4: no `mixed` or union types, typed constants, `match`, nullsafe calls or first-class callables there. `DWS_Order_Node` keeps v1's global name in `models/`, outside that limit. Container definitions are composition and stay in `Plugin::get_definitions()`.
+1. **Placement.** The global namespace holds only the plugin's contract: `functions.php` and `includes/` declare its `@api` functions and constants, v1's helper API among them, and `functions.php` registers its hooks as static closures. Every other symbol is a member of a final class in `src/` named for its concept, `protected` wherever only its class uses it: the composition root, which holds the footprint, a component, `Options`, `Migrations` or another class that registers no hooks, such as `Linking`. `DWS_Order_Node` keeps v1's global name in `models/`. No namespace or folder is named "Internal". Container definitions are composition and stay in `Plugin::get_definitions()`; a component takes a service such as `Assets` by constructor.
 2. **Request context.** `is_admin()` is false on REST requests and true in admin-ajax ones, so an admin-only feature decides the request context in its callbacks, never in `should_load()`.
 3. **Add-ons.** An add-on extends a base plugin only through the base plugin's documented hooks. It reads a template-built base plugin's slug, name and version only through that plugin's `{prefix}_get_plugin_*()` getters, from `plugins_loaded` on, since the add-on may load first, and behind `function_exists()`, since a base plugin below its floors or with a partial build may stay active without defining them.
 4. **Request reads.** An integer or boolean is read as `filter_var( wp_unslash( $_POST['key'] ?? '' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? $default` (`FILTER_VALIDATE_BOOL` for a boolean, where an absent key reads false, as an unchecked checkbox posts nothing), and a string through an `is_string()` guard and the field's sanitizer; never `filter_input()`, the `default` filter option or a cast on request input.
-5. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-lowc_` keys and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
+5. **Options and data.** Each setting is one autoloaded option, its key on `Options` and its default in stored form in `DEFAULTS`, which the first migration seeds, a release that adds settings seeds again, and its field reads. A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-lowc_` keys, mapped from v1's group and field ids by `Options::V1_SETTINGS`, and its order links their `_dws_lo_` meta; anything new lives under `dws_lowc_`, or `_dws_lowc_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
 6. **Order storage.** Order code goes through WC CRUD, `get_edit_order_url()` and WooCommerce's screen ids and list hooks, never the posts table, and every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait`: posts and the order tables, each with the sync on and off. Rows that check only the order of hooks, or a stand-in plugin, use one.
 7. **v1 hooks.** A hook v1 fired keeps its v1 literal. Where its v2 name differs, the literal fires first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name, and `DeprecatedHooksTest` names the pair; the six whose v2 name is v1's fire once, as `DeprecatedHooksTest::shared_hooks()` lists them.
-8. **Safeguards.** `includes/safeguards.php` holds none yet. A safeguard added there follows the template's safeguard recipe: the entry loads the file before the floor check, so it parses on PHP 7.4 and calls only what its hook hands it, WordPress APIs present at the oldest WordPress the bootstrap package runs on and WooCommerce APIs present since 3.6, guarding anything newer, which `phpstan.safeguards.neon` checks for WordPress. A safeguard that calls WooCommerce is hooked from the file's one `woocommerce_loaded` callback, and it relaxes only through its own filter, with an explicit `false`, after `linked_orders_for_woocommerce/boot/succeeded`.
-9. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails.
+8. **Safeguards.** `Safeguards.php` holds none yet. A safeguard added there follows the template's safeguard recipe: `register()` hooks it as a static closure, which no code can remove by name, and the entry requires the class before the floor check, so it parses on PHP 7.4 and calls only what its hook hands it, WordPress APIs present at the oldest WordPress the bootstrap package runs on and WooCommerce APIs present since 3.6, guarding anything newer, which `phpstan.safeguards.neon` checks for WordPress. A safeguard that calls WooCommerce is hooked from one closure that `register()` runs on `woocommerce_loaded`, and it relaxes only through its own filter, with an explicit `false`, after `linked_orders_for_woocommerce/boot/succeeded`.
+9. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails. A step names each stored name it touches, such as an option or meta key, and each default as a literal and reads stored rows directly, never through `Options`, `DWS_Order_Node` or a constant another class declares, so a later rename leaves what it does as it shipped; the seeding step alone reads `Options::DEFAULTS`.
 
 ## Contract
 
