@@ -10,7 +10,7 @@ v1 sites upgrade in place: the port moves v1's settings and grants under `dws_lp
 locked-payment-methods-for-woocommerce.php   the entry: the safeguards, then, in one try, bootstrap load.php, the inert updater, the floor check, the autoloader and functions.php, whose catch shows the build notice
 Safeguards.php               the lock and its v1 filters, as static closures, with the locked ids and the lock decision; the entry requires it before the floor check
 functions.php                the @api dws_lpmwc_plugin(), the includes/ loader, then the boot on plugins_loaded 15, the order-tables declaration, v1's boot hooks and deactivation, as static closures
-uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with Options::DELETE_DATA's consent
+uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with Options::DELETE_DATA's consent, or v1's on a site that never ran the update
 src/                         the plugin's classes, each named for its concept
 ├── Plugin.php               SLUG, PREFIX (dws_lpmwc), COMPONENTS, FOOTPRINT, the identity, the logger, the scheduler, the migration runner and the kernel
 ├── Options.php              the settings' keys, defaults in stored form and typed readers, v1's settings map and its lookup

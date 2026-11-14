@@ -10,7 +10,7 @@ v1 sites upgrade in place, so the port keeps v1's comment type, capabilities, co
 internal-comments.php        the entry: the safeguards, then, in one try, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader and functions.php, whose catch shows the build notice
 Safeguards.php               an empty slot for restrictions that hold whenever the plugin cannot boot, which the entry requires before the floor check
 functions.php                the @api dws_ic_plugin(), the includes/ loader, then the boot on plugins_loaded 15, the order-tables declaration, v1's boot hooks and deactivation, as static closures
-uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with Options::DELETE_DATA's consent
+uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with Options::DELETE_DATA's consent, or v1's on a site that never ran the update
 src/                         the plugin's classes, each named for its concept
 ├── Plugin.php               SLUG, PREFIX (dws_ic), COMPONENTS, FOOTPRINT, the identity, the logger, the scheduler, the migration runner and the kernel
 ├── Options.php              each setting's row, its default in stored form, v1's settings map and its lookup

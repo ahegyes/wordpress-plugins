@@ -46,6 +46,16 @@ try {
 	return;
 }
 
+// A site that never ran the update holds its consent only in v1's row, which v1's uninstall honored; the engine deletes that row with the rest, so where a pass fails after it, the retry keeps what remains.
+add_filter(
+	'default_option_' . $dws_ic_consent,
+	static function ( $value ) {
+		$v1 = get_option( 'dws-internal-comments_plugin' );
+
+		return is_array( $v1 ) && 'yes' === ( $v1['remove-data-uninstall'] ?? null ) ? 'yes' : $value;
+	}
+);
+
 try {
 	Uninstaller::run(
 		$dws_ic_identity,
