@@ -55,7 +55,7 @@ final class OptionsTest extends TestCase {
 	public function test_a_missing_option_reads_its_default(): void {
 		delete_option( Options::DELETE_DATA );
 
-		self::assertSame( Options::DEFAULTS[ Options::DELETE_DATA ], Options::get_bool( Options::DELETE_DATA ) );
+		self::assertFalse( Options::get_bool( Options::DELETE_DATA ) );
 	}
 
 	#[DataProvider( 'stored_lists' )]

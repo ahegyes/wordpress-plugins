@@ -60,19 +60,8 @@ final class MigrationsTest extends TestCase {
 		dws_lpmwc_plugin()->migrations?->run();
 
 		self::assertSame( \count( Migrations::get_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
-		self::assertSame(
-			array(
-				Options::LOCKED_METHODS            => array(),
-				Options::UNLOCK_VIA_USER_ROLES     => 'yes',
-				Options::FULL_ACCESS_ROLES         => array( 'administrator', 'shop_manager' ),
-				Options::UNLOCK_VIA_USER_PROFILES  => 'yes',
-				Options::UNLOCK_VIA_ORDERS         => 'no',
-				Options::UNLOCK_VIA_GROUPS         => 'no',
-				Options::UNLOCK_VIA_WC_MEMBERSHIPS => 'no',
-				Options::DELETE_DATA               => 'no',
-			),
-			\array_combine( self::KEYS, \array_map( 'get_option', self::KEYS ) )
-		);
+		self::assertEqualsCanonicalizing( \array_keys( Options::DEFAULTS ), self::KEYS, 'KEYS lists every key in Options::DEFAULTS.' );
+		self::assertSame( Options::DEFAULTS, \array_combine( \array_keys( Options::DEFAULTS ), \array_map( 'get_option', \array_keys( Options::DEFAULTS ) ) ) );
 		foreach ( self::KEYS as $key ) {
 			self::assertSame( 'on', $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $key ) ), $key ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the stored autoload flag.
 		}
@@ -135,6 +124,7 @@ final class MigrationsTest extends TestCase {
 		update_option( 'dws-wc-lpm_general_full-access-user-roles', array( 'editor', 7, array( 'nested' ) ) );
 
 		Migrations::get_steps()[0]();
+		Migrations::get_steps()[1]();
 
 		self::assertSame( 'yes', get_option( Options::UNLOCK_VIA_USER_ROLES ) );
 		self::assertSame( array(), get_option( Options::LOCKED_METHODS ) );
@@ -165,8 +155,8 @@ final class MigrationsTest extends TestCase {
 		update_user_meta( $users[1], $key, array( 'cheque' ) );
 
 		try {
-			Migrations::get_steps()[1]();
-			Migrations::get_steps()[1]();
+			Migrations::get_steps()[2]();
+			Migrations::get_steps()[2]();
 			wp_cache_flush();
 
 			self::assertSame( array( 'cod' ), get_user_meta( $users[0], $key, true ) );
@@ -185,7 +175,7 @@ final class MigrationsTest extends TestCase {
 
 		try {
 			$this->expectExceptionObject( new \RuntimeException( "The payment methods unlocked for user {$users[0]} could not be stored." ) );
-			Migrations::get_steps()[1]();
+			Migrations::get_steps()[2]();
 		} finally {
 			remove_filter( 'update_user_metadata', $fail );
 			self::assertSame( 'yes', get_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', true ) );
@@ -202,7 +192,7 @@ final class MigrationsTest extends TestCase {
 		add_filter( 'query', $fail );
 		try {
 			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::DELETE_DATA . ' could not be stored.' ) );
-			Migrations::get_steps()[0]();
+			Migrations::get_steps()[1]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );

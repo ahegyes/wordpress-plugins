@@ -67,6 +67,16 @@ final class SettingsTest extends TestCase {
 		self::assertSame( array( 'general', 'plugin' ), \array_column( $page['tabs'], 'slug' ) );
 	}
 
+	public function test_each_field_defaults_to_the_value_the_migrations_seed(): void {
+		$settings = new Settings( self::$identity );
+		$fields   = \array_merge( ...\array_map( static fn ( string $tab ): array => $settings->get_tab_fields( Settings::PAGE, $tab ), \array_keys( Options::V1_SETTINGS ) ) );
+
+		self::assertEqualsCanonicalizing( \array_keys( Options::DEFAULTS ), \array_column( $fields, 'id' ) );
+		foreach ( $fields as $field ) {
+			self::assertSame( Options::DEFAULTS[ $field['id'] ], $field['default'] ?? null, "The field {$field['id']} defaults to another value than Options::DEFAULTS holds." );
+		}
+	}
+
 	public function test_the_general_tab_offers_every_post_type_with_an_admin_screen_and_the_private_comments_switch(): void {
 		delete_option( Options::POST_TYPES );
 		delete_option( Options::PRIVATE_COMMENTS );

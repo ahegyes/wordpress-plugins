@@ -53,6 +53,16 @@ final class SettingsTest extends TestCase {
 		self::assertSame( 'Locked Payment Methods', self::$advanced->get_sections()[ self::SECTION ] ?? null );
 	}
 
+	// WooCommerce stores each field's default whenever its own version changes, so a default other than the seeded one would win or lose by which write runs first; an integration's field lists only while its plugin is active.
+	public function test_each_field_defaults_to_the_value_the_migrations_seed(): void {
+		$fields = \array_filter( self::$advanced->get_settings_for_section( self::SECTION ), static fn ( array $field ): bool => \array_key_exists( $field['id'] ?? '', Options::DEFAULTS ) );
+
+		self::assertSame( array(), \array_diff( \array_keys( Options::DEFAULTS ), \array_column( $fields, 'id' ), array( Options::UNLOCK_VIA_GROUPS, Options::UNLOCK_VIA_WC_MEMBERSHIPS ) ) );
+		foreach ( $fields as $field ) {
+			self::assertSame( Options::DEFAULTS[ $field['id'] ], $field['default'] ?? null, "The field {$field['id']} defaults to another value than Options::DEFAULTS holds." );
+		}
+	}
+
 	public function test_the_section_shows_v1s_groups_with_their_defaults(): void {
 		foreach ( self::OPTIONS as $key ) {
 			delete_option( $key );

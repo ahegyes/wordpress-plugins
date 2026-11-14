@@ -175,8 +175,8 @@ final class OrderStrategyTest extends TestCase {
 		$merged->update_meta_data( OrderStrategy::META_KEY, array( 'cheque' ) );
 		$merged->save();
 
-		Migrations::get_steps()[2]();
-		Migrations::get_steps()[2]();
+		Migrations::get_steps()[3]();
+		Migrations::get_steps()[3]();
 
 		self::assertSame( array( 'cod' ), OrderStrategy::get_unlocked_ids( $moved->get_id() ) );
 		self::assertSame( array( 'cheque', 'cod' ), OrderStrategy::get_unlocked_ids( $merged->get_id() ) );
@@ -194,7 +194,7 @@ final class OrderStrategyTest extends TestCase {
 		add_filter( 'query', $fail );
 		try {
 			$this->expectExceptionObject( new \RuntimeException( 'The v1 order grants could not be read.' ) );
-			Migrations::get_steps()[2]();
+			Migrations::get_steps()[3]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
@@ -211,7 +211,7 @@ final class OrderStrategyTest extends TestCase {
 
 		$failed = false;
 		try {
-			Migrations::get_steps()[2]();
+			Migrations::get_steps()[3]();
 		} catch ( \RuntimeException ) {
 			$failed = true;
 		} finally {
@@ -220,7 +220,7 @@ final class OrderStrategyTest extends TestCase {
 
 		self::assertTrue( $failed );
 		self::assertSame( 'yes', wc_get_order( $order->get_id() )->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
-		Migrations::get_steps()[2]();
+		Migrations::get_steps()[3]();
 		self::assertSame( array( 'cod' ), OrderStrategy::get_unlocked_ids( $order->get_id() ) );
 	}
 

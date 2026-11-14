@@ -158,8 +158,8 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		update_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod', 7 ) );
 		update_post_meta( $this->plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cheque' ) );
 
-		Migrations::get_steps()[4]();
-		Migrations::get_steps()[4]();
+		Migrations::get_steps()[5]();
+		Migrations::get_steps()[5]();
 
 		self::assertSame( array( 'cheque', 'cod' ), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
 		self::assertSame( '', get_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );

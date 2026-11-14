@@ -189,8 +189,8 @@ final class GroupsStrategyTest extends TestCase {
 		update_option( "dws-wc-lpm_groups-settings_$merged", array( 'cod', 7 ) );
 		update_option( GroupsStrategy::OPTION, array( $merged => array( 'cheque' ) ) );
 
-		Migrations::get_steps()[3]();
-		Migrations::get_steps()[3]();
+		Migrations::get_steps()[4]();
+		Migrations::get_steps()[4]();
 
 		self::assertSame(
 			array(
