@@ -19,7 +19,7 @@ final class MetaBoxTest extends TestCase {
 
 	protected int $page;
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	// WordPress reports a deprecated hook only when something listens on it.
 	protected const array V1_HOOKS = array(
@@ -59,14 +59,11 @@ final class MetaBoxTest extends TestCase {
 
 	#[Before]
 	protected function create_posts(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option(
-			DWS_IC_OPTION_GENERAL,
-			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
-			)
-		);
+		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
+		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
 		foreach ( array( 'post', 'page' ) as $type ) {
 			$this->$type = (int) wp_insert_post(
 				array(
@@ -85,7 +82,9 @@ final class MetaBoxTest extends TestCase {
 		$wp_meta_boxes = array();
 		wp_delete_post( $this->post, true );
 		wp_delete_post( $this->page, true );
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 		wp_dequeue_script( 'internal-comments-meta-box' );
 		wp_dequeue_style( 'internal-comments-meta-box' );
@@ -114,7 +113,7 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( '-1', $admin->querySelector( '.dws-internal-comments' )?->getAttribute( 'tabindex' ) );
 		self::assertSame( array( 'edit', 'reply', 'trash' ), $this->actions( $admin, $comment ) );
 		self::assertSame( array( 'reply' ), $this->actions( $editor, $comment ) );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'no' );
 		self::assertNull( $this->render( 'administrator' )->querySelector( '#dws-ic-new-comment-private' ) );
 	}
 

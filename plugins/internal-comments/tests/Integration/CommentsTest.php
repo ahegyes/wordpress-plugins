@@ -105,15 +105,15 @@ final class CommentsTest extends TestCase {
 	}
 
 	public function test_a_post_supports_internal_comments_when_its_type_is_selected(): void {
-		$stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'page' ) ) );
+		$stored = get_option( DWS_IC_OPTION_POST_TYPES );
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'page' ) );
 
 		try {
 			self::assertFalse( dws_ic_is_selected_post_type( $this->post ) );
-			update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+			update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
 			self::assertTrue( dws_ic_is_selected_post_type( $this->post ) );
 		} finally {
-			update_option( DWS_IC_OPTION_GENERAL, $stored );
+			update_option( DWS_IC_OPTION_POST_TYPES, $stored );
 		}
 	}
 

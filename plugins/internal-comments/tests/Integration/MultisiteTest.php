@@ -31,9 +31,9 @@ final class MultisiteTest extends TestCase {
 			$request = self::request( 'echo did_action( "internal_comments/boot/succeeded" );', '--url=' . get_home_url( $site_id, '/' ) );
 
 			self::assertSame( '1', $request['last'], $request['output'] );
-			self::assertSame( 'no', get_blog_option( $site_id, DWS_IC_OPTION_PLUGIN )[ DWS_IC_SETTING_DELETE_DATA ] ?? null );
-			self::assertTrue( update_blog_option( $site_id, DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) ) );
-			self::assertSame( 'no', get_option( DWS_IC_OPTION_PLUGIN )[ DWS_IC_SETTING_DELETE_DATA ] ?? null );
+			self::assertSame( 'no', get_blog_option( $site_id, DWS_IC_OPTION_DELETE_DATA ) );
+			self::assertTrue( update_blog_option( $site_id, DWS_IC_OPTION_DELETE_DATA, 'yes' ) );
+			self::assertSame( 'no', get_option( DWS_IC_OPTION_DELETE_DATA ) );
 		} finally {
 			wp_delete_site( $site_id );
 		}

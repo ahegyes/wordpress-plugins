@@ -60,8 +60,8 @@ test( 'Linked Orders and Internal Comments share an order screen', async ( {
 	cli(
 		'option',
 		'update',
-		'dws-internal-comments_general',
-		JSON.stringify( { 'post-types': [ 'shop_order' ] } ),
+		'dws_ic_post_types',
+		JSON.stringify( [ 'shop_order' ] ),
 		'--format=json'
 	);
 	const order = await requestUtils.rest< { id: number } >( {
@@ -85,8 +85,8 @@ test( 'Linked Orders and Internal Comments share an order screen', async ( {
 		cli(
 			'option',
 			'update',
-			'dws-internal-comments_general',
-			JSON.stringify( { 'post-types': [] } ),
+			'dws_ic_post_types',
+			JSON.stringify( [] ),
 			'--format=json'
 		);
 	}

@@ -19,7 +19,7 @@ final class RestRoutesTest extends TestCase {
 
 	protected int $page;
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	protected array $seen = array();
 
@@ -55,14 +55,11 @@ final class RestRoutesTest extends TestCase {
 
 	#[Before]
 	protected function create_posts(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option(
-			DWS_IC_OPTION_GENERAL,
-			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
-			)
-		);
+		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
+		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
 		foreach ( array( 'post', 'page' ) as $type ) {
 			$this->$type = (int) wp_insert_post(
 				array(
@@ -80,7 +77,9 @@ final class RestRoutesTest extends TestCase {
 	protected function delete_posts(): void {
 		wp_delete_post( $this->post, true );
 		wp_delete_post( $this->page, true );
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 	}
 
@@ -122,7 +121,7 @@ final class RestRoutesTest extends TestCase {
 	// A request for a private comment the site no longer allows is refused rather than stored for every reader.
 	public function test_a_comment_is_private_only_where_the_site_allows_it(): void {
 		$allowed = $this->create( 'administrator', $this->post, array( 'content' => 'Private', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'no' );
 		$refused = $this->create( 'administrator', $this->post, array( 'content' => 'Disabled', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 		$public  = $this->create( 'administrator', $this->post, array( 'content' => 'Public', 'private' => false ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 

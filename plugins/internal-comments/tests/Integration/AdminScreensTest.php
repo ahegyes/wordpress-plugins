@@ -20,7 +20,7 @@ final class AdminScreensTest extends TestCase {
 
 	protected int $post;
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -49,8 +49,10 @@ final class AdminScreensTest extends TestCase {
 
 	#[Before]
 	protected function create_post(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
 		$this->post = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Screens',
@@ -63,7 +65,9 @@ final class AdminScreensTest extends TestCase {
 	#[After]
 	protected function delete_post(): void {
 		wp_delete_post( $this->post, true );
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 		unset( $_GET['comment_type'] );
 	}
@@ -106,7 +110,7 @@ final class AdminScreensTest extends TestCase {
 
 	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
 	public function test_the_column_joins_a_list_after_woocommerce_rebuilds_it(): void {
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'shop_order' ) ) );
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'shop_order' ) );
 		$screens = new AdminScreens();
 		$screens->register_hooks();
 
@@ -207,13 +211,8 @@ final class AdminScreensTest extends TestCase {
 
 	public function test_the_edit_screen_of_an_internal_comment_shows_its_revisions_and_its_author_its_privacy(): void {
 		global $wp_meta_boxes;
-		update_option(
-			DWS_IC_OPTION_GENERAL,
-			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
-			)
-		);
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
+		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
 		$comment = $this->comment( 'Before' );
 		wp_update_comment(
 			array(

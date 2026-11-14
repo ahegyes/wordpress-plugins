@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
 use DeepWebSolutions\InternalComments\Settings;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
@@ -17,30 +19,29 @@ final class SettingsTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN );
+	protected const array OPTIONS = array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS, DWS_IC_OPTION_DELETE_DATA, 'dws_ic_general_extra', 'dws_ic_plugin_extra' );
+
+	protected static PluginIdentity $identity;
 
 	protected static OptionsPage $page;
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/template.php';
-		self::$page = new OptionsPage( Settings::PAGE, new Settings() );
-		self::$page->register_settings();
-	}
-
-	#[\Override]
-	public static function tearDownAfterClass(): void {
-		foreach ( self::OPTIONS as $row ) {
-			remove_filter( "pre_update_option_$row", array( self::$page, 'sanitize_submission' ) );
-			remove_filter( "option_page_capability_$row", array( self::$page, 'get_capability' ) );
-			unregister_setting( $row, $row );
-		}
+		self::$identity = new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX );
+		self::$page     = new OptionsPage( self::$identity, Settings::PAGE, new Settings( self::$identity ) );
 	}
 
 	public static function setting_groups(): array {
 		return array(
-			'general' => array( 'general', array( 'post-types', 'enable-private-comments' ) ),
-			'plugin'  => array( 'plugin', array( 'remove-data-uninstall' ) ),
+			'general' => array(
+				'general',
+				array(
+					'post-types'              => DWS_IC_OPTION_POST_TYPES,
+					'enable-private-comments' => DWS_IC_OPTION_PRIVATE_COMMENTS,
+				),
+			),
+			'plugin'  => array( 'plugin', array( 'remove-data-uninstall' => DWS_IC_OPTION_DELETE_DATA ) ),
 		);
 	}
 
@@ -55,89 +56,86 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_the_page_keeps_v1s_slug_parent_capability_and_tabs(): void {
-		$page = new Settings()->get_options_page( Settings::PAGE );
+		$page = new Settings( self::$identity )->get_options_page( Settings::PAGE );
 
 		self::assertSame( 'dws-internal-comments', Settings::PAGE );
 		self::assertSame( 'options-general.php', $page['parent'] );
 		self::assertSame( DWS_IC_CAP_MANAGE_OPTIONS, $page['capability'] );
 		self::assertSame( 'Internal Comments', $page['menu_title'] );
 		self::assertSame( array( 'general', 'plugin' ), \array_column( $page['tabs'], 'slug' ) );
-		self::assertSame( array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN ), \array_column( $page['tabs'], 'option' ) );
 	}
 
 	public function test_the_general_tab_offers_every_post_type_with_an_admin_screen_and_the_private_comments_switch(): void {
-		delete_option( DWS_IC_OPTION_GENERAL );
+		delete_option( DWS_IC_OPTION_POST_TYPES );
+		delete_option( DWS_IC_OPTION_PRIVATE_COMMENTS );
 
 		$form   = $this->render( 'general' );
-		$values = \array_map( static fn ( \Dom\Element $input ): string => $input->getAttribute( 'value' ), \iterator_to_array( $form->querySelectorAll( 'input[type="checkbox"][name="dws-internal-comments_general[post-types][]"]' ) ) );
+		$values = \array_map( static fn ( \Dom\Element $input ): string => $input->getAttribute( 'value' ), \iterator_to_array( $form->querySelectorAll( 'input[type="checkbox"][name="dws_ic_post_types[]"]' ) ) );
 
 		self::assertEqualsCanonicalizing( \array_values( get_post_types( array( 'show_ui' => true ) ) ), $values );
-		self::assertNull( $form->querySelector( 'input[name="dws-internal-comments_general[post-types][]"][checked]' ) );
-		self::assertNotNull( $form->querySelector( 'input[type="checkbox"][name="dws-internal-comments_general[enable-private-comments]"]:not([checked])' ) );
-		self::assertNull( $form->querySelector( 'input[name="dws-internal-comments_plugin[remove-data-uninstall]"]' ) );
+		self::assertNull( $form->querySelector( 'input[name="dws_ic_post_types[]"][checked]' ) );
+		self::assertNotNull( $form->querySelector( 'input[type="checkbox"][name="dws_ic_private_comments_enabled"]:not([checked])' ) );
+		self::assertNull( $form->querySelector( 'input[name="dws_ic_delete_data"]' ) );
 	}
 
 	public function test_the_plugin_tab_holds_the_uninstall_consent(): void {
-		delete_option( DWS_IC_OPTION_PLUGIN );
+		delete_option( DWS_IC_OPTION_DELETE_DATA );
 
 		$form = $this->render( 'plugin' );
 
-		self::assertNotNull( $form->querySelector( 'input[type="checkbox"][name="dws-internal-comments_plugin[remove-data-uninstall]"]:not([checked])' ) );
-		self::assertNull( $form->querySelector( 'input[name="dws-internal-comments_general[post-types][]"]' ) );
+		self::assertNotNull( $form->querySelector( 'input[type="checkbox"][name="dws_ic_delete_data"]:not([checked])' ) );
+		self::assertNull( $form->querySelector( 'input[name="dws_ic_post_types[]"]' ) );
 	}
 
-	public function test_the_post_types_and_switches_store_as_v1_stored_them(): void {
+	public function test_the_post_types_and_switches_store_each_in_a_row_of_its_own_as_v1_stored_them(): void {
 		$this->save(
-			DWS_IC_OPTION_GENERAL,
+			self::$page,
+			'general',
 			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post', 'page' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
+				DWS_IC_OPTION_POST_TYPES       => array( 'post', 'page' ),
+				DWS_IC_OPTION_PRIVATE_COMMENTS => 'yes',
 			)
 		);
-		$this->save( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
+		$this->save( self::$page, 'plugin', array( DWS_IC_OPTION_DELETE_DATA => 'yes' ) );
 
-		self::assertSame(
-			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post', 'page' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
-			),
-			get_option( DWS_IC_OPTION_GENERAL )
-		);
-		self::assertSame( array( DWS_IC_SETTING_DELETE_DATA => 'yes' ), get_option( DWS_IC_OPTION_PLUGIN ) );
-		self::assertNotNull( $this->render( 'general' )->querySelector( 'input[name="dws-internal-comments_general[post-types][]"][value="page"][checked]' ) );
+		self::assertSame( array( 'post', 'page' ), get_option( DWS_IC_OPTION_POST_TYPES ) );
+		self::assertSame( 'yes', get_option( DWS_IC_OPTION_PRIVATE_COMMENTS ) );
+		self::assertSame( 'yes', get_option( DWS_IC_OPTION_DELETE_DATA ) );
+		self::assertNotNull( $this->render( 'general' )->querySelector( 'input[name="dws_ic_post_types[]"][value="page"][checked]' ) );
 	}
 
 	// v1's form posted nothing for an empty selection, so the selection it had stayed stored.
 	public function test_clearing_every_post_type_stores_an_empty_selection(): void {
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
 
 		$this->save(
-			DWS_IC_OPTION_GENERAL,
+			self::$page,
+			'general',
 			array(
-				DWS_IC_SETTING_POST_TYPES       => '',
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'no',
+				DWS_IC_OPTION_POST_TYPES       => '',
+				DWS_IC_OPTION_PRIVATE_COMMENTS => null,
 			)
 		);
 
-		self::assertSame( array(), get_option( DWS_IC_OPTION_GENERAL )[ DWS_IC_SETTING_POST_TYPES ] ?? null );
+		self::assertSame( array(), get_option( DWS_IC_OPTION_POST_TYPES ) );
 	}
 
 	public function test_a_post_type_without_an_admin_screen_is_refused(): void {
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
 
-		$this->save( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post', 'nav_menu_item' ) ) );
+		$this->save( self::$page, 'general', array( DWS_IC_OPTION_POST_TYPES => array( 'post', 'nav_menu_item' ) ) );
 
-		self::assertSame( array( 'post' ), get_option( DWS_IC_OPTION_GENERAL )[ DWS_IC_SETTING_POST_TYPES ] ?? null );
-		self::assertCount( 1, get_settings_errors( DWS_IC_OPTION_GENERAL ) );
+		self::assertSame( array( 'post' ), get_option( DWS_IC_OPTION_POST_TYPES ) );
+		self::assertCount( 1, get_settings_errors( DWS_IC_OPTION_POST_TYPES ) );
 	}
 
+	// v1's group filter still sees v1's field ids, and the page's own fields filter is its replacement.
 	#[DataProvider( 'setting_groups' )]
-	public function test_a_groups_fields_pass_its_v1_filter_first_then_its_v2_filter( string $group, array $v1_ids ): void {
+	public function test_a_groups_fields_pass_its_v1_filter_keyed_by_v1s_ids_and_a_field_it_adds_takes_a_row_of_its_own( string $group, array $rows ): void {
 		$seen     = array();
 		$v1_hook  = "internal_comments/{$group}_settings/get_group_fields";
-		$v2_hook  = "internal_comments/settings/{$group}_fields";
 		$v1_extra = static function ( array $fields ) use ( &$seen ): array {
-			$seen[] = array( 'v1', \array_keys( $fields ) );
+			$seen[] = \array_keys( $fields );
 			return $fields + array(
 				'extra' => array(
 					'type'  => 'text',
@@ -145,24 +143,36 @@ final class SettingsTest extends TestCase {
 				),
 			);
 		};
-		$v2_spy   = static function ( array $fields ) use ( &$seen ): array {
-			$seen[] = array( 'v2', \array_column( $fields, 'id' ) );
-			return $fields;
-		};
 		add_filter( $v1_hook, $v1_extra );
-		add_filter( $v2_hook, $v2_spy );
 
 		try {
-			$tabs = new Settings()->get_options_page( Settings::PAGE )['tabs'];
+			$fields = new Settings( self::$identity )->get_tab_fields( Settings::PAGE, $group );
 		} finally {
 			remove_filter( $v1_hook, $v1_extra );
-			remove_filter( $v2_hook, $v2_spy );
 		}
 
-		$tab = \array_find( $tabs, static fn ( array $tab ): bool => $group === $tab['slug'] );
-		self::assertSame( array( array( 'v1', $v1_ids ), array( 'v2', \array_merge( $v1_ids, array( 'extra' ) ) ) ), $seen );
-		self::assertSame( \array_merge( $v1_ids, array( 'extra' ) ), \array_column( $tab['fields'] ?? array(), 'id' ) );
-		self::assertSame( array( array( $v1_hook, $v2_hook ) ), $this->deprecated );
+		self::assertSame( array( \array_keys( $rows ) ), $seen );
+		self::assertSame( array( ...\array_values( $rows ), "dws_ic_{$group}_extra" ), \array_column( $fields, 'id' ) );
+		self::assertSame( array( array( $v1_hook, 'internal_comments/options_page/fields' ) ), $this->deprecated );
+	}
+
+	public function test_a_field_a_v1_callback_adds_saves_in_its_own_row(): void {
+		$v1_extra = static fn ( array $fields ): array => $fields + array(
+			'extra' => array(
+				'type'  => 'text',
+				'title' => 'Extra',
+			),
+		);
+		add_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
+
+		try {
+			$this->save( new OptionsPage( self::$identity, Settings::PAGE, new Settings( self::$identity ) ), 'general', array( 'dws_ic_general_extra' => 'saved' ) );
+		} finally {
+			remove_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
+		}
+
+		self::assertSame( 'saved', get_option( 'dws_ic_general_extra' ) );
+		self::assertSame( 'saved', dws_ic_get_raw_setting( 'extra', 'general' ) );
 	}
 
 	public function test_the_plugin_row_links_to_the_page_and_to_the_support_forum(): void {
@@ -185,14 +195,23 @@ final class SettingsTest extends TestCase {
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 
-	// options.php saves a submission through update_option(), whose filter the page hooks for its own option page only.
-	protected function save( string $row, array $posted ): void {
+	// options.php registers the posted tab's settings, then saves each of its fields through update_option(), with null for one the form did not post; the page's filters go afterwards, so a later row saves without them.
+	protected function save( OptionsPage $page, string $tab, array $posted ): void {
+		$group                   = Settings::PAGE . "_$tab";
 		$GLOBALS['pagenow']      = 'options.php';
-		$_REQUEST['option_page'] = $row;
+		$_REQUEST['option_page'] = $group;
 
 		try {
-			update_option( $row, $posted );
+			$page->register_settings();
+			foreach ( $posted as $option => $value ) {
+				update_option( $option, $value );
+			}
 		} finally {
+			foreach ( \array_unique( array( ...\array_values( DWS_IC_V1_SETTINGS[ $tab ] ), ...\array_keys( $posted ) ) ) as $option ) {
+				remove_filter( "pre_update_option_$option", array( $page, 'sanitize_submission' ) );
+				unregister_setting( $group, $option );
+			}
+			remove_filter( "option_page_capability_$group", array( $page, 'get_capability' ) );
 			unset( $GLOBALS['pagenow'], $_REQUEST['option_page'] );
 		}
 	}

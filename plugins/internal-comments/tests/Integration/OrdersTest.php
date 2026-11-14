@@ -19,7 +19,7 @@ final class OrdersTest extends TestCase {
 
 	protected static array $users = array();
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -48,15 +48,19 @@ final class OrdersTest extends TestCase {
 
 	#[Before]
 	protected function select_orders(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'shop_order' ) ) );
+		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( DWS_IC_OPTION_POST_TYPES, array( 'shop_order' ) );
 	}
 
 	#[After]
 	protected function restore_settings(): void {
 		global $wp_meta_boxes;
 		$wp_meta_boxes = array();
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 	}
 

@@ -67,7 +67,7 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
-		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
+		update_option( DWS_IC_OPTION_DELETE_DATA, 'yes' );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
@@ -81,11 +81,11 @@ final class PartialDeployTest extends TestCase {
 		);
 
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
-		self::assertSame( array( DWS_IC_SETTING_DELETE_DATA => 'yes' ), get_option( DWS_IC_OPTION_PLUGIN ) );
+		self::assertSame( 'yes', get_option( DWS_IC_OPTION_DELETE_DATA ) );
 		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
 
 		\unlink( $log );
-		update_option( DWS_IC_OPTION_PLUGIN, DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ] );
+		update_option( DWS_IC_OPTION_DELETE_DATA, DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_DELETE_DATA ] );
 	}
 
 	public function test_a_build_error_is_logged_with_its_location_once_an_hour(): void {

@@ -17,8 +17,8 @@ test.describe( 'Meta box', () => {
 
 	test.beforeAll( async ( { requestUtils } ) => {
 		storeSettings( {
-			'post-types': [ 'post', 'shop_order' ],
-			'enable-private-comments': 'yes',
+			dws_ic_post_types: [ 'post', 'shop_order' ],
+			dws_ic_private_comments_enabled: 'yes',
 		} );
 		post = (
 			await requestUtils.rest< { id: number } >( {
@@ -32,8 +32,8 @@ test.describe( 'Meta box', () => {
 	test.afterAll( async ( { requestUtils } ) => {
 		await requestUtils.deleteAllPosts();
 		storeSettings( {
-			'post-types': [],
-			'enable-private-comments': 'no',
+			dws_ic_post_types: [],
+			dws_ic_private_comments_enabled: 'no',
 		} );
 	} );
 
