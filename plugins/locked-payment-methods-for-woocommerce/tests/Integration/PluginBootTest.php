@@ -52,7 +52,7 @@ final class PluginBootTest extends TestCase {
 
 	public function test_the_entry_loads_its_safeguards_before_the_bootstrap_package_and_its_floor_gate(): void {
 		$root       = \dirname( DWS_LPMWC_FILE );
-		$safeguards = \array_search( $root . '/includes/safeguards.php', \get_included_files(), true );
+		$safeguards = \array_search( $root . '/Safeguards.php', \get_included_files(), true );
 		$bootstrap  = \array_search( $root . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php', \get_included_files(), true );
 
 		self::assertIsInt( $safeguards );

@@ -6,6 +6,7 @@ use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -13,43 +14,64 @@ use PHPUnit\Framework\TestCase;
 final class PartialDeployTest extends TestCase {
 	use RunsRequestsTrait;
 
-	public function test_a_missing_built_asset_shows_the_build_notice_and_loads_nothing_built(): void {
-		$manifest = \dirname( DWS_LOWC_FILE ) . '/assets/build/orders-list-table.asset.php';
-		\rename( $manifest, "$manifest.hidden" );
+	protected const string NOTICE = 'Linked Orders for WooCommerce is missing some of its files, so its features stay off until the plugin is reinstalled.';
+
+	// Finds the notice the entry hooks for an incomplete build, and prints whether the plugin booted and what an administrator and a visitor see of the notice.
+	protected const string PROBE = '$notice = null; foreach ( isset( $GLOBALS["wp_filter"]["all_admin_notices"] ) ? $GLOBALS["wp_filter"]["all_admin_notices"]->callbacks : array() as $callbacks ) { foreach ( $callbacks as $callback ) { if ( $callback["function"] instanceof Closure && DWS_LOWC_FILE === new ReflectionFunction( $callback["function"] )->getFileName() ) { $notice = $callback["function"]; } } } $seen = array(); foreach ( array( 1, 0 ) as $user ) { wp_set_current_user( $user ); ob_start(); if ( $notice instanceof Closure ) { $notice(); } $seen[] = trim( wp_strip_all_tags( (string) ob_get_clean() ) ); } echo wp_json_encode( array( did_action( "linked_orders_for_woocommerce/boot/succeeded" ), $seen ) );';
+
+	public static function missing_build_files(): array {
+		return array(
+			'bootstrap-package' => array( 'vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php', '' ),
+			'scripts-build'     => array( 'assets/build/orders-list-table.asset.php', '' ),
+			'autoloader'        => array( 'vendor/autoload.php', 'Failed to open stream' ),
+		);
+	}
+
+	public function test_a_complete_build_boots_and_shows_no_build_notice(): void {
+		$request = self::request( self::PROBE );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( wp_json_encode( array( 1, array( '', '' ) ) ), $request['last'] );
+	}
+
+	#[DataProvider( 'missing_build_files' )]
+	public function test_a_missing_build_file_shows_the_build_notice_to_plugin_managers_and_boots_nothing( string $file, string $diagnostic ): void {
+		$path = \dirname( DWS_LOWC_FILE ) . "/$file";
+		\rename( $path, "$path.hidden" );
 		try {
-			$request = self::request( 'echo wp_json_encode( array( function_exists( "dws_lowc_boot" ), false !== has_action( "all_admin_notices", "dws_lowc_render_build_notice" ) ) );' );
+			$request = self::request_provoking( $diagnostic, self::PROBE );
 		} finally {
-			\rename( "$manifest.hidden", $manifest );
+			\rename( "$path.hidden", $path );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( '[false,true]', $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, array( self::NOTICE, '' ) ) ), $request['last'] );
 	}
 
-	public function test_an_include_that_throws_shows_the_build_notice_boots_nothing_and_keeps_the_peer_getters(): void {
-		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-throws.php'; // It loads after metadata.php.
+	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing_without_a_log_line(): void {
+		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-throws.php';
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_lowc_boot" ), false !== has_action( "all_admin_notices", "dws_lowc_render_build_notice" ), dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) );' );
+			$request = self::request( self::PROBE );
 		} finally {
 			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( wp_json_encode( array( false, true, dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) ), $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, array( self::NOTICE, '' ) ) ), $request['last'] );
 	}
 
-	public function test_a_deactivation_whose_composition_root_cannot_be_built_is_reported_as_a_build_error(): void {
-		$root = \dirname( DWS_LOWC_FILE ) . '/vendor-prefixed/ahegyes/wp-framework-core/src/PluginBoot.php'; // The composition root constructs it, and no include reads it.
-		\rename( $root, "$root.hidden" );
+	public function test_the_peer_getters_a_partial_deploy_defines_still_answer(): void {
+		$include = \dirname( DWS_LOWC_FILE ) . '/includes/metadata_zz-throws.php'; // Sorts right after metadata.php, so no later include loads.
+		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request_provoking( 'PluginBoot.php', 'remove_action( "all_admin_notices", "dws_lowc_render_build_notice" ); do_action( "deactivate_" . plugin_basename( DWS_LOWC_FILE ), false ); echo false !== has_action( "all_admin_notices", "dws_lowc_render_build_notice" ) ? "reported" : "silent";' );
+			$request = self::request( 'echo wp_json_encode( array( did_action( "linked_orders_for_woocommerce/boot/succeeded" ), dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) );' );
 		} finally {
-			\rename( "$root.hidden", $root );
+			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( 'reported', $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, dws_lowc_get_plugin_slug(), dws_lowc_get_plugin_name(), dws_lowc_get_plugin_version() ) ), $request['last'] );
 	}
 
 	#[RunInSeparateProcess]
@@ -76,21 +98,5 @@ final class PartialDeployTest extends TestCase {
 			\unlink( $log );
 			false === $stored ? delete_option( DWS_LOWC_OPTION_DELETE_DATA ) : update_option( DWS_LOWC_OPTION_DELETE_DATA, $stored );
 		}
-	}
-
-	public function test_a_build_error_is_logged_with_its_location_once_an_hour(): void {
-		$message = 'A partial deploy ' . \uniqid() . '.';
-		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-throws.php';
-		\file_put_contents( $include, "<?php\nthrow new RuntimeException( '$message' );\n" );
-		try {
-			$first  = self::request_provoking( 'did not finish loading', 'echo 1;' );
-			$second = self::request_provoking( 'did not finish loading', 'echo 1;' );
-		} finally {
-			\unlink( $include );
-			delete_transient( Plugin::PREFIX . '_build_error_' . \md5( $message ) );
-		}
-
-		self::assertStringContainsString( "did not finish loading: $message in $include:2", $first['output'] );
-		self::assertStringNotContainsString( 'did not finish loading', $second['output'] );
 	}
 }

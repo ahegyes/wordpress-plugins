@@ -116,7 +116,9 @@ final class DeprecatedApiTest extends TestCase {
 			),
 			$this->deprecated
 		);
-		self::assertSame( PHP_INT_MIN, has_action( 'internal_comments/boot/succeeded', 'dws_ic_fire_v1_initialized' ) );
-		self::assertSame( PHP_INT_MIN, has_action( 'internal_comments/boot/failed', 'dws_ic_fire_v1_initialization_failure' ) );
+		foreach ( array( 'internal_comments/boot/succeeded', 'internal_comments/boot/failed' ) as $hook ) {
+			$relays = \array_filter( $GLOBALS['wp_filter'][ $hook ]->callbacks[ PHP_INT_MIN ] ?? array(), static fn ( array $callback ): bool => $callback['function'] instanceof \Closure && \dirname( DWS_IC_FILE ) . '/functions.php' === new \ReflectionFunction( $callback['function'] )->getFileName() );
+			self::assertCount( 1, $relays, $hook );
+		}
 	}
 }

@@ -383,7 +383,7 @@ final class SafeguardsTest extends TestCase {
 
 	// WordPress loads the plugin while WooCommerce is inactive, so a safeguard that calls WooCommerce waits for it to load.
 	public function test_the_gateway_lock_is_hooked_only_once_woocommerce_has_loaded(): void {
-		$php     = 'echo wp_json_encode( array( did_action( "woocommerce_loaded" ), false !== has_filter( "woocommerce_available_payment_gateways", "dws_lpmwc_remove_locked_payment_methods" ) ) );';
+		$php     = '$hooked = false; foreach ( isset( $GLOBALS["wp_filter"]["woocommerce_available_payment_gateways"] ) ? $GLOBALS["wp_filter"]["woocommerce_available_payment_gateways"]->callbacks[999] ?? array() : array() as $callback ) { $hooked = $hooked || ( $callback["function"] instanceof Closure && dirname( DWS_LPMWC_FILE ) . "/Safeguards.php" === new ReflectionFunction( $callback["function"] )->getFileName() ); } echo wp_json_encode( array( did_action( "woocommerce_loaded" ), $hooked ) );';
 		$with    = self::request( $php );
 		$without = self::request( $php, '--skip-plugins=woocommerce' );
 

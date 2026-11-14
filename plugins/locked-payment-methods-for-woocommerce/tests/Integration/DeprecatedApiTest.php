@@ -147,8 +147,10 @@ final class DeprecatedApiTest extends TestCase {
 			),
 			$this->deprecated
 		);
-		self::assertSame( PHP_INT_MIN, has_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', 'dws_lpmwc_fire_v1_initialized' ) );
-		self::assertSame( PHP_INT_MIN, has_action( 'locked_payment_methods_for_woocommerce/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure' ) );
+		foreach ( array( 'locked_payment_methods_for_woocommerce/boot/succeeded', 'locked_payment_methods_for_woocommerce/boot/failed' ) as $hook ) {
+			$relays = \array_filter( $GLOBALS['wp_filter'][ $hook ]->callbacks[ PHP_INT_MIN ] ?? array(), static fn ( array $callback ): bool => $callback['function'] instanceof \Closure && \dirname( DWS_LPMWC_FILE ) . '/functions.php' === new \ReflectionFunction( $callback['function'] )->getFileName() );
+			self::assertCount( 1, $relays, $hook );
+		}
 	}
 
 	public function test_a_payment_method_is_locked_for_a_user_when_it_is_listed_and_no_strategy_unlocks_it(): void {

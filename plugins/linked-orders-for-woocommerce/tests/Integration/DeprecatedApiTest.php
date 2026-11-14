@@ -110,7 +110,9 @@ final class DeprecatedApiTest extends TestCase {
 			),
 			$this->deprecated
 		);
-		self::assertSame( PHP_INT_MIN, has_action( 'linked_orders_for_woocommerce/boot/succeeded', 'dws_lowc_fire_v1_initialized' ) );
-		self::assertSame( PHP_INT_MIN, has_action( 'linked_orders_for_woocommerce/boot/failed', 'dws_lowc_fire_v1_initialization_failure' ) );
+		foreach ( array( 'linked_orders_for_woocommerce/boot/succeeded', 'linked_orders_for_woocommerce/boot/failed' ) as $hook ) {
+			$relays = \array_filter( $GLOBALS['wp_filter'][ $hook ]->callbacks[ PHP_INT_MIN ] ?? array(), static fn ( array $callback ): bool => $callback['function'] instanceof \Closure && \dirname( DWS_LOWC_FILE ) . '/functions.php' === new \ReflectionFunction( $callback['function'] )->getFileName() );
+			self::assertCount( 1, $relays, $hook );
+		}
 	}
 }
