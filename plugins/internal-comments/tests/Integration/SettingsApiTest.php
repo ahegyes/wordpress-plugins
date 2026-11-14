@@ -125,7 +125,7 @@ final class SettingsApiTest extends TestCase {
 		foreach ( $filters as $hook => $filter ) {
 			add_filter( $hook, $filter, 10, 2 );
 		}
-		add_filter( 'dws_ic/settings/validated_value', $v2, 10, 3 );
+		add_filter( 'internal_comments/settings/validated_value', $v2, 10, 3 );
 
 		try {
 			$value = dws_ic_get_validated_setting( $field_id, $group );
@@ -133,11 +133,11 @@ final class SettingsApiTest extends TestCase {
 			foreach ( $filters as $hook => $filter ) {
 				remove_filter( $hook, $filter );
 			}
-			remove_filter( 'dws_ic/settings/validated_value', $v2 );
+			remove_filter( 'internal_comments/settings/validated_value', $v2 );
 		}
 
 		self::assertSame( 'v2', $value );
 		self::assertSame( $expected, $seen );
-		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'dws_ic/settings/validated_value' ), $deprecated ), $this->deprecated );
+		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'internal_comments/settings/validated_value' ), $deprecated ), $this->deprecated );
 	}
 }

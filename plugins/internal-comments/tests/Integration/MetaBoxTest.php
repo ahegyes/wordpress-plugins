@@ -132,29 +132,29 @@ final class MetaBoxTest extends TestCase {
 		$action  = static function ( \DWS_Internal_Comment $comment ): void {
 			echo '<span class="from-action">' . esc_html( (string) $comment->comment_ID ) . '</span>';
 		};
-		add_filter( 'dws_ic/meta_box/comment_classes', $classes );
-		add_action( 'dws_ic/meta_box/before_comment_actions', $action );
+		add_filter( 'internal_comments/meta_box/comment_classes', $classes );
+		add_action( 'internal_comments/meta_box/before_comment_actions', $action );
 
 		try {
 			$document = $this->render( 'administrator' );
 		} finally {
-			remove_filter( 'dws_ic/meta_box/comment_classes', $classes );
-			remove_action( 'dws_ic/meta_box/before_comment_actions', $action );
+			remove_filter( 'internal_comments/meta_box/comment_classes', $classes );
+			remove_action( 'internal_comments/meta_box/before_comment_actions', $action );
 		}
 
 		self::assertTrue( (bool) $document->querySelector( "#comment-$comment" )?->classList->contains( 'from-v2' ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNotNull( $document->querySelector( "#comment-$comment .from-action" ) );
 		self::assertEqualsCanonicalizing(
 			array(
-				array( 'internal_comments/metabox_output/comment_classes', 'dws_ic/meta_box/comment_classes' ),
-				array( 'internal_comments/metabox_output/single_comment/actions/start', 'dws_ic/meta_box/before_comment_actions' ),
-				array( 'internal_comments/metabox_output/single_comment/actions/end', 'dws_ic/meta_box/after_comment_actions' ),
-				array( 'internal_comments/metabox_output/inline_actions', 'dws_ic/meta_box/before_form_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions/insert', 'dws_ic/meta_box/before_new_comment_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions', 'dws_ic/meta_box/before_form_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions/edit', 'dws_ic/meta_box/before_edit_comment_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions', 'dws_ic/meta_box/before_form_buttons' ),
-				array( 'internal_comments/metabox_output/reply', 'dws_ic/meta_box/before_reply_buttons' ),
+				array( 'internal_comments/metabox_output/comment_classes', 'internal_comments/meta_box/comment_classes' ),
+				array( 'internal_comments/metabox_output/single_comment/actions/start', 'internal_comments/meta_box/before_comment_actions' ),
+				array( 'internal_comments/metabox_output/single_comment/actions/end', 'internal_comments/meta_box/after_comment_actions' ),
+				array( 'internal_comments/metabox_output/inline_actions', 'internal_comments/meta_box/before_form_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions/insert', 'internal_comments/meta_box/before_new_comment_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions', 'internal_comments/meta_box/before_form_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions/edit', 'internal_comments/meta_box/before_edit_comment_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions', 'internal_comments/meta_box/before_form_buttons' ),
+				array( 'internal_comments/metabox_output/reply', 'internal_comments/meta_box/before_reply_buttons' ),
 			),
 			$this->deprecated
 		);

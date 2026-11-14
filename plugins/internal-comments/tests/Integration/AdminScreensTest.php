@@ -79,7 +79,7 @@ final class AdminScreensTest extends TestCase {
 			return 'title';
 		};
 		add_filter( self::V1_PRECEDING_COLUMN, $v1, 10, 2 );
-		add_filter( 'dws_ic/list_table/preceding_column', $v2, 10, 2 );
+		add_filter( 'internal_comments/list_table/preceding_column', $v2, 10, 2 );
 
 		try {
 			$columns = new AdminScreens()->add_column(
@@ -93,12 +93,12 @@ final class AdminScreensTest extends TestCase {
 			);
 		} finally {
 			remove_filter( self::V1_PRECEDING_COLUMN, $v1 );
-			remove_filter( 'dws_ic/list_table/preceding_column', $v2 );
+			remove_filter( 'internal_comments/list_table/preceding_column', $v2 );
 		}
 
 		self::assertSame( array( 'cb', 'title', 'dws-internal-comments', 'comments', 'date' ), \array_keys( $columns ) );
 		self::assertSame( array( array( 'v1', 'comments', 'post' ), array( 'v2', 'comments', 'post' ) ), $seen );
-		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'dws_ic/list_table/preceding_column' ) ), $this->deprecated );
+		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'internal_comments/list_table/preceding_column' ) ), $this->deprecated );
 		wp_set_current_user( self::$users['editor'] );
 		self::assertArrayHasKey( 'dws-internal-comments', new AdminScreens()->add_column( array( 'title' => 'Title' ), 'post' ) );
 		self::assertSame( array( 'title' => 'Title' ), new AdminScreens()->add_column( array( 'title' => 'Title' ), 'page' ) );

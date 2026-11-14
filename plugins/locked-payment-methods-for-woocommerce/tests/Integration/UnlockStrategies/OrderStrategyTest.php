@@ -222,7 +222,7 @@ final class OrderStrategyTest extends TestCase {
 	}
 
 	protected static function should_lock( string $gateway_id, int $order_id ): mixed {
-		return apply_filters( 'dws_lpmwc/payment_method/should_lock', true, $gateway_id, 0, $order_id );
+		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, 0, $order_id );
 	}
 
 	protected static function save( int $order_id, array|string $methods ): void {

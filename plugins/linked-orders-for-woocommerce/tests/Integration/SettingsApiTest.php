@@ -119,7 +119,7 @@ final class SettingsApiTest extends TestCase {
 		foreach ( $filters as $hook => $filter ) {
 			add_filter( $hook, $filter, 10, 2 );
 		}
-		add_filter( 'dws_lowc/settings/validated_value', $v2, 10, 3 );
+		add_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2, 10, 3 );
 
 		try {
 			$value = dws_lowc_get_validated_setting( $field_id, $group );
@@ -127,12 +127,12 @@ final class SettingsApiTest extends TestCase {
 			foreach ( $filters as $hook => $filter ) {
 				remove_filter( $hook, $filter );
 			}
-			remove_filter( 'dws_lowc/settings/validated_value', $v2 );
+			remove_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2 );
 		}
 
 		self::assertSame( 6, $value );
 		self::assertSame( $expected, $seen );
-		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'dws_lowc/settings/validated_value' ), $deprecated ), $this->deprecated );
+		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'linked_orders_for_woocommerce/settings/validated_value' ), $deprecated ), $this->deprecated );
 	}
 
 	// v1 read every id through the section's filter, so an extension answered for an id no group maps.
@@ -152,7 +152,7 @@ final class SettingsApiTest extends TestCase {
 
 		self::assertSame( array( 'extension:extension-field', 'extension:other/field', null ), $values );
 		self::assertSame( array( array( null, 'extension-field' ), array( null, 'other/field' ) ), $seen );
-		self::assertSame( \array_fill( 0, 2, array( 'linked_orders_for_woocommerce/settings/get_validated_option_value', 'dws_lowc/settings/validated_value' ) ), $this->deprecated );
+		self::assertSame( \array_fill( 0, 2, array( 'linked_orders_for_woocommerce/settings/get_validated_option_value', 'linked_orders_for_woocommerce/settings/validated_value' ) ), $this->deprecated );
 	}
 
 	// The v1 filter's deprecation names the v2 filter, so an extension that moves its callback there still answers.
@@ -164,13 +164,13 @@ final class SettingsApiTest extends TestCase {
 			return "v2:{$field_id}";
 		};
 		add_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $v1, 10, 2 );
-		add_filter( 'dws_lowc/settings/validated_value', $v2, 10, 3 );
+		add_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2, 10, 3 );
 
 		try {
 			$values = array( dws_lowc_get_validated_setting( 'extension-field' ), dws_lowc_get_validated_setting( 'other/field' ), dws_lowc_get_validated_setting( 'other-settings/field' ), dws_lowc_get_validated_setting( 'field', 'other' ) );
 		} finally {
 			remove_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $v1 );
-			remove_filter( 'dws_lowc/settings/validated_value', $v2 );
+			remove_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2 );
 		}
 
 		self::assertSame( array( 'v2:extension-field', 'v2:field', 'v2:field', null ), $values );

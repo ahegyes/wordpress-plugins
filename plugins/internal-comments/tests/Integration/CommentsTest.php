@@ -76,18 +76,18 @@ final class CommentsTest extends TestCase {
 			return $data;
 		};
 		add_filter( 'internal_comments/create_comment_data', $v1 );
-		add_filter( 'dws_ic/internal_comment/creation_data', $v2 );
+		add_filter( 'internal_comments/internal_comment/creation_data', $v2 );
 
 		try {
 			$id = dws_ic_create_internal_comment( array( 'comment_post_ID' => $this->post ) );
 		} finally {
 			remove_filter( 'internal_comments/create_comment_data', $v1 );
-			remove_filter( 'dws_ic/internal_comment/creation_data', $v2 );
+			remove_filter( 'internal_comments/internal_comment/creation_data', $v2 );
 		}
 
 		self::assertSame( array( 'v1', 'v2:v1' ), $seen );
 		self::assertSame( 'v2', get_comment( (int) $id )?->comment_content );
-		self::assertSame( array( array( 'internal_comments/create_comment_data', 'dws_ic/internal_comment/creation_data' ) ), $this->deprecated );
+		self::assertSame( array( array( 'internal_comments/create_comment_data', 'internal_comments/internal_comment/creation_data' ) ), $this->deprecated );
 	}
 
 	public function test_a_comment_reads_as_internal_by_its_type(): void {

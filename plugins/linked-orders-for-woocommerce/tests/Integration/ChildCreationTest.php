@@ -113,12 +113,12 @@ final class ChildCreationTest extends TestCase {
 		$this->use_storage( $hpos, $sync );
 		$parent  = $this->create_order();
 		$creator = static fn ( array $args ): array => array( 'create_function' => static fn (): \WP_Error => new \WP_Error( 'failed', 'The <b>store</b> is closed.' ) ) + $args;
-		add_filter( 'dws_lowc/linked_order/creation_args', $creator );
+		add_filter( 'linked_orders_for_woocommerce/linked_order/creation_args', $creator );
 
 		try {
 			$location = $this->request( (string) $parent->get_id() );
 		} finally {
-			remove_filter( 'dws_lowc/linked_order/creation_args', $creator );
+			remove_filter( 'linked_orders_for_woocommerce/linked_order/creation_args', $creator );
 		}
 
 		self::assertSame( $parent->get_edit_order_url(), $location );
@@ -142,13 +142,13 @@ final class ChildCreationTest extends TestCase {
 		$this->use_storage( $hpos, $sync );
 		$parent  = $this->create_order();
 		$creator = static fn ( array $args ): array => array( 'create_function' => '__return_zero' ) + $args;
-		add_filter( 'dws_lowc/linked_order/creation_args', $creator );
+		add_filter( 'linked_orders_for_woocommerce/linked_order/creation_args', $creator );
 		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
 
 		try {
 			$this->request( (string) $parent->get_id() );
 		} finally {
-			remove_filter( 'dws_lowc/linked_order/creation_args', $creator );
+			remove_filter( 'linked_orders_for_woocommerce/linked_order/creation_args', $creator );
 			remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
 		}
 

@@ -213,7 +213,7 @@ final class GroupsStrategyTest extends TestCase {
 	}
 
 	protected static function should_lock( string $gateway_id, int $user_id ): mixed {
-		return apply_filters( 'dws_lpmwc/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
+		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
 	}
 
 	protected static function parse( string $markup ): \Dom\HTMLDocument {

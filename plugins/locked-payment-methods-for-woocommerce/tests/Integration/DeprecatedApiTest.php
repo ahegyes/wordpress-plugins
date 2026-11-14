@@ -176,7 +176,7 @@ final class DeprecatedApiTest extends TestCase {
 
 		self::assertSame( array( array( true, 'bacs', self::$users['customer'] ), array( true, 'bacs', self::$users['shop_manager'] ) ), $seen );
 		self::assertContains( array( 'dws_lpmwc_check_payment_method_access_for_user', 'dws_lpmwc_is_payment_method_locked()' ), $this->deprecated );
-		self::assertContains( array( $v1, 'dws_lpmwc/payment_method/should_lock' ), $this->deprecated );
+		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
 	}
 
 	public function test_v1s_order_access_check_judges_the_order_and_its_customer_after_v1s_filter(): void {
@@ -198,7 +198,7 @@ final class DeprecatedApiTest extends TestCase {
 		}
 
 		self::assertSame( array( array( true, 'cod', $order_id ) ), $seen );
-		self::assertContains( array( $v1, 'dws_lpmwc/payment_method/should_lock' ), $this->deprecated );
+		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
 	}
 
 	public function test_v1s_per_strategy_checks_answer_from_their_strategy_alone_and_true_while_it_is_off(): void {

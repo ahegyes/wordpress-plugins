@@ -47,12 +47,12 @@ final class AutocompletionTest extends TestCase {
 			$seen[] = $order_id;
 			return $should;
 		};
-		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record, 10, 2 );
 
 		try {
 			$root->update_status( 'completed' );
 		} finally {
-			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $record );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record );
 		}
 
 		self::assertSame( array( $root->get_id(), $child->get_id() ), \array_slice( $seen, 0, 2 ) );
@@ -74,12 +74,12 @@ final class AutocompletionTest extends TestCase {
 
 			return $should;
 		};
-		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record, 10, 2 );
 
 		try {
 			$root->update_status( 'completed' );
 		} finally {
-			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $record );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record );
 		}
 
 		self::assertSame( array( $root->get_id(), $child->get_id(), $other->get_id(), $other_child->get_id(), $other_grandchild->get_id(), $grandchild->get_id() ), $seen );
@@ -118,14 +118,14 @@ final class AutocompletionTest extends TestCase {
 
 		$skip   = static fn ( bool $should, int $descendant_id ): bool => $should && $descendant_id !== $child->get_id();
 		$status = static fn (): string => 'processing';
-		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $skip, 10, 2 );
-		add_filter( 'dws_lowc/autocompletion/completed_status', $status );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $skip, 10, 2 );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/completed_status', $status );
 
 		try {
 			$root->update_status( 'completed' );
 		} finally {
-			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $skip );
-			remove_filter( 'dws_lowc/autocompletion/completed_status', $status );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $skip );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/completed_status', $status );
 		}
 
 		self::assertSame( 'processing', wc_get_order( $root->get_id() )->get_status() );

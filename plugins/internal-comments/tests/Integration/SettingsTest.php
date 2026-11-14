@@ -135,7 +135,7 @@ final class SettingsTest extends TestCase {
 	public function test_a_groups_fields_pass_its_v1_filter_first_then_its_v2_filter( string $group, array $v1_ids ): void {
 		$seen     = array();
 		$v1_hook  = "internal_comments/{$group}_settings/get_group_fields";
-		$v2_hook  = "dws_ic/settings/{$group}_fields";
+		$v2_hook  = "internal_comments/settings/{$group}_fields";
 		$v1_extra = static function ( array $fields ) use ( &$seen ): array {
 			$seen[] = array( 'v1', \array_keys( $fields ) );
 			return $fields + array(

@@ -17,7 +17,7 @@ test.describe( 'Posts list and Comments screen', () => {
 		).id;
 		await requestUtils.rest( {
 			method: 'POST',
-			path: `/dws_ic/v1/posts/${ post }/comments`,
+			path: `/internal-comments/v1/posts/${ post }/comments`,
 			data: { content: 'Seen in the list' },
 		} );
 	} );

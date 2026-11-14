@@ -294,7 +294,7 @@ final class ListTableTest extends TestCase {
 			$order->save();
 		}
 		$this->open_list();
-		add_filter( 'dws_lowc/post_type/supported_order_types', $counted );
+		add_filter( 'linked_orders_for_woocommerce/post_type/supported_order_types', $counted );
 
 		try {
 			foreach ( array( $parent, $orphan ) as $order ) {
@@ -303,7 +303,7 @@ final class ListTableTest extends TestCase {
 				self::assertSame( 1, $builds );
 			}
 		} finally {
-			remove_filter( 'dws_lowc/post_type/supported_order_types', $counted );
+			remove_filter( 'linked_orders_for_woocommerce/post_type/supported_order_types', $counted );
 		}
 	}
 

@@ -120,13 +120,13 @@ final class UserProfileStrategyTest extends TestCase {
 
 	public function test_the_profile_offers_the_methods_the_locked_ids_filter_adds_as_locked(): void {
 		$add = static fn ( array $ids ): array => array( ...$ids, 'cheque' );
-		add_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
 			$form = self::render( self::$users['customer'] );
 		} finally {
-			remove_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+			remove_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
 		}
 
 		self::assertSame(
@@ -264,7 +264,7 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	protected static function should_lock( string $gateway_id, int $user_id ): mixed {
-		return apply_filters( 'dws_lpmwc/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
+		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
 	}
 
 	protected static function render( int $user_id ): \Dom\HTMLDocument {
