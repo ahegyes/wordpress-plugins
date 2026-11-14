@@ -70,8 +70,8 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 							'step' => '1',
 						),
 						'default'           => (string) Options::DEFAULTS[ Options::MAX_DEPTH ],
+						'placeholder'       => (string) Options::DEFAULTS[ Options::MAX_DEPTH ],
 						'desc'              => __( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', 'linked-orders-for-woocommerce' ),
-						'validate'          => 'dws_lowc_validate_max_depth',
 					),
 					'autocomplete-descendants' => array(
 						'title'   => __( 'Autocomplete descendant orders', 'linked-orders-for-woocommerce' ),
