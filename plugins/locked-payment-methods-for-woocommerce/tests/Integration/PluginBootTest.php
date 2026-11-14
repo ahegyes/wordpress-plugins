@@ -28,7 +28,7 @@ final class PluginBootTest extends TestCase {
 		self::assertContains( $includes . 'index.php', \get_included_files() );
 		self::assertIsInt( \file_put_contents( $includes . '_lpmwc-skipped.php', "<?php\nconst DWS_LPMWC_SKIPPED_INCLUDE = true;\n" ) );
 		try {
-			$request = self::request( 'echo 0 < did_action( "dws_lpmwc/boot/succeeded" ) ? ( defined( "DWS_LPMWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
+			$request = self::request( 'echo 0 < did_action( "locked_payment_methods_for_woocommerce/boot/succeeded" ) ? ( defined( "DWS_LPMWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
 		} finally {
 			\unlink( $includes . '_lpmwc-skipped.php' );
 		}
@@ -39,7 +39,7 @@ final class PluginBootTest extends TestCase {
 
 	public function test_a_boot_listener_that_throws_is_not_reported_as_an_incomplete_build(): void {
 		$include = \dirname( DWS_LPMWC_FILE ) . '/includes/zz-boot-listener.php';
-		\file_put_contents( $include, "<?php\nadd_action( 'dws_lpmwc/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
+		\file_put_contents( $include, "<?php\nadd_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
 		try {
 			$request = self::request_provoking( 'A boot listener failed.', 'echo 1;' );
 		} finally {

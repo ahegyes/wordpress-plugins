@@ -8,7 +8,9 @@
  * @package DeepWebSolutions\InternalComments
  */
 
+use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
@@ -33,6 +35,8 @@ try {
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
+
+	$dws_ic_identity = new PluginIdentity( $dws_ic_file, Plugin::SLUG, Plugin::PREFIX );
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.
 	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
@@ -45,13 +49,10 @@ try {
 
 try {
 	Uninstaller::run(
-		$dws_ic_file,
+		$dws_ic_identity,
 		$dws_ic_footprint,
 		array(
-			'consent' => array(
-				'option' => DWS_IC_OPTION_PLUGIN,
-				'key'    => DWS_IC_SETTING_DELETE_DATA,
-			),
+			'consent' => array( 'option' => 'dws_ic_delete_data' ),
 		)
 	);
 } catch ( RuntimeException $exception ) {

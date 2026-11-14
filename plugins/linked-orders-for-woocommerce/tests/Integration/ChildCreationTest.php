@@ -7,6 +7,7 @@ use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LinkedOrders\Scoped\Psr\Log\NullLogger;
 use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
@@ -28,7 +29,7 @@ final class ChildCreationTest extends TestCase {
 	#[Before]
 	protected function prepare_request(): void {
 		wp_set_current_user( 1 );
-		$this->notices = new AdminNotices( Plugin::PREFIX, new NullLogger() );
+		$this->notices = new AdminNotices( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new NullLogger() );
 		add_filter( 'wp_redirect', array( $this, 'stop_at_redirect' ) );
 		add_filter( 'wp_die_handler', array( $this, 'get_die_handler' ) );
 	}

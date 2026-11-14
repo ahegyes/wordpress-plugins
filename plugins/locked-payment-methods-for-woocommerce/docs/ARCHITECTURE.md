@@ -18,11 +18,11 @@ This document describes how the plugin loads, boots, stores its data and leaves 
 `src/Plugin.php` is the composition root. Its constructor builds the logger, the scheduler and the framework's `PluginBoot`, which runs the composition and reports its outcome:
 
 - The scheduler registers its hooks first, so the plugin's recurring jobs keep their schedules while the plugin is blocked.
-- `WooCommerceRequirement` checks WooCommerce against the `WC requires at least` header; without it, the boot is `blocked`, `dws_lpmwc/boot/blocked` fires, and users who can activate plugins see why the plugin stays off.
+- `WooCommerceRequirement` checks WooCommerce against the `WC requires at least` header; without it, the boot is `blocked`, `locked_payment_methods_for_woocommerce/boot/blocked` fires, and users who can activate plugins see why the plugin stays off.
 - The migration runner registers, and runs pending steps on `wp_loaded`.
 - The kernel builds each class in `Plugin::COMPONENTS` through a PHP-DI container and calls its `register_hooks()`; a conditional component, such as each unlock strategy, loads only when its static `should_load()` returns true.
 - `CapabilityGrants` gives administrators v1's four capabilities, and shop managers the user-profile and order ones, on `wp_loaded`, once per change of the declaration or the roles.
-- Once every component has registered, the boot is `booted` and `dws_lpmwc/boot/succeeded` fires. A throw anywhere in the composition makes it `failed`: `dws_lpmwc/boot/failed` fires, the failure is logged, and administrators see a notice, while local and development environments rethrow it.
+- Once every component has registered, the boot is `booted` and `locked_payment_methods_for_woocommerce/boot/succeeded` fires. A throw anywhere in the composition makes it `failed`: `locked_payment_methods_for_woocommerce/boot/failed` fires, the failure is logged, and administrators see a notice, while local and development environments rethrow it.
 
 The request that activates the plugin does not boot it, because WordPress includes the plugin's file after `plugins_loaded`; its strategies and migrations first run on the next request.
 
@@ -32,7 +32,7 @@ The request that activates the plugin does not boot it, because WordPress includ
 
 1. It reads `dws_lpmwc_locked_payment_methods`, or v1's `dws-wc-lpm_general_locked-payment-methods` while the plugin has stored none, since the migration that copies v1's list runs only once the plugin boots, then lets v1's value filter and `dws_lpmwc/payment_method/locked_ids` add ids, as every read of the list does, and v1's list filter add more.
 2. For each offered payment method on the list, it fires v1's two lock filters, then `dws_lpmwc/payment_method/should_lock` with the current user and, on an order's own payment page with that order's key, the order.
-3. It removes the payment method unless `should_lock` returns an explicit `false` after `dws_lpmwc/boot/succeeded`, so the lock binds everyone while the plugin cannot boot.
+3. It removes the payment method unless `should_lock` returns an explicit `false` after `locked_payment_methods_for_woocommerce/boot/succeeded`, so the lock binds everyone while the plugin cannot boot.
 
 Each unlock strategy in `src/UnlockStrategies/` hooks `should_lock` while its switch is on, and returns `false` when its subject unlocks the payment method: the user's roles, the user's grants on the site, the order's grants, the user's Groups groups or the plans the user is an active member of. `dws_lpmwc_is_payment_method_locked()` runs the same filter for a user and an order outside checkout, over the same list without v1's list filter, which v1 fired only at checkout; the grants forms offer that list.
 

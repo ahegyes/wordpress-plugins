@@ -47,7 +47,7 @@ final class UninstallTest extends TestCase {
 		set_transient( "{$prefix}boot_failure_seeded", 1, HOUR_IN_SECONDS );
 		update_user_option( self::USER, "{$prefix}hidden_notices", array( 'seeded' ) );
 		update_user_meta( self::USER, "{$prefix}network_hidden_notices", array( 'seeded' ) );
-		wp_schedule_single_event( \time() + HOUR_IN_SECONDS, "{$prefix}revision/migration/run" );
+		wp_schedule_single_event( \time() + HOUR_IN_SECONDS, 'locked_payment_methods_for_woocommerce/migration/run' );
 		as_schedule_single_action( \time() + HOUR_IN_SECONDS, "{$prefix}seeded", array(), Plugin::PREFIX );
 
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
@@ -59,7 +59,7 @@ final class UninstallTest extends TestCase {
 		self::assertFalse( get_transient( "{$prefix}boot_failure_seeded" ) );
 		self::assertFalse( get_user_option( "{$prefix}hidden_notices", self::USER ) );
 		self::assertSame( '', get_user_meta( self::USER, "{$prefix}network_hidden_notices", true ) );
-		self::assertFalse( wp_next_scheduled( "{$prefix}revision/migration/run" ) );
+		self::assertFalse( wp_next_scheduled( 'locked_payment_methods_for_woocommerce/migration/run' ) );
 		self::assertSame(
 			array(),
 			as_get_scheduled_actions(

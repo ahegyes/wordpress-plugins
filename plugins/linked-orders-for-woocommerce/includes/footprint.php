@@ -32,7 +32,7 @@ function dws_lowc_get_footprint(): array {
 		'user_meta_global'          => array( '_linked_orders_for_woocommerce_admin_notices' ),
 		'network_options'           => array( Plugin::PREFIX . '_network_notices' ),
 		'capabilities'              => array( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN, DWS_LOWC_CAP_SEE_ORDER_LINKS, DWS_LOWC_CAP_SEE_METABOX, DWS_LOWC_CAP_SEE_TABLE_COLUMN ),
-		'cron_hooks'                => array( Plugin::PREFIX . '_revision/migration/run' ),
+		'cron_hooks'                => array( 'linked_orders_for_woocommerce/migration/run' ),
 		'as_groups'                 => array( Plugin::PREFIX ),
 	);
 }

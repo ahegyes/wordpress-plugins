@@ -18,11 +18,11 @@ This document describes how the plugin loads, boots, stores its data and leaves 
 `src/Plugin.php` is the composition root. Its constructor builds the logger, the scheduler and the framework's `PluginBoot`, which runs the composition and reports its outcome:
 
 - The scheduler registers its hooks first, so the plugin's scheduled hooks keep their schedules while the plugin is blocked.
-- `WooCommerceRequirement` checks WooCommerce against the `WC requires at least` header; without it, the boot is `blocked`, `dws_lowc/boot/blocked` fires, and users who can activate plugins see why the plugin stays off.
+- `WooCommerceRequirement` checks WooCommerce against the `WC requires at least` header; without it, the boot is `blocked`, `linked_orders_for_woocommerce/boot/blocked` fires, and users who can activate plugins see why the plugin stays off.
 - The migration runner registers, runs pending steps on `wp_loaded`, and runs a batched step's batches from its scheduled hook.
 - The kernel builds each class in `Plugin::COMPONENTS` through a PHP-DI container and calls its `register_hooks()`; a composite adds its children, and a conditional component loads only when its static `should_load()` returns true.
 - `CapabilityGrants` gives administrators and shop managers v1's four capabilities on `wp_loaded`, once per change of the declaration or the roles.
-- Once every component has registered, the boot is `booted` and `dws_lowc/boot/succeeded` fires. A throw anywhere in the composition makes it `failed`: `dws_lowc/boot/failed` fires, the failure is logged, and administrators see a notice, while local and development environments rethrow it.
+- Once every component has registered, the boot is `booted` and `linked_orders_for_woocommerce/boot/succeeded` fires. A throw anywhere in the composition makes it `failed`: `linked_orders_for_woocommerce/boot/failed` fires, the failure is logged, and administrators see a notice, while local and development environments rethrow it.
 
 The request that activates the plugin does not boot it, because WordPress includes the plugin's file after `plugins_loaded`; its screens and migrations first run on the next request.
 

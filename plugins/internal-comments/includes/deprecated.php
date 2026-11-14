@@ -261,9 +261,9 @@ function dws_ic_fire_v1_initialized(): void {
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_ic/boot/succeeded.
+	 * @deprecated  2.0.0 Use internal_comments/boot/succeeded.
 	 */
-	do_action_deprecated( 'dws_ic_initialized', array(), '2.0.0', 'dws_ic/boot/succeeded' );
+	do_action_deprecated( 'dws_ic_initialized', array(), '2.0.0', 'internal_comments/boot/succeeded' );
 }
 
 /**
@@ -282,9 +282,9 @@ function dws_ic_fire_v1_initialization_failure( Throwable $error ): void {
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_ic/boot/failed.
+	 * @deprecated  2.0.0 Use internal_comments/boot/failed.
 	 *
 	 * @param       Throwable $error The failure, where v1 passed its own exception.
 	 */
-	do_action_deprecated( 'dws_ic_initialization_failure', array( $error ), '2.0.0', 'dws_ic/boot/failed' );
+	do_action_deprecated( 'dws_ic_initialization_failure', array( $error ), '2.0.0', 'internal_comments/boot/failed' );
 }

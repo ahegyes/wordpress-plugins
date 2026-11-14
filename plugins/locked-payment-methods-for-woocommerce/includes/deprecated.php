@@ -263,9 +263,9 @@ function dws_lpmwc_fire_v1_initialized(): void {
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_lpmwc/boot/succeeded.
+	 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/boot/succeeded.
 	 */
-	do_action_deprecated( 'dws_lpmwc_initialized', array(), '2.0.0', 'dws_lpmwc/boot/succeeded' );
+	do_action_deprecated( 'dws_lpmwc_initialized', array(), '2.0.0', 'locked_payment_methods_for_woocommerce/boot/succeeded' );
 }
 
 /**
@@ -284,11 +284,11 @@ function dws_lpmwc_fire_v1_initialization_failure( Throwable $error ): void {
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_lpmwc/boot/failed.
+	 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/boot/failed.
 	 *
 	 * @param       Throwable $error The failure, where v1 passed its own exception.
 	 */
-	do_action_deprecated( 'dws_lpmwc_initialization_failure', array( $error ), '2.0.0', 'dws_lpmwc/boot/failed' );
+	do_action_deprecated( 'dws_lpmwc_initialization_failure', array( $error ), '2.0.0', 'locked_payment_methods_for_woocommerce/boot/failed' );
 }
 
 /**

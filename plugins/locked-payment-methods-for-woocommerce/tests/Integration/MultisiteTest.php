@@ -28,7 +28,7 @@ final class MultisiteTest extends TestCase {
 			self::assertSame( 0, $installed['status'], $installed['output'] );
 			self::assertSame( '0', $installed['last'], $installed['output'] );
 
-			$request = self::request( 'echo did_action( "dws_lpmwc/boot/succeeded" );', '--url=' . get_home_url( $site_id, '/' ) );
+			$request = self::request( 'echo did_action( "locked_payment_methods_for_woocommerce/boot/succeeded" );', '--url=' . get_home_url( $site_id, '/' ) );
 
 			self::assertSame( '1', $request['last'], $request['output'] );
 			self::assertSame( 'no', get_blog_option( $site_id, DWS_LPMWC_OPTION_DELETE_DATA ) );

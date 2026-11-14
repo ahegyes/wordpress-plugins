@@ -33,7 +33,7 @@ function dws_lpmwc_get_footprint(): array {
 		'user_meta_global'          => array( '_locked_payment_methods_for_woocommerce_admin_notices' ),
 		'network_options'           => array( Plugin::PREFIX . '_network_notices' ),
 		'capabilities'              => array( DWS_LPMWC_CAP_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_CAP_UNLOCK_VIA_ORDERS, DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS, DWS_LPMWC_CAP_UNLOCK_VIA_WC_MEMBERSHIPS ),
-		'cron_hooks'                => array( Plugin::PREFIX . '_revision/migration/run' ),
+		'cron_hooks'                => array( 'locked_payment_methods_for_woocommerce/migration/run' ),
 		'as_groups'                 => array( Plugin::PREFIX ),
 	);
 }

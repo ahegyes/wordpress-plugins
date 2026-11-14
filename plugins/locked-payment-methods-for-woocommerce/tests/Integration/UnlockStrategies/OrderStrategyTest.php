@@ -4,6 +4,7 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategi
 
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
@@ -35,7 +36,8 @@ final class OrderStrategyTest extends TestCase {
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		self::$strategy = new OrderStrategy( new AdminNotices( 'dws_lpmwc', new PsrNullLogger() ) );
+		$identity       = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
+		self::$strategy = new OrderStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
 		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$strategy->register_hooks();
 		self::$admin = (int) wp_insert_user(

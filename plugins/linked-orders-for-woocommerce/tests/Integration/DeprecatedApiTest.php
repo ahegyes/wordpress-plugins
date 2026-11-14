@@ -80,37 +80,37 @@ final class DeprecatedApiTest extends TestCase {
 		};
 		add_action( 'dws_lowc_initialized', $spy );
 		add_action( 'dws_lowc_initialization_failure', $spy );
-		add_action( 'dws_lowc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-		add_action( 'dws_lowc/boot/failed', $spy, PHP_INT_MIN + 1 );
+		add_action( 'linked_orders_for_woocommerce/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+		add_action( 'linked_orders_for_woocommerce/boot/failed', $spy, PHP_INT_MIN + 1 );
 		$error = new \RuntimeException( 'Failed.' );
 
 		try {
-			do_action( 'dws_lowc/boot/succeeded' );
-			do_action( 'dws_lowc/boot/failed', $error );
+			do_action( 'linked_orders_for_woocommerce/boot/succeeded' );
+			do_action( 'linked_orders_for_woocommerce/boot/failed', $error );
 		} finally {
 			remove_action( 'dws_lowc_initialized', $spy );
 			remove_action( 'dws_lowc_initialization_failure', $spy );
-			remove_action( 'dws_lowc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-			remove_action( 'dws_lowc/boot/failed', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'linked_orders_for_woocommerce/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'linked_orders_for_woocommerce/boot/failed', $spy, PHP_INT_MIN + 1 );
 		}
 
 		self::assertSame(
 			array(
 				array( 'dws_lowc_initialized', null ),
-				array( 'dws_lowc/boot/succeeded', '' ),
+				array( 'linked_orders_for_woocommerce/boot/succeeded', '' ),
 				array( 'dws_lowc_initialization_failure', $error ),
-				array( 'dws_lowc/boot/failed', $error ),
+				array( 'linked_orders_for_woocommerce/boot/failed', $error ),
 			),
 			$fired
 		);
 		self::assertSame(
 			array(
-				array( 'dws_lowc_initialized', 'dws_lowc/boot/succeeded' ),
-				array( 'dws_lowc_initialization_failure', 'dws_lowc/boot/failed' ),
+				array( 'dws_lowc_initialized', 'linked_orders_for_woocommerce/boot/succeeded' ),
+				array( 'dws_lowc_initialization_failure', 'linked_orders_for_woocommerce/boot/failed' ),
 			),
 			$this->deprecated
 		);
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_lowc/boot/succeeded', 'dws_lowc_fire_v1_initialized' ) );
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_lowc/boot/failed', 'dws_lowc_fire_v1_initialization_failure' ) );
+		self::assertSame( PHP_INT_MIN, has_action( 'linked_orders_for_woocommerce/boot/succeeded', 'dws_lowc_fire_v1_initialized' ) );
+		self::assertSame( PHP_INT_MIN, has_action( 'linked_orders_for_woocommerce/boot/failed', 'dws_lowc_fire_v1_initialization_failure' ) );
 	}
 }

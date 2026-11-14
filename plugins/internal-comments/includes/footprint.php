@@ -32,7 +32,7 @@ function dws_ic_get_footprint(): array {
 		'user_meta_global'          => array( '_internal_comments_admin_notices' ),
 		'network_options'           => array( Plugin::PREFIX . '_network_notices' ),
 		'capabilities'              => array( DWS_IC_CAP_INSERT, DWS_IC_CAP_EDIT, DWS_IC_CAP_EDIT_OTHERS, DWS_IC_CAP_TRASH, DWS_IC_CAP_TRASH_OTHERS, DWS_IC_CAP_SEE, DWS_IC_CAP_SEE_TABLE, DWS_IC_CAP_SEE_METABOX, DWS_IC_CAP_SEE_COLUMN, DWS_IC_CAP_MANAGE_OPTIONS, DWS_IC_CAP_INSERT_PRIVATE, DWS_IC_CAP_SEE_PRIVATE ),
-		'cron_hooks'                => array( Plugin::PREFIX . '_revision/migration/run' ),
+		'cron_hooks'                => array( 'internal_comments/migration/run' ),
 		'as_groups'                 => array( Plugin::PREFIX ),
 	);
 }

@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore;
+use DeepWebSolutions\LinkedOrders\Plugin;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
 use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
@@ -102,7 +104,7 @@ final class LinkingTest extends TestCase {
 		global $wpdb;
 		$parent = $this->create_order();
 		$child  = $this->create_order();
-		$php    = '$lock = new ' . Lock::class . '( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
+		$php    = '$lock = new ' . Lock::class . '( new ' . PluginIdentity::class . '( DWS_LOWC_FILE, "' . Plugin::SLUG . '", "' . Plugin::PREFIX . '" ), "linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
 		\exec( self::command( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
 
 		$held  = static fn (): bool => ! \is_null( $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'dws_lowc_linking'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Watches the other request's lock row past the options cache.
@@ -127,7 +129,7 @@ final class LinkingTest extends TestCase {
 	public function test_a_link_is_refused_once_another_request_has_held_the_lock_for_five_seconds(): void {
 		$parent = $this->create_order();
 		$child  = $this->create_order();
-		$lock   = new Lock( 'dws_lowc_linking', 30 );
+		$lock   = new Lock( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), 'linking', 30 );
 		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
 
 		$started = \microtime( true );
@@ -416,7 +418,7 @@ final class LinkingTest extends TestCase {
 			$created = $child->get_id();
 		};
 		add_action( 'dws_lowc/linked_order/created', $record );
-		$lock = new Lock( 'dws_lowc_linking', 30 );
+		$lock = new Lock( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), 'linking', 30 );
 		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
 
 		try {

@@ -117,38 +117,38 @@ final class DeprecatedApiTest extends TestCase {
 		};
 		add_action( 'dws_lpmwc_initialized', $spy );
 		add_action( 'dws_lpmwc_initialization_failure', $spy );
-		add_action( 'dws_lpmwc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-		add_action( 'dws_lpmwc/boot/failed', $spy, PHP_INT_MIN + 1 );
+		add_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+		add_action( 'locked_payment_methods_for_woocommerce/boot/failed', $spy, PHP_INT_MIN + 1 );
 		$error = new \RuntimeException( 'Failed.' );
 
 		try {
-			do_action( 'dws_lpmwc/boot/succeeded' );
-			do_action( 'dws_lpmwc/boot/failed', $error );
+			do_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' );
+			do_action( 'locked_payment_methods_for_woocommerce/boot/failed', $error );
 		} finally {
 			remove_action( 'dws_lpmwc_initialized', $spy );
 			remove_action( 'dws_lpmwc_initialization_failure', $spy );
-			remove_action( 'dws_lpmwc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-			remove_action( 'dws_lpmwc/boot/failed', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'locked_payment_methods_for_woocommerce/boot/failed', $spy, PHP_INT_MIN + 1 );
 		}
 
 		self::assertSame(
 			array(
 				array( 'dws_lpmwc_initialized', null ),
-				array( 'dws_lpmwc/boot/succeeded', '' ),
+				array( 'locked_payment_methods_for_woocommerce/boot/succeeded', '' ),
 				array( 'dws_lpmwc_initialization_failure', $error ),
-				array( 'dws_lpmwc/boot/failed', $error ),
+				array( 'locked_payment_methods_for_woocommerce/boot/failed', $error ),
 			),
 			$fired
 		);
 		self::assertSame(
 			array(
-				array( 'dws_lpmwc_initialized', 'dws_lpmwc/boot/succeeded' ),
-				array( 'dws_lpmwc_initialization_failure', 'dws_lpmwc/boot/failed' ),
+				array( 'dws_lpmwc_initialized', 'locked_payment_methods_for_woocommerce/boot/succeeded' ),
+				array( 'dws_lpmwc_initialization_failure', 'locked_payment_methods_for_woocommerce/boot/failed' ),
 			),
 			$this->deprecated
 		);
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_lpmwc/boot/succeeded', 'dws_lpmwc_fire_v1_initialized' ) );
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_lpmwc/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure' ) );
+		self::assertSame( PHP_INT_MIN, has_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', 'dws_lpmwc_fire_v1_initialized' ) );
+		self::assertSame( PHP_INT_MIN, has_action( 'locked_payment_methods_for_woocommerce/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure' ) );
 	}
 
 	public function test_a_payment_method_is_locked_for_a_user_when_it_is_listed_and_no_strategy_unlocks_it(): void {

@@ -41,7 +41,7 @@ function dws_lpmwc_add_woocommerce_safeguards(): void {
  * @return  bool
  */
 function dws_lpmwc_is_relaxed( $filtered ): bool {
-	return 0 < did_action( 'dws_lpmwc/boot/succeeded' ) && false === $filtered;
+	return 0 < did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) && false === $filtered;
 }
 
 /**

@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
@@ -31,7 +33,7 @@ final class GroupsStrategyTest extends TestCase {
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		self::$strategy = new GroupsStrategy( new AdminNotices( 'dws_lpmwc', new PsrNullLogger() ) );
+		self::$strategy = new GroupsStrategy( new AdminNotices( new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new PsrNullLogger() ) );
 		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'shop_manager', 'customer', 'subscriber' ) as $role ) {

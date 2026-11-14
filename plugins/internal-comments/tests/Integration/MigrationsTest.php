@@ -31,7 +31,7 @@ final class MigrationsTest extends TestCase {
 		}
 		update_option( Plugin::PREFIX . '_revision', 0 );
 
-		do_action( Plugin::PREFIX . '_revision/migration/run' ); // A batched step runs only from the runner's scheduled hook.
+		do_action( 'internal_comments/migration/run' ); // A batched step runs only from the runner's scheduled hook.
 
 		self::assertSame( \count( dws_ic_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 		foreach ( self::OPTIONS as $row ) {

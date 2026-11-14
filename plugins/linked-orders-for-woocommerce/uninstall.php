@@ -8,7 +8,9 @@
  * @package DeepWebSolutions\LinkedOrders
  */
 
+use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
 
@@ -35,6 +37,8 @@ try {
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
+
+	$dws_lowc_identity = new PluginIdentity( $dws_lowc_file, Plugin::SLUG, Plugin::PREFIX );
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.
 	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
@@ -47,7 +51,7 @@ try {
 
 try {
 	Uninstaller::run(
-		$dws_lowc_file,
+		$dws_lowc_identity,
 		$dws_lowc_footprint,
 		array(
 			'consent'    => array( 'option' => DWS_LOWC_OPTION_DELETE_DATA ),

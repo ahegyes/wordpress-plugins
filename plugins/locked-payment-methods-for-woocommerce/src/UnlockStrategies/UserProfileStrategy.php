@@ -6,6 +6,7 @@ use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface;
@@ -51,9 +52,11 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   AdminNotices $notices The plugin's admin notices, which report the form's rejections.
+	 * @param   PluginIdentity $identity The plugin's identity, which the form takes.
+	 * @param   AdminNotices   $notices  The plugin's admin notices, which report the form's rejections.
 	 */
 	public function __construct(
+		protected PluginIdentity $identity,
 		protected AdminNotices $notices
 	) {}
 
@@ -81,7 +84,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	#[\Override]
 	public function register_hooks(): void {
 		add_filter( 'dws_lpmwc/payment_method/should_lock', array( $this, 'unlock_granted_methods' ), 10, 3 );
-		new ObjectForm( self::FORM, $this, new UserProfile(), $this->notices )->register_hooks();
+		new ObjectForm( $this->identity, self::FORM, $this, new UserProfile(), $this->notices )->register_hooks();
 		add_filter( 'manage_users_columns', array( $this, 'add_users_column' ) );
 		add_filter( 'manage_users_custom_column', array( $this, 'render_users_column' ), 10, 3 );
 		add_action( 'restrict_manage_users', array( $this, 'render_users_filter' ) );

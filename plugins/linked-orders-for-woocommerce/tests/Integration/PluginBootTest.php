@@ -44,7 +44,7 @@ final class PluginBootTest extends TestCase {
 		self::assertContains( $includes . 'index.php', \get_included_files() );
 		self::assertIsInt( \file_put_contents( $includes . '_lowc-skipped.php', "<?php\nconst DWS_LOWC_SKIPPED_INCLUDE = true;\n" ) );
 		try {
-			$request = self::request( 'echo 0 < did_action( "dws_lowc/boot/succeeded" ) ? ( defined( "DWS_LOWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
+			$request = self::request( 'echo 0 < did_action( "linked_orders_for_woocommerce/boot/succeeded" ) ? ( defined( "DWS_LOWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
 		} finally {
 			\unlink( $includes . '_lowc-skipped.php' );
 		}
@@ -55,7 +55,7 @@ final class PluginBootTest extends TestCase {
 
 	public function test_a_boot_listener_that_throws_is_not_reported_as_an_incomplete_build(): void {
 		$include = \dirname( DWS_LOWC_FILE ) . '/includes/zz-boot-listener.php';
-		\file_put_contents( $include, "<?php\nadd_action( 'dws_lowc/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
+		\file_put_contents( $include, "<?php\nadd_action( 'linked_orders_for_woocommerce/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
 		try {
 			$request = self::request_provoking( 'A boot listener failed.', 'echo 1;' );
 		} finally {
@@ -81,7 +81,7 @@ final class PluginBootTest extends TestCase {
 		self::assertInstanceOf( MigrationRunner::class, dws_lowc_plugin()->migrations );
 		update_option( Plugin::PREFIX . '_revision', 1 );
 
-		$request = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
+		$request = self::request( 'do_action( "linked_orders_for_woocommerce/migration/run" );' );
 		wp_cache_flush();
 
 		self::assertSame( 0, $request['status'], $request['output'] );

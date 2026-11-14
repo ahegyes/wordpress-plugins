@@ -8,7 +8,9 @@
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
+use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
 
@@ -36,6 +38,8 @@ try {
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
+
+	$dws_lpmwc_identity = new PluginIdentity( $dws_lpmwc_file, Plugin::SLUG, Plugin::PREFIX );
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.
 	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
@@ -48,7 +52,7 @@ try {
 
 try {
 	Uninstaller::run(
-		$dws_lpmwc_file,
+		$dws_lpmwc_identity,
 		$dws_lpmwc_footprint,
 		array(
 			'consent'    => array( 'option' => DWS_LPMWC_OPTION_DELETE_DATA ),

@@ -126,16 +126,16 @@ final class SafeguardsTest extends TestCase {
 
 	public function test_an_explicit_false_does_not_unlock_before_the_plugin_booted(): void {
 		global $wp_actions;
-		self::assertGreaterThan( 0, did_action( 'dws_lpmwc/boot/succeeded' ) );
-		$fired = $wp_actions['dws_lpmwc/boot/succeeded'];
-		unset( $wp_actions['dws_lpmwc/boot/succeeded'] );
+		self::assertGreaterThan( 0, did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) );
+		$fired = $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'];
+		unset( $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] );
 		add_filter( self::FILTER, '__return_false' );
 
 		try {
 			self::assertArrayNotHasKey( 'cod', self::available() );
 		} finally {
 			remove_filter( self::FILTER, '__return_false' );
-			$wp_actions['dws_lpmwc/boot/succeeded'] = $fired;
+			$wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] = $fired;
 		}
 	}
 
@@ -339,7 +339,7 @@ final class SafeguardsTest extends TestCase {
 		}
 
 		try {
-			$request = self::request( 'add_filter( "dws_lpmwc/payment_method/should_lock", "__return_false" ); echo wp_json_encode( array( did_action( "dws_lpmwc/boot/succeeded" ), array_key_exists( "cod", apply_filters( "woocommerce_available_payment_gateways", WC()->payment_gateways()->payment_gateways() ) ) ) );' );
+			$request = self::request( 'add_filter( "dws_lpmwc/payment_method/should_lock", "__return_false" ); echo wp_json_encode( array( did_action( "locked_payment_methods_for_woocommerce/boot/succeeded" ), array_key_exists( "cod", apply_filters( "woocommerce_available_payment_gateways", WC()->payment_gateways()->payment_gateways() ) ) ) );' );
 		} finally {
 			\file_put_contents( DWS_LPMWC_FILE, $source );
 		}

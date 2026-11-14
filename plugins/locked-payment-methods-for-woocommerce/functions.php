@@ -30,8 +30,8 @@ foreach ( $dws_lpmwc_includes as $dws_lpmwc_include ) {
 // The hooks come last, so an include that throws leaves nothing of the plugin hooked.
 add_action( 'plugins_loaded', 'dws_lpmwc_boot', 15 );
 add_action( 'before_woocommerce_init', 'dws_lpmwc_declare_compatibility' );
-add_action( 'dws_lpmwc/boot/succeeded', 'dws_lpmwc_fire_v1_initialized', PHP_INT_MIN );
-add_action( 'dws_lpmwc/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure', PHP_INT_MIN );
+add_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', 'dws_lpmwc_fire_v1_initialized', PHP_INT_MIN );
+add_action( 'locked_payment_methods_for_woocommerce/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure', PHP_INT_MIN );
 register_deactivation_hook( DWS_LPMWC_FILE, 'dws_lpmwc_deactivate' );
 
 /**

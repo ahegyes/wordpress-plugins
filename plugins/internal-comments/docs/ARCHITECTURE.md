@@ -21,7 +21,7 @@ This document describes how the plugin loads, boots, stores its data and leaves 
 - The migration runner registers, and runs pending steps on `wp_loaded` and from its scheduled hook.
 - The kernel builds each class in `Plugin::COMPONENTS` through a PHP-DI container and calls its `register_hooks()`.
 - `CapabilityGrants` gives v1's twelve capabilities to administrators, and the five that post, see and mark comments private to editors, authors, contributors and shop managers, on `wp_loaded`, once per change of the declaration or the roles.
-- Once every component has registered, the boot is `booted` and `dws_ic/boot/succeeded` fires. A throw anywhere in the composition makes it `failed`: `dws_ic/boot/failed` fires, the failure is logged, and administrators see a notice, while local and development environments rethrow it.
+- Once every component has registered, the boot is `booted` and `internal_comments/boot/succeeded` fires. A throw anywhere in the composition makes it `failed`: `internal_comments/boot/failed` fires, the failure is logged, and administrators see a notice, while local and development environments rethrow it.
 
 WooCommerce is optional: without it, every feature but the order screens and the orders list works. The request that activates the plugin does not boot it, because WordPress includes the plugin's file after `plugins_loaded`; its screens and migrations first run on the next request.
 

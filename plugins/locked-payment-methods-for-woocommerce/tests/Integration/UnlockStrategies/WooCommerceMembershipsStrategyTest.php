@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
@@ -38,7 +40,8 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		register_post_type( 'wc_membership_plan' );
-		self::$strategy = new WooCommerceMembershipsStrategy( new AdminNotices( 'dws_lpmwc', new PsrNullLogger() ) );
+		$identity       = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
+		self::$strategy = new WooCommerceMembershipsStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
 		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'customer', 'subscriber' ) as $role ) {

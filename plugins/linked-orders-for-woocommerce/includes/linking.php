@@ -10,6 +10,7 @@
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\Plugin;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
 
@@ -231,7 +232,7 @@ function dws_lowc_store_depths( int $order_id, int $depth ): void {
  * @return  Lock|null
  */
 function dws_lowc_acquire_linking_lock( string $owner ): ?Lock {
-	$lock     = new Lock( Plugin::PREFIX . '_linking', 30 );
+	$lock     = new Lock( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), 'linking', 30 );
 	$deadline = microtime( true ) + 5;
 	while ( LockClaim::Busy === $lock->acquire( $owner ) ) {
 		if ( microtime( true ) >= $deadline ) {
