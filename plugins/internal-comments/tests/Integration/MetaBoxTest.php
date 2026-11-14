@@ -4,6 +4,9 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -165,7 +168,7 @@ final class MetaBoxTest extends TestCase {
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
-			new MetaBox()->enqueue_assets( 'post.php' );
+			new MetaBox( self::make_assets() )->enqueue_assets( 'post.php' );
 		} finally {
 			unset( $GLOBALS['post'] );
 		}
@@ -207,5 +210,9 @@ final class MetaBoxTest extends TestCase {
 			),
 			get_user_by( 'id', self::$users['administrator'] ) ?: null
 		);
+	}
+
+	protected static function make_assets(): Assets {
+		return new Assets( new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX ) );
 	}
 }

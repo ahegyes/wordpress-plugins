@@ -6,6 +6,9 @@ use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -92,7 +95,7 @@ final class OrdersTest extends TestCase {
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id(), 'comment_content' => 'On the order' ), get_user_by( 'id', self::$users['administrator'] ) ?: null ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
 		wp_set_current_user( self::$users['shop_manager'] );
 
-		new MetaBox()->add_meta_box( $screen, $object );
+		new MetaBox( self::make_assets() )->add_meta_box( $screen, $object );
 		$box = $wp_meta_boxes[ $screen ]['normal']['core'][ MetaBox::ID ] ?? null;
 		self::assertIsArray( $box );
 		\ob_start();
@@ -109,7 +112,7 @@ final class OrdersTest extends TestCase {
 		$order = $this->create_order();
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
 		wp_set_current_user( self::$users['shop_manager'] );
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 
 		self::assertArrayHasKey( AdminScreens::COLUMN, $screens->add_column( array( 'order_number' => 'Order' ), 'shop_order' ) );
 		\ob_start();
@@ -126,5 +129,9 @@ final class OrdersTest extends TestCase {
 		$request = new \WP_REST_Request( 'POST', "/internal-comments/v1/posts/$order_id/comments" );
 		$request->set_param( 'content', $content );
 		return rest_do_request( $request )->get_status();
+	}
+
+	protected static function make_assets(): Assets {
+		return new Assets( new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX ) );
 	}
 }

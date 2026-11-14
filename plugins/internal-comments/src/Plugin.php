@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\InternalComments;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
@@ -248,6 +249,7 @@ final class Plugin {
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
 			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( $identity, $logger ),
+			Assets::class             => static fn (): Assets => new Assets( $identity ),
 			CapabilityGrants::class   => static fn (): CapabilityGrants => new CapabilityGrants( $identity, Capabilities::GRANTS, $logger ),
 		);
 	}

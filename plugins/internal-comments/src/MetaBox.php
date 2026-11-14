@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments;
 
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -24,6 +25,20 @@ final class MetaBox implements ComponentInterface {
 	 * @var     string
 	 */
 	public const string ID = 'dws-internal-comments';
+
+	// endregion
+
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Assets $assets The registrar of the plugin's built scripts and styles.
+	 */
+	public function __construct( protected Assets $assets ) {}
 
 	// endregion
 
@@ -82,10 +97,10 @@ final class MetaBox implements ComponentInterface {
 			return;
 		}
 
-		if ( dws_ic_register_script( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.js', array( 'strategy' => 'defer' ) ) ) {
+		if ( $this->assets->register_script( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.js', array( 'strategy' => 'defer' ) ) ) {
 			wp_enqueue_script( Plugin::SLUG . '-meta-box' );
 		}
-		if ( dws_ic_register_style( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.css' ) ) {
+		if ( $this->assets->register_style( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.css' ) ) {
 			wp_enqueue_style( Plugin::SLUG . '-meta-box' );
 		}
 	}

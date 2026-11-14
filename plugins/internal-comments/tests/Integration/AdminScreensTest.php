@@ -5,6 +5,9 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -88,7 +91,7 @@ final class AdminScreensTest extends TestCase {
 		add_filter( 'internal_comments/list_table/preceding_column', $v2, 10, 2 );
 
 		try {
-			$columns = new AdminScreens()->add_column(
+			$columns = new AdminScreens( self::make_assets() )->add_column(
 				array(
 					'cb'       => '',
 					'title'    => 'Title',
@@ -106,14 +109,14 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( array( array( 'v1', 'comments', 'post' ), array( 'v2', 'comments', 'post' ) ), $seen );
 		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'internal_comments/list_table/preceding_column' ) ), $this->deprecated );
 		wp_set_current_user( self::$users['editor'] );
-		self::assertArrayHasKey( 'dws-internal-comments', new AdminScreens()->add_column( array( 'title' => 'Title' ), 'post' ) );
-		self::assertSame( array( 'title' => 'Title' ), new AdminScreens()->add_column( array( 'title' => 'Title' ), 'page' ) );
+		self::assertArrayHasKey( 'dws-internal-comments', new AdminScreens( self::make_assets() )->add_column( array( 'title' => 'Title' ), 'post' ) );
+		self::assertSame( array( 'title' => 'Title' ), new AdminScreens( self::make_assets() )->add_column( array( 'title' => 'Title' ), 'page' ) );
 	}
 
 	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
 	public function test_the_column_joins_a_list_after_woocommerce_rebuilds_it(): void {
 		update_option( Options::POST_TYPES, array( 'shop_order' ) );
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 		$screens->register_hooks();
 
 		try {
@@ -158,7 +161,7 @@ final class AdminScreensTest extends TestCase {
 	}
 
 	public function test_the_comments_screen_lists_internal_comments_only_under_their_type_for_users_who_may(): void {
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 
 		$_GET['comment_type'] = DWS_IC_COMMENT_TYPE;
 		$args                 = $screens->filter_list_table_args(
@@ -186,7 +189,7 @@ final class AdminScreensTest extends TestCase {
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
-			$args = new AdminScreens()->filter_list_table_args(
+			$args = new AdminScreens( self::make_assets() )->filter_list_table_args(
 				array(
 					'post_id' => $this->post,
 					'type'    => DWS_IC_COMMENT_TYPE,
@@ -208,7 +211,7 @@ final class AdminScreensTest extends TestCase {
 		$actions = \array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
 
 		self::assertInstanceOf( \WP_Comment::class, $comment );
-		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( new AdminScreens()->filter_row_actions( $actions, $comment ) ) );
+		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( new AdminScreens( self::make_assets() )->filter_row_actions( $actions, $comment ) ) );
 	}
 
 	public function test_the_edit_screen_of_an_internal_comment_shows_its_revisions_and_its_author_its_privacy(): void {
@@ -222,7 +225,7 @@ final class AdminScreensTest extends TestCase {
 				'comment_content' => 'After',
 			)
 		);
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 
 		$wp_meta_boxes = array();
 		$screens->add_revisions_meta_box( get_comment( $comment ) );
@@ -256,7 +259,7 @@ final class AdminScreensTest extends TestCase {
 
 	// Saving keeps an internal comment's author, status and date as stored, so the edit screen does not offer them.
 	public function test_the_comment_edit_screen_hides_the_fields_an_internal_comment_keeps(): void {
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 		$styles  = static function ( int $comment ) use ( $screens ): string {
 			$GLOBALS['comment'] = get_comment( $comment );
 			try {
@@ -374,7 +377,7 @@ final class AdminScreensTest extends TestCase {
 	}
 
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
-		new AdminScreens()->enqueue_list_assets( 'edit.php' );
+		new AdminScreens( self::make_assets() )->enqueue_list_assets( 'edit.php' );
 
 		self::assertTrue( wp_script_is( 'internal-comments-quick-view' ) );
 		self::assertTrue( wp_style_is( 'internal-comments-quick-view' ) );
@@ -384,7 +387,7 @@ final class AdminScreensTest extends TestCase {
 
 	protected function cell(): \Dom\HTMLDocument {
 		\ob_start();
-		new AdminScreens()->render_cell( 'dws-internal-comments', $this->post );
+		new AdminScreens( self::make_assets() )->render_cell( 'dws-internal-comments', $this->post );
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 
@@ -397,5 +400,9 @@ final class AdminScreensTest extends TestCase {
 			),
 			get_user_by( 'id', self::$users['administrator'] ) ?: null
 		);
+	}
+
+	protected static function make_assets(): Assets {
+		return new Assets( new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX ) );
 	}
 }

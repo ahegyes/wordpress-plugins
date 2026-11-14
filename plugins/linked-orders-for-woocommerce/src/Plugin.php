@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders;
 
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
@@ -254,6 +255,7 @@ final class Plugin {
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
 			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( $identity, $logger ),
+			Assets::class             => static fn (): Assets => new Assets( $identity ),
 			CapabilityGrants::class   => static fn (): CapabilityGrants => new CapabilityGrants( $identity, Capabilities::GRANTS, $logger ),
 		);
 	}

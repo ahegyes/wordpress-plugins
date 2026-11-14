@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -14,6 +15,20 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Compone
  * @version 2.0.0
  */
 final class ListTable implements ComponentInterface {
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Assets $assets The registrar of the plugin's built scripts and styles.
+	 */
+	public function __construct( protected Assets $assets ) {}
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -359,11 +374,11 @@ final class ListTable implements ComponentInterface {
 			return;
 		}
 
-		if ( dws_lowc_register_script( Plugin::SLUG . '-orders-list-table', 'assets/build/orders-list-table.js', array( 'strategy' => 'defer' ) ) ) {
+		if ( $this->assets->register_script( Plugin::SLUG . '-orders-list-table', 'assets/build/orders-list-table.js', array( 'strategy' => 'defer' ) ) ) {
 			wp_enqueue_script( Plugin::SLUG . '-orders-list-table' );
 		}
 
-		if ( dws_lowc_register_style( Plugin::SLUG . '-orders-list-table-icons', 'assets/build/orders-list-table-icons.css' ) ) {
+		if ( $this->assets->register_style( Plugin::SLUG . '-orders-list-table-icons', 'assets/build/orders-list-table-icons.css' ) ) {
 			wp_enqueue_style( Plugin::SLUG . '-orders-list-table-icons' );
 		}
 	}
