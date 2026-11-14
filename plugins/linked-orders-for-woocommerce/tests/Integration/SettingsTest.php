@@ -157,12 +157,11 @@ final class SettingsTest extends TestCase {
 	}
 
 	#[DataProvider( 'setting_groups' )]
-	public function test_a_groups_fields_pass_its_v1_filter_first_then_its_v2_filter( string $group, array $v1_ids ): void {
+	public function test_a_groups_fields_pass_its_v1_filter_keyed_by_v1s_ids( string $group, array $v1_ids ): void {
 		$seen     = array();
 		$v1_hook  = "linked_orders_for_woocommerce/{$group}_settings/get_group_fields";
-		$v2_hook  = "linked_orders_for_woocommerce/settings/{$group}_fields";
 		$v1_extra = static function ( array $fields ) use ( &$seen ): array {
-			$seen[] = array( 'v1', \array_keys( $fields ) );
+			$seen[] = \array_keys( $fields );
 			return $fields + array(
 				'extra' => array(
 					'type'  => 'text',
@@ -170,8 +169,9 @@ final class SettingsTest extends TestCase {
 				),
 			);
 		};
+		$v2_hook  = "linked_orders_for_woocommerce/settings/{$group}_fields";
 		$v2_spy   = static function ( array $fields ) use ( &$seen ): array {
-			$seen[] = array( 'v2', \array_column( $fields, 'id' ) );
+			$seen[] = 'v2';
 			return $fields;
 		};
 		add_filter( $v1_hook, $v1_extra );
@@ -184,11 +184,9 @@ final class SettingsTest extends TestCase {
 			remove_filter( $v2_hook, $v2_spy );
 		}
 
-		$prefix = "dws-lowc_{$group}_";
-		self::assertSame( array( 'v1', $v1_ids ), $seen[0] );
-		self::assertSame( array( 'v2', \array_map( static fn ( string $id ): string => $prefix . $id, \array_merge( $v1_ids, array( 'extra' ) ) ) ), $seen[1] );
-		self::assertContains( $prefix . 'extra', \array_column( $fields, 'id' ) );
-		self::assertSame( array( array( $v1_hook, $v2_hook ) ), $this->deprecated );
+		self::assertSame( array( $v1_ids ), $seen );
+		self::assertContains( "dws-lowc_{$group}_extra", \array_column( $fields, 'id' ) );
+		self::assertSame( array( array( $v1_hook, 'woocommerce_get_settings_advanced' ) ), $this->deprecated );
 	}
 
 	// A v1 field keyed by its v1 id may name its own option, which the field's id gives.
