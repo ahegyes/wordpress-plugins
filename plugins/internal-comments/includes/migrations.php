@@ -14,14 +14,14 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Mig
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The data revision from which the comments v1 stored approved are under the internal status, which the second step reaches.
+ * The data revision from which the comments v1 stored approved are under the internal status, which the third step reaches.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @var     int
  */
-const DWS_IC_REVISION_V1_COMMENTS_MOVED = 2;
+const DWS_IC_REVISION_V1_COMMENTS_MOVED = 3;
 
 /**
  * Returns whether the migration has yet to move the comments v1 stored approved under the internal status.
@@ -46,6 +46,7 @@ function dws_ic_is_v1_move_pending(): bool {
 function dws_ic_get_migration_steps(): array {
 	return array(
 		'dws_ic_add_settings',
+		'dws_ic_move_v1_settings',
 		new class() implements BatchedMigrationStepInterface {
 			// region INHERITED METHODS
 
@@ -66,21 +67,60 @@ function dws_ic_get_migration_steps(): array {
 }
 
 /**
- * Stores the default of each setting a site lacks.
+ * Stores each setting's default in an autoloaded row of its own and leaves a stored setting as it is.
  *
- * The rows a v1 site stored stay as they are.
+ * Each release that adds settings lists this step again, so that existing sites store the new defaults.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @throws  RuntimeException Thrown when a row could not be stored.
+ * @throws  RuntimeException Thrown when a default could not be stored.
  *
  * @return  void
  */
 function dws_ic_add_settings(): void {
-	foreach ( DWS_IC_SETTING_DEFAULTS as $row => $defaults ) {
-		if ( false === get_option( $row ) && ! add_option( $row, $defaults, '', true ) ) {
-			throw new RuntimeException( "The option $row could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+	wp_prime_option_caches( array_keys( DWS_IC_OPTION_DEFAULTS ) );
+	foreach ( DWS_IC_OPTION_DEFAULTS as $key => $value ) {
+		if ( false === get_option( $key ) && ! add_option( $key, $value, '', true ) ) {
+			throw new RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+	}
+}
+
+/**
+ * Copies each field of v1's two settings rows into the row of its own that the field now has, over what the row holds.
+ *
+ * The rows v1 stored stay, so a rollback to 1.x still reads them. A field an extension added to a group moves to the row dws_ic_{group}_{id}, where v1's getters read it, unless its id cannot name an option.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @throws  RuntimeException Thrown when a field could not be stored.
+ *
+ * @return  void
+ */
+function dws_ic_move_v1_settings(): void {
+	$fields = array(
+		'general' => array(
+			'post-types'              => 'dws_ic_post_types',
+			'enable-private-comments' => 'dws_ic_private_comments_enabled',
+		),
+		'plugin'  => array(
+			'remove-data-uninstall' => 'dws_ic_delete_data',
+		),
+	);
+	foreach ( $fields as $group => $keys ) {
+		$row = get_option( "dws-internal-comments_$group" );
+		foreach ( is_array( $row ) ? $row : array() as $id => $value ) {
+			$key = $keys[ $id ] ?? ( 1 === preg_match( '/^[a-z0-9_-]+$/', (string) $id ) ? "dws_ic_{$group}_$id" : null );
+			if ( is_null( $key ) ) {
+				continue;
+			}
+
+			update_option( $key, $value, true );
+			if ( get_option( $key ) !== $value ) {
+				throw new RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			}
 		}
 	}
 }

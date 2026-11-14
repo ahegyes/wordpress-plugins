@@ -52,7 +52,7 @@ try {
 		$dws_ic_identity,
 		$dws_ic_footprint,
 		array(
-			'consent' => array( 'option' => 'dws_ic_delete_data' ),
+			'consent' => array( 'option' => DWS_IC_OPTION_DELETE_DATA ),
 		)
 	);
 } catch ( RuntimeException $exception ) {
