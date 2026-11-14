@@ -8,7 +8,7 @@ includes:
 parameters:
 	paths:
 		- linked-orders-for-woocommerce.php
-		- includes/safeguards.php
+		- Safeguards.php
 	# A safeguard calls WooCommerce where the plugin requires it.
 	scanFiles:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
@@ -18,9 +18,3 @@ parameters:
 	# The entry loads the scoped bootstrap package by path, before any autoloader.
 	scanDirectories:
 		- vendor-prefixed/ahegyes/wp-framework-bootstrap
-	ignoreErrors:
-		# The entry's build-error handler runs only once the floor gate has passed.
-		-
-			identifier: WPCompat.functionNotAvailable
-			message: '#^wp_get_environment_type\(\) #'
-			path: linked-orders-for-woocommerce.php

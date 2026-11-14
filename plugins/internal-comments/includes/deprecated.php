@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Keeps v1's root getters, hook-tag builders, constants and boot hooks, deprecated, for code written against v1.
+ * Keeps v1's root getters, hook-tag builders and constants, deprecated, for code written against v1.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -245,46 +245,4 @@ function dws_ic_get_component_hook_tag( string $component_id, string $name, $ext
  */
 function dws_ic_join_v1_hook_tag( string $root, string $name, $extra ): string {
 	return strtolower( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( $root, $name ), is_array( $extra ) ? $extra : array( $extra ) ), 'boolval' ) ) ) );
-}
-
-/**
- * Fires v1's hook for a plugin that booted.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @return  void
- */
-function dws_ic_fire_v1_initialized(): void {
-	/**
-	 * Fires once the plugin has booted.
-	 *
-	 * @since       1.0.0
-	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use internal_comments/boot/succeeded.
-	 */
-	do_action_deprecated( 'dws_ic_initialized', array(), '2.0.0', 'internal_comments/boot/succeeded' );
-}
-
-/**
- * Fires v1's hook for a plugin whose boot failed, with the failure.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   Throwable $error The failure.
- *
- * @return  void
- */
-function dws_ic_fire_v1_initialization_failure( Throwable $error ): void {
-	/**
-	 * Fires when the plugin's boot failed.
-	 *
-	 * @since       1.0.0
-	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use internal_comments/boot/failed.
-	 *
-	 * @param       Throwable $error The failure, where v1 passed its own exception.
-	 */
-	do_action_deprecated( 'dws_ic_initialization_failure', array( $error ), '2.0.0', 'internal_comments/boot/failed' );
 }

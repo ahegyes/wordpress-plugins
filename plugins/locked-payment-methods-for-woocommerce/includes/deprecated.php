@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Keeps v1's root getters, hook-tag builders, constants, boot hooks, access checks and setting readers, deprecated, for code written against v1.
+ * Keeps v1's root getters, hook-tag builders, constants, access checks and setting readers, deprecated, for code written against v1.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -8,6 +8,7 @@
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
+use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
@@ -250,48 +251,6 @@ function dws_lpmwc_join_v1_hook_tag( string $root, string $name, $extra ): strin
 }
 
 /**
- * Fires v1's hook for a plugin that booted.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @return  void
- */
-function dws_lpmwc_fire_v1_initialized(): void {
-	/**
-	 * Fires once the plugin has booted.
-	 *
-	 * @since       1.0.0
-	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/boot/succeeded.
-	 */
-	do_action_deprecated( 'dws_lpmwc_initialized', array(), '2.0.0', 'locked_payment_methods_for_woocommerce/boot/succeeded' );
-}
-
-/**
- * Fires v1's hook for a plugin whose boot failed, with the failure.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   Throwable $error The failure.
- *
- * @return  void
- */
-function dws_lpmwc_fire_v1_initialization_failure( Throwable $error ): void {
-	/**
-	 * Fires when the plugin's boot failed.
-	 *
-	 * @since       1.0.0
-	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/boot/failed.
-	 *
-	 * @param       Throwable $error The failure, where v1 passed its own exception.
-	 */
-	do_action_deprecated( 'dws_lpmwc_initialization_failure', array( $error ), '2.0.0', 'locked_payment_methods_for_woocommerce/boot/failed' );
-}
-
-/**
  * Returns whether a payment method stays locked for a user, as the plugin's strategies judge it, firing v1's filter first.
  *
  * @api
@@ -320,7 +279,7 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 	 * @param       int    $user_id          The user's id.
 	 */
 	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user', array( true, $locked_method_id, $user_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
-	return dws_lpmwc_should_lock( false !== $lock, $locked_method_id, $user_id, 0 );
+	return Safeguards::should_lock( false !== $lock, $locked_method_id, $user_id, 0 );
 }
 
 /**
@@ -353,7 +312,7 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
 	 * @param       int    $order_id         The order's id.
 	 */
 	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( true, $locked_method_id, $order_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
-	return dws_lpmwc_should_lock( false !== $lock, $locked_method_id, $order instanceof WC_Order ? $order->get_customer_id() : 0, $order_id );
+	return Safeguards::should_lock( false !== $lock, $locked_method_id, $order instanceof WC_Order ? $order->get_customer_id() : 0, $order_id );
 }
 
 /**
@@ -587,7 +546,7 @@ function dws_lpmwc_read_v1_setting( string $field_id, ?string $group ) {
 		}
 	}
 
-	return is_null( $setting ) ? null : dws_lpmwc_apply_v1_setting_filter( dws_lpmwc_validate_v1_setting( get_option( $setting['key'], null ), $setting['key'] ), $setting['group'], $setting['field'], 'option_' . $setting['key'] );
+	return is_null( $setting ) ? null : Safeguards::apply_v1_setting_filter( dws_lpmwc_validate_v1_setting( get_option( $setting['key'], null ), $setting['key'] ), $setting['group'], $setting['field'], 'option_' . $setting['key'] );
 }
 
 /**

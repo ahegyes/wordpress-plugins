@@ -58,7 +58,7 @@ composer quality-check
 - **Tests** runs Unit once, and Integration and the end-to-end suite once per WordPress branch, from the entry file's `Requires at least` up to the newest release, which WordPress's version API lists, so a new release joins without an edit.
 - **Tests (nightly)** runs Integration and the end-to-end suite on WordPress trunk every day, outside pull requests.
 - **Release** builds the zip on every pull request as a tag would, runs Plugin Check and the archive checks, then activates the zip on a site and runs the end-to-end suite against it.
-- **Quality** runs PHPCS, PHPStan, the PHP 7.4 parse of the entry file, `uninstall.php` and `includes/`, the script, style and type lints, the `block.json` schema and the `readme.txt` lint, and the changelog fragments.
+- **Quality** runs PHPCS, PHPStan, the PHP 7.4 parse of the entry file, `uninstall.php` and `Safeguards.php`, the script, style and type lints, the `block.json` schema and the `readme.txt` lint, and the changelog fragments.
 
 ## Conventions
 

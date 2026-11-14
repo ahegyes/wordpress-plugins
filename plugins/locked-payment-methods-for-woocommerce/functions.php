@@ -1,8 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Hooks the plugin into WordPress and loads the files in includes/.
- *
- * It also fires v1's boot hooks, dws_lpmwc_initialized and dws_lpmwc_initialization_failure, at the earliest priority of the v2 hooks that replace them.
+ * Loads the files in includes/, defines the plugin's accessor, boots the plugin on plugins_loaded, declares its WooCommerce feature compatibility, unschedules its jobs on deactivation and fires v1's boot hooks at the earliest priority of the hooks that replace them.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -28,11 +26,55 @@ foreach ( $dws_lpmwc_includes as $dws_lpmwc_include ) {
 }
 
 // The hooks come last, so an include that throws leaves nothing of the plugin hooked.
-add_action( 'plugins_loaded', 'dws_lpmwc_boot', 15 );
-add_action( 'before_woocommerce_init', 'dws_lpmwc_declare_compatibility' );
-add_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', 'dws_lpmwc_fire_v1_initialized', PHP_INT_MIN );
-add_action( 'locked_payment_methods_for_woocommerce/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure', PHP_INT_MIN );
-register_deactivation_hook( DWS_LPMWC_FILE, 'dws_lpmwc_deactivate' );
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		dws_lpmwc_plugin()->boot();
+	},
+	15
+);
+add_action(
+	'before_woocommerce_init',
+	static function (): void {
+		FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_LPMWC_FILE, true );
+	}
+);
+add_action(
+	'locked_payment_methods_for_woocommerce/boot/succeeded',
+	static function (): void {
+		/**
+		 * Fires once the plugin has booted.
+		 *
+		 * @since       1.0.0
+		 * @version     2.0.0
+		 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/boot/succeeded.
+		 */
+		do_action_deprecated( 'dws_lpmwc_initialized', array(), '2.0.0', 'locked_payment_methods_for_woocommerce/boot/succeeded' );
+	},
+	PHP_INT_MIN
+);
+add_action(
+	'locked_payment_methods_for_woocommerce/boot/failed',
+	static function ( Throwable $error ): void {
+		/**
+		 * Fires when the plugin's boot failed.
+		 *
+		 * @since       1.0.0
+		 * @version     2.0.0
+		 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/boot/failed.
+		 *
+		 * @param       Throwable $error The failure, where v1 passed its own exception.
+		 */
+		do_action_deprecated( 'dws_lpmwc_initialization_failure', array( $error ), '2.0.0', 'locked_payment_methods_for_woocommerce/boot/failed' );
+	},
+	PHP_INT_MIN
+);
+register_deactivation_hook(
+	DWS_LPMWC_FILE,
+	static function (): void {
+		dws_lpmwc_plugin()->deactivate();
+	}
+);
 
 /**
  * Returns the plugin's composition root, built on first use.
@@ -49,56 +91,4 @@ function dws_lpmwc_plugin(): Plugin {
 	}
 
 	return $plugin;
-}
-
-/**
- * Boots the plugin, reporting a composition root that cannot be built as an incomplete build.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @return  void
- */
-function dws_lpmwc_boot(): void {
-	try {
-		$plugin = dws_lpmwc_plugin();
-	} catch ( Throwable $error ) {
-		dws_lpmwc_handle_build_error( $error );
-		return;
-	}
-
-	$plugin->boot(); // PluginBoot reports a failed composition itself, and a hook listener's throw is not a build error.
-}
-
-/**
- * Unschedules the plugin's jobs on the site it is deactivated on, reporting a composition root that cannot be built as an incomplete build.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @return  void
- */
-function dws_lpmwc_deactivate(): void {
-	try {
-		$plugin = dws_lpmwc_plugin();
-	} catch ( Throwable $error ) {
-		dws_lpmwc_handle_build_error( $error );
-		return;
-	}
-
-	$plugin->deactivate();
-}
-
-/**
- * Declares that the plugin works with WooCommerce's order tables.
- *
- * Each WooCommerce feature flag is declared from evidence, here the tests that cover both order storages.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @return  void
- */
-function dws_lpmwc_declare_compatibility(): void {
-	FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_LPMWC_FILE, true );
 }

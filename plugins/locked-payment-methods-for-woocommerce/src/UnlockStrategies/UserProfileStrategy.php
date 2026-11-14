@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
+use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
@@ -189,10 +190,10 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 
 		$granted = dws_lpmwc_get_user_unlocked_payment_method_ids( $user_id );
 		$lines   = array();
-		foreach ( dws_lpmwc_get_locked_payment_method_ids() as $id ) {
+		foreach ( Safeguards::get_locked_payment_method_ids() as $id ) {
 			$state = match ( true ) {
 				\in_array( $id, $granted, true )                    => __( 'unlocked on the profile', 'locked-payment-methods-for-woocommerce' ),
-				! dws_lpmwc_should_lock( true, $id, $user_id, 0 ) => __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ),
+				! Safeguards::should_lock( true, $id, $user_id, 0 ) => __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ),
 				default                                             => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
 			};
 			/* translators: 1: payment method title, 2: the payment method's state for the user. */
@@ -213,7 +214,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @return  void
 	 */
 	public function render_users_filter( string $which ): void {
-		$locked = dws_lpmwc_get_locked_payment_method_ids();
+		$locked = Safeguards::get_locked_payment_method_ids();
 		if ( array() === $locked ) {
 			return;
 		}
@@ -273,7 +274,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$value = isset( $_GET[ $name ] ) && \is_string( $_GET[ $name ] ) ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-		return \in_array( $value, dws_lpmwc_get_locked_payment_method_ids(), true ) ? $value : '';
+		return \in_array( $value, Safeguards::get_locked_payment_method_ids(), true ) ? $value : '';
 	}
 
 	// endregion

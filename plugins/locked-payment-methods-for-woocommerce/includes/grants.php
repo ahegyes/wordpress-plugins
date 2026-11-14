@@ -8,6 +8,8 @@
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
+use DeepWebSolutions\LockedPaymentMethods\Safeguards;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -103,14 +105,14 @@ function dws_lpmwc_get_payment_method_title( string $gateway_id ): string {
  * @return  array<string, string>
  */
 function dws_lpmwc_get_grant_choices( array $granted, int $user_id ): array {
-	$locked  = dws_lpmwc_get_locked_payment_method_ids();
+	$locked  = Safeguards::get_locked_payment_method_ids();
 	$choices = array();
 	foreach ( array_unique( array_merge( $locked, $granted ) ) as $id ) {
 		$title = dws_lpmwc_get_payment_method_title( $id );
 		if ( ! in_array( $id, $locked, true ) ) {
 			/* translators: %s: payment method title. */
 			$title = sprintf( __( '%s (not locked)', 'locked-payment-methods-for-woocommerce' ), $title );
-		} elseif ( 0 !== $user_id && ! in_array( $id, $granted, true ) && ! dws_lpmwc_should_lock( true, $id, $user_id, 0 ) ) {
+		} elseif ( 0 !== $user_id && ! in_array( $id, $granted, true ) && ! Safeguards::should_lock( true, $id, $user_id, 0 ) ) {
 			/* translators: %s: payment method title. */
 			$title = sprintf( __( '%s (unlocked by another rule)', 'locked-payment-methods-for-woocommerce' ), $title );
 		}
@@ -180,5 +182,5 @@ function dws_lpmwc_get_plan_unlocked_payment_method_ids( int $plan_id ): array {
  * @return  bool
  */
 function dws_lpmwc_is_payment_method_locked( string $gateway_id, int $user_id, int $order_id = 0 ): bool {
-	return in_array( $gateway_id, dws_lpmwc_get_locked_payment_method_ids(), true ) && dws_lpmwc_should_lock( true, $gateway_id, $user_id, $order_id );
+	return in_array( $gateway_id, Safeguards::get_locked_payment_method_ids(), true ) && Safeguards::should_lock( true, $gateway_id, $user_id, $order_id );
 }
