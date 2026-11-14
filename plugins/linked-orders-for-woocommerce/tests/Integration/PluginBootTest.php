@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Integration\SequentialOrderNumbersPro;
+use DeepWebSolutions\LinkedOrders\Migrations;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
@@ -85,7 +86,7 @@ final class PluginBootTest extends TestCase {
 		wp_cache_flush();
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( \count( dws_lowc_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
+		self::assertSame( \count( Migrations::get_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 	}
 
 	public function test_the_plugin_declares_itself_compatible_with_woocommerces_order_tables(): void {

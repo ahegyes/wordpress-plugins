@@ -2,12 +2,13 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Migrations;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
-use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
@@ -62,7 +63,7 @@ final class PluginBootTest extends TestCase {
 
 	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {
 		self::assertInstanceOf( MigrationRunner::class, dws_lpmwc_plugin()->migrations );
-		self::assertSame( \count( dws_lpmwc_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
+		self::assertSame( \count( Migrations::get_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 	}
 
 	public function test_the_plugin_declares_itself_compatible_with_woocommerces_order_tables(): void {

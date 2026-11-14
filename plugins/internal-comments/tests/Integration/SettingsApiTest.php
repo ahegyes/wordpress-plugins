@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -13,19 +14,19 @@ final class SettingsApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS, DWS_IC_OPTION_DELETE_DATA, 'dws_ic_general_extra' );
+	protected const array OPTIONS = array( Options::POST_TYPES, Options::PRIVATE_COMMENTS, Options::DELETE_DATA, 'dws_ic_general_extra' );
 
 	public static function stored_settings(): array {
 		return array(
-			'post-types'        => array( DWS_IC_OPTION_POST_TYPES, array( 'post', 'page' ), 'post-types', 'general', array( 'post', 'page' ) ),
-			'unknown-type'      => array( DWS_IC_OPTION_POST_TYPES, array( 'post', 'dws_ic_missing' ), 'post-types', 'general', array( 'post' ) ),
-			'types-not-a-list'  => array( DWS_IC_OPTION_POST_TYPES, 'post', 'post-types', 'general', array() ),
-			'private-on'        => array( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes', 'enable-private-comments', 'general', true ),
-			'private-off'       => array( DWS_IC_OPTION_PRIVATE_COMMENTS, 'no', 'enable-private-comments', 'general', false ),
-			'consent-on'        => array( DWS_IC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
-			'consent-malformed' => array( DWS_IC_OPTION_DELETE_DATA, 'maybe', 'remove-data-uninstall', 'plugin', false ),
-			'group-with-suffix' => array( DWS_IC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
-			'group-in-field-id' => array( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes', 'general/enable-private-comments', null, true ),
+			'post-types'        => array( Options::POST_TYPES, array( 'post', 'page' ), 'post-types', 'general', array( 'post', 'page' ) ),
+			'unknown-type'      => array( Options::POST_TYPES, array( 'post', 'dws_ic_missing' ), 'post-types', 'general', array( 'post' ) ),
+			'types-not-a-list'  => array( Options::POST_TYPES, 'post', 'post-types', 'general', array() ),
+			'private-on'        => array( Options::PRIVATE_COMMENTS, 'yes', 'enable-private-comments', 'general', true ),
+			'private-off'       => array( Options::PRIVATE_COMMENTS, 'no', 'enable-private-comments', 'general', false ),
+			'consent-on'        => array( Options::DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
+			'consent-malformed' => array( Options::DELETE_DATA, 'maybe', 'remove-data-uninstall', 'plugin', false ),
+			'group-with-suffix' => array( Options::DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
+			'group-in-field-id' => array( Options::PRIVATE_COMMENTS, 'yes', 'general/enable-private-comments', null, true ),
 		);
 	}
 
@@ -68,13 +69,13 @@ final class SettingsApiTest extends TestCase {
 
 	// v1 read the selected post types raw, so a post type registered after plugins_loaded stays selected before it registers.
 	public function test_the_selected_post_types_read_the_stored_names_unvalidated(): void {
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post', 'dws_ic_later', 7 ) );
+		update_option( Options::POST_TYPES, array( 'post', 'dws_ic_later', 7 ) );
 
 		self::assertSame( array( 'post', 'dws_ic_later' ), dws_ic_get_selected_post_types() );
 	}
 
 	public function test_private_comments_read_as_their_validated_setting(): void {
-		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 
 		self::assertTrue( dws_ic_are_enabled_private_comments() );
 	}
@@ -106,7 +107,7 @@ final class SettingsApiTest extends TestCase {
 	// v1 fired its section filter only for a read through the section, which names the group in the field id; each filter still receives v1's ids, though the value comes from its row.
 	#[DataProvider( 'paths' )]
 	public function test_a_validated_value_passes_the_v1_filters_of_its_path_then_the_v2_filter( string $field_id, ?string $group, array $expected, array $deprecated ): void {
-		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		$seen    = array();
 		$filters = array(
 			'internal_comments/general_settings/get_validated_option_value' => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {

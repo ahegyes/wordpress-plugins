@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
@@ -18,7 +19,7 @@ final class SafeguardsTest extends TestCase {
 	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, self::V1_KEY );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, self::V1_KEY );
 
 	protected const string FILTER = 'locked_payment_methods_for_woocommerce/payment_method/should_lock';
 
@@ -66,7 +67,7 @@ final class SafeguardsTest extends TestCase {
 
 	#[Before]
 	protected function lock_cod(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod' ) );
 	}
 
 	#[After]
@@ -140,7 +141,7 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	public function test_the_lock_reads_v1s_list_while_the_plugin_has_stored_none(): void {
-		delete_option( DWS_LPMWC_OPTION_LOCKED_METHODS );
+		delete_option( Options::LOCKED_METHODS );
 		update_option( self::V1_KEY, array( 'bacs' ) );
 
 		$available = self::available();
@@ -150,7 +151,7 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	public function test_v1s_list_stops_counting_once_the_plugin_stores_its_own_even_an_empty_one(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array() );
+		update_option( Options::LOCKED_METHODS, array() );
 		update_option( self::V1_KEY, array( 'bacs' ) );
 
 		$available = self::available();
@@ -160,12 +161,12 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	public function test_only_the_strings_of_a_stored_list_are_locked(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 7, array( 'bacs' ) ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod', 7, array( 'bacs' ) ) );
 		$available = self::available();
 		self::assertArrayNotHasKey( 'cod', $available );
 		self::assertArrayHasKey( 'bacs', $available );
 
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, 'bacs' );
+		update_option( Options::LOCKED_METHODS, 'bacs' );
 		$available = self::available();
 		self::assertArrayHasKey( 'bacs', $available );
 		self::assertArrayHasKey( 'cod', $available );
@@ -236,7 +237,7 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	public function test_v1s_lock_filters_fire_as_deprecated_before_should_lock_under_v1s_safe_id(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( "WooCommerce_Pay\x01ments" ) );
+		update_option( Options::LOCKED_METHODS, array( "WooCommerce_Pay\x01ments" ) );
 		$seen         = array();
 		$v1           = 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method';
 		$v1_safe      = "$v1/woocommerce_payments";

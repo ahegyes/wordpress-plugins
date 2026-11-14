@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore;
+use DeepWebSolutions\LinkedOrders\Capabilities;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
@@ -26,7 +28,7 @@ final class LinkingTest extends TestCase {
 	use RunsRequestsTrait;
 	use StoresLinksTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
+	protected const array OPTIONS = array( Options::MAX_DEPTH );
 
 	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
 	public static function storages_and_data_caching(): array {
@@ -308,7 +310,7 @@ final class LinkingTest extends TestCase {
 		$user   = $this->create_user( 'dws-lowc-linking-editor', 'subscriber' );
 		$editor = new \WP_User( $user );
 		$editor->add_cap( 'edit_shop_orders' );
-		$editor->add_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN );
+		$editor->add_cap( Capabilities::CREATE_LINKED_CHILDREN );
 
 		self::assertFalse( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $user ) );
 
@@ -323,11 +325,11 @@ final class LinkingTest extends TestCase {
 		$child = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
 
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '1' );
+		update_option( Options::MAX_DEPTH, '1' );
 		self::assertTrue( dws_lowc_get_order_node( $root->get_id() )?->can_create_child() );
 		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
+		update_option( Options::MAX_DEPTH, '2' );
 		self::assertTrue( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
 		self::assertFalse( dws_lowc_get_order_node( $root->get_id() )?->can_create_child( $this->create_user( 'dws-lowc-linking-customer', 'customer' ) ) );

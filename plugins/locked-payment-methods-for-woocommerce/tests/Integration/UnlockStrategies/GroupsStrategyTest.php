@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Migrations;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
@@ -19,7 +21,7 @@ use PHPUnit\Framework\TestCase;
 final class GroupsStrategyTest extends TestCase {
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS, DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_GROUPS, DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS );
 
 	protected static GroupsStrategy $strategy;
 
@@ -58,7 +60,7 @@ final class GroupsStrategyTest extends TestCase {
 
 	#[Before]
 	protected function lock_the_methods(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod', 'bacs' ) );
 		delete_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS );
 	}
 
@@ -74,16 +76,16 @@ final class GroupsStrategyTest extends TestCase {
 	public function test_the_strategy_loads_only_while_groups_is_active_and_its_switch_is_on(): void {
 		self::assertTrue( GroupsStrategy::is_available() );
 
-		delete_option( DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS );
+		delete_option( Options::UNLOCK_VIA_GROUPS );
 		self::assertFalse( GroupsStrategy::should_load() );
 
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS, 'yes' );
+		update_option( Options::UNLOCK_VIA_GROUPS, 'yes' );
 		self::assertTrue( GroupsStrategy::should_load() );
 	}
 
 	public function test_the_settings_show_the_groups_switch_while_groups_is_active(): void {
 		$fields = new \DeepWebSolutions\LockedPaymentMethods\Settings()->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
-		$switch = \array_values( \array_filter( $fields, static fn ( array $field ): bool => DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS === ( $field['id'] ?? null ) ) );
+		$switch = \array_values( \array_filter( $fields, static fn ( array $field ): bool => Options::UNLOCK_VIA_GROUPS === ( $field['id'] ?? null ) ) );
 
 		self::assertSame( 'checkbox', $switch[0]['type'] ?? null );
 		self::assertSame( 'no', $switch[0]['default'] ?? null );
@@ -187,8 +189,8 @@ final class GroupsStrategyTest extends TestCase {
 		update_option( "dws-wc-lpm_groups-settings_$merged", array( 'cod', 7 ) );
 		update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, array( $merged => array( 'cheque' ) ) );
 
-		dws_lpmwc_move_group_grants();
-		dws_lpmwc_move_group_grants();
+		Migrations::get_steps()[3]();
+		Migrations::get_steps()[3]();
 
 		self::assertSame(
 			array(

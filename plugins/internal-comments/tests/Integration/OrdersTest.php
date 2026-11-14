@@ -5,6 +5,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\MetaBox;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -48,10 +49,10 @@ final class OrdersTest extends TestCase {
 
 	#[Before]
 	protected function select_orders(): void {
-		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
 			$this->stored[ $option ] = get_option( $option );
 		}
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'shop_order' ) );
+		update_option( Options::POST_TYPES, array( 'shop_order' ) );
 	}
 
 	#[After]

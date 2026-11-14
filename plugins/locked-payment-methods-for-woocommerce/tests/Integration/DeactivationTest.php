@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -11,14 +12,14 @@ use PHPUnit\Framework\TestCase;
 final class DeactivationTest extends TestCase {
 	#[After]
 	protected function unschedule_hooks(): void {
-		foreach ( dws_lpmwc_get_footprint()['cron_hooks'] as $hook ) {
+		foreach ( Plugin::FOOTPRINT['cron_hooks'] as $hook ) {
 			dws_lpmwc_plugin()->scheduler->unschedule_hook( $hook );
 		}
 	}
 
 	public function test_deactivation_unschedules_every_hook_of_the_footprint(): void {
 		$scheduler = dws_lpmwc_plugin()->scheduler;
-		$hooks     = \array_map( static fn ( string $hook ): ScheduledHook => new ScheduledHook( $hook ), dws_lpmwc_get_footprint()['cron_hooks'] );
+		$hooks     = \array_map( static fn ( string $hook ): ScheduledHook => new ScheduledHook( $hook ), Plugin::FOOTPRINT['cron_hooks'] );
 		foreach ( $hooks as $hook ) {
 			self::assertTrue( $scheduler->enqueue( $hook ) );
 		}

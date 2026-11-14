@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -13,17 +14,17 @@ final class SettingsApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array OPTIONS = array( Options::MAX_DEPTH, Options::AUTOCOMPLETE, Options::DELETE_DATA );
 
 	public static function stored_settings(): array {
 		return array(
-			'depth'             => array( DWS_LOWC_OPTION_MAX_DEPTH, '3', 'max-depth', 'general', 3 ),
-			'depth-below-one'   => array( DWS_LOWC_OPTION_MAX_DEPTH, '0', 'max-depth', 'general', 1 ),
-			'autocomplete-on'   => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes', 'autocomplete-descendants', 'general', true ),
-			'autocomplete-off'  => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'no', 'autocomplete-descendants', 'general', false ),
-			'consent-on'        => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
-			'group-with-suffix' => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
-			'group-in-field-id' => array( DWS_LOWC_OPTION_MAX_DEPTH, '5', 'general/max-depth', null, 5 ),
+			'depth'             => array( Options::MAX_DEPTH, '3', 'max-depth', 'general', 3 ),
+			'depth-below-one'   => array( Options::MAX_DEPTH, '0', 'max-depth', 'general', 1 ),
+			'autocomplete-on'   => array( Options::AUTOCOMPLETE, 'yes', 'autocomplete-descendants', 'general', true ),
+			'autocomplete-off'  => array( Options::AUTOCOMPLETE, 'no', 'autocomplete-descendants', 'general', false ),
+			'consent-on'        => array( Options::DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
+			'group-with-suffix' => array( Options::DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
+			'group-in-field-id' => array( Options::MAX_DEPTH, '5', 'general/max-depth', null, 5 ),
 		);
 	}
 
@@ -100,7 +101,7 @@ final class SettingsApiTest extends TestCase {
 	// v1 fired its section filter only for a read through the section, which names the group in the field id.
 	#[DataProvider( 'paths' )]
 	public function test_a_validated_value_passes_the_v1_filters_of_its_path_then_the_v2_filter( string $field_id, ?string $group, array $expected, array $deprecated ): void {
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
+		update_option( Options::MAX_DEPTH, '2' );
 		$seen    = array();
 		$filters = array(
 			'linked_orders_for_woocommerce/general_settings/get_validated_option_value' => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {

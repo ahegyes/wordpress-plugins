@@ -2,25 +2,26 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Options;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class OptionsTest extends TestCase {
 	public function test_each_setting_has_a_row_of_its_own_named_whole(): void {
-		self::assertSame( 'dws_ic_post_types', DWS_IC_OPTION_POST_TYPES );
-		self::assertSame( 'dws_ic_private_comments_enabled', DWS_IC_OPTION_PRIVATE_COMMENTS );
-		self::assertSame( 'dws_ic_delete_data', DWS_IC_OPTION_DELETE_DATA );
+		self::assertSame( 'dws_ic_post_types', Options::POST_TYPES );
+		self::assertSame( 'dws_ic_private_comments_enabled', Options::PRIVATE_COMMENTS );
+		self::assertSame( 'dws_ic_delete_data', Options::DELETE_DATA );
 	}
 
 	public function test_each_row_starts_with_the_value_v1_stored_as_its_default(): void {
 		self::assertSame(
 			array(
-				DWS_IC_OPTION_POST_TYPES       => array(),
-				DWS_IC_OPTION_PRIVATE_COMMENTS => 'no',
-				DWS_IC_OPTION_DELETE_DATA      => 'no',
+				Options::POST_TYPES       => array(),
+				Options::PRIVATE_COMMENTS => 'no',
+				Options::DELETE_DATA      => 'no',
 			),
-			DWS_IC_OPTION_DEFAULTS
+			Options::DEFAULTS
 		);
 	}
 
@@ -28,14 +29,14 @@ final class OptionsTest extends TestCase {
 		self::assertSame(
 			array(
 				'general' => array(
-					'post-types'              => DWS_IC_OPTION_POST_TYPES,
-					'enable-private-comments' => DWS_IC_OPTION_PRIVATE_COMMENTS,
+					'post-types'              => Options::POST_TYPES,
+					'enable-private-comments' => Options::PRIVATE_COMMENTS,
 				),
 				'plugin'  => array(
-					'remove-data-uninstall' => DWS_IC_OPTION_DELETE_DATA,
+					'remove-data-uninstall' => Options::DELETE_DATA,
 				),
 			),
-			DWS_IC_V1_SETTINGS
+			Options::V1_SETTINGS
 		);
 	}
 }

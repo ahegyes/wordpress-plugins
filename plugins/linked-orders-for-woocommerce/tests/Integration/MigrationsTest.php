@@ -2,8 +2,10 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\LinkRepair;
+use DeepWebSolutions\LinkedOrders\Migrations;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Plugin;
-use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
@@ -20,11 +22,11 @@ final class MigrationsTest extends TestCase {
 	use RestoresOptionsTrait;
 	use StoresLinksTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array OPTIONS = array( Options::MAX_DEPTH, Options::AUTOCOMPLETE, Options::DELETE_DATA );
 
 	#[After]
 	protected function restore_the_revision(): void {
-		update_option( Plugin::PREFIX . '_revision', \count( dws_lowc_get_migration_steps() ) );
+		update_option( Plugin::PREFIX . '_revision', \count( Migrations::get_steps() ) );
 	}
 
 	// The runner's time budget lasts for its request, and this process's bootstrap spends it when it migrates a new site, so the row runs as a request of its own.
@@ -39,36 +41,36 @@ final class MigrationsTest extends TestCase {
 		dws_lowc_plugin()->migrations?->run();
 
 		self::assertSame( 1, MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
-		self::assertSame( '1', get_option( DWS_LOWC_OPTION_MAX_DEPTH ) );
-		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_AUTOCOMPLETE ) );
-		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+		self::assertSame( '1', get_option( Options::MAX_DEPTH ) );
+		self::assertSame( 'no', get_option( Options::AUTOCOMPLETE ) );
+		self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
 		foreach ( self::OPTIONS as $key ) {
 			self::assertSame( 'on', $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $key ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the stored autoload flag.
 		}
 	}
 
 	public function test_the_first_step_keeps_the_values_a_v1_site_stored(): void {
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '3' );
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
-		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::MAX_DEPTH, '3' );
+		update_option( Options::AUTOCOMPLETE, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 
-		dws_lowc_add_settings();
+		Migrations::get_steps()[0]();
 
-		self::assertSame( '3', get_option( DWS_LOWC_OPTION_MAX_DEPTH ) );
-		self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_AUTOCOMPLETE ) );
-		self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+		self::assertSame( '3', get_option( Options::MAX_DEPTH ) );
+		self::assertSame( 'yes', get_option( Options::AUTOCOMPLETE ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 	}
 
 	public function test_the_first_step_throws_when_a_default_cannot_be_stored(): void {
 		global $wpdb;
-		delete_option( DWS_LOWC_OPTION_DELETE_DATA );
-		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . DWS_LOWC_OPTION_DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_lowc_missing" : $query;
+		delete_option( Options::DELETE_DATA );
+		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_lowc_missing" : $query;
 		$suppressed = $wpdb->suppress_errors();
 		add_filter( 'query', $fail );
 
 		try {
-			$this->expectExceptionObject( new \RuntimeException( 'The option ' . DWS_LOWC_OPTION_DELETE_DATA . ' could not be stored.' ) );
-			dws_lowc_add_settings();
+			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::DELETE_DATA . ' could not be stored.' ) );
+			Migrations::get_steps()[0]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
@@ -92,9 +94,9 @@ final class MigrationsTest extends TestCase {
 		self::store_links( $unlisted, 1, $parent->get_id(), array() );
 		$deleted->delete( true );
 
-		self::assertInstanceOf( BatchedMigrationStepInterface::class, dws_lowc_get_migration_steps()[1] ?? null );
+		self::assertInstanceOf( LinkRepair::class, Migrations::get_steps()[1] ?? null );
 		$batches = 0;
-		while ( dws_lowc_repair_links() ) {
+		while ( new LinkRepair()->process_batch() ) {
 			self::assertLessThan( 10000, ++$batches );
 		}
 
@@ -121,7 +123,7 @@ final class MigrationsTest extends TestCase {
 		$deleted->delete( true );
 
 		$batches = 0;
-		while ( dws_lowc_repair_links() ) {
+		while ( new LinkRepair()->process_batch() ) {
 			self::assertLessThan( 5, ++$batches );
 		}
 
@@ -146,7 +148,7 @@ final class MigrationsTest extends TestCase {
 		$deleted->delete( true );
 
 		$batches = 0;
-		while ( dws_lowc_repair_links() ) {
+		while ( new LinkRepair()->process_batch() ) {
 			self::assertLessThan( 10000, ++$batches );
 		}
 

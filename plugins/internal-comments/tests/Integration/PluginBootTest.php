@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Migrations;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
@@ -59,6 +60,6 @@ final class PluginBootTest extends TestCase {
 
 	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {
 		self::assertInstanceOf( MigrationRunner::class, dws_ic_plugin()->migrations );
-		self::assertSame( \count( dws_ic_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
+		self::assertSame( \count( Migrations::get_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 	}
 }

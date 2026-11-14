@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Autocompletion;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\Before;
@@ -15,11 +16,11 @@ final class AutocompletionTest extends TestCase {
 	use OrderStorageTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_AUTOCOMPLETE );
+	protected const array OPTIONS = array( Options::AUTOCOMPLETE );
 
 	#[Before]
 	protected function enable_autocompletion(): void {
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
+		update_option( Options::AUTOCOMPLETE, 'yes' );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -103,7 +104,7 @@ final class AutocompletionTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_nothing_is_autocompleted_while_the_setting_is_off( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'no' );
+		update_option( Options::AUTOCOMPLETE, 'no' );
 		list( $root, $child ) = $this->create_tree();
 
 		$root->update_status( 'completed' );

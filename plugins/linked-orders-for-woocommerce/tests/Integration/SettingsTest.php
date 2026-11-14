@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Settings;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
@@ -18,7 +19,7 @@ final class SettingsTest extends TestCase {
 
 	protected const string SECTION = 'dws-linked-orders';
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array OPTIONS = array( Options::MAX_DEPTH, Options::AUTOCOMPLETE, Options::DELETE_DATA );
 
 	protected static \WC_Settings_Page $advanced;
 
@@ -67,21 +68,21 @@ final class SettingsTest extends TestCase {
 		$form = $this->render();
 
 		self::assertSame( array( 'General settings', 'Plugin settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'value' ) );
-		self::assertSame( '1', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'min' ) );
-		self::assertSame( '99', $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->getAttribute( 'max' ) );
-		self::assertSame( 'checkbox', $form->getElementById( DWS_LOWC_OPTION_AUTOCOMPLETE )?->getAttribute( 'type' ) );
-		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_AUTOCOMPLETE )?->hasAttribute( 'checked' ) );
-		self::assertSame( 'checkbox', $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->getAttribute( 'type' ) );
-		self::assertFalse( $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->hasAttribute( 'checked' ) );
+		self::assertSame( '1', $form->getElementById( Options::MAX_DEPTH )?->getAttribute( 'value' ) );
+		self::assertSame( '1', $form->getElementById( Options::MAX_DEPTH )?->getAttribute( 'min' ) );
+		self::assertSame( '99', $form->getElementById( Options::MAX_DEPTH )?->getAttribute( 'max' ) );
+		self::assertSame( 'checkbox', $form->getElementById( Options::AUTOCOMPLETE )?->getAttribute( 'type' ) );
+		self::assertFalse( $form->getElementById( Options::AUTOCOMPLETE )?->hasAttribute( 'checked' ) );
+		self::assertSame( 'checkbox', $form->getElementById( Options::DELETE_DATA )?->getAttribute( 'type' ) );
+		self::assertFalse( $form->getElementById( Options::DELETE_DATA )?->hasAttribute( 'checked' ) );
 	}
 
 	// The help says what each setting does where the merchant reads it, counting levels as the orders list does, and the consent names what deleting the plugin erases.
 	public function test_the_maximum_depth_and_the_consent_explain_themselves_beside_their_fields(): void {
 		$form = $this->render();
 
-		self::assertSame( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', \trim( (string) $form->getElementById( DWS_LOWC_OPTION_MAX_DEPTH )?->parentElement?->querySelector( '.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertStringContainsString( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', (string) $form->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->parentElement?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', \trim( (string) $form->getElementById( Options::MAX_DEPTH )?->parentElement?->querySelector( '.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertStringContainsString( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', (string) $form->getElementById( Options::DELETE_DATA )?->parentElement?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
 
 	// WooCommerce fires an action named after each group's title and end ids, which v1's listeners hook.
@@ -97,35 +98,35 @@ final class SettingsTest extends TestCase {
 	public function test_the_checkboxes_store_yes_and_no_as_v1s_selects_did(): void {
 		$this->save(
 			array(
-				DWS_LOWC_OPTION_AUTOCOMPLETE => '1',
-				DWS_LOWC_OPTION_DELETE_DATA  => '1',
+				Options::AUTOCOMPLETE => '1',
+				Options::DELETE_DATA  => '1',
 			)
 		);
 
-		self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_AUTOCOMPLETE ) );
-		self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
-		self::assertTrue( $this->render()->getElementById( DWS_LOWC_OPTION_DELETE_DATA )?->hasAttribute( 'checked' ) );
+		self::assertSame( 'yes', get_option( Options::AUTOCOMPLETE ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
+		self::assertTrue( $this->render()->getElementById( Options::DELETE_DATA )?->hasAttribute( 'checked' ) );
 
 		$this->save( array() );
 
-		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_AUTOCOMPLETE ) );
-		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+		self::assertSame( 'no', get_option( Options::AUTOCOMPLETE ) );
+		self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
 	}
 
 	#[DataProvider( 'invalid_depths' )]
 	public function test_a_depth_that_is_not_a_whole_number_of_at_least_one_keeps_the_stored_depth( string $posted ): void {
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '4' );
+		update_option( Options::MAX_DEPTH, '4' );
 
-		$this->save( array( DWS_LOWC_OPTION_MAX_DEPTH => $posted ) );
+		$this->save( array( Options::MAX_DEPTH => $posted ) );
 
-		self::assertSame( '4', get_option( DWS_LOWC_OPTION_MAX_DEPTH ) );
+		self::assertSame( '4', get_option( Options::MAX_DEPTH ) );
 		self::assertSame( array( 'Maximum linked orders depth was not saved and keeps its previous value. The other changes were saved. Enter a whole number of 1 or more, such as 2.' ), new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->getValue() );
 	}
 
 	public function test_a_whole_depth_of_at_least_one_is_stored(): void {
-		$this->save( array( DWS_LOWC_OPTION_MAX_DEPTH => ' 3 ' ) );
+		$this->save( array( Options::MAX_DEPTH => ' 3 ' ) );
 
-		self::assertSame( '3', get_option( DWS_LOWC_OPTION_MAX_DEPTH ) );
+		self::assertSame( '3', get_option( Options::MAX_DEPTH ) );
 		self::assertSame( 3, dws_lowc_get_max_depth() );
 	}
 

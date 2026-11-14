@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\RestRoutes;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -55,11 +56,11 @@ final class RestRoutesTest extends TestCase {
 
 	#[Before]
 	protected function create_posts(): void {
-		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
 			$this->stored[ $option ] = get_option( $option );
 		}
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
-		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		foreach ( array( 'post', 'page' ) as $type ) {
 			$this->$type = (int) wp_insert_post(
 				array(
@@ -121,7 +122,7 @@ final class RestRoutesTest extends TestCase {
 	// A request for a private comment the site no longer allows is refused rather than stored for every reader.
 	public function test_a_comment_is_private_only_where_the_site_allows_it(): void {
 		$allowed = $this->create( 'administrator', $this->post, array( 'content' => 'Private', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
-		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'no' );
+		update_option( Options::PRIVATE_COMMENTS, 'no' );
 		$refused = $this->create( 'administrator', $this->post, array( 'content' => 'Disabled', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 		$public  = $this->create( 'administrator', $this->post, array( 'content' => 'Public', 'private' => false ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 

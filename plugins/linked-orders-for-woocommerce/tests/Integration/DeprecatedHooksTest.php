@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
@@ -19,7 +20,7 @@ final class DeprecatedHooksTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_AUTOCOMPLETE );
+	protected const array OPTIONS = array( Options::AUTOCOMPLETE );
 
 	public static function renamed_hooks(): array {
 		return array(
@@ -134,7 +135,7 @@ final class DeprecatedHooksTest extends TestCase {
 	// A lone order's tree is the order alone, so each autocompletion filter runs once.
 	protected function complete_order(): void {
 		$parent = $this->create_order();
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
+		update_option( Options::AUTOCOMPLETE, 'yes' );
 
 		wc_get_order( $parent->get_id() )->update_status( 'completed' );
 	}

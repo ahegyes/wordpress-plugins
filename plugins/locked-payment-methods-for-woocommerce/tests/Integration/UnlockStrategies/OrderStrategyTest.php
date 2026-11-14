@@ -2,6 +2,9 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\Migrations;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
@@ -24,7 +27,7 @@ final class OrderStrategyTest extends TestCase {
 
 	protected const string FORM = 'dws_lpmwc_order';
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_ORDERS );
 
 	protected static OrderStrategy $strategy;
 
@@ -58,7 +61,7 @@ final class OrderStrategyTest extends TestCase {
 
 	#[Before]
 	protected function lock_the_methods(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod', 'bacs' ) );
 	}
 
 	#[After]
@@ -68,16 +71,16 @@ final class OrderStrategyTest extends TestCase {
 	}
 
 	public function test_the_strategy_loads_only_while_its_switch_is_on_as_v1s_did(): void {
-		delete_option( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+		delete_option( Options::UNLOCK_VIA_ORDERS );
 		self::assertFalse( OrderStrategy::should_load() );
 
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS, 'yes' );
+		update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
 		self::assertTrue( OrderStrategy::should_load() );
 	}
 
 	public function test_the_plugin_runs_the_strategy_once_its_switch_is_on(): void {
 		self::assertContains( OrderStrategy::class, Plugin::COMPONENTS );
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS, 'yes' );
+		update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
 
 		$request = self::request( 'echo wp_json_encode( in_array( ' . OrderStrategy::class . '::class, dws_lpmwc_plugin()->kernel->skipped, true ) );' );
 
@@ -105,7 +108,7 @@ final class OrderStrategyTest extends TestCase {
 
 		$form = self::$strategy->get_object_form( self::FORM, $order->get_id() );
 
-		self::assertSame( DWS_LPMWC_CAP_UNLOCK_VIA_ORDERS, $form['capability'] );
+		self::assertSame( Capabilities::UNLOCK_VIA_ORDERS, $form['capability'] );
 		self::assertSame( DWS_LPMWC_META_UNLOCKED_METHODS, $form['fields'][0]['id'] );
 		self::assertSame(
 			array(
@@ -172,8 +175,8 @@ final class OrderStrategyTest extends TestCase {
 		$merged->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cheque' ) );
 		$merged->save();
 
-		dws_lpmwc_move_order_grants();
-		dws_lpmwc_move_order_grants();
+		Migrations::get_steps()[2]();
+		Migrations::get_steps()[2]();
 
 		self::assertSame( array( 'cod' ), dws_lpmwc_get_order_unlocked_payment_method_ids( $moved->get_id() ) );
 		self::assertSame( array( 'cheque', 'cod' ), dws_lpmwc_get_order_unlocked_payment_method_ids( $merged->get_id() ) );
@@ -191,7 +194,7 @@ final class OrderStrategyTest extends TestCase {
 		add_filter( 'query', $fail );
 		try {
 			$this->expectExceptionObject( new \RuntimeException( 'The v1 order grants could not be read.' ) );
-			dws_lpmwc_move_order_grants();
+			Migrations::get_steps()[2]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
@@ -208,7 +211,7 @@ final class OrderStrategyTest extends TestCase {
 
 		$failed = false;
 		try {
-			dws_lpmwc_move_order_grants();
+			Migrations::get_steps()[2]();
 		} catch ( \RuntimeException ) {
 			$failed = true;
 		} finally {
@@ -217,7 +220,7 @@ final class OrderStrategyTest extends TestCase {
 
 		self::assertTrue( $failed );
 		self::assertSame( 'yes', wc_get_order( $order->get_id() )->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
-		dws_lpmwc_move_order_grants();
+		Migrations::get_steps()[2]();
 		self::assertSame( array( 'cod' ), dws_lpmwc_get_order_unlocked_payment_method_ids( $order->get_id() ) );
 	}
 

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\Before;
@@ -14,7 +15,7 @@ final class DeprecatedApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::FULL_ACCESS_ROLES, Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_ORDERS );
 
 	protected static array $users = array();
 
@@ -55,8 +56,8 @@ final class DeprecatedApiTest extends TestCase {
 
 	#[Before]
 	protected function store_the_settings(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
-		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod' ) );
+		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
@@ -214,10 +215,10 @@ final class DeprecatedApiTest extends TestCase {
 			self::assertTrue( dws_lpmwc_check_payment_method_access_via_user_meta( 'cod', self::$users['shop_manager'] ) );
 			self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
 
-			update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS, 'yes' );
+			update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
 			self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
 
-			update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'no' );
+			update_option( Options::UNLOCK_VIA_USER_ROLES, 'no' );
 			self::assertTrue( dws_lpmwc_check_payment_method_access_via_user_roles( 'cod', self::$users['shop_manager'] ) );
 		} finally {
 			$order->delete( true );
@@ -227,7 +228,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_v1s_setting_readers_map_v1s_ids_to_the_plugins_options_through_v1s_filters(): void {
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'yes' );
+		update_option( Options::UNLOCK_VIA_USER_ROLES, 'yes' );
 		$page    = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
 		$group   = 'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value';
 		$through = static fn ( mixed $value ): mixed => $value;
@@ -245,8 +246,8 @@ final class DeprecatedApiTest extends TestCase {
 			remove_filter( $group, $through );
 		}
 
-		self::assertContains( array( $group, 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), $this->deprecated );
-		self::assertNotContains( array( $page, 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), $this->deprecated ); // No callback hooks the page's filter, so it reports no deprecation.
+		self::assertContains( array( $group, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
+		self::assertNotContains( array( $page, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated ); // No callback hooks the page's filter, so it reports no deprecation.
 		self::assertContains( array( 'dws_lpmwc_get_validated_general_setting', 'get_option()' ), $this->deprecated );
 	}
 }

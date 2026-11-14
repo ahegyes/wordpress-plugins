@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -15,7 +16,7 @@ final class OptionsTest extends TestCase {
 
 	protected const string KEY = Plugin::PREFIX . '_options_test';
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_DELETE_DATA );
+	protected const array OPTIONS = array( Options::DELETE_DATA );
 
 	public static function stored_bools(): array {
 		return array(
@@ -27,26 +28,6 @@ final class OptionsTest extends TestCase {
 			'empty'     => array( '', false ),
 			'malformed' => array( 'maybe', false ),
 			'array'     => array( array( 'yes' ), false ),
-		);
-	}
-
-	public static function stored_ints(): array {
-		return array(
-			'int'       => array( 7, 7 ),
-			'numeric'   => array( '7', 7 ),
-			'padded'    => array( ' 7 ', 7 ),
-			'negative'  => array( '-7', -7 ),
-			'float'     => array( '7.5', 0 ),
-			'malformed' => array( 'seven', 0 ),
-			'array'     => array( array( 7 ), 0 ),
-		);
-	}
-
-	public static function stored_strings(): array {
-		return array(
-			'string' => array( 'kept', 'kept' ),
-			'empty'  => array( '', '' ),
-			'array'  => array( array( 'kept' ), '' ),
 		);
 	}
 
@@ -66,35 +47,21 @@ final class OptionsTest extends TestCase {
 
 	#[DataProvider( 'stored_bools' )]
 	public function test_a_bool_reads_the_stored_checkbox_value_or_false( mixed $stored, bool $expected ): void {
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, $stored );
+		update_option( Options::DELETE_DATA, $stored );
 
-		self::assertSame( $expected, dws_lpmwc_get_bool_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
+		self::assertSame( $expected, Options::get_bool( Options::DELETE_DATA ) );
 	}
 
 	public function test_a_missing_option_reads_its_default(): void {
-		delete_option( DWS_LPMWC_OPTION_DELETE_DATA );
+		delete_option( Options::DELETE_DATA );
 
-		self::assertSame( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_DELETE_DATA ], dws_lpmwc_get_bool_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
-	}
-
-	#[DataProvider( 'stored_ints' )]
-	public function test_an_int_reads_a_whole_number_or_zero( mixed $stored, int $expected ): void {
-		update_option( self::KEY, $stored );
-
-		self::assertSame( $expected, dws_lpmwc_get_int_option( self::KEY ) );
-	}
-
-	#[DataProvider( 'stored_strings' )]
-	public function test_a_string_reads_a_stored_string_or_the_empty_string( mixed $stored, string $expected ): void {
-		update_option( self::KEY, $stored );
-
-		self::assertSame( $expected, dws_lpmwc_get_string_option( self::KEY ) );
+		self::assertSame( Options::DEFAULTS[ Options::DELETE_DATA ], Options::get_bool( Options::DELETE_DATA ) );
 	}
 
 	#[DataProvider( 'stored_lists' )]
 	public function test_a_list_reads_the_stored_strings_in_order( mixed $stored, array $expected ): void {
 		update_option( self::KEY, $stored );
 
-		self::assertSame( $expected, dws_lpmwc_get_list_option( self::KEY ) );
+		self::assertSame( $expected, Options::get_list( self::KEY ) );
 	}
 }

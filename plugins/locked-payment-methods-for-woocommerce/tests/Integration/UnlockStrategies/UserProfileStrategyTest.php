@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
@@ -16,7 +17,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected const string FORM = 'dws_lpmwc_user_profile';
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_USER_PROFILES, Options::FULL_ACCESS_ROLES );
 
 	protected static array $users = array();
 
@@ -43,8 +44,8 @@ final class UserProfileStrategyTest extends TestCase {
 	#[Before]
 	protected function create_the_customer(): void {
 		self::$users['customer'] = self::create_user( 'customer' );
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
-		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod', 'bacs' ) );
+		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 	}
 
 	#[After]
@@ -62,10 +63,10 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	public function test_the_strategy_loads_while_its_switch_is_on_as_v1s_did_by_default(): void {
-		delete_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES );
+		delete_option( Options::UNLOCK_VIA_USER_PROFILES );
 		self::assertTrue( UserProfileStrategy::should_load() );
 
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, 'no' );
+		update_option( Options::UNLOCK_VIA_USER_PROFILES, 'no' );
 		self::assertFalse( UserProfileStrategy::should_load() );
 	}
 
@@ -159,7 +160,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 	public function test_the_profile_shows_nothing_while_there_is_nothing_to_offer(): void {
 		wp_set_current_user( self::$users['administrator'] );
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array() );
+		update_option( Options::LOCKED_METHODS, array() );
 
 		self::assertNull( self::render( self::$users['customer'] )->querySelector( 'input' ) );
 	}

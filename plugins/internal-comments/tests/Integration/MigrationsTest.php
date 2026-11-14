@@ -2,8 +2,10 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\CommentStatusMove;
+use DeepWebSolutions\InternalComments\Migrations;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\InternalComments\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -15,11 +17,11 @@ use PHPUnit\Framework\TestCase;
 final class MigrationsTest extends TestCase {
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS, DWS_IC_OPTION_DELETE_DATA, 'dws-internal-comments_general', 'dws-internal-comments_plugin', 'dws_ic_general_extra' );
+	protected const array OPTIONS = array( Options::POST_TYPES, Options::PRIVATE_COMMENTS, Options::DELETE_DATA, 'dws-internal-comments_general', 'dws-internal-comments_plugin', 'dws_ic_general_extra' );
 
 	#[After]
 	protected function restore_the_revision(): void {
-		update_option( Plugin::PREFIX . '_revision', \count( dws_ic_get_migration_steps() ) );
+		update_option( Plugin::PREFIX . '_revision', \count( Migrations::get_steps() ) );
 	}
 
 	// The runner's time budget lasts for its request, and this process's bootstrap spends it when it migrates a new site, so the row runs as a request of its own.
@@ -33,8 +35,8 @@ final class MigrationsTest extends TestCase {
 
 		do_action( 'internal_comments/migration/run' ); // A batched step runs only from the runner's scheduled hook.
 
-		self::assertSame( \count( dws_ic_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
-		foreach ( DWS_IC_OPTION_DEFAULTS as $row => $default ) {
+		self::assertSame( \count( Migrations::get_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
+		foreach ( Options::DEFAULTS as $row => $default ) {
 			self::assertSame( $default, get_option( $row ) );
 			self::assertSame( 'on', $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $row ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the stored autoload flag.
 		}
@@ -42,25 +44,25 @@ final class MigrationsTest extends TestCase {
 	}
 
 	public function test_the_first_step_keeps_the_settings_a_site_stored(): void {
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'page' ) );
-		update_option( DWS_IC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::POST_TYPES, array( 'page' ) );
+		update_option( Options::DELETE_DATA, 'yes' );
 
-		dws_ic_add_settings();
+		Migrations::get_steps()[0]();
 
-		self::assertSame( array( 'page' ), get_option( DWS_IC_OPTION_POST_TYPES ) );
-		self::assertSame( 'yes', get_option( DWS_IC_OPTION_DELETE_DATA ) );
+		self::assertSame( array( 'page' ), get_option( Options::POST_TYPES ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 	}
 
 	public function test_the_first_step_throws_when_a_default_cannot_be_stored(): void {
 		global $wpdb;
-		delete_option( DWS_IC_OPTION_DELETE_DATA );
-		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . DWS_IC_OPTION_DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
+		delete_option( Options::DELETE_DATA );
+		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
 		$suppressed = $wpdb->suppress_errors();
 		add_filter( 'query', $fail );
 
 		try {
-			$this->expectExceptionObject( new \RuntimeException( 'The option ' . DWS_IC_OPTION_DELETE_DATA . ' could not be stored.' ) );
-			dws_ic_add_settings();
+			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::DELETE_DATA . ' could not be stored.' ) );
+			Migrations::get_steps()[0]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
@@ -77,13 +79,13 @@ final class MigrationsTest extends TestCase {
 		);
 		update_option( 'dws-internal-comments_general', $general );
 		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
-		dws_ic_add_settings();
+		Migrations::get_steps()[0]();
 
-		dws_ic_move_v1_settings();
+		Migrations::get_steps()[1]();
 
-		self::assertSame( array( 'page' ), get_option( DWS_IC_OPTION_POST_TYPES ) );
-		self::assertSame( 'yes', get_option( DWS_IC_OPTION_PRIVATE_COMMENTS ) );
-		self::assertSame( 'yes', get_option( DWS_IC_OPTION_DELETE_DATA ) );
+		self::assertSame( array( 'page' ), get_option( Options::POST_TYPES ) );
+		self::assertSame( 'yes', get_option( Options::PRIVATE_COMMENTS ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 		self::assertSame( 'kept', get_option( 'dws_ic_general_extra' ) );
 		self::assertFalse( get_option( 'dws_ic_general_Not an id' ) );
 		self::assertSame( $general, get_option( 'dws-internal-comments_general' ) );
@@ -93,28 +95,28 @@ final class MigrationsTest extends TestCase {
 	public function test_the_second_step_leaves_the_settings_of_a_site_without_v1s_rows(): void {
 		delete_option( 'dws-internal-comments_general' );
 		delete_option( 'dws-internal-comments_plugin' );
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
+		update_option( Options::POST_TYPES, array( 'post' ) );
 
-		dws_ic_move_v1_settings();
+		Migrations::get_steps()[1]();
 
-		self::assertSame( array( 'post' ), get_option( DWS_IC_OPTION_POST_TYPES ) );
+		self::assertSame( array( 'post' ), get_option( Options::POST_TYPES ) );
 	}
 
 	public function test_the_second_step_throws_when_a_field_cannot_be_stored(): void {
 		global $wpdb;
 		update_option( 'dws-internal-comments_general', array( 'post-types' => array( 'page' ) ) );
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
-		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . DWS_IC_OPTION_POST_TYPES . "'" ) && \str_starts_with( \ltrim( $query ), 'UPDATE' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::POST_TYPES . "'" ) && \str_starts_with( \ltrim( $query ), 'UPDATE' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
 		$suppressed = $wpdb->suppress_errors();
 		add_filter( 'query', $fail );
 
 		try {
-			$this->expectExceptionObject( new \RuntimeException( 'The option ' . DWS_IC_OPTION_POST_TYPES . ' could not be stored.' ) );
-			dws_ic_move_v1_settings();
+			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::POST_TYPES . ' could not be stored.' ) );
+			Migrations::get_steps()[1]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
-			wp_cache_delete( DWS_IC_OPTION_POST_TYPES, 'options' );
+			wp_cache_delete( Options::POST_TYPES, 'options' );
 			wp_cache_delete( 'alloptions', 'options' );
 		}
 	}
@@ -137,7 +139,7 @@ final class MigrationsTest extends TestCase {
 
 		try {
 			wp_count_comments();
-			while ( dws_ic_convert_v1_comments() ) {
+			while ( new CommentStatusMove()->process_batch() ) {
 				continue;
 			}
 		} finally {
@@ -184,11 +186,11 @@ final class MigrationsTest extends TestCase {
 		$wpdb->update( $wpdb->posts, array( 'comment_count' => 4 ), array( 'ID' => $post ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Stands in for v1's count.
 		clean_post_cache( $post );
 
-		self::assertInstanceOf( BatchedMigrationStepInterface::class, dws_ic_get_migration_steps()[2] ?? null );
+		self::assertInstanceOf( CommentStatusMove::class, Migrations::get_steps()[2] ?? null );
 		\WC_Comments::delete_comments_count_cache();
 		wp_count_comments(); // WooCommerce caches the counts before the move, as on a store whose admin screens were open.
 		$batches = 0;
-		while ( dws_ic_convert_v1_comments() ) {
+		while ( new CommentStatusMove()->process_batch() ) {
 			self::assertLessThan( 10000, ++$batches );
 		}
 

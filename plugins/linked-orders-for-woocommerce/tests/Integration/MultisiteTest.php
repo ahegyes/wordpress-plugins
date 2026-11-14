@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -32,9 +33,9 @@ final class MultisiteTest extends TestCase {
 			$request = self::request( 'echo did_action( "linked_orders_for_woocommerce/boot/succeeded" );', '--url=' . get_home_url( $site_id, '/' ) );
 
 			self::assertSame( '1', $request['last'], $request['output'] );
-			self::assertSame( 'no', get_blog_option( $site_id, DWS_LOWC_OPTION_DELETE_DATA ) );
-			self::assertTrue( update_blog_option( $site_id, DWS_LOWC_OPTION_DELETE_DATA, 'yes' ) );
-			self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+			self::assertSame( 'no', get_blog_option( $site_id, Options::DELETE_DATA ) );
+			self::assertTrue( update_blog_option( $site_id, Options::DELETE_DATA, 'yes' ) );
+			self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
 		} finally {
 			wp_delete_site( $site_id );
 		}

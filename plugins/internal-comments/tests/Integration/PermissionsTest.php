@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Permissions;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -67,16 +68,16 @@ final class PermissionsTest extends TestCase {
 
 		self::assertFalse( user_can( self::$users['author'], 'edit_dws_internal_comment', $own ) );
 		self::assertFalse( user_can( self::$users['author'], 'trash_dws_internal_comment', $own ) );
-		get_role( 'author' )?->add_cap( DWS_IC_CAP_EDIT );
-		get_role( 'author' )?->add_cap( DWS_IC_CAP_TRASH );
+		get_role( 'author' )?->add_cap( Capabilities::EDIT );
+		get_role( 'author' )?->add_cap( Capabilities::TRASH );
 		try {
 			self::assertTrue( user_can( self::$users['author'], 'edit_dws_internal_comment', $own ) );
 			self::assertTrue( user_can( self::$users['author'], 'trash_dws_internal_comment', $own ) );
 			self::assertFalse( user_can( self::$users['author'], 'edit_dws_internal_comment', $others ) );
 			self::assertFalse( user_can( self::$users['author'], 'trash_dws_internal_comment', $others ) );
 		} finally {
-			get_role( 'author' )?->remove_cap( DWS_IC_CAP_EDIT );
-			get_role( 'author' )?->remove_cap( DWS_IC_CAP_TRASH );
+			get_role( 'author' )?->remove_cap( Capabilities::EDIT );
+			get_role( 'author' )?->remove_cap( Capabilities::TRASH );
 		}
 		self::assertTrue( user_can( self::$users['administrator'], 'edit_dws_internal_comment', $own ) );
 		self::assertTrue( user_can( self::$users['administrator'], 'trash_dws_internal_comment', $own ) );
@@ -97,7 +98,7 @@ final class PermissionsTest extends TestCase {
 	public function test_core_changes_to_an_internal_comment_need_the_edit_and_the_trash_capability(): void {
 		$internal = $this->comment( $this->post( 'author' ), 'author' );
 		$editor   = get_role( 'editor' );
-		$editor?->add_cap( DWS_IC_CAP_EDIT_OTHERS );
+		$editor?->add_cap( Capabilities::EDIT_OTHERS );
 
 		try {
 			$edit_only = array(
@@ -105,11 +106,11 @@ final class PermissionsTest extends TestCase {
 				user_can( self::$users['editor'], 'trash_dws_internal_comment', $internal ),
 				user_can( self::$users['editor'], 'edit_comment', $internal ),
 			);
-			$editor?->add_cap( DWS_IC_CAP_TRASH_OTHERS );
+			$editor?->add_cap( Capabilities::TRASH_OTHERS );
 			$both = user_can( self::$users['editor'], 'edit_comment', $internal );
 		} finally {
-			$editor?->remove_cap( DWS_IC_CAP_EDIT_OTHERS );
-			$editor?->remove_cap( DWS_IC_CAP_TRASH_OTHERS );
+			$editor?->remove_cap( Capabilities::EDIT_OTHERS );
+			$editor?->remove_cap( Capabilities::TRASH_OTHERS );
 		}
 
 		self::assertSame( array( true, false, false ), $edit_only );
@@ -284,18 +285,18 @@ final class PermissionsTest extends TestCase {
 		remove_all_actions( 'wp_ajax_replyto-comment', -1 ); // WooCommerce's handler for product reviews refuses a request without its nonce.
 		add_filter( 'wp_doing_ajax', '__return_true' );
 		add_filter( 'wp_die_ajax_handler', $stop );
-		get_role( 'editor' )?->remove_cap( DWS_IC_CAP_INSERT );
+		get_role( 'editor' )?->remove_cap( Capabilities::INSERT );
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
 			$without = $refuse( DWS_IC_COMMENT_TYPE );
 			$cased   = $refuse( ' DWS_Internal ' );
 			$public  = $refuse( 'comment' );
-			get_role( 'editor' )?->add_cap( DWS_IC_CAP_INSERT );
+			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
 			wp_get_current_user()->get_role_caps(); // The user's capabilities were read before the role changed.
 			$with = $refuse( DWS_IC_COMMENT_TYPE );
 		} finally {
-			get_role( 'editor' )?->add_cap( DWS_IC_CAP_INSERT );
+			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
 			$GLOBALS['wp_filter']['wp_ajax_replyto-comment'] = $hooked;
 			remove_filter( 'wp_doing_ajax', '__return_true' );
 			remove_filter( 'wp_die_ajax_handler', $stop );

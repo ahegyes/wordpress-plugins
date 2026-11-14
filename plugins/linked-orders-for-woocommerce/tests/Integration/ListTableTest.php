@@ -4,6 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\ListTable;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
@@ -24,7 +25,7 @@ final class ListTableTest extends TestCase {
 	use RegistersOrderTypeTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
+	protected const array OPTIONS = array( Options::MAX_DEPTH );
 
 	protected const array COLUMNS = array(
 		'cb'           => '',
@@ -109,7 +110,7 @@ final class ListTableTest extends TestCase {
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_guest_customer_user"]' ) );
 		self::assertNotNull( $filters->querySelector( 'input[type="hidden"][name="_dws_linked_order_id"]' ) );
 
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '5' );
+		update_option( Options::MAX_DEPTH, '5' );
 		self::assertSame( array( '', '0', '1', '2', '3', '4', '5' ), \array_map( static fn ( \Dom\Element $option ): string => $option->getAttribute( 'value' ) ?? '', \iterator_to_array( $this->parse_filters()->querySelectorAll( 'select[name="_dws_lo_depth"] option' ) ) ) );
 	}
 

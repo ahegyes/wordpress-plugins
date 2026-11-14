@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\AfterClass;
@@ -41,7 +43,7 @@ final class UninstallTest extends TestCase {
 	#[RunInSeparateProcess]
 	public function test_a_consenting_uninstall_removes_a_row_of_every_kind_the_framework_roots_store(): void {
 		$prefix = Plugin::PREFIX . '_';
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		update_option( "{$prefix}notices", array( 'seeded' ) );
 		update_network_option( null, "{$prefix}network_notices", array( 'seeded' ) );
 		set_transient( "{$prefix}boot_failure_seeded", 1, HOUR_IN_SECONDS );
@@ -53,7 +55,7 @@ final class UninstallTest extends TestCase {
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
 		wp_cache_flush();
 
-		self::assertFalse( get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
+		self::assertFalse( get_option( Options::DELETE_DATA ) );
 		self::assertFalse( get_option( "{$prefix}notices" ) );
 		self::assertFalse( get_network_option( null, "{$prefix}network_notices" ) );
 		self::assertFalse( get_transient( "{$prefix}boot_failure_seeded" ) );
@@ -73,12 +75,12 @@ final class UninstallTest extends TestCase {
 
 		// The other tests share the database, so the runner stores again what a new site starts with.
 		dws_lpmwc_plugin()->migrations?->run();
-		self::assertSame( 'no', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
+		self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
 	}
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_in_a_request_that_never_loaded_the_plugin_removes_its_data(): void {
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, array( 7 => array( 'cod' ) ) );
 
 		try {
@@ -100,7 +102,7 @@ final class UninstallTest extends TestCase {
 		global $wpdb;
 
 		\define( 'WP_UNINSTALL_PLUGIN', plugin_basename( DWS_LPMWC_FILE ) );
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		$failing = "DELETE FROM `$wpdb->options` WHERE `option_name` = '" . Plugin::PREFIX . "_revision'";
 		add_filter( 'query', static fn ( string $query ): string => \str_contains( $query, $failing ) ? 'SELECT * FROM dws_lpmwc_missing_table' : $query );
 		add_filter( 'wp_die_handler', static fn (): \Closure => static fn ( string $message, string $title, array $args ): never => throw new \LogicException( $args['response'] . ' ' . $message ) );
@@ -111,10 +113,10 @@ final class UninstallTest extends TestCase {
 			self::fail( 'The uninstall finished.' );
 		} catch ( \LogicException $died ) {
 			self::assertStringStartsWith( '500 Uninstall could not remove everything: option ' . Plugin::PREFIX . '_revision', $died->getMessage() );
-			self::assertSame( 'yes', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
+			self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 		} finally {
 			remove_all_filters( 'query' );
-			delete_option( DWS_LPMWC_OPTION_DELETE_DATA );
+			delete_option( Options::DELETE_DATA );
 			delete_option( Plugin::PREFIX . '_revision' );
 			wp_cache_flush();
 			wp_roles()->for_site();
@@ -128,7 +130,7 @@ final class UninstallTest extends TestCase {
 	public function test_a_consenting_uninstall_removes_the_grants_v1s_rows_and_the_capabilities(): void {
 		global $wpdb;
 
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, array( 7 => array( 'cod' ) ) );
 		foreach ( array( 'dws-wc-lpm_general_locked-payment-methods', 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ) as $v1_option ) {
 			update_option( $v1_option, 'seeded' );
@@ -151,7 +153,7 @@ final class UninstallTest extends TestCase {
 		update_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod' ) );
 
 		try {
-			self::assertTrue( get_role( 'administrator' )?->has_cap( DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS ) );
+			self::assertTrue( get_role( 'administrator' )?->has_cap( Capabilities::UNLOCK_VIA_GROUPS ) );
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
 			wp_cache_flush();
 			wp_roles()->for_site();
@@ -167,7 +169,7 @@ final class UninstallTest extends TestCase {
 			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
 			self::assertSame( '', get_post_meta( $plan, DWS_LPMWC_META_UNLOCKED_METHODS, true ) );
 			self::assertSame( '', get_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
-			self::assertFalse( get_role( 'administrator' )?->has_cap( DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS ) );
+			self::assertFalse( get_role( 'administrator' )?->has_cap( Capabilities::UNLOCK_VIA_GROUPS ) );
 		} finally {
 			$order->delete( true );
 			wp_delete_post( $plan, true );

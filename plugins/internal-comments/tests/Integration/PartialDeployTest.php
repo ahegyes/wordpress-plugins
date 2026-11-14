@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -75,7 +76,7 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
-		update_option( DWS_IC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
@@ -89,10 +90,10 @@ final class PartialDeployTest extends TestCase {
 		);
 
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
-		self::assertSame( 'yes', get_option( DWS_IC_OPTION_DELETE_DATA ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
 
 		\unlink( $log );
-		update_option( DWS_IC_OPTION_DELETE_DATA, DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_DELETE_DATA ] );
+		update_option( Options::DELETE_DATA, Options::DEFAULTS[ Options::DELETE_DATA ] );
 	}
 }

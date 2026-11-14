@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\MetaBox;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -59,11 +60,11 @@ final class MetaBoxTest extends TestCase {
 
 	#[Before]
 	protected function create_posts(): void {
-		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
 			$this->stored[ $option ] = get_option( $option );
 		}
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
-		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		foreach ( array( 'post', 'page' ) as $type ) {
 			$this->$type = (int) wp_insert_post(
 				array(
@@ -113,7 +114,7 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( '-1', $admin->querySelector( '.dws-internal-comments' )?->getAttribute( 'tabindex' ) );
 		self::assertSame( array( 'edit', 'reply', 'trash' ), $this->actions( $admin, $comment ) );
 		self::assertSame( array( 'reply' ), $this->actions( $editor, $comment ) );
-		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'no' );
+		update_option( Options::PRIVATE_COMMENTS, 'no' );
 		self::assertNull( $this->render( 'administrator' )->querySelector( '#dws-ic-new-comment-private' ) );
 	}
 

@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\AdminScreens;
+use DeepWebSolutions\InternalComments\Capabilities;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -49,10 +51,10 @@ final class AdminScreensTest extends TestCase {
 
 	#[Before]
 	protected function create_post(): void {
-		foreach ( array( DWS_IC_OPTION_POST_TYPES, DWS_IC_OPTION_PRIVATE_COMMENTS ) as $option ) {
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
 			$this->stored[ $option ] = get_option( $option );
 		}
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
+		update_option( Options::POST_TYPES, array( 'post' ) );
 		$this->post = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Screens',
@@ -110,7 +112,7 @@ final class AdminScreensTest extends TestCase {
 
 	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
 	public function test_the_column_joins_a_list_after_woocommerce_rebuilds_it(): void {
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'shop_order' ) );
+		update_option( Options::POST_TYPES, array( 'shop_order' ) );
 		$screens = new AdminScreens();
 		$screens->register_hooks();
 
@@ -180,7 +182,7 @@ final class AdminScreensTest extends TestCase {
 	public function test_the_comments_screen_leaves_out_the_rows_its_reader_cannot_see(): void {
 		$open = $this->comment( 'Open' );
 		$this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
-		get_role( 'editor' )?->add_cap( DWS_IC_CAP_SEE_TABLE );
+		get_role( 'editor' )?->add_cap( Capabilities::SEE_TABLE );
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
@@ -194,7 +196,7 @@ final class AdminScreensTest extends TestCase {
 			$rows = new \WP_Comment_Query( $args )->comments;
 			$all  = get_comments( array( 'post_id' => $this->post, 'type' => DWS_IC_COMMENT_TYPE, 'status' => DWS_IC_COMMENT_STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
 		} finally {
-			get_role( 'editor' )?->remove_cap( DWS_IC_CAP_SEE_TABLE );
+			get_role( 'editor' )?->remove_cap( Capabilities::SEE_TABLE );
 		}
 
 		self::assertSame( array( (string) $open ), wp_list_pluck( $rows, 'comment_ID' ) );
@@ -211,8 +213,8 @@ final class AdminScreensTest extends TestCase {
 
 	public function test_the_edit_screen_of_an_internal_comment_shows_its_revisions_and_its_author_its_privacy(): void {
 		global $wp_meta_boxes;
-		update_option( DWS_IC_OPTION_POST_TYPES, array( 'post' ) );
-		update_option( DWS_IC_OPTION_PRIVATE_COMMENTS, 'yes' );
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		$comment = $this->comment( 'Before' );
 		wp_update_comment(
 			array(

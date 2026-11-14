@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Capabilities;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\AfterClass;
@@ -39,8 +41,8 @@ final class UninstallTest extends TestCase {
 
 	// WordPress uninstalls an inactive plugin, so the request loads uninstall.php alone, never the entry file or functions.php.
 	public function test_an_uninstall_in_a_request_that_skips_the_plugin_removes_its_data(): void {
-		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
-		$php = 'uninstall_plugin( "linked-orders-for-woocommerce/linked-orders-for-woocommerce.php" ); echo wp_json_encode( array( defined( "DWS_LOWC_FILE" ), get_option( "' . DWS_LOWC_OPTION_DELETE_DATA . '" ) ) );';
+		update_option( Options::DELETE_DATA, 'yes' );
+		$php = 'uninstall_plugin( "linked-orders-for-woocommerce/linked-orders-for-woocommerce.php" ); echo wp_json_encode( array( defined( "DWS_LOWC_FILE" ), get_option( "' . Options::DELETE_DATA . '" ) ) );';
 
 		try {
 			$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
@@ -51,8 +53,8 @@ final class UninstallTest extends TestCase {
 			self::restore_a_new_sites_data();
 		}
 
-		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
-		self::assertTrue( get_role( 'shop_manager' )?->has_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN ) );
+		self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
+		self::assertTrue( get_role( 'shop_manager' )?->has_cap( Capabilities::CREATE_LINKED_CHILDREN ) );
 	}
 
 	#[RunInSeparateProcess]
@@ -60,7 +62,7 @@ final class UninstallTest extends TestCase {
 		global $wpdb;
 
 		\define( 'WP_UNINSTALL_PLUGIN', plugin_basename( DWS_LOWC_FILE ) );
-		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		$failing = "DELETE FROM `$wpdb->options` WHERE `option_name` = '" . Plugin::PREFIX . "_revision'";
 		add_filter( 'query', static fn ( string $query ): string => \str_contains( $query, $failing ) ? 'SELECT * FROM dws_lowc_missing_table' : $query );
 		add_filter( 'wp_die_handler', static fn (): \Closure => static fn ( string $message, string $title, array $args ): never => throw new \LogicException( $args['response'] . ' ' . $message ) );
@@ -71,10 +73,10 @@ final class UninstallTest extends TestCase {
 			self::fail( 'The uninstall finished.' );
 		} catch ( \LogicException $died ) {
 			self::assertStringStartsWith( '500 Uninstall could not remove everything: option ' . Plugin::PREFIX . '_revision', $died->getMessage() );
-			self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+			self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 		} finally {
 			remove_all_filters( 'query' );
-			delete_option( DWS_LOWC_OPTION_DELETE_DATA );
+			delete_option( Options::DELETE_DATA );
 			delete_option( Plugin::PREFIX . '_revision' );
 			self::restore_a_new_sites_data();
 		}
@@ -83,7 +85,7 @@ final class UninstallTest extends TestCase {
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_after_v1_consent_removes_the_links_on_both_storages_v1s_rows_and_the_capabilities(): void {
 		global $wpdb;
-		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		update_option( 'linked_orders_for_woocommerce_version', array( 'seeded' ) );
 		update_option( 'linked_orders_for_woocommerce_original_version', array( 'seeded' ) );
 		update_option( '_linked_orders_for_woocommerce_admin_notices', array( 'seeded' ) );
@@ -110,11 +112,11 @@ final class UninstallTest extends TestCase {
 			$ids = \implode( ',', \array_map( 'intval', \array_keys( $linked ) ) );
 			self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
 			self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}wc_orders_meta WHERE order_id IN ($ids) AND meta_key LIKE '\\_dws\\_lo\\_%'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
-			foreach ( array( DWS_LOWC_OPTION_DELETE_DATA, 'linked_orders_for_woocommerce_version', 'linked_orders_for_woocommerce_original_version', '_linked_orders_for_woocommerce_admin_notices' ) as $option ) {
+			foreach ( array( Options::DELETE_DATA, 'linked_orders_for_woocommerce_version', 'linked_orders_for_woocommerce_original_version', '_linked_orders_for_woocommerce_admin_notices' ) as $option ) {
 				self::assertFalse( get_option( $option ), "The option $option is still stored." );
 			}
 			self::assertSame( '', get_user_meta( self::USER, '_linked_orders_for_woocommerce_admin_notices', true ) );
-			foreach ( DWS_LOWC_CAPABILITY_GRANTS as $role => $capabilities ) {
+			foreach ( Capabilities::GRANTS as $role => $capabilities ) {
 				foreach ( $capabilities as $capability ) {
 					self::assertFalse( get_role( $role )?->has_cap( $capability ), "The $role role still holds $capability." );
 				}
@@ -136,7 +138,7 @@ final class UninstallTest extends TestCase {
 	#[RunInSeparateProcess]
 	public function test_a_consenting_uninstall_removes_a_row_of_every_kind_the_framework_roots_store(): void {
 		$prefix = Plugin::PREFIX . '_';
-		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		update_option( "{$prefix}notices", array( 'seeded' ) );
 		update_network_option( null, "{$prefix}network_notices", array( 'seeded' ) );
 		set_transient( "{$prefix}boot_failure_seeded", 1, HOUR_IN_SECONDS );
@@ -149,7 +151,7 @@ final class UninstallTest extends TestCase {
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
 			wp_cache_flush();
 
-			self::assertFalse( get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+			self::assertFalse( get_option( Options::DELETE_DATA ) );
 			self::assertFalse( get_option( "{$prefix}notices" ) );
 			self::assertFalse( get_network_option( null, "{$prefix}network_notices" ) );
 			self::assertFalse( get_transient( "{$prefix}boot_failure_seeded" ) );
@@ -170,7 +172,7 @@ final class UninstallTest extends TestCase {
 			self::restore_a_new_sites_data();
 		}
 
-		self::assertSame( 'no', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+		self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
 	}
 
 	// The rows share the database, so a request with the plugin stores again what a new site starts with and grants the capabilities again, as the site's next request and the runner's scheduled hook would, and this process then reads them afresh.

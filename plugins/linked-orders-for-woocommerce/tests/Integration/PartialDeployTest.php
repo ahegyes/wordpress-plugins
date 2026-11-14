@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Plugin;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
@@ -76,8 +77,8 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
-		$stored = get_option( DWS_LOWC_OPTION_DELETE_DATA );
-		update_option( DWS_LOWC_OPTION_DELETE_DATA, 'yes' );
+		$stored = get_option( Options::DELETE_DATA );
+		update_option( Options::DELETE_DATA, 'yes' );
 		$log = (string) \tempnam( \sys_get_temp_dir(), Plugin::PREFIX . '-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
@@ -92,11 +93,11 @@ final class PartialDeployTest extends TestCase {
 
 		try {
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LOWC_FILE ) ) );
-			self::assertSame( 'yes', get_option( DWS_LOWC_OPTION_DELETE_DATA ) );
+			self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 			self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
 		} finally {
 			\unlink( $log );
-			false === $stored ? delete_option( DWS_LOWC_OPTION_DELETE_DATA ) : update_option( DWS_LOWC_OPTION_DELETE_DATA, $stored );
+			false === $stored ? delete_option( Options::DELETE_DATA ) : update_option( Options::DELETE_DATA, $stored );
 		}
 	}
 }

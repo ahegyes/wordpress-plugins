@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -74,7 +75,7 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
+		update_option( Options::DELETE_DATA, 'yes' );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
@@ -88,10 +89,10 @@ final class PartialDeployTest extends TestCase {
 		);
 
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
-		self::assertSame( 'yes', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
 
 		\unlink( $log );
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'no' );
+		update_option( Options::DELETE_DATA, 'no' );
 	}
 }
