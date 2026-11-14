@@ -56,88 +56,62 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 */
 	#[\Override]
 	public function get_section_fields( string $tab_id, string $section_id ): array {
-		// v1's groups, with checkboxes in place of its yes-or-no selects.
-		$groups = array(
-			'general' => array(
-				'title'  => __( 'General settings', 'linked-orders-for-woocommerce' ),
-				'fields' => array(
-					'max-depth'                => array(
-						'title'             => __( 'Maximum linked orders depth', 'linked-orders-for-woocommerce' ),
-						'type'              => 'number',
-						'custom_attributes' => array(
-							'min'  => '1',
-							'max'  => '99',
-							'step' => '1',
-						),
-						'default'           => Options::DEFAULTS[ Options::MAX_DEPTH ],
-						'placeholder'       => Options::DEFAULTS[ Options::MAX_DEPTH ],
-						'desc'              => __( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', 'linked-orders-for-woocommerce' ),
-					),
-					'autocomplete-descendants' => array(
-						'title'   => __( 'Autocomplete descendant orders', 'linked-orders-for-woocommerce' ),
-						'type'    => 'checkbox',
-						'desc'    => __( 'Set every descendant order to completed when its parent order is completed', 'linked-orders-for-woocommerce' ),
-						'default' => Options::DEFAULTS[ Options::AUTOCOMPLETE ],
-					),
+		// v1's group titles, and fields with checkboxes in place of its yes-or-no selects.
+		$titles      = array(
+			'general' => __( 'General settings', 'linked-orders-for-woocommerce' ),
+			'plugin'  => __( 'Plugin settings', 'linked-orders-for-woocommerce' ),
+		);
+		$definitions = array(
+			Options::MAX_DEPTH    => array(
+				'title'             => __( 'Maximum linked orders depth', 'linked-orders-for-woocommerce' ),
+				'type'              => 'number',
+				'custom_attributes' => array(
+					'min'  => '1',
+					'max'  => '99',
+					'step' => '1',
 				),
+				'default'           => Options::DEFAULTS[ Options::MAX_DEPTH ],
+				'placeholder'       => Options::DEFAULTS[ Options::MAX_DEPTH ],
+				'desc'              => __( 'How many levels of children an order can have below it, such as 2 for children and grandchildren.', 'linked-orders-for-woocommerce' ),
 			),
-			'plugin'  => array(
-				'title'  => __( 'Plugin settings', 'linked-orders-for-woocommerce' ),
-				'fields' => array(
-					'remove-data-uninstall' => array(
-						'title'   => __( 'Remove all data on uninstallation', 'linked-orders-for-woocommerce' ),
-						'type'    => 'checkbox',
-						'desc'    => __( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', 'linked-orders-for-woocommerce' ),
-						'default' => Options::DEFAULTS[ Options::DELETE_DATA ],
-					),
-				),
+			Options::AUTOCOMPLETE => array(
+				'title'   => __( 'Autocomplete descendant orders', 'linked-orders-for-woocommerce' ),
+				'type'    => 'checkbox',
+				'desc'    => __( 'Set every descendant order to completed when its parent order is completed', 'linked-orders-for-woocommerce' ),
+				'default' => Options::DEFAULTS[ Options::AUTOCOMPLETE ],
+			),
+			Options::DELETE_DATA  => array(
+				'title'   => __( 'Remove all data on uninstallation', 'linked-orders-for-woocommerce' ),
+				'type'    => 'checkbox',
+				'desc'    => __( 'Delete the plugin\'s settings and the links between orders when the plugin is deleted. This cannot be undone.', 'linked-orders-for-woocommerce' ),
+				'default' => Options::DEFAULTS[ Options::DELETE_DATA ],
 			),
 		);
 
 		$fields = array();
-		foreach ( $groups as $group => $definition ) {
+		foreach ( Options::V1_SETTINGS as $group => $keys ) {
 			/**
 			 * Filters a group's fields, keyed by their v1 ids.
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
-			 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/settings/{group}_fields.
+			 * @deprecated  2.0.0 Use woocommerce_get_settings_advanced.
 			 *
 			 * @param       array<string, Field> $fields The group's fields.
 			 */
-			$group_fields = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group}_settings/get_group_fields", array( $definition['fields'] ), '2.0.0', "linked_orders_for_woocommerce/settings/{$group}_fields" );
+			$group_fields = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group}_settings/get_group_fields", array( \array_map( static fn ( string $key ): array => $definitions[ $key ], $keys ) ), '2.0.0', 'woocommerce_get_settings_advanced' );
 
-			$wc_fields = array();
+			$fields[] = array(
+				'type'  => 'title',
+				'id'    => "dws-lowc_{$group}_start",
+				'title' => $titles[ $group ],
+			);
 			foreach ( $group_fields as $id => $field ) {
-				$wc_fields[] = array( 'id' => \is_string( $field['id'] ?? null ) ? $field['id'] : "dws-lowc_{$group}_$id" ) + $field;
+				$fields[] = array( 'id' => \is_string( $field['id'] ?? null ) ? $field['id'] : ( $keys[ $id ] ?? "dws-lowc_{$group}_$id" ) ) + $field; // A field a v1 callback adds keeps the option v1 stored it under, unless it names its own.
 			}
-
-			/**
-			 * Filters a group's fields, as WooCommerce settings fields whose ids are their options.
-			 *
-			 * @since   2.0.0
-			 * @version 2.0.0
-			 *
-			 * @param   list<Field> $fields The group's fields.
-			 */
-			$wc_fields = apply_filters( "linked_orders_for_woocommerce/settings/{$group}_fields", $wc_fields );
-
-			$fields = \array_merge(
-				$fields,
-				array(
-					array(
-						'type'  => 'title',
-						'id'    => "dws-lowc_{$group}_start",
-						'title' => $definition['title'],
-					),
-				),
-				$wc_fields,
-				array(
-					array(
-						'type' => 'sectionend',
-						'id'   => "dws-lowc_{$group}_end",
-					),
-				)
+			$fields[] = array(
+				'type' => 'sectionend',
+				'id'   => "dws-lowc_{$group}_end",
 			);
 		}
 

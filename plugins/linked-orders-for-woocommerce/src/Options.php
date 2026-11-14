@@ -57,6 +57,24 @@ final class Options {
 		self::DELETE_DATA  => 'no',
 	);
 
+	/**
+	 * The option of each of v1's settings fields, by v1's group and field id, in the order the settings section shows them.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array<string, array<string, string>>
+	 */
+	public const array V1_SETTINGS = array(
+		'general' => array(
+			'max-depth'                => self::MAX_DEPTH,
+			'autocomplete-descendants' => self::AUTOCOMPLETE,
+		),
+		'plugin'  => array(
+			'remove-data-uninstall' => self::DELETE_DATA,
+		),
+	);
+
 	// endregion
 
 	// region MAGIC METHODS
