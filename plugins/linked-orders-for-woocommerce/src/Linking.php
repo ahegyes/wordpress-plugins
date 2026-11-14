@@ -191,7 +191,7 @@ final class Linking {
 	 * @return  int
 	 */
 	public static function get_max_depth(): int {
-		return \filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ Options::MAX_DEPTH ];
+		return \filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? (int) Options::DEFAULTS[ Options::MAX_DEPTH ];
 	}
 
 	// endregion

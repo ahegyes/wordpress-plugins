@@ -44,17 +44,17 @@ final class Options {
 	public const string DELETE_DATA = 'dws-lowc_plugin_remove-data-uninstall';
 
 	/**
-	 * The value each option reads as while nothing valid is stored.
+	 * The default of each option, the value v1 stored as its default, in the form the option stores it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     array<string, bool|int>
+	 * @var     array<string, string>
 	 */
 	public const array DEFAULTS = array(
-		self::MAX_DEPTH    => 1,
-		self::AUTOCOMPLETE => false,
-		self::DELETE_DATA  => false,
+		self::MAX_DEPTH    => '1',
+		self::AUTOCOMPLETE => 'no',
+		self::DELETE_DATA  => 'no',
 	);
 
 	// endregion

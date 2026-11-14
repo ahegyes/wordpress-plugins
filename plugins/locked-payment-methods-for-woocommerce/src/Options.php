@@ -94,22 +94,22 @@ final class Options {
 	public const string UNLOCK_VIA_WC_MEMBERSHIPS = 'dws_lpmwc_unlock_via_wc_memberships';
 
 	/**
-	 * The value each option reads as while nothing valid is stored.
+	 * The default of each option, the value v1 stored as its default, in the form the option stores it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     array<string, bool|int|string|list<string>>
+	 * @var     array<string, string|list<string>>
 	 */
 	public const array DEFAULTS = array(
 		self::LOCKED_METHODS            => array(),
-		self::UNLOCK_VIA_USER_ROLES     => true,
+		self::UNLOCK_VIA_USER_ROLES     => 'yes',
 		self::FULL_ACCESS_ROLES         => array( 'administrator', 'shop_manager' ),
-		self::UNLOCK_VIA_USER_PROFILES  => true,
-		self::UNLOCK_VIA_ORDERS         => false,
-		self::UNLOCK_VIA_GROUPS         => false,
-		self::UNLOCK_VIA_WC_MEMBERSHIPS => false,
-		self::DELETE_DATA               => false,
+		self::UNLOCK_VIA_USER_PROFILES  => 'yes',
+		self::UNLOCK_VIA_ORDERS         => 'no',
+		self::UNLOCK_VIA_GROUPS         => 'no',
+		self::UNLOCK_VIA_WC_MEMBERSHIPS => 'no',
+		self::DELETE_DATA               => 'no',
 	);
 
 	/**
@@ -165,7 +165,7 @@ final class Options {
 	 */
 	public static function get_bool( string $key ): bool {
 		$default = self::get_default( $key );
-		return \filter_var( get_option( $key, $default ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ?? ( true === $default );
+		return \filter_var( get_option( $key, $default ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ?? \filter_var( $default, \FILTER_VALIDATE_BOOL );
 	}
 
 	/**

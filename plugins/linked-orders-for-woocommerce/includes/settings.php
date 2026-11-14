@@ -111,11 +111,11 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
 function dws_lowc_validate_setting( $value, string $field_id, ?string $group = null ) {
 	$key = Options::find_v1_setting( $field_id, $group )[2];
 	if ( Options::MAX_DEPTH === $key ) {
-		return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ $key ], 1 );
+		return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? (int) Options::DEFAULTS[ $key ], 1 );
 	}
 
 	if ( Options::AUTOCOMPLETE === $key || Options::DELETE_DATA === $key ) {
-		return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ $key ];
+		return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? filter_var( Options::DEFAULTS[ $key ], FILTER_VALIDATE_BOOL );
 	}
 
 	return $value;

@@ -40,6 +40,7 @@ final class Migrations {
 	 */
 	public static function get_steps(): array {
 		return array(
+			self::copy_v1_settings( ... ),
 			self::add_settings( ... ),
 			self::move_user_grants( ... ),
 			self::move_order_grants( ... ),
@@ -53,9 +54,9 @@ final class Migrations {
 	// region HELPERS
 
 	/**
-	 * Stores each setting the site has not stored yet.
+	 * Copies each of v1's settings the site has not stored under its own name yet, where v1's row holds a value of the setting's kind, and leaves v1's rows in place, so a site that goes back to v1 still finds its settings.
 	 *
-	 * It takes v1's row where that holds a value of the setting's kind, and the setting's default otherwise, and leaves v1's rows in place, so a site that goes back to v1 still finds its settings.
+	 * The seeding step that follows stores the default of each setting this step leaves unstored.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -64,24 +65,53 @@ final class Migrations {
 	 *
 	 * @return  void
 	 */
+	protected static function copy_v1_settings(): void {
+		$settings = array(
+			'dws-wc-lpm_general_locked-payment-methods' => array( 'dws_lpmwc_locked_payment_methods', 'list' ),
+			'dws-wc-lpm_general_unlock-via-user-role'   => array( 'dws_lpmwc_unlock_via_user_roles', 'bool' ),
+			'dws-wc-lpm_general_full-access-user-roles' => array( 'dws_lpmwc_full_access_user_roles', 'list' ),
+			'dws-wc-lpm_general_unlock-via-user-meta'   => array( 'dws_lpmwc_unlock_via_user_profiles', 'bool' ),
+			'dws-wc-lpm_general_unlock-via-order-meta'  => array( 'dws_lpmwc_unlock_via_orders', 'bool' ),
+			'dws-wc-lpm_integrations_unlock-via-groups' => array( 'dws_lpmwc_unlock_via_groups', 'bool' ),
+			'dws-wc-lpm_integrations_unlock-via-wc-memberships' => array( 'dws_lpmwc_unlock_via_wc_memberships', 'bool' ),
+			'dws-wc-lpm_plugin_remove-data-uninstall'   => array( 'dws_lpmwc_delete_data', 'bool' ),
+		);
+		foreach ( $settings as $v1_key => list( $key, $kind ) ) {
+			$v1 = get_option( $v1_key, null );
+			if ( false !== get_option( $key ) || \is_null( $v1 ) ) {
+				continue;
+			}
+
+			if ( 'list' === $kind ) {
+				$value = \is_array( $v1 ) ? \array_values( \array_filter( $v1, 'is_string' ) ) : null;
+			} else {
+				$enabled = \filter_var( $v1, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE );
+				$value   = \is_null( $enabled ) ? null : ( $enabled ? 'yes' : 'no' );
+			}
+
+			if ( ! \is_null( $value ) && ! add_option( $key, $value, '', true ) ) {
+				throw new \RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			}
+		}
+	}
+
+	/**
+	 * Stores each setting's default in an autoloaded row of its own and leaves a stored setting as it is.
+	 *
+	 * Each release that adds settings lists this step again, so that existing sites store the new defaults.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @throws  \RuntimeException Thrown when a default could not be stored.
+	 *
+	 * @return  void
+	 */
 	protected static function add_settings(): void {
-		foreach ( Options::V1_SETTINGS as $group => $fields ) {
-			foreach ( $fields as $id => $key ) {
-				if ( false !== get_option( $key ) ) {
-					continue;
-				}
-
-				$default = Options::DEFAULTS[ $key ];
-				$v1      = get_option( "dws-wc-lpm_{$group}_$id", null );
-				if ( \is_array( $default ) ) {
-					$value = \is_array( $v1 ) ? \array_values( \array_filter( $v1, 'is_string' ) ) : $default;
-				} else {
-					$value = wc_bool_to_string( \is_null( $v1 ) ? $default : ( \filter_var( $v1, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ?? $default ) ); // filter_var() reads null as false, so an absent row takes the default before it.
-				}
-
-				if ( ! add_option( $key, $value, '', true ) ) {
-					throw new \RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-				}
+		wp_prime_option_caches( \array_keys( Options::DEFAULTS ) );
+		foreach ( Options::DEFAULTS as $key => $value ) {
+			if ( false === get_option( $key ) && ! add_option( $key, $value, '', true ) ) {
+				throw new \RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
 		}
 	}

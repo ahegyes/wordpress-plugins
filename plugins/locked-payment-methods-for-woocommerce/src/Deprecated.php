@@ -114,8 +114,8 @@ final class Deprecated {
 	 */
 	public static function validate_setting( $value, string $key ) {
 		$default = Options::DEFAULTS[ $key ] ?? null;
-		if ( \is_bool( $default ) ) {
-			return \filter_var( $value, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ?? $default;
+		if ( ! \is_array( $default ) ) {
+			return \filter_var( $value, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ?? \filter_var( $default, \FILTER_VALIDATE_BOOL );
 		}
 
 		return \is_array( $value ) ? \array_values( \array_filter( $value, 'is_string' ) ) : $default;

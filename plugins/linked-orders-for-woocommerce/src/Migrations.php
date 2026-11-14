@@ -47,9 +47,9 @@ final class Migrations {
 	// region HELPERS
 
 	/**
-	 * Stores the settings' defaults.
+	 * Stores each setting's default in an autoloaded row of its own and leaves a stored setting as it is.
 	 *
-	 * Every value a v1 site stored stays as it is.
+	 * Each release that adds settings lists this step again, so that existing sites store the new defaults.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -59,13 +59,8 @@ final class Migrations {
 	 * @return  void
 	 */
 	protected static function add_settings(): void {
-		$defaults = array(
-			Options::MAX_DEPTH    => (string) Options::DEFAULTS[ Options::MAX_DEPTH ],
-			Options::AUTOCOMPLETE => wc_bool_to_string( Options::DEFAULTS[ Options::AUTOCOMPLETE ] ),
-			Options::DELETE_DATA  => wc_bool_to_string( Options::DEFAULTS[ Options::DELETE_DATA ] ),
-		);
-
-		foreach ( $defaults as $key => $value ) {
+		wp_prime_option_caches( \array_keys( Options::DEFAULTS ) );
+		foreach ( Options::DEFAULTS as $key => $value ) {
 			if ( false === get_option( $key ) && ! add_option( $key, $value, '', true ) ) {
 				throw new \RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
