@@ -182,4 +182,45 @@ final class UninstallTest extends TestCase {
 			do_action( 'wp_loaded' );
 		}
 	}
+
+	#[RunInSeparateProcess]
+	public function test_an_uninstall_on_a_site_that_never_ran_the_update_reads_its_consent_from_v1s_row(): void {
+		delete_option( Options::DELETE_DATA );
+		update_option( 'dws-wc-lpm_plugin_remove-data-uninstall', 'yes' );
+		update_option( GroupsStrategy::OPTION, array( 7 => array( 'cod' ) ) );
+
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
+			wp_cache_flush();
+			wp_roles()->for_site();
+
+			self::assertFalse( get_option( GroupsStrategy::OPTION ) );
+			self::assertFalse( get_option( 'dws-wc-lpm_plugin_remove-data-uninstall' ) );
+		} finally {
+			// The other tests share the database, so v1's consent and the group's unlocked methods go, the runner stores again what a new site starts with, from the first step, which a failed pass would otherwise skip, and the capability grants act again.
+			delete_option( 'dws-wc-lpm_plugin_remove-data-uninstall' );
+			delete_option( GroupsStrategy::OPTION );
+			delete_option( Plugin::PREFIX . '_revision' );
+			dws_lpmwc_plugin()->migrations?->run();
+			do_action( 'wp_loaded' );
+		}
+	}
+
+	#[RunInSeparateProcess]
+	public function test_an_uninstall_keeps_the_grants_where_the_stored_setting_refuses_whatever_v1s_row_holds(): void {
+		update_option( Options::DELETE_DATA, 'no' );
+		update_option( 'dws-wc-lpm_plugin_remove-data-uninstall', 'yes' );
+		update_option( GroupsStrategy::OPTION, array( 7 => array( 'cod' ) ) );
+
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
+			wp_cache_flush();
+
+			self::assertSame( array( 7 => array( 'cod' ) ), get_option( GroupsStrategy::OPTION ) );
+			self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
+		} finally {
+			delete_option( 'dws-wc-lpm_plugin_remove-data-uninstall' );
+			delete_option( GroupsStrategy::OPTION );
+		}
+	}
 }

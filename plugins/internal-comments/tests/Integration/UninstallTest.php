@@ -152,8 +152,9 @@ final class UninstallTest extends TestCase {
 	}
 
 	#[RunInSeparateProcess]
-	public function test_an_uninstall_without_consent_keeps_the_internal_comments(): void {
+	public function test_an_uninstall_without_consent_keeps_the_internal_comments_whatever_v1s_row_holds(): void {
 		update_option( Options::DELETE_DATA, 'no' );
+		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
 		$post     = wp_insert_post( array( 'post_title' => 'Kept' ) );
 		$internal = wp_insert_comment(
 			array(
@@ -163,13 +164,50 @@ final class UninstallTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
-		wp_cache_flush();
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
+			wp_cache_flush();
 
-		self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
-		self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
+			self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
+			self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
+		} finally {
+			delete_option( 'dws-internal-comments_plugin' );
+			wp_delete_post( $post, true );
+		}
+	}
 
-		wp_delete_post( $post, true );
+	#[RunInSeparateProcess]
+	public function test_an_uninstall_on_a_site_that_never_ran_the_update_reads_its_consent_from_v1s_row(): void {
+		delete_option( Options::DELETE_DATA );
+		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
+		$post     = wp_insert_post( array( 'post_title' => 'Never migrated' ) );
+		$internal = wp_insert_comment(
+			array(
+				'comment_post_ID' => $post,
+				'comment_content' => 'Never migrated',
+				'comment_type'    => 'dws_internal',
+			)
+		);
+
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
+			wp_cache_flush();
+			wp_roles()->for_site();
+
+			self::assertNull( get_comment( $internal ) );
+			self::assertFalse( get_option( 'dws-internal-comments_plugin' ) );
+		} finally {
+			// The other tests share the database, so v1's consent goes, the roles get their capabilities back, and the runner stores again what a new site starts with, from the first step, which a failed pass would otherwise skip.
+			delete_option( 'dws-internal-comments_plugin' );
+			delete_option( Plugin::PREFIX . '_revision' );
+			foreach ( Capabilities::GRANTS as $role => $capabilities ) {
+				foreach ( $capabilities as $capability ) {
+					get_role( $role )?->add_cap( $capability );
+				}
+			}
+			do_action( 'internal_comments/migration/run' );
+			wp_delete_post( $post, true );
+		}
 	}
 
 	#[RunInSeparateProcess]
