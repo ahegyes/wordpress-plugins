@@ -23,19 +23,6 @@ final class OptionsTest extends TestCase {
 		);
 	}
 
-	public static function submitted_depths(): array {
-		return array(
-			'one'      => array( '1', '1' ),
-			'padded'   => array( ' 3 ', '3' ),
-			'zero'     => array( '0', null ),
-			'negative' => array( '-3', null ),
-			'decimal'  => array( '2.5', null ),
-			'word'     => array( 'three', null ),
-			'empty'    => array( '', null ),
-			'array'    => array( array( '3' ), null ),
-		);
-	}
-
 	public function test_the_settings_keep_the_keys_v1_stored_them_under(): void {
 		self::assertSame( 'dws-lowc_general_max-depth', Options::MAX_DEPTH );
 		self::assertSame( 'dws-lowc_general_autocomplete-descendants', Options::AUTOCOMPLETE );
@@ -67,12 +54,5 @@ final class OptionsTest extends TestCase {
 		update_option( Options::MAX_DEPTH, $stored );
 
 		self::assertSame( $expected, dws_lowc_get_max_depth() );
-	}
-
-	#[DataProvider( 'submitted_depths' )]
-	public function test_a_submitted_depth_validates_as_a_whole_number_of_at_least_one( mixed $submitted, ?string $expected ): void {
-		$validated = dws_lowc_validate_max_depth( $submitted );
-
-		\is_null( $expected ) ? self::assertInstanceOf( \WP_Error::class, $validated ) : self::assertSame( $expected, $validated );
 	}
 }

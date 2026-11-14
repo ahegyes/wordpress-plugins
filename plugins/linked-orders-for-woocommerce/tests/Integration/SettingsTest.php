@@ -36,11 +36,12 @@ final class SettingsTest extends TestCase {
 
 	public static function invalid_depths(): array {
 		return array(
-			'zero'     => array( '0' ),
-			'negative' => array( '-2' ),
-			'decimal'  => array( '2.5' ),
-			'word'     => array( 'three' ),
-			'empty'    => array( '' ),
+			'zero'     => array( '0', 'Enter a number of at least 1.' ),
+			'negative' => array( '-2', 'Enter a number of at least 1.' ),
+			'decimal'  => array( '2.5', 'Enter a number in steps of 1 from 1.' ),
+			'too-deep' => array( '100', 'Enter a number of at most 99.' ),
+			'word'     => array( 'three', 'Enter a number, such as 12 or 3.5.' ),
+			'exponent' => array( '1e20', 'Enter a number of at most 99.' ),
 		);
 	}
 
@@ -71,6 +72,7 @@ final class SettingsTest extends TestCase {
 		self::assertSame( '1', $form->getElementById( Options::MAX_DEPTH )?->getAttribute( 'value' ) );
 		self::assertSame( '1', $form->getElementById( Options::MAX_DEPTH )?->getAttribute( 'min' ) );
 		self::assertSame( '99', $form->getElementById( Options::MAX_DEPTH )?->getAttribute( 'max' ) );
+		self::assertSame( '1', $form->getElementById( Options::MAX_DEPTH )?->getAttribute( 'placeholder' ) );
 		self::assertSame( 'checkbox', $form->getElementById( Options::AUTOCOMPLETE )?->getAttribute( 'type' ) );
 		self::assertFalse( $form->getElementById( Options::AUTOCOMPLETE )?->hasAttribute( 'checked' ) );
 		self::assertSame( 'checkbox', $form->getElementById( Options::DELETE_DATA )?->getAttribute( 'type' ) );
@@ -114,13 +116,26 @@ final class SettingsTest extends TestCase {
 	}
 
 	#[DataProvider( 'invalid_depths' )]
-	public function test_a_depth_that_is_not_a_whole_number_of_at_least_one_keeps_the_stored_depth( string $posted ): void {
+	public function test_a_depth_that_is_not_a_whole_number_from_one_to_ninety_nine_keeps_the_stored_depth( string $posted, string $reason ): void {
 		update_option( Options::MAX_DEPTH, '4' );
 
 		$this->save( array( Options::MAX_DEPTH => $posted ) );
 
 		self::assertSame( '4', get_option( Options::MAX_DEPTH ) );
-		self::assertSame( array( 'Maximum linked orders depth was not saved and keeps its previous value. The other changes were saved. Enter a whole number of 1 or more, such as 2.' ), new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->getValue() );
+		self::assertSame( array( "Maximum linked orders depth was not saved and keeps its previous value. The other changes were saved. $reason" ), new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->getValue() );
+	}
+
+	public function test_an_emptied_depth_reads_as_the_default_its_placeholder_shows(): void {
+		update_option( Options::MAX_DEPTH, '4' );
+
+		$this->save( array( Options::MAX_DEPTH => '' ) );
+		$control = $this->render()->getElementById( Options::MAX_DEPTH );
+
+		self::assertSame( '', get_option( Options::MAX_DEPTH ) );
+		self::assertSame( 1, dws_lowc_get_max_depth() );
+		self::assertSame( array(), new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->getValue() );
+		self::assertSame( '', $control?->getAttribute( 'value' ) );
+		self::assertSame( '1', $control?->getAttribute( 'placeholder' ) );
 	}
 
 	public function test_a_whole_depth_of_at_least_one_is_stored(): void {
