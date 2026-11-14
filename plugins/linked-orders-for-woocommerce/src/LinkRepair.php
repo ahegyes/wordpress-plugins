@@ -32,7 +32,7 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 		$page = \filter_var( get_option( 'dws_lowc_link_repair_page', 1 ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 1;
 
 		$ids = wc_get_orders(
-			dws_lowc_get_meta_key_args( DWS_LOWC_META_PARENT ) + array(
+			Linking::get_meta_key_args( Linking::META_PARENT ) + array(
 				'type'    => dws_lowc_get_supported_order_types(),
 				'status'  => \array_values( get_post_stati() ),
 				'limit'   => 50,
@@ -46,7 +46,7 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 		$ids       = \is_array( $ids ) ? $ids : array();
 		$child_ids = static fn ( \DWS_Order_Node $node ): array => \array_map( static fn ( \DWS_Order_Node $child ): int => $child->get_order()->get_id(), $node->get_children() );
 		$owner     = wp_generate_uuid4();
-		$lock      = dws_lowc_acquire_linking_lock( $owner );
+		$lock      = Linking::acquire_lock( $owner );
 		if ( \is_null( $lock ) ) {
 			return true;
 		}
@@ -58,19 +58,19 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 					continue;
 				}
 
-				dws_lowc_refresh_links( $node->get_order() );
+				Linking::refresh_links( $node->get_order() );
 				$order_id = $node->get_order()->get_id();
 				$parent   = $node->get_parent();
 				$depth    = 0;
 				if ( ! \is_null( $parent ) ) {
-					dws_lowc_refresh_links( $parent->get_order() );
+					Linking::refresh_links( $parent->get_order() );
 					$depth = $parent->get_depth() + 1;
 					if ( ! \in_array( $order_id, $child_ids( $parent ), true ) ) {
 						$parent->set_children( array( ...$parent->get_children(), $node ) );
 						$parent->save();
 						$check = dws_lowc_get_order_node( $parent->get_order()->get_id() );
 						if ( ! \is_null( $check ) ) {
-							dws_lowc_refresh_links( $check->get_order() );
+							Linking::refresh_links( $check->get_order() );
 						}
 
 						if ( \is_null( $check ) || ! \in_array( $order_id, $child_ids( $check ), true ) ) {
@@ -80,10 +80,10 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 				}
 
 				if ( $depth !== $node->get_depth() ) {
-					dws_lowc_store_depths( $order_id, $depth );
+					Linking::store_depths( $order_id, $depth );
 					$check = dws_lowc_get_order_node( $order_id );
 					if ( ! \is_null( $check ) ) {
-						dws_lowc_refresh_links( $check->get_order() );
+						Linking::refresh_links( $check->get_order() );
 					}
 
 					if ( \is_null( $check ) || $depth !== $check->get_depth() ) {

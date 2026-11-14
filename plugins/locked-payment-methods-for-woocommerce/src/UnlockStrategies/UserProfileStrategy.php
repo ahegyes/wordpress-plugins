@@ -45,6 +45,16 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	protected const string COLUMN = Plugin::PREFIX . '_unlocked_for';
 
+	/**
+	 * The user option, under each site's table prefix, that holds the ids of the payment methods unlocked for the user on that site.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string USER_OPTION = 'dws_lpmwc_unlocked_payment_methods';
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -102,14 +112,14 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
-		$options = dws_lpmwc_get_grant_choices( dws_lpmwc_get_user_unlocked_payment_method_ids( $object_id ), $object_id );
+		$options = GrantChoices::get( self::get_unlocked_ids( $object_id ), $object_id );
 		return array(
 			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_USER_PROFILES,
 			'fields'     => array() === $options ? array() : array(
 				array(
 					'type'    => 'checkboxes',
-					'id'      => dws_lpmwc_get_user_grants_key(),
+					'id'      => self::get_grants_key(),
 					'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 					'desc'    => __( 'The user may pay with these methods for all their future orders and their unpaid orders.', 'locked-payment-methods-for-woocommerce' ),
 					'options' => $options,
@@ -134,7 +144,22 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @return  bool
 	 */
 	public static function unlocks( string $gateway_id, int $user_id ): bool {
-		return \in_array( $gateway_id, dws_lpmwc_get_user_unlocked_payment_method_ids( $user_id ), true );
+		return \in_array( $gateway_id, self::get_unlocked_ids( $user_id ), true );
+	}
+
+	/**
+	 * Returns the ids of the payment methods unlocked for a user on the current site, read from the site's own key, since get_user_option() falls back to a key every site shares.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $user_id The user's id.
+	 *
+	 * @return  string[]
+	 */
+	public static function get_unlocked_ids( int $user_id ): array {
+		$ids = get_user_meta( $user_id, self::get_grants_key(), true );
+		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
 	}
 
 	// endregion
@@ -190,7 +215,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 			return $output;
 		}
 
-		$granted = dws_lpmwc_get_user_unlocked_payment_method_ids( $user_id );
+		$granted = self::get_unlocked_ids( $user_id );
 		$lines   = array();
 		foreach ( Safeguards::get_locked_payment_method_ids() as $id ) {
 			$state = match ( true ) {
@@ -199,7 +224,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 				default                                             => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
 			};
 			/* translators: 1: payment method title, 2: the payment method's state for the user. */
-			$lines[] = esc_html( \sprintf( __( '%1$s: %2$s', 'locked-payment-methods-for-woocommerce' ), dws_lpmwc_get_payment_method_title( $id ), $state ) );
+			$lines[] = esc_html( \sprintf( __( '%1$s: %2$s', 'locked-payment-methods-for-woocommerce' ), GrantChoices::get_payment_method_title( $id ), $state ) );
 		}
 
 		return \implode( '<br />', $lines );
@@ -225,7 +250,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$active = $this->get_active_filter();
 		\printf( '<label class="screen-reader-text" for="%1$s">%2$s</label><select name="%1$s" id="%1$s"><option value="">%3$s</option>', esc_attr( $name ), esc_html__( 'Filter by unlocked payment method', 'locked-payment-methods-for-woocommerce' ), esc_html__( 'Unlocked for…', 'locked-payment-methods-for-woocommerce' ) );
 		foreach ( $locked as $id ) {
-			\printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $id ), selected( $active, $id, false ), esc_html( dws_lpmwc_get_payment_method_title( $id ) ) );
+			\printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $id ), selected( $active, $id, false ), esc_html( GrantChoices::get_payment_method_title( $id ) ) );
 		}
 		echo '</select>';
 		submit_button( _x( 'Filter', 'users screen', 'locked-payment-methods-for-woocommerce' ), '', $which, false, array( 'id' => "{$name}_submit" ) );
@@ -250,7 +275,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$meta_query         = $args['meta_query'] ?? array();
 		$meta_query         = \is_array( $meta_query ) ? $meta_query : array();
 		$meta_query[]       = array(
-			'key'     => dws_lpmwc_get_user_grants_key(),
+			'key'     => self::get_grants_key(),
 			'value'   => '"' . $active . '"', // Matches the id as one element of the stored, serialized list.
 			'compare' => 'LIKE',
 		);
@@ -277,6 +302,21 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		return \in_array( $value, Safeguards::get_locked_payment_method_ids(), true ) ? $value : '';
+	}
+
+	/**
+	 * Returns the current site's user meta key for the payment methods unlocked for a user.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb WordPress's database access.
+	 *
+	 * @return  string
+	 */
+	protected static function get_grants_key(): string {
+		global $wpdb;
+		return $wpdb->get_blog_prefix() . self::USER_OPTION;
 	}
 
 	// endregion

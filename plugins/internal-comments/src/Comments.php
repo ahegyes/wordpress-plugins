@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments;
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -15,6 +16,40 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Com
  * @version 2.0.0
  */
 final class Comments implements ComponentInterface {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The comment type of internal comments, which v1 stored them under.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string TYPE = 'dws_internal';
+
+	/**
+	 * The status internal comments are stored under, which no WordPress query of comments includes unless it names it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string STATUS = 'dws_internal';
+
+	/**
+	 * The comment meta key that holds 'yes' on an internal comment its author marked private.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string META_PRIVATE = 'dws_ic_is_private';
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -38,6 +73,119 @@ final class Comments implements ComponentInterface {
 		add_action( 'delete_comment', array( $this, 'keep_replies_private' ) );
 		add_action( 'pre_get_comments', array( $this, 'hide_unmoved_comments' ) );
 		add_filter( 'comment_feed_where', array( $this, 'hide_unmoved_feed_comments' ) );
+	}
+
+	// endregion
+
+	// region METHODS
+
+	/**
+	 * Returns a post's type, or an order's type where WooCommerce stores the order in its order tables, or null when there is no such post or order.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|null $post_id Optional. The post's or order's id. Default is the current post.
+	 *
+	 * @return  string|null
+	 */
+	public static function get_post_type( ?int $post_id = null ): ?string {
+		$post_type = get_post_type( $post_id );
+		$post_id   = $post_id ?? get_the_ID();
+
+		// An order in the order tables has no post, or only a placeholder, so WooCommerce names its type.
+		if ( ( false === $post_type || 'shop_order_placehold' === $post_type ) && \is_int( $post_id ) && $post_id > 0 && \class_exists( OrderUtil::class ) ) {
+			$post_type = OrderUtil::get_order_type( $post_id );
+		}
+
+		return \is_string( $post_type ) && '' !== $post_type ? $post_type : null;
+	}
+
+	/**
+	 * Returns the ids of the users who wrote the comments that make an internal comment private, being the comment and those of its ancestors marked private, or null for a comment that is not internal.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $comment The comment's id, the comment, or an array with its comment_ID.
+	 *
+	 * @return  list<int>|null
+	 */
+	public static function get_private_owners( $comment ): ?array {
+		$comment = dws_ic_get_comment( $comment );
+		if ( \is_null( $comment ) || self::TYPE !== $comment->comment_type ) {
+			return null;
+		}
+
+		$owners = array();
+		$node   = $comment;
+		while ( ! \is_null( $node ) ) {
+			if ( true === \filter_var( get_comment_meta( (int) $node->comment_ID, self::META_PRIVATE, true ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ) {
+				$owners[] = (int) $node->user_id;
+			}
+
+			$node = dws_ic_get_comment( $node->comment_parent );
+		}
+
+		return $owners;
+	}
+
+	/**
+	 * Returns the types a comment query leaves out with internal comments added, keeping every type it already leaves out but the empty one, since that names the comments older WordPress stored without a type.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $excluded The query's type__not_in argument.
+	 *
+	 * @return  list<mixed>
+	 */
+	public static function exclude_internal_type( $excluded ): array {
+		$types = array();
+		foreach ( (array) $excluded as $type ) {
+			if ( '' !== $type ) {
+				$types[] = $type;
+			}
+		}
+
+		$types[] = self::TYPE;
+		return $types;
+	}
+
+	/**
+	 * Returns whether a comment query names internal comments by their type, as the plugin's own queries do.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<mixed> $query_vars The comment query's arguments.
+	 *
+	 * @return  bool
+	 */
+	public static function query_names_internal_type( array $query_vars ): bool {
+		return \in_array( self::TYPE, \array_merge( (array) ( $query_vars['type'] ?? array() ), (array) ( $query_vars['type__in'] ?? array() ) ), true );
+	}
+
+	/**
+	 * Returns whether any internal comment replies to a comment, whatever its status.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $comment_id The comment's id.
+	 *
+	 * @return  bool
+	 */
+	public static function has_replies( int $comment_id ): bool {
+		$replies = get_comments(
+			array(
+				'parent' => $comment_id,
+				'type'   => self::TYPE,
+				'status' => 'any',
+				'count'  => true,
+			)
+		);
+		return \is_int( $replies ) && 0 < $replies;
 	}
 
 	// endregion
@@ -76,7 +224,7 @@ final class Comments implements ComponentInterface {
 
 		$comment = dws_ic_get_comment( $comment_id );
 		if ( ! \is_null( $comment ) ) {
-			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, $replaced, $comment );
+			wp_transition_comment_status( self::STATUS, $replaced, $comment );
 		}
 	}
 
@@ -93,13 +241,13 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function announce_kept_internal( int|string $new_status, int|string $old_status, mixed $comment ): void {
-		if ( ! $comment instanceof \WP_Comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || DWS_IC_COMMENT_STATUS === $new_status ) {
+		if ( ! $comment instanceof \WP_Comment || self::TYPE !== $comment->comment_type || self::STATUS === $new_status ) {
 			return;
 		}
 
 		$stored = dws_ic_get_comment( (int) $comment->comment_ID );
-		if ( ! \is_null( $stored ) && DWS_IC_COMMENT_STATUS === $stored->comment_approved ) {
-			wp_transition_comment_status( DWS_IC_COMMENT_STATUS, (string) $new_status, $stored );
+		if ( ! \is_null( $stored ) && self::STATUS === $stored->comment_approved ) {
+			wp_transition_comment_status( self::STATUS, (string) $new_status, $stored );
 		}
 	}
 
@@ -133,7 +281,7 @@ final class Comments implements ComponentInterface {
 		$comments = get_comments(
 			array(
 				'post_id' => $post_id,
-				'type'    => DWS_IC_COMMENT_TYPE,
+				'type'    => self::TYPE,
 				'status'  => array( 'hold', 'approve', 'spam' ),
 				'fields'  => 'ids',
 			)
@@ -155,7 +303,7 @@ final class Comments implements ComponentInterface {
 	 * @return  array<string, mixed>|\WP_Error
 	 */
 	public function filter_update_data( array|\WP_Error $data, array $comment ): array|\WP_Error {
-		if ( is_wp_error( $data ) || DWS_IC_COMMENT_TYPE !== ( $comment['comment_type'] ?? null ) ) {
+		if ( is_wp_error( $data ) || self::TYPE !== ( $comment['comment_type'] ?? null ) ) {
 			return $data;
 		}
 
@@ -187,14 +335,14 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function keep_replies_private( int|string $comment_id ): void {
-		if ( true !== dws_ic_is_internal_comment( $comment_id ) || true !== \filter_var( get_comment_meta( (int) $comment_id, DWS_IC_META_PRIVATE, true ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ) {
+		if ( true !== dws_ic_is_internal_comment( $comment_id ) || true !== \filter_var( get_comment_meta( (int) $comment_id, self::META_PRIVATE, true ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ) {
 			return;
 		}
 
 		$replies = get_comments(
 			array(
 				'parent' => (int) $comment_id,
-				'type'   => DWS_IC_COMMENT_TYPE,
+				'type'   => self::TYPE,
 				'status' => 'any',
 				'fields' => 'ids',
 			)
@@ -204,7 +352,7 @@ final class Comments implements ComponentInterface {
 		remove_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ) );
 		try {
 			foreach ( \is_array( $replies ) ? $replies : array() as $reply ) {
-				update_comment_meta( (int) $reply, DWS_IC_META_PRIVATE, 'yes' );
+				update_comment_meta( (int) $reply, self::META_PRIVATE, 'yes' );
 			}
 		} finally {
 			add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
@@ -222,11 +370,11 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function hide_unmoved_comments( \WP_Comment_Query $query ): void {
-		if ( ! CommentStatusMove::is_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+		if ( ! CommentStatusMove::is_pending() || self::query_names_internal_type( $query->query_vars ) || \in_array( self::STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
 			return;
 		}
 
-		$query->query_vars['type__not_in'] = dws_ic_exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
+		$query->query_vars['type__not_in'] = self::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 	}
 
 	/**
@@ -243,7 +391,7 @@ final class Comments implements ComponentInterface {
 	 */
 	public function hide_unmoved_feed_comments( string $where ): string {
 		global $wpdb;
-		return CommentStatusMove::is_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
+		return CommentStatusMove::is_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, self::TYPE ) ?? '' ) : $where;
 	}
 
 	/**
@@ -260,13 +408,13 @@ final class Comments implements ComponentInterface {
 	 * @return  mixed
 	 */
 	public function guard_privacy( mixed $check, int $comment_id, string $meta_key, mixed $meta_value = null ): mixed {
-		if ( DWS_IC_META_PRIVATE !== $meta_key ) {
+		if ( self::META_PRIVATE !== $meta_key ) {
 			return $check;
 		}
 
 		// A comment turns private only before anyone replies, since a reply's author would otherwise own the private thread once the comment above is deleted.
-		$turns_private = true === \filter_var( $meta_value, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) && true !== \filter_var( get_comment_meta( $comment_id, DWS_IC_META_PRIVATE, true ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE );
-		if ( $turns_private && dws_ic_has_replies( $comment_id ) ) {
+		$turns_private = true === \filter_var( $meta_value, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) && true !== \filter_var( get_comment_meta( $comment_id, self::META_PRIVATE, true ), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE );
+		if ( $turns_private && self::has_replies( $comment_id ) ) {
 			return false;
 		}
 
@@ -298,11 +446,11 @@ final class Comments implements ComponentInterface {
 		global $wpdb;
 
 		$comment = dws_ic_get_comment( $comment_id );
-		if ( \is_null( $comment ) || DWS_IC_COMMENT_TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( DWS_IC_COMMENT_STATUS, 'trash', 'post-trashed' ), true ) ) {
+		if ( \is_null( $comment ) || self::TYPE !== $comment->comment_type || \in_array( $comment->comment_approved, array( self::STATUS, 'trash', 'post-trashed' ), true ) ) {
 			return null;
 		}
 
-		$wpdb->update( $wpdb->comments, array( 'comment_approved' => DWS_IC_COMMENT_STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
+		$wpdb->update( $wpdb->comments, array( 'comment_approved' => self::STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
 		clean_comment_cache( (int) $comment->comment_ID );
 		wp_update_comment_count( (int) $comment->comment_post_ID );
 		return $comment->comment_approved;

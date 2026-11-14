@@ -46,6 +46,16 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 */
 	protected const string ENTRY = Plugin::PREFIX . '_group';
 
+	/**
+	 * The option that maps each Groups group's id to the ids of the payment methods unlocked for its members.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string OPTION = 'dws_lpmwc_groups_unlocked_payment_methods';
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -126,7 +136,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			return false;
 		}
 
-		$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
+		$groups = self::get_unlocked_ids();
 		foreach ( (array) new \Groups_User( $user_id )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
 			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
 				return true;
@@ -134,6 +144,26 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns the ids of the payment methods unlocked for each Groups group's members, by group id.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  array<int, string[]>
+	 */
+	public static function get_unlocked_ids(): array {
+		$stored = get_option( self::OPTION, array() );
+		$groups = array();
+		foreach ( \is_array( $stored ) ? $stored : array() as $group_id => $ids ) {
+			if ( \is_int( $group_id ) && \is_array( $ids ) ) {
+				$groups[ $group_id ] = \array_values( \array_filter( $ids, 'is_string' ) );
+			}
+		}
+
+		return $groups;
 	}
 
 	// endregion
@@ -173,7 +203,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			return $output;
 		}
 
-		$value = dws_lpmwc_get_groups_unlocked_payment_method_ids()[ $group_id ] ?? array();
+		$value = self::get_unlocked_ids()[ $group_id ] ?? array();
 		return $output . '<div class="field"><p>' . esc_html( $field['title'] ) . '</p>' . Forms::render_control( $field, $value, self::ENTRY . '[' . self::FIELD . ']', self::FIELD ) . '</div>';
 	}
 
@@ -202,9 +232,9 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			return;
 		}
 
-		$groups              = dws_lpmwc_get_groups_unlocked_payment_method_ids();
+		$groups              = self::get_unlocked_ids();
 		$groups[ $group_id ] = \is_array( $result['values'][ self::FIELD ] ) ? \array_values( \array_filter( $result['values'][ self::FIELD ], 'is_string' ) ) : array();
-		update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, \array_filter( $groups ), true );
+		update_option( self::OPTION, \array_filter( $groups ), true );
 	}
 
 	/**
@@ -218,10 +248,10 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @return  void
 	 */
 	public function forget_group( int $group_id ): void {
-		$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
+		$groups = self::get_unlocked_ids();
 		if ( isset( $groups[ $group_id ] ) ) {
 			unset( $groups[ $group_id ] );
-			update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, $groups, true );
+			update_option( self::OPTION, $groups, true );
 		}
 	}
 
@@ -257,7 +287,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			'id'      => self::FIELD,
 			'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 			'desc'    => __( 'The group\'s members, and the members of its subgroups, may pay with these methods.', 'locked-payment-methods-for-woocommerce' ),
-			'options' => dws_lpmwc_get_grant_choices( dws_lpmwc_get_groups_unlocked_payment_method_ids()[ $group_id ] ?? array(), 0 ),
+			'options' => GrantChoices::get( self::get_unlocked_ids()[ $group_id ] ?? array(), 0 ),
 		);
 	}
 

@@ -2,6 +2,11 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods;
 
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
+
 \defined( 'ABSPATH' ) || exit;
 
 /**
@@ -126,7 +131,7 @@ final class Migrations {
 		) : array( get_current_blog_id() );
 		foreach ( $grants as $user_id => $ids ) {
 			foreach ( $sites as $site_id ) {
-				$key     = $wpdb->get_blog_prefix( $site_id ) . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS;
+				$key     = $wpdb->get_blog_prefix( $site_id ) . UserProfileStrategy::USER_OPTION;
 				$current = get_user_meta( $user_id, $key, true );
 				$merged  = \array_values( \array_unique( \array_merge( \is_array( $current ) ? \array_filter( $current, 'is_string' ) : array(), $ids ) ) );
 				if ( $merged !== $current && false === update_user_meta( $user_id, $key, wp_slash( $merged ) ) ) {
@@ -191,16 +196,16 @@ final class Migrations {
 				continue;
 			}
 
-			$granted = dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id );
+			$granted = OrderStrategy::get_unlocked_ids( $order_id );
 			foreach ( $rows as $key => $value ) {
 				if ( 'yes' === $value ) {
 					$granted[] = \substr( $key, \strlen( $prefix ) );
 				}
 			}
 			$granted = \array_values( \array_unique( $granted ) );
-			$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, $granted );
+			$order->update_meta_data( OrderStrategy::META_KEY, $granted );
 			$order->save();
-			if ( dws_lpmwc_get_order_unlocked_payment_method_ids( $order_id ) !== $granted ) {
+			if ( OrderStrategy::get_unlocked_ids( $order_id ) !== $granted ) {
 				throw new \RuntimeException( "The payment methods unlocked for order $order_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
 
@@ -259,7 +264,7 @@ final class Migrations {
 			throw new \RuntimeException( 'The v1 Groups grants could not be read.' );
 		}
 
-		$groups = dws_lpmwc_get_groups_unlocked_payment_method_ids();
+		$groups = GroupsStrategy::get_unlocked_ids();
 		$moved  = array();
 		foreach ( $names as $name ) {
 			if ( ! \is_string( $name ) || ! \str_starts_with( $name, $prefix ) || ! \ctype_digit( \substr( $name, \strlen( $prefix ) ) ) ) {
@@ -276,7 +281,7 @@ final class Migrations {
 		}
 
 		$groups = \array_filter( $groups );
-		if ( dws_lpmwc_get_groups_unlocked_payment_method_ids() !== $groups && ! update_option( DWS_LPMWC_OPTION_GROUPS_UNLOCKED_METHODS, $groups, true ) ) {
+		if ( GroupsStrategy::get_unlocked_ids() !== $groups && ! update_option( GroupsStrategy::OPTION, $groups, true ) ) {
 			throw new \RuntimeException( 'The payment methods unlocked for Groups groups could not be stored.' );
 		}
 		foreach ( $moved as $name ) {
@@ -310,8 +315,8 @@ final class Migrations {
 
 		foreach ( $plans as $plan_id ) {
 			$v1     = get_post_meta( $plan_id, $v1_key, true );
-			$merged = \array_values( \array_unique( \array_merge( dws_lpmwc_get_plan_unlocked_payment_method_ids( $plan_id ), \is_array( $v1 ) ? \array_filter( $v1, 'is_string' ) : array() ) ) );
-			if ( dws_lpmwc_get_plan_unlocked_payment_method_ids( $plan_id ) !== $merged && false === update_post_meta( $plan_id, DWS_LPMWC_META_UNLOCKED_METHODS, wp_slash( $merged ) ) ) {
+			$merged = \array_values( \array_unique( \array_merge( WooCommerceMembershipsStrategy::get_unlocked_ids( $plan_id ), \is_array( $v1 ) ? \array_filter( $v1, 'is_string' ) : array() ) ) );
+			if ( WooCommerceMembershipsStrategy::get_unlocked_ids( $plan_id ) !== $merged && false === update_post_meta( $plan_id, WooCommerceMembershipsStrategy::META_KEY, wp_slash( $merged ) ) ) {
 				throw new \RuntimeException( "The payment methods unlocked for plan $plan_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
 			if ( ! delete_post_meta( $plan_id, $v1_key ) ) {

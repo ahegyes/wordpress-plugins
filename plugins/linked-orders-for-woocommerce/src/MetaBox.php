@@ -97,7 +97,7 @@ final class MetaBox implements ComponentInterface {
 			<div class="dws-linked-orders__no-children">
 				<?php esc_html_e( 'There are no attached children.', 'linked-orders-for-woocommerce' ); ?>
 				<?php if ( ! $can_create ) : ?>
-					<?php echo esc_html( dws_lowc_get_child_refusal( $node ) ); ?>
+					<?php echo esc_html( ChildCreation::get_refusal( $node ) ); ?>
 				<?php endif; ?>
 			</div>
 			<?php
@@ -122,7 +122,7 @@ final class MetaBox implements ComponentInterface {
 		if ( ! \is_null( $parent ) || $node->has_children() ) {
 			?>
 			<p>
-				<a class="dws-linked-orders__tree" href="<?php echo esc_url( add_query_arg( '_dws_linked_order_id', $node->get_order()->get_id(), dws_lowc_get_list_url( $node->get_post_type() ) ) ); ?>" target="_blank">
+				<a class="dws-linked-orders__tree" href="<?php echo esc_url( add_query_arg( '_dws_linked_order_id', $node->get_order()->get_id(), OrderTypes::get_list_url( $node->get_post_type() ) ) ); ?>" target="_blank">
 					<?php esc_html_e( 'View all linked', 'linked-orders-for-woocommerce' ); ?>
 					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
 				</a>
@@ -135,8 +135,8 @@ final class MetaBox implements ComponentInterface {
 		}
 
 		?>
-		<a class="button button-alt" href="<?php echo esc_url( dws_lowc_get_create_child_url( $node->get_order()->get_id() ) ); ?>">
-			<?php echo esc_html( dws_lowc_get_add_child_phrase( $node->get_post_type() ) ); ?>
+		<a class="button button-alt" href="<?php echo esc_url( ChildCreation::get_url( $node->get_order()->get_id() ) ); ?>">
+			<?php echo esc_html( OrderTypes::get_add_child_phrase( $node->get_post_type() ) ); ?>
 		</a>
 		<?php
 

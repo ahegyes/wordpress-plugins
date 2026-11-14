@@ -61,7 +61,7 @@ final class Permissions implements ComponentInterface {
 		}
 
 		$comment = dws_ic_get_comment( $args[0] ?? null );
-		$owners  = dws_ic_get_private_comment_owners( $comment );
+		$owners  = Comments::get_private_owners( $comment );
 		if ( \is_null( $comment ) || \is_null( $owners ) ) {
 			return array( 'do_not_allow' );
 		}
@@ -120,7 +120,7 @@ final class Permissions implements ComponentInterface {
 	 * @return  array<string, mixed>
 	 */
 	public function exclude_from_core_rest_collections( array $args ): array {
-		$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
+		$args['type__not_in'] = Comments::exclude_internal_type( $args['type__not_in'] ?? array() );
 		return $args;
 	}
 
@@ -134,7 +134,7 @@ final class Permissions implements ComponentInterface {
 	 */
 	public function guard_core_replies(): void {
 		$type = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
-		if ( DWS_IC_COMMENT_TYPE === $type && ! current_user_can( Capabilities::INSERT ) ) {
+		if ( Comments::TYPE === $type && ! current_user_can( Capabilities::INSERT ) ) {
 			wp_die( -1, '', array( 'response' => 403 ) );
 		}
 	}
@@ -151,8 +151,8 @@ final class Permissions implements ComponentInterface {
 	 */
 	public function exclude_from_xml_rpc( \WP_Comment_Query $query ): void {
 		// XML-RPC's wp.getComments takes no type from its caller, so a query naming the type is one of the plugin's own.
-		if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! dws_ic_query_names_internal_type( $query->query_vars ) ) {
-			$query->query_vars['type__not_in'] = dws_ic_exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
+		if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! Comments::query_names_internal_type( $query->query_vars ) ) {
+			$query->query_vars['type__not_in'] = Comments::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 		}
 	}
 

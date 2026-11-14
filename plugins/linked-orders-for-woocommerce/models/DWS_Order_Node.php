@@ -1,6 +1,8 @@
 <?php declare( strict_types=1 );
 
 use DeepWebSolutions\LinkedOrders\Capabilities;
+use DeepWebSolutions\LinkedOrders\Linking;
+use DeepWebSolutions\LinkedOrders\OrderTypes;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -278,7 +280,7 @@ final class DWS_Order_Node {
 		$name        = sprintf(
 			/* translators: 1: The order type's singular name. 2: The order number. 3: The order status's name. */
 			__( '%1$s #%2$s - %3$s', 'linked-orders-for-woocommerce' ),
-			dws_lowc_get_singular_name( $this->post_type ),
+			OrderTypes::get_singular_name( $this->post_type ),
 			$this->order->get_order_number(),
 			$status_name
 		);
@@ -400,7 +402,7 @@ final class DWS_Order_Node {
 		$user       = $user_id ?? get_current_user_id();
 		$edit       = $this->post_type->cap->edit_post;
 		$permission = user_can( $user, Capabilities::CREATE_LINKED_CHILDREN, $this->order->get_id() ) && ( ( is_string( $edit ) && user_can( $user, $edit, $this->order->get_id() ) ) || user_can( $user, 'manage_woocommerce' ) );
-		$depth      = dws_lowc_get_max_depth() > $this->get_depth();
+		$depth      = Linking::get_max_depth() > $this->get_depth();
 		$status     = $this->order->has_status( dws_lowc_get_valid_statuses_for_new_child( $this->post_type->name, $this->order ) );
 
 		/**
@@ -426,9 +428,9 @@ final class DWS_Order_Node {
 	 * @return  void
 	 */
 	public function save(): void {
-		$this->order->update_meta_data( DWS_LOWC_META_DEPTH, (string) $this->get_depth() );
-		$this->order->update_meta_data( DWS_LOWC_META_PARENT, (string) $this->get_parent()?->get_order()->get_id() );
-		$this->order->update_meta_data( DWS_LOWC_META_CHILDREN, array_map( static fn ( DWS_Order_Node $child ): int => $child->get_order()->get_id(), $this->get_children() ) );
+		$this->order->update_meta_data( Linking::META_DEPTH, (string) $this->get_depth() );
+		$this->order->update_meta_data( Linking::META_PARENT, (string) $this->get_parent()?->get_order()->get_id() );
+		$this->order->update_meta_data( Linking::META_CHILDREN, array_map( static fn ( DWS_Order_Node $child ): int => $child->get_order()->get_id(), $this->get_children() ) );
 		$this->order->save();
 	}
 
@@ -450,9 +452,9 @@ final class DWS_Order_Node {
 		}
 
 		$this->is_read   = true;
-		$this->depth     = filter_var( $this->order->get_meta( DWS_LOWC_META_DEPTH ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
-		$this->parent_id = filter_var( $this->order->get_meta( DWS_LOWC_META_PARENT ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
-		$children        = $this->order->get_meta( DWS_LOWC_META_CHILDREN );
+		$this->depth     = filter_var( $this->order->get_meta( Linking::META_DEPTH ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
+		$this->parent_id = filter_var( $this->order->get_meta( Linking::META_PARENT ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
+		$children        = $this->order->get_meta( Linking::META_CHILDREN );
 		$this->child_ids = is_array( $children ) ? filter_var( $children, FILTER_VALIDATE_INT, FILTER_REQUIRE_ARRAY | FILTER_NULL_ON_FAILURE ) : array();
 	}
 

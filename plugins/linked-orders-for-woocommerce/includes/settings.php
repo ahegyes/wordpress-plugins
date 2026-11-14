@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * @return  mixed
  */
 function dws_lowc_get_raw_setting( string $field_id, ?string $group = null ) {
-	$key = dws_lowc_find_setting( $field_id, $group )[2];
+	$key = Options::find_v1_setting( $field_id, $group )[2];
 	return is_null( $key ) ? null : get_option( $key, null );
 }
 
@@ -46,7 +46,7 @@ function dws_lowc_get_raw_setting( string $field_id, ?string $group = null ) {
  * @return  mixed
  */
 function dws_lowc_get_validated_setting( string $field_id, ?string $group = null ) {
-	list( $group_id, $id, $key ) = dws_lowc_find_setting( $field_id, $group );
+	list( $group_id, $id, $key ) = Options::find_v1_setting( $field_id, $group );
 	if ( ! is_null( $key ) ) {
 		$value = dws_lowc_validate_setting( get_option( $key, null ), $id, $group_id );
 
@@ -109,7 +109,7 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
  * @return  mixed
  */
 function dws_lowc_validate_setting( $value, string $field_id, ?string $group = null ) {
-	$key = dws_lowc_find_setting( $field_id, $group )[2];
+	$key = Options::find_v1_setting( $field_id, $group )[2];
 	if ( Options::MAX_DEPTH === $key ) {
 		return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ $key ], 1 );
 	}
@@ -119,43 +119,4 @@ function dws_lowc_validate_setting( $value, string $field_id, ?string $group = n
 	}
 
 	return $value;
-}
-
-/**
- * Returns the deepest level a linked order can be created at.
- *
- * It reads the validated setting, at least 1 as stored, through v1's and v2's filters.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @return  int
- */
-function dws_lowc_get_max_depth(): int {
-	return filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ Options::MAX_DEPTH ];
-}
-
-/**
- * Returns a setting's group without its '-settings' suffix, its field id and its option, which is null for a group v1 did not have.
- *
- * As in v1, a read without a group names the group in the field id, such as 'general/max-depth', and a field an extension adds to a group without an id of its own lives in the option WooCommerce saves it under, dws-lowc_{group}_{field}. An id read without a group that names none has an empty group.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string      $field_id The field's v1 id, prefixed with its group and a slash when no group is given.
- * @param   string|null $group    The field's v1 group, with or without its '-settings' suffix.
- *
- * @return  array{0: string, 1: string, 2: string|null}
- */
-function dws_lowc_find_setting( string $field_id, ?string $group ): array {
-	if ( is_null( $group ) ) {
-		list( $group, $field_id ) = array_pad( explode( '/', $field_id, 2 ), -2, '' );
-	}
-
-	if ( '-settings' === substr( $group, -9 ) ) {
-		$group = substr( $group, 0, -9 );
-	}
-
-	return array( $group, $field_id, in_array( $group, array( 'general', 'plugin' ), true ) ? "dws-lowc_{$group}_$field_id" : null );
 }

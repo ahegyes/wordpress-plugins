@@ -34,6 +34,16 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	protected const string FORM = Plugin::PREFIX . '_membership_plan';
 
+	/**
+	 * The plan meta that holds the ids of the payment methods unlocked for the plan's active members.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -87,14 +97,14 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
-		$options = dws_lpmwc_get_grant_choices( dws_lpmwc_get_plan_unlocked_payment_method_ids( $object_id ), 0 );
+		$options = GrantChoices::get( self::get_unlocked_ids( $object_id ), 0 );
 		return array(
 			'title'      => __( 'Unlocked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_WC_MEMBERSHIPS,
 			'fields'     => array() === $options ? array() : array(
 				array(
 					'type'    => 'checkboxes',
-					'id'      => DWS_LPMWC_META_UNLOCKED_METHODS,
+					'id'      => self::META_KEY,
 					'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 					'desc'    => __( 'The plan\'s active members may pay with these methods.', 'locked-payment-methods-for-woocommerce' ),
 					'options' => $options,
@@ -139,12 +149,27 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 		foreach ( (array) wc_memberships_get_user_active_memberships( $user_id ) as $membership ) {
 			// Memberships sometimes returns cancelled memberships among the active ones.
 			$plan_id = \is_object( $membership ) && \method_exists( $membership, 'is_active' ) && \method_exists( $membership, 'get_plan_id' ) && true === $membership->is_active() ? $membership->get_plan_id() : null;
-			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, dws_lpmwc_get_plan_unlocked_payment_method_ids( (int) $plan_id ), true ) ) {
+			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, self::get_unlocked_ids( (int) $plan_id ), true ) ) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns the ids of the payment methods unlocked for a WooCommerce Memberships plan's active members.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $plan_id The plan's id.
+	 *
+	 * @return  string[]
+	 */
+	public static function get_unlocked_ids( int $plan_id ): array {
+		$ids = get_post_meta( $plan_id, self::META_KEY, true );
+		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
 	}
 
 	// endregion

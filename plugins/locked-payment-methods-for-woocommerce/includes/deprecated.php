@@ -8,6 +8,7 @@
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
+use DeepWebSolutions\LockedPaymentMethods\Deprecated;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
@@ -92,29 +93,6 @@ define( 'DWS_LPMWC_MIN_PHP', $dws_lpmwc_header['RequiresPHP'] );
 define( 'DWS_LPMWC_MIN_WP', $dws_lpmwc_header['RequiresWP'] );
 
 unset( $dws_lpmwc_header );
-
-/**
- * The root of each v1 component's hook tags, keyed by the component's id, which v1 built from the component's name.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     array<string, string>
- */
-const DWS_LPMWC_V1_COMPONENTS = array(
-	'settings'                 => 'settings',
-	'general-settings'         => 'general_settings',
-	'plugin-settings'          => 'plugin_settings',
-	'permissions'              => 'permissions',
-	'lock-manager'             => 'lock_manager',
-	'user-meta-strategy'       => 'user_meta_unlock_strategy',
-	'user-role-strategy'       => 'user_role_unlock_strategy',
-	'integrations-settings'    => 'integrations_settings',
-	'integrations-permissions' => 'integrations_permissions',
-	'order-meta-strategy'      => 'order_meta_unlock_strategy',
-	'groups-strategy'          => 'groups_unlock_strategy',
-	'wc-memberships-strategy'  => 'wc_memberships_unlock_strategy',
-);
 
 /**
  * Returns the plugin's name, translated once init has fired.
@@ -212,7 +190,7 @@ function dws_lpmwc_min_wp(): string {
  */
 function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return dws_lpmwc_join_v1_hook_tag( 'locked_payment_methods_for_woocommerce', $name, $extra );
+	return Deprecated::join_hook_tag( 'locked_payment_methods_for_woocommerce', $name, $extra );
 }
 
 /**
@@ -232,23 +210,7 @@ function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_lpmwc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return isset( DWS_LPMWC_V1_COMPONENTS[ $component_id ] ) ? dws_lpmwc_join_v1_hook_tag( 'locked_payment_methods_for_woocommerce/' . DWS_LPMWC_V1_COMPONENTS[ $component_id ], $name, $extra ) : null;
-}
-
-/**
- * Returns a hook name joined and sanitized as v1 did: the non-empty parts joined with slashes, spaces and backslashes as underscores, lowercased.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string               $root  The name's root.
- * @param   string               $name  The hook's name.
- * @param   string|array<string> $extra The name's further parts.
- *
- * @return  string
- */
-function dws_lpmwc_join_v1_hook_tag( string $root, string $name, $extra ): string {
-	return strtolower( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( $root, $name ), is_array( $extra ) ? $extra : array( $extra ) ), 'boolval' ) ) ) );
+	return isset( Deprecated::COMPONENTS[ $component_id ] ) ? Deprecated::join_hook_tag( 'locked_payment_methods_for_woocommerce/' . Deprecated::COMPONENTS[ $component_id ], $name, $extra ) : null;
 }
 
 /**
@@ -427,7 +389,7 @@ function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked
  */
 function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
-	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
+	$setting = Options::find_v1_setting( $field_id, $group );
 	return is_null( $setting ) ? null : get_option( $setting['key'], null );
 }
 
@@ -447,7 +409,7 @@ function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
  */
 function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
-	return dws_lpmwc_read_v1_setting( $field_id, $group );
+	return Deprecated::read_setting( $field_id, $group );
 }
 
 /**
@@ -467,8 +429,8 @@ function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = nul
  */
 function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
-	return is_null( $setting ) ? null : dws_lpmwc_validate_v1_setting( $value, $setting['key'] );
+	$setting = Options::find_v1_setting( $field_id, $group );
+	return is_null( $setting ) ? null : Deprecated::validate_setting( $value, $setting['key'] );
 }
 
 /**
@@ -486,86 +448,5 @@ function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = 
  */
 function dws_lpmwc_get_validated_general_setting( string $field_id ) {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
-	return dws_lpmwc_read_v1_setting( $field_id, 'general' );
-}
-
-/**
- * Returns v1's group and field ids and the plugin's option for one of v1's settings, or null for an id v1 had no setting for.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string      $field_id v1's id of the setting, prefixed with its group and a slash when the group is null.
- * @param   string|null $group    v1's id of the setting's group.
- *
- * @return  array{group: string, field: string, key: string}|null
- */
-function dws_lpmwc_find_v1_setting( string $field_id, ?string $group ): ?array {
-	if ( is_null( $group ) ) {
-		$parts = explode( '/', $field_id, 2 );
-		if ( 2 !== count( $parts ) ) {
-			return null;
-		}
-		list( $group, $field_id ) = $parts;
-	}
-
-	$key = Options::V1_SETTINGS[ $group ][ $field_id ] ?? null;
-	return is_null( $key ) ? null : array(
-		'group' => $group,
-		'field' => $field_id,
-		'key'   => $key,
-	);
-}
-
-/**
- * Returns a setting's value as v1's settings read it: through v1's page filter when the group is null, then through its group's filter.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string      $field_id v1's id of the setting, prefixed with its group and a slash when the group is null.
- * @param   string|null $group    v1's id of the setting's group.
- *
- * @return  mixed
- */
-function dws_lpmwc_read_v1_setting( string $field_id, ?string $group ) {
-	$setting = dws_lpmwc_find_v1_setting( $field_id, $group );
-	if ( is_null( $group ) ) {
-		/**
-		 * Filters a setting's value, by its group-prefixed v1 id, before its group reads it.
-		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use the hook the deprecation notice names.
-		 *
-		 * @param       mixed  $value    Null, or the value a callback answers.
-		 * @param       string $field_id v1's id of the setting, prefixed with its group and a slash.
-		 */
-		$value = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value', array( null, $field_id ), '2.0.0', is_null( $setting ) ? 'get_option' : 'option_' . $setting['key'] );
-		if ( ! is_null( $value ) ) {
-			return $value;
-		}
-	}
-
-	return is_null( $setting ) ? null : Safeguards::apply_v1_setting_filter( dws_lpmwc_validate_v1_setting( get_option( $setting['key'], null ), $setting['key'] ), $setting['group'], $setting['field'], 'option_' . $setting['key'] );
-}
-
-/**
- * Returns a value as a setting's kind, a boolean for a switch and a list of strings for a list, or the setting's default.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   mixed  $value The value.
- * @param   string $key   The setting's option.
- *
- * @return  mixed
- */
-function dws_lpmwc_validate_v1_setting( $value, string $key ) {
-	$default = Options::DEFAULTS[ $key ] ?? null;
-	if ( is_bool( $default ) ) {
-		return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? $default;
-	}
-
-	return is_array( $value ) ? array_values( array_filter( $value, 'is_string' ) ) : $default;
+	return Deprecated::read_setting( $field_id, 'general' );
 }

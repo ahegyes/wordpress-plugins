@@ -213,7 +213,7 @@ final class RestRoutes implements ComponentInterface {
 		}
 
 		$parent = 0 === $parent_id ? null : dws_ic_get_comment( $parent_id );
-		if ( 0 !== $parent_id && ( \is_null( $parent ) || DWS_IC_COMMENT_TYPE !== $parent->comment_type || (int) $parent->comment_post_ID !== $post_id || ! current_user_can( 'see_dws_internal_comment', $parent_id ) ) ) {
+		if ( 0 !== $parent_id && ( \is_null( $parent ) || Comments::TYPE !== $parent->comment_type || (int) $parent->comment_post_ID !== $post_id || ! current_user_can( 'see_dws_internal_comment', $parent_id ) ) ) {
 			return new \WP_Error( 'dws_ic_invalid_parent', __( 'The comment you are replying to is not one of this item\'s internal comments.', 'internal-comments' ), array( 'status' => 400 ) );
 		}
 
@@ -249,7 +249,7 @@ final class RestRoutes implements ComponentInterface {
 				'comment_post_ID' => $post_id,
 				'comment_content' => $content,
 				'comment_parent'  => $parent_id,
-				'comment_meta'    => array( DWS_IC_META_PRIVATE => $private ? 'yes' : 'no' ),
+				'comment_meta'    => array( Comments::META_PRIVATE => $private ? 'yes' : 'no' ),
 			)
 		);
 		if ( \is_null( $comment_id ) ) {
@@ -431,7 +431,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  \WP_REST_Response
 	 */
 	protected function respond( int $post_id, int $status = 200 ): \WP_REST_Response {
-		return new \WP_REST_Response( array( 'html' => dws_ic_get_comments_list_html( $post_id ) ), $status );
+		return new \WP_REST_Response( array( 'html' => CommentsList::get_html( $post_id ) ), $status );
 	}
 
 	/**

@@ -180,7 +180,7 @@ final class ListTable implements ComponentInterface {
 
 		// The Trash view lists trashed orders, and another plugin's order type may register its statuses only as post statuses, so the deepest stored order is read in every status.
 		$deepest  = wc_get_orders(
-			dws_lowc_get_meta_key_args( DWS_LOWC_META_DEPTH ) + array(
+			Linking::get_meta_key_args( Linking::META_DEPTH ) + array(
 				'type'    => $type,
 				'status'  => \array_values( get_post_stati() ),
 				'limit'   => 1,
@@ -189,7 +189,7 @@ final class ListTable implements ComponentInterface {
 				'order'   => 'DESC',
 			)
 		);
-		$deepest  = \max( dws_lowc_get_max_depth(), ( \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null ) ?? 0 );
+		$deepest  = \max( Linking::get_max_depth(), ( \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null ) ?? 0 );
 		$selected = $this->get_depth_filter();
 		$email    = $this->get_guest_email();
 		$pivot    = $this->get_tree_pivot();
@@ -325,7 +325,7 @@ final class ListTable implements ComponentInterface {
 
 		$added          = array();
 		$new_tab        = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
-		$list           = dws_lowc_get_list_url( $node->get_post_type() );
+		$list           = OrderTypes::get_list_url( $node->get_post_type() );
 		$customer_key   = 0 !== $order->get_customer_id() ? '_customer_user' : '_guest_customer_user';
 		$customer_value = 0 !== $order->get_customer_id() ? (string) $order->get_customer_id() : \rawurlencode( $order->get_billing_email() );
 		if ( '' !== $customer_value && ( ! isset( $_GET[ $customer_key ] ) || '' === $_GET[ $customer_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
@@ -339,7 +339,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
-		$children = $order->get_meta( DWS_LOWC_META_CHILDREN );
+		$children = $order->get_meta( Linking::META_CHILDREN );
 		if ( \is_null( $this->get_tree_pivot() ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
 			$name                            = __( 'View all linked', 'linked-orders-for-woocommerce' );
 			$added['view_all_linked_orders'] = array(
@@ -352,8 +352,8 @@ final class ListTable implements ComponentInterface {
 
 		if ( $node->can_create_child() ) {
 			$added['create_empty_linked_child'] = array(
-				'url'    => dws_lowc_get_create_child_url( $order->get_id() ),
-				'name'   => dws_lowc_get_add_child_phrase( $node->get_post_type() ),
+				'url'    => ChildCreation::get_url( $order->get_id() ),
+				'name'   => OrderTypes::get_add_child_phrase( $node->get_post_type() ),
 				'action' => 'create-empty-linked-child',
 			);
 		}
@@ -453,7 +453,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$clause = array(
-			'key'   => DWS_LOWC_META_DEPTH,
+			'key'   => Linking::META_DEPTH,
 			'value' => (string) $depth,
 		);
 		return array(
@@ -461,7 +461,7 @@ final class ListTable implements ComponentInterface {
 				'relation' => 'OR',
 				$clause,
 				array(
-					'key'     => DWS_LOWC_META_DEPTH,
+					'key'     => Linking::META_DEPTH,
 					'compare' => 'NOT EXISTS',
 				),
 			) : $clause,

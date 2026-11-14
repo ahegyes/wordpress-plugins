@@ -111,7 +111,10 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 
 		$fields = array();
 		foreach ( $group_fields as $id => $field ) {
-			$fields[] = array( 'id' => Options::V1_SETTINGS[ $tab_slug ][ $id ] ?? "dws_ic_{$tab_slug}_$id" ) + $field; // A field a v1 callback adds stores in a row of its own, which v1's getters read.
+			$setting = Options::find_v1_setting( (string) $id, $tab_slug );
+			if ( ! \is_null( $setting ) ) {
+				$fields[] = array( 'id' => $setting[2] ) + $field; // A field a v1 callback adds stores in a row of its own, which v1's getters read.
+			}
 		}
 
 		return $fields;

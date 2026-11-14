@@ -124,7 +124,7 @@ final class MetaBox implements ComponentInterface {
 		?>
 		<div class="dws-internal-comments" tabindex="-1" data-post-id="<?php echo esc_attr( (string) $object_id ); ?>">
 			<div class="dws-internal-comments__comments">
-				<?php dws_ic_print_comments_list( $object_id ); ?>
+				<?php CommentsList::render( $object_id ); ?>
 			</div>
 			<p class="dws-internal-comments__status" role="status"></p>
 			<?php if ( $can_post ) : ?>
@@ -141,7 +141,7 @@ final class MetaBox implements ComponentInterface {
 						</p>
 					<?php endif; ?>
 					<p class="dws-internal-comments-inline-action__actions">
-						<?php dws_ic_print_form_buttons( 'new' ); ?>
+						<?php CommentsList::render_form_buttons( 'new' ); ?>
 					</p>
 				</div>
 				<template id="dws-ic-reply-form">
@@ -150,7 +150,7 @@ final class MetaBox implements ComponentInterface {
 							<label><?php esc_html_e( 'Reply', 'internal-comments' ); ?> <textarea rows="3"></textarea></label>
 						</p>
 						<p class="dws-internal-comments-inline-action__actions">
-							<?php dws_ic_print_form_buttons( 'reply' ); ?>
+							<?php CommentsList::render_form_buttons( 'reply' ); ?>
 						</p>
 					</div>
 				</template>
@@ -161,7 +161,7 @@ final class MetaBox implements ComponentInterface {
 						<label><?php esc_html_e( 'Edit internal comment', 'internal-comments' ); ?> <textarea rows="4"></textarea></label>
 					</p>
 					<p class="dws-internal-comments-inline-action__actions">
-						<?php dws_ic_print_form_buttons( 'edit' ); ?>
+						<?php CommentsList::render_form_buttons( 'edit' ); ?>
 					</p>
 				</div>
 			</template>

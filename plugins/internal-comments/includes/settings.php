@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * @return  mixed
  */
 function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
-	$field = dws_ic_find_setting( $field_id, $group );
+	$field = Options::find_v1_setting( $field_id, $group );
 	if ( is_null( $field ) ) {
 		return null;
 	}
@@ -48,7 +48,7 @@ function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
  * @return  mixed
  */
 function dws_ic_get_validated_setting( string $field_id, ?string $group = null ) {
-	$field = dws_ic_find_setting( $field_id, $group );
+	$field = Options::find_v1_setting( $field_id, $group );
 	if ( is_null( $field ) ) {
 		return null;
 	}
@@ -130,33 +130,4 @@ function dws_ic_get_selected_post_types(): array {
  */
 function dws_ic_are_enabled_private_comments(): bool {
 	return true === dws_ic_get_validated_setting( 'enable-private-comments', 'general' );
-}
-
-/**
- * Returns a setting's group, field id and option, or null for a group v1 did not have.
- *
- * As in v1, a read without a group names the group in the field id, such as 'general/post-types'; a field an extension adds to a group lives in the option dws_ic_{group}_{id}.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string      $field_id The field's v1 id, prefixed with its group and a slash when no group is given.
- * @param   string|null $group    The field's v1 group, with or without its '-settings' suffix.
- *
- * @return  array{0: string, 1: string, 2: string}|null
- */
-function dws_ic_find_setting( string $field_id, ?string $group ): ?array {
-	if ( is_null( $group ) ) {
-		if ( false === strpos( $field_id, '/' ) ) {
-			return null;
-		}
-
-		list( $group, $field_id ) = explode( '/', $field_id, 2 );
-	}
-
-	if ( '-settings' === substr( $group, -9 ) ) {
-		$group = substr( $group, 0, -9 );
-	}
-
-	return isset( Options::V1_SETTINGS[ $group ] ) ? array( $group, $field_id, Options::V1_SETTINGS[ $group ][ $field_id ] ?? "dws_ic_{$group}_$field_id" ) : null;
 }

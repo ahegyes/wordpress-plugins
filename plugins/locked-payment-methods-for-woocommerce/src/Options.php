@@ -185,6 +185,34 @@ final class Options {
 		return \is_array( $stored ) ? \array_values( \array_filter( $stored, 'is_string' ) ) : array();
 	}
 
+	/**
+	 * Returns v1's group and field ids and the plugin's option for one of v1's settings, or null for an id v1 had no setting for.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string      $field_id v1's id of the setting, prefixed with its group and a slash when the group is null.
+	 * @param   string|null $group    v1's id of the setting's group.
+	 *
+	 * @return  array{group: string, field: string, key: string}|null
+	 */
+	public static function find_v1_setting( string $field_id, ?string $group ): ?array {
+		if ( \is_null( $group ) ) {
+			$parts = \explode( '/', $field_id, 2 );
+			if ( 2 !== \count( $parts ) ) {
+				return null;
+			}
+			list( $group, $field_id ) = $parts;
+		}
+
+		$key = self::V1_SETTINGS[ $group ][ $field_id ] ?? null;
+		return \is_null( $key ) ? null : array(
+			'group' => $group,
+			'field' => $field_id,
+			'key'   => $key,
+		);
+	}
+
 	// endregion
 
 	// region HELPERS

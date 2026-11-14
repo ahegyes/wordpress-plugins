@@ -8,6 +8,8 @@
  * @package DeepWebSolutions\InternalComments
  */
 
+use DeepWebSolutions\InternalComments\Deprecated;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -84,33 +86,6 @@ define( 'DWS_IC_MIN_PHP', $dws_ic_header['RequiresPHP'] );
 define( 'DWS_IC_MIN_WP', $dws_ic_header['RequiresWP'] );
 
 unset( $dws_ic_header );
-
-/**
- * The root of each v1 component's hook tags, keyed by the component's id, which v1 built from the component's name.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     array<string, string>
- */
-const DWS_IC_V1_COMPONENTS = array(
-	'ajax'                 => 'ajax',
-	'comments'             => 'comments',
-	'comments-list-table'  => 'internal_comments_list_table',
-	'reply-comments'       => 'reply_comments',
-	'query'                => 'query',
-	'query-scoped-hooks'   => 'query_scoped_hooks',
-	'settings'             => 'settings',
-	'general-settings'     => 'general_settings',
-	'plugin-settings'      => 'plugin_settings',
-	'permissions'          => 'permissions',
-	'comment-permissions'  => 'comments_permissions',
-	'output-permissions'   => 'output_permissions',
-	'settings-permissions' => 'settings_permissions',
-	'output'               => 'output',
-	'metabox-output'       => 'metabox_output',
-	'wp-table-output'      => 'wp_table_output',
-);
 
 /**
  * Returns the plugin's name, translated once init has fired.
@@ -208,7 +183,7 @@ function dws_ic_min_wp(): string {
  */
 function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return dws_ic_join_v1_hook_tag( 'internal_comments', $name, $extra );
+	return Deprecated::join_hook_tag( 'internal_comments', $name, $extra );
 }
 
 /**
@@ -228,21 +203,5 @@ function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_ic_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return isset( DWS_IC_V1_COMPONENTS[ $component_id ] ) ? dws_ic_join_v1_hook_tag( 'internal_comments/' . DWS_IC_V1_COMPONENTS[ $component_id ], $name, $extra ) : null;
-}
-
-/**
- * Returns a hook name joined and sanitized as v1 did: the non-empty parts joined with slashes, spaces and backslashes as underscores, lowercased.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string               $root  The name's root.
- * @param   string               $name  The hook's name.
- * @param   string|array<string> $extra The name's further parts.
- *
- * @return  string
- */
-function dws_ic_join_v1_hook_tag( string $root, string $name, $extra ): string {
-	return strtolower( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( $root, $name ), is_array( $extra ) ? $extra : array( $extra ) ), 'boolval' ) ) ) );
+	return isset( Deprecated::COMPONENTS[ $component_id ] ) ? Deprecated::join_hook_tag( 'internal_comments/' . Deprecated::COMPONENTS[ $component_id ], $name, $extra ) : null;
 }
