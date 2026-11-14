@@ -2,11 +2,6 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods;
 
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
-
 \defined( 'ABSPATH' ) || exit;
 
 /**
@@ -161,7 +156,7 @@ final class Migrations {
 		) : array( get_current_blog_id() );
 		foreach ( $grants as $user_id => $ids ) {
 			foreach ( $sites as $site_id ) {
-				$key     = $wpdb->get_blog_prefix( $site_id ) . UserProfileStrategy::USER_OPTION;
+				$key     = $wpdb->get_blog_prefix( $site_id ) . 'dws_lpmwc_unlocked_payment_methods';
 				$current = get_user_meta( $user_id, $key, true );
 				$merged  = \array_values( \array_unique( \array_merge( \is_array( $current ) ? \array_filter( $current, 'is_string' ) : array(), $ids ) ) );
 				if ( $merged !== $current && false === update_user_meta( $user_id, $key, wp_slash( $merged ) ) ) {
@@ -226,16 +221,17 @@ final class Migrations {
 				continue;
 			}
 
-			$granted = OrderStrategy::get_unlocked_ids( $order_id );
+			$granted = self::get_strings( $order->get_meta( '_dws_lpmwc_unlocked_payment_methods' ) );
 			foreach ( $rows as $key => $value ) {
 				if ( 'yes' === $value ) {
 					$granted[] = \substr( $key, \strlen( $prefix ) );
 				}
 			}
 			$granted = \array_values( \array_unique( $granted ) );
-			$order->update_meta_data( OrderStrategy::META_KEY, $granted );
+			$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', $granted );
 			$order->save();
-			if ( OrderStrategy::get_unlocked_ids( $order_id ) !== $granted ) {
+			$stored = wc_get_order( $order_id );
+			if ( ! $stored instanceof \WC_Order || self::get_strings( $stored->get_meta( '_dws_lpmwc_unlocked_payment_methods' ) ) !== $granted ) {
 				throw new \RuntimeException( "The payment methods unlocked for order $order_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
 
@@ -294,7 +290,7 @@ final class Migrations {
 			throw new \RuntimeException( 'The v1 Groups grants could not be read.' );
 		}
 
-		$groups = GroupsStrategy::get_unlocked_ids();
+		$groups = self::get_group_grants();
 		$moved  = array();
 		foreach ( $names as $name ) {
 			if ( ! \is_string( $name ) || ! \str_starts_with( $name, $prefix ) || ! \ctype_digit( \substr( $name, \strlen( $prefix ) ) ) ) {
@@ -311,7 +307,7 @@ final class Migrations {
 		}
 
 		$groups = \array_filter( $groups );
-		if ( GroupsStrategy::get_unlocked_ids() !== $groups && ! update_option( GroupsStrategy::OPTION, $groups, true ) ) {
+		if ( self::get_group_grants() !== $groups && ! update_option( 'dws_lpmwc_groups_unlocked_payment_methods', $groups, true ) ) {
 			throw new \RuntimeException( 'The payment methods unlocked for Groups groups could not be stored.' );
 		}
 		foreach ( $moved as $name ) {
@@ -344,15 +340,50 @@ final class Migrations {
 		}
 
 		foreach ( $plans as $plan_id ) {
-			$v1     = get_post_meta( $plan_id, $v1_key, true );
-			$merged = \array_values( \array_unique( \array_merge( WooCommerceMembershipsStrategy::get_unlocked_ids( $plan_id ), \is_array( $v1 ) ? \array_filter( $v1, 'is_string' ) : array() ) ) );
-			if ( WooCommerceMembershipsStrategy::get_unlocked_ids( $plan_id ) !== $merged && false === update_post_meta( $plan_id, WooCommerceMembershipsStrategy::META_KEY, wp_slash( $merged ) ) ) {
+			$v1      = get_post_meta( $plan_id, $v1_key, true );
+			$granted = self::get_strings( get_post_meta( $plan_id, '_dws_lpmwc_unlocked_payment_methods', true ) );
+			$merged  = \array_values( \array_unique( \array_merge( $granted, self::get_strings( $v1 ) ) ) );
+			if ( $granted !== $merged && false === update_post_meta( $plan_id, '_dws_lpmwc_unlocked_payment_methods', wp_slash( $merged ) ) ) {
 				throw new \RuntimeException( "The payment methods unlocked for plan $plan_id could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
 			if ( ! delete_post_meta( $plan_id, $v1_key ) ) {
 				throw new \RuntimeException( "The v1 grants of plan $plan_id could not be deleted." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
 		}
+	}
+
+	/**
+	 * Returns the strings a stored list holds, in order, or none for a value that is not a list.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $stored The stored value.
+	 *
+	 * @return  list<string>
+	 */
+	protected static function get_strings( mixed $stored ): array {
+		return \is_array( $stored ) ? \array_values( \array_filter( $stored, 'is_string' ) ) : array();
+	}
+
+	/**
+	 * Returns the ids of the payment methods unlocked for each Groups group's members, by group id, as the plugin stores them.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  array<int, list<string>>
+	 */
+	protected static function get_group_grants(): array {
+		$stored = get_option( 'dws_lpmwc_groups_unlocked_payment_methods', array() );
+		$groups = array();
+		foreach ( \is_array( $stored ) ? $stored : array() as $group_id => $ids ) {
+			if ( \is_int( $group_id ) && \is_array( $ids ) ) {
+				$groups[ $group_id ] = self::get_strings( $ids );
+			}
+		}
+
+		return $groups;
 	}
 
 	// endregion
