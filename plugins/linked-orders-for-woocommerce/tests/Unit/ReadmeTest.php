@@ -37,6 +37,16 @@ final class ReadmeTest extends TestCase {
 		self::assertMatchesRegularExpression( '/== Changelog ==\s+<!-- Start changelog -->.+<!-- End changelog -->/s', $readme );
 	}
 
+	// wordpress.org trims an upgrade notice past 300 characters, and the release's Plugin Check skips its readme checks.
+	public function test_each_upgrade_notice_fits_the_300_characters_wordpress_org_shows(): void {
+		$readme = (string) \file_get_contents( \dirname( __DIR__, 2 ) . '/readme.txt' );
+
+		self::assertSame( 1, \preg_match( '/== Upgrade Notice ==\n(.*?)\n== /s', $readme, $section ) );
+		foreach ( \preg_split( '/^= [^\n]+ =$/m', $section[1], -1, \PREG_SPLIT_NO_EMPTY ) ?: array() as $notice ) {
+			self::assertLessThanOrEqual( 300, \mb_strlen( \trim( $notice ) ), \trim( $notice ) );
+		}
+	}
+
 	protected static function read_fields( string $file ): array {
 		\preg_match_all( '/^[\s*]*([A-Za-z ]+):\s*(\S.*?)\s*$/m', (string) \file_get_contents( \dirname( __DIR__, 2 ) . "/$file" ), $matches );
 		return \array_combine( $matches[1], $matches[2] );
