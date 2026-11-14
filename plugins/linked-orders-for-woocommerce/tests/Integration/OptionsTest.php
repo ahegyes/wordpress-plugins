@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Linking;
 use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -34,7 +35,7 @@ final class OptionsTest extends TestCase {
 			delete_option( $key );
 		}
 
-		self::assertSame( 1, dws_lowc_get_max_depth() );
+		self::assertSame( 1, Linking::get_max_depth() );
 	}
 
 	// v1 compared the filtered value as it came, so a filter could stop new children with 0.
@@ -43,7 +44,7 @@ final class OptionsTest extends TestCase {
 		add_filter( 'linked_orders_for_woocommerce/settings/validated_value', $zero, 10, 2 );
 
 		try {
-			self::assertSame( 0, dws_lowc_get_max_depth() );
+			self::assertSame( 0, Linking::get_max_depth() );
 		} finally {
 			remove_filter( 'linked_orders_for_woocommerce/settings/validated_value', $zero );
 		}
@@ -53,6 +54,6 @@ final class OptionsTest extends TestCase {
 	public function test_the_maximum_depth_reads_at_least_one( string $stored, int $expected ): void {
 		update_option( Options::MAX_DEPTH, $stored );
 
-		self::assertSame( $expected, dws_lowc_get_max_depth() );
+		self::assertSame( $expected, Linking::get_max_depth() );
 	}
 }

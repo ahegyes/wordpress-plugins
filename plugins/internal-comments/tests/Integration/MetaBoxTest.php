@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
@@ -123,7 +124,7 @@ final class MetaBoxTest extends TestCase {
 
 	public function test_a_reply_the_user_cannot_see_is_left_out_of_its_thread(): void {
 		$parent  = $this->comment( 'Open' );
-		$private = $this->comment( 'Private reply', array( DWS_IC_META_PRIVATE => 'yes' ), $parent );
+		$private = $this->comment( 'Private reply', array( Comments::META_PRIVATE => 'yes' ), $parent );
 
 		self::assertNotNull( $this->render( 'administrator' )->querySelector( "#reply-$private" ) );
 		self::assertNull( $this->render( 'editor' )->querySelector( "#reply-$private" ) );

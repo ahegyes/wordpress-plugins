@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -78,7 +79,7 @@ final class DataGuardsTest extends TestCase {
 			update_option( 'comments_notify', $notify );
 		}
 
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $comment )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $comment )?->comment_approved );
 		self::assertSame( array(), $mailed );
 		self::assertSame( '0', get_post( $this->post )?->comment_count );
 	}
@@ -132,12 +133,12 @@ final class DataGuardsTest extends TestCase {
 		$imported = (int) wp_insert_comment(
 			array(
 				'comment_post_ID'  => $this->post,
-				'comment_type'     => DWS_IC_COMMENT_TYPE,
+				'comment_type'     => Comments::TYPE,
 				'comment_approved' => '1',
 			)
 		);
 
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $imported )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $imported )?->comment_approved );
 		self::assertSame( '0', get_post( $this->post )?->comment_count );
 	}
 
@@ -151,8 +152,8 @@ final class DataGuardsTest extends TestCase {
 
 		self::assertTrue( wp_untrash_comment( $comment ) );
 		self::assertTrue( wp_untrash_comment( $v1 ) );
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $comment )?->comment_approved );
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $v1 )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $comment )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $v1 )?->comment_approved );
 		self::assertSame( '', get_comment_meta( $comment, '_wp_trash_meta_status', true ) );
 	}
 
@@ -168,15 +169,15 @@ final class DataGuardsTest extends TestCase {
 		$imported = (int) wp_insert_comment(
 			array(
 				'comment_post_ID'  => $this->post,
-				'comment_type'     => DWS_IC_COMMENT_TYPE,
+				'comment_type'     => Comments::TYPE,
 				'comment_approved' => '1',
 			)
 		);
 		$cached   = (array) wp_count_comments();
 		\WC_Comments::delete_comments_count_cache();
 
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $comment )?->comment_approved );
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $imported )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $comment )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $imported )?->comment_approved );
 		self::assertSame( (array) wp_count_comments(), $cached );
 	}
 
@@ -191,8 +192,8 @@ final class DataGuardsTest extends TestCase {
 		update_post_meta( $this->post, '_wp_trash_meta_comments_status', $statuses );
 		wp_untrash_post( $this->post );
 
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $comment )?->comment_approved );
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $v1 )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $comment )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $v1 )?->comment_approved );
 		self::assertSame( '1', get_comment( $public )?->comment_approved );
 		self::assertSame( '1', get_post( $this->post )?->comment_count );
 	}
@@ -207,36 +208,36 @@ final class DataGuardsTest extends TestCase {
 			)
 		);
 		$replied = $this->comment( 'Replied' );
-		$private = $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$private = $this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
 		$alone   = $this->comment( 'Alone' );
 		$reply( $replied );
 		$reply( $private );
 
 		foreach ( array( $this->admin, 0 ) as $user ) {
 			wp_set_current_user( $user );
-			self::assertFalse( update_comment_meta( $replied, DWS_IC_META_PRIVATE, 'yes' ) );
+			self::assertFalse( update_comment_meta( $replied, Comments::META_PRIVATE, 'yes' ) );
 			self::assertFalse( dws_ic_is_private_comment( $replied ) );
 		}
 		wp_set_current_user( $this->admin );
-		self::assertTrue( update_comment_meta( $private, DWS_IC_META_PRIVATE, 'no' ) );
-		self::assertNotFalse( update_comment_meta( $alone, DWS_IC_META_PRIVATE, 'yes' ) );
+		self::assertTrue( update_comment_meta( $private, Comments::META_PRIVATE, 'no' ) );
+		self::assertNotFalse( update_comment_meta( $alone, Comments::META_PRIVATE, 'yes' ) );
 		self::assertTrue( dws_ic_is_private_comment( $alone ) );
 	}
 
 	public function test_only_a_comments_author_changes_whether_it_is_private(): void {
-		$comment = $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$comment = $this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
 
 		wp_set_current_user( $this->other );
-		self::assertFalse( update_comment_meta( $comment, DWS_IC_META_PRIVATE, 'no' ) );
-		self::assertFalse( delete_comment_meta( $comment, DWS_IC_META_PRIVATE ) );
+		self::assertFalse( update_comment_meta( $comment, Comments::META_PRIVATE, 'no' ) );
+		self::assertFalse( delete_comment_meta( $comment, Comments::META_PRIVATE ) );
 		self::assertTrue( dws_ic_is_private_comment( $comment ) );
 
 		wp_set_current_user( $this->admin );
-		self::assertTrue( update_comment_meta( $comment, DWS_IC_META_PRIVATE, 'no' ) );
+		self::assertTrue( update_comment_meta( $comment, Comments::META_PRIVATE, 'no' ) );
 		self::assertFalse( dws_ic_is_private_comment( $comment ) );
 
 		wp_set_current_user( 0 ); // Code that runs as no one, such as WP-CLI or a scheduled job, keeps its say.
-		self::assertTrue( update_comment_meta( $comment, DWS_IC_META_PRIVATE, 'yes' ) );
+		self::assertTrue( update_comment_meta( $comment, Comments::META_PRIVATE, 'yes' ) );
 	}
 
 	public function test_wordpress_reads_leave_internal_comments_out_without_the_plugin(): void {
@@ -273,7 +274,7 @@ final class DataGuardsTest extends TestCase {
 			$wpdb->comments,
 			array(
 				'comment_post_ID'  => $this->post,
-				'comment_type'     => DWS_IC_COMMENT_TYPE,
+				'comment_type'     => Comments::TYPE,
 				'comment_approved' => '1',
 				'comment_content'  => 'v1',
 				'comment_date'     => current_time( 'mysql' ),
@@ -296,7 +297,7 @@ final class DataGuardsTest extends TestCase {
 		}
 
 		self::assertSame( array( $public ), $listed );
-		self::assertStringContainsString( DWS_IC_COMMENT_TYPE, $feed );
+		self::assertStringContainsString( Comments::TYPE, $feed );
 		self::assertSame( array( $v1, $public ), get_comments( array( 'post_id' => $this->post, 'fields' => 'ids', 'orderby' => 'comment_ID', 'order' => 'ASC' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's four arguments.
 	}
 }

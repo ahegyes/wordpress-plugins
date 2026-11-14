@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -55,10 +56,10 @@ final class CommentsTest extends TestCase {
 
 		$comment = get_comment( (int) $id );
 		self::assertInstanceOf( \WP_Comment::class, $comment );
-		self::assertSame( 'dws_internal', DWS_IC_COMMENT_TYPE );
-		self::assertSame( 'dws_internal', DWS_IC_COMMENT_STATUS );
-		self::assertSame( DWS_IC_COMMENT_TYPE, $comment->comment_type );
-		self::assertSame( DWS_IC_COMMENT_STATUS, $comment->comment_approved );
+		self::assertSame( 'dws_internal', Comments::TYPE );
+		self::assertSame( 'dws_internal', Comments::STATUS );
+		self::assertSame( Comments::TYPE, $comment->comment_type );
+		self::assertSame( Comments::STATUS, $comment->comment_approved );
 		self::assertSame( 'A back\\slashed note', $comment->comment_content );
 		self::assertSame( (string) $this->admin, $comment->user_id );
 		self::assertSame( 'Comments Admin', $comment->comment_author );

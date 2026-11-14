@@ -4,6 +4,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
+use DeepWebSolutions\InternalComments\CommentsList;
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
@@ -79,7 +80,7 @@ final class OrdersTest extends TestCase {
 		self::assertSame( 403, $this->post_comment( 'editor', $order->get_id(), 'By an editor' ) );
 
 		wp_set_current_user( self::$users['shop_manager'] );
-		$html = dws_ic_get_comments_list_html( $order->get_id() );
+		$html = CommentsList::get_html( $order->get_id() );
 		self::assertStringContainsString( 'By an administrator', $html );
 		self::assertStringContainsString( 'By a shop manager', $html );
 		self::assertCount( 2, dws_ic_get_internal_comments( $order->get_id() ) );

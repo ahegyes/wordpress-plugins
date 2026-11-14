@@ -53,7 +53,7 @@ final class UserProfileStrategyTest extends TestCase {
 		wp_delete_user( self::$users['customer'] );
 		foreach ( self::$users as $user ) {
 			delete_user_meta( $user, self::key() );
-			delete_user_meta( $user, DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS );
+			delete_user_meta( $user, UserProfileStrategy::USER_OPTION );
 		}
 		delete_option( 'dws_lpmwc_notices' );
 		unset( $_POST[ self::FORM ], $_POST[ self::FORM . '_nonce' ], $_GET['dws_lpmwc_unlocked_for_top'], $_GET['dws_lpmwc_unlocked_for_bottom'], $_GET['bottom'] );
@@ -77,9 +77,9 @@ final class UserProfileStrategyTest extends TestCase {
 
 	public function test_a_user_is_unlocked_only_for_the_methods_their_site_grants_list_holds(): void {
 		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
-		update_user_meta( self::$users['editor'], DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, array( 'cod' ) );
+		update_user_meta( self::$users['editor'], UserProfileStrategy::USER_OPTION, array( 'cod' ) );
 
-		self::assertSame( array( 'cod' ), dws_lpmwc_get_user_unlocked_payment_method_ids( self::$users['customer'] ) );
+		self::assertSame( array( 'cod' ), UserProfileStrategy::get_unlocked_ids( self::$users['customer'] ) );
 		self::assertFalse( self::should_lock( 'cod', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'cod', self::$users['editor'] ) );
@@ -89,7 +89,7 @@ final class UserProfileStrategyTest extends TestCase {
 	public function test_a_stored_grants_value_that_is_not_a_list_unlocks_nothing(): void {
 		update_user_meta( self::$users['customer'], self::key(), 'cod' );
 
-		self::assertSame( array(), dws_lpmwc_get_user_unlocked_payment_method_ids( self::$users['customer'] ) );
+		self::assertSame( array(), UserProfileStrategy::get_unlocked_ids( self::$users['customer'] ) );
 	}
 
 	public function test_at_checkout_a_customer_may_use_the_methods_granted_to_them(): void {
@@ -171,7 +171,7 @@ final class UserProfileStrategyTest extends TestCase {
 		self::save( self::$users['customer'], array( 'bacs' ) );
 
 		self::assertSame( array( 'bacs' ), get_user_meta( self::$users['customer'], self::key(), true ) );
-		self::assertSame( '', get_user_meta( self::$users['customer'], DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, true ) );
+		self::assertSame( '', get_user_meta( self::$users['customer'], UserProfileStrategy::USER_OPTION, true ) );
 	}
 
 	public function test_saving_the_profile_with_nothing_checked_stores_an_empty_list(): void {
@@ -261,7 +261,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected static function key(): string {
 		global $wpdb;
-		return $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS;
+		return $wpdb->get_blog_prefix() . UserProfileStrategy::USER_OPTION;
 	}
 
 	protected static function should_lock( string $gateway_id, int $user_id ): mixed {

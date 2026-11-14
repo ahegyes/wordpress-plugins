@@ -103,11 +103,11 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	}
 
 	public function test_an_active_member_of_a_plan_is_unlocked_for_the_plans_methods(): void {
-		update_post_meta( $this->plan, DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
+		update_post_meta( $this->plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cod' ) );
 		MembershipsDouble::add( self::$users['customer'], $this->plan );
 		MembershipsDouble::add( self::$users['subscriber'], $this->plan, false );
 
-		self::assertSame( array( 'cod' ), dws_lpmwc_get_plan_unlocked_payment_method_ids( $this->plan ) );
+		self::assertSame( array( 'cod' ), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
 		self::assertFalse( self::should_lock( 'cod', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'cod', self::$users['subscriber'] ) );
@@ -116,7 +116,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	public function test_the_plan_data_offers_a_tab_and_its_panel_to_a_user_with_the_capability(): void {
 		$GLOBALS['post'] = get_post( $this->plan );
-		update_post_meta( $this->plan, DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
+		update_post_meta( $this->plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cod' ) );
 
 		wp_set_current_user( self::$users['customer'] );
 		self::assertSame( array(), apply_filters( 'wc_membership_plan_data_tabs', array() ) );
@@ -143,25 +143,25 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	public function test_saving_the_plan_stores_the_checked_methods_under_its_own_nonce(): void {
 		wp_set_current_user( self::$users['administrator'] );
-		$_POST[ self::FORM ] = array( DWS_LPMWC_META_UNLOCKED_METHODS => array( 'bacs' ) );
+		$_POST[ self::FORM ] = array( WooCommerceMembershipsStrategy::META_KEY => array( 'bacs' ) );
 
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . '_nonce_' . ( $this->plan + 1 ) );
 		do_action( 'wc_memberships_save_meta_box', array(), 'wc-memberships-membership-plan-data', $this->plan, get_post( $this->plan ) );
-		self::assertSame( array(), dws_lpmwc_get_plan_unlocked_payment_method_ids( $this->plan ) );
+		self::assertSame( array(), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
 
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . "_nonce_$this->plan" );
 		do_action( 'wc_memberships_save_meta_box', array(), 'wc-memberships-membership-plan-data', $this->plan, get_post( $this->plan ) );
-		self::assertSame( array( 'bacs' ), dws_lpmwc_get_plan_unlocked_payment_method_ids( $this->plan ) );
+		self::assertSame( array( 'bacs' ), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
 	}
 
 	public function test_the_grants_step_moves_v1s_plan_meta_to_the_plugins_key(): void {
 		update_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod', 7 ) );
-		update_post_meta( $this->plan, DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cheque' ) );
+		update_post_meta( $this->plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cheque' ) );
 
 		Migrations::get_steps()[4]();
 		Migrations::get_steps()[4]();
 
-		self::assertSame( array( 'cheque', 'cod' ), dws_lpmwc_get_plan_unlocked_payment_method_ids( $this->plan ) );
+		self::assertSame( array( 'cheque', 'cod' ), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
 		self::assertSame( '', get_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
 	}
 

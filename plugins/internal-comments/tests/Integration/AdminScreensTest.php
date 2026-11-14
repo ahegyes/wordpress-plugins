@@ -4,6 +4,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\Capabilities;
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
@@ -139,7 +140,7 @@ final class AdminScreensTest extends TestCase {
 
 	public function test_the_cell_counts_the_comments_the_user_can_see_and_opens_their_quick_view(): void {
 		$this->comment( 'Open' );
-		$this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
 
 		$admin = $this->cell();
 		wp_set_current_user( self::$users['editor'] );
@@ -163,28 +164,28 @@ final class AdminScreensTest extends TestCase {
 	public function test_the_comments_screen_lists_internal_comments_only_under_their_type_for_users_who_may(): void {
 		$screens = new AdminScreens( self::make_assets() );
 
-		$_GET['comment_type'] = DWS_IC_COMMENT_TYPE;
+		$_GET['comment_type'] = Comments::TYPE;
 		$args                 = $screens->filter_list_table_args(
 			array(
 				'status' => '',
-				'type'   => DWS_IC_COMMENT_TYPE,
+				'type'   => Comments::TYPE,
 			)
 		);
-		self::assertSame( DWS_IC_COMMENT_STATUS, $args['status'] );
-		self::assertSame( 'trash', $screens->filter_list_table_args( array( 'status' => 'trash', 'type' => DWS_IC_COMMENT_TYPE ) )['status'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The list table's two arguments.
+		self::assertSame( Comments::STATUS, $args['status'] );
+		self::assertSame( 'trash', $screens->filter_list_table_args( array( 'status' => 'trash', 'type' => Comments::TYPE ) )['status'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The list table's two arguments.
 
 		wp_set_current_user( self::$users['editor'] );
 		foreach ( array( 'all', 'trash' ) as $status ) {
-			self::assertContains( DWS_IC_COMMENT_TYPE, $screens->filter_list_table_args( array( 'status' => $status ) )['type__not_in'] ?? array() );
+			self::assertContains( Comments::TYPE, $screens->filter_list_table_args( array( 'status' => $status ) )['type__not_in'] ?? array() );
 		}
-		self::assertArrayNotHasKey( DWS_IC_COMMENT_TYPE, $screens->add_comment_type( array() ) );
+		self::assertArrayNotHasKey( Comments::TYPE, $screens->add_comment_type( array() ) );
 		wp_set_current_user( self::$users['administrator'] );
-		self::assertArrayHasKey( DWS_IC_COMMENT_TYPE, $screens->add_comment_type( array() ) );
+		self::assertArrayHasKey( Comments::TYPE, $screens->add_comment_type( array() ) );
 	}
 
 	public function test_the_comments_screen_leaves_out_the_rows_its_reader_cannot_see(): void {
 		$open = $this->comment( 'Open' );
-		$this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
 		get_role( 'editor' )?->add_cap( Capabilities::SEE_TABLE );
 		wp_set_current_user( self::$users['editor'] );
 
@@ -192,12 +193,12 @@ final class AdminScreensTest extends TestCase {
 			$args = new AdminScreens( self::make_assets() )->filter_list_table_args(
 				array(
 					'post_id' => $this->post,
-					'type'    => DWS_IC_COMMENT_TYPE,
+					'type'    => Comments::TYPE,
 					'status'  => 'all',
 				)
 			);
 			$rows = new \WP_Comment_Query( $args )->comments;
-			$all  = get_comments( array( 'post_id' => $this->post, 'type' => DWS_IC_COMMENT_TYPE, 'status' => DWS_IC_COMMENT_STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
+			$all  = get_comments( array( 'post_id' => $this->post, 'type' => Comments::TYPE, 'status' => Comments::STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
 		} finally {
 			get_role( 'editor' )?->remove_cap( Capabilities::SEE_TABLE );
 		}
@@ -244,7 +245,7 @@ final class AdminScreensTest extends TestCase {
 
 		// Once someone has replied, the author may still make a private comment public, but not the other way round.
 		wp_set_current_user( self::$users['administrator'] );
-		$private = $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$private = $this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
 		foreach ( array( $comment, $private ) as $replied_to ) {
 			dws_ic_create_internal_comment(
 				array(

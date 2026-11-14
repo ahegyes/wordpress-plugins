@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\RestRoutes;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
@@ -152,7 +153,7 @@ final class RestRoutesTest extends TestCase {
 
 	public function test_the_list_shows_the_comments_the_user_can_see(): void {
 		$open    = $this->comment( 'Open' );
-		$private = $this->comment( 'Hidden', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$private = $this->comment( 'Hidden', array( Comments::META_PRIVATE => 'yes' ) );
 
 		$response = $this->request( 'editor', 'GET', "/internal-comments/v1/posts/{$this->post}/comments" );
 
@@ -236,8 +237,8 @@ final class RestRoutesTest extends TestCase {
 		return get_comments(
 			array(
 				'post_id' => $this->post,
-				'type'    => DWS_IC_COMMENT_TYPE,
-				'status'  => DWS_IC_COMMENT_STATUS,
+				'type'    => Comments::TYPE,
+				'status'  => Comments::STATUS,
 				'orderby' => 'comment_ID',
 				'order'   => 'ASC',
 			)

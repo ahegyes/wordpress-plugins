@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\CommentStatusMove;
 use DeepWebSolutions\InternalComments\Migrations;
 use DeepWebSolutions\InternalComments\Options;
@@ -178,9 +179,9 @@ final class MigrationsTest extends TestCase {
 			return (int) $wpdb->insert_id;
 		};
 
-		$approved = $insert( DWS_IC_COMMENT_TYPE, '1' );
-		$pending  = $insert( DWS_IC_COMMENT_TYPE, '0' );
-		$trashed  = $insert( DWS_IC_COMMENT_TYPE, 'trash' );
+		$approved = $insert( Comments::TYPE, '1' );
+		$pending  = $insert( Comments::TYPE, '0' );
+		$trashed  = $insert( Comments::TYPE, 'trash' );
 		$public   = $insert( 'comment', '1' );
 		$note     = $insert( 'order_note', '1' );
 		$wpdb->update( $wpdb->posts, array( 'comment_count' => 4 ), array( 'ID' => $post ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Stands in for v1's count.
@@ -194,8 +195,8 @@ final class MigrationsTest extends TestCase {
 			self::assertLessThan( 10000, ++$batches );
 		}
 
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $approved )?->comment_approved );
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $pending )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $approved )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $pending )?->comment_approved );
 		self::assertSame( 'trash', get_comment( $trashed )?->comment_approved );
 		self::assertSame( '1', get_comment( $public )?->comment_approved );
 		self::assertSame( '1', get_comment( $note )?->comment_approved );

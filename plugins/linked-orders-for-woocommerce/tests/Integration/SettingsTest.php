@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Linking;
 use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Settings;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
@@ -132,7 +133,7 @@ final class SettingsTest extends TestCase {
 		$control = $this->render()->getElementById( Options::MAX_DEPTH );
 
 		self::assertSame( '', get_option( Options::MAX_DEPTH ) );
-		self::assertSame( 1, dws_lowc_get_max_depth() );
+		self::assertSame( 1, Linking::get_max_depth() );
 		self::assertSame( array(), new \ReflectionProperty( \WC_Admin_Settings::class, 'errors' )->getValue() );
 		self::assertSame( '', $control?->getAttribute( 'value' ) );
 		self::assertSame( '1', $control?->getAttribute( 'placeholder' ) );
@@ -142,7 +143,7 @@ final class SettingsTest extends TestCase {
 		$this->save( array( Options::MAX_DEPTH => ' 3 ' ) );
 
 		self::assertSame( '3', get_option( Options::MAX_DEPTH ) );
-		self::assertSame( 3, dws_lowc_get_max_depth() );
+		self::assertSame( 3, Linking::get_max_depth() );
 	}
 
 	#[DataProvider( 'setting_groups' )]

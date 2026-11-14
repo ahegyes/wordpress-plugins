@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Capabilities;
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Permissions;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -128,7 +129,7 @@ final class PermissionsTest extends TestCase {
 
 	public function test_a_private_thread_is_seen_by_its_authors_and_holders_of_the_private_capability(): void {
 		$post    = $this->post( 'author' );
-		$private = $this->comment( $post, 'author', array( 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) );
+		$private = $this->comment( $post, 'author', array( 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) );
 		$reply   = $this->comment( $post, 'administrator', array( 'comment_parent' => $private ) );
 
 		self::assertTrue( user_can( self::$users['author'], 'see_dws_internal_comment', $private ) );
@@ -141,7 +142,7 @@ final class PermissionsTest extends TestCase {
 	public function test_the_comments_a_user_reads_leave_out_the_ones_they_cannot_see(): void {
 		$post    = $this->post( 'author' );
 		$open    = $this->comment( $post, 'author' );
-		$private = $this->comment( $post, 'author', array( 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) );
+		$private = $this->comment( $post, 'author', array( 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) );
 		$ids     = static fn ( array $comments ): array => \array_map( static fn ( \DWS_Internal_Comment $comment ): int => (int) $comment->comment_ID, \array_values( $comments ) );
 
 		wp_set_current_user( self::$users['editor'] );
@@ -176,7 +177,7 @@ final class PermissionsTest extends TestCase {
 
 	// Core's REST API lets any user who moderates comments update or delete one, without asking about the comment itself.
 	public function test_core_rest_writes_to_an_internal_comment_need_the_plugins_capabilities(): void {
-		$private = $this->comment( $this->post( 'administrator' ), 'administrator', array( 'comment_content' => 'Secret', 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
+		$private = $this->comment( $this->post( 'administrator' ), 'administrator', array( 'comment_content' => 'Secret', 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
 		wp_set_current_user( self::$users['editor'] );
 
 		$update = new \WP_REST_Request( 'PUT', "/wp/v2/comments/$private" );
@@ -187,7 +188,7 @@ final class PermissionsTest extends TestCase {
 		self::assertSame( 403, $updated->get_status() );
 		self::assertStringNotContainsString( 'Secret', (string) wp_json_encode( $updated->get_data() ) );
 		self::assertSame( 403, $deleted->get_status() );
-		self::assertSame( DWS_IC_COMMENT_STATUS, get_comment( $private )?->comment_approved );
+		self::assertSame( Comments::STATUS, get_comment( $private )?->comment_approved );
 		wp_set_current_user( self::$users['administrator'] );
 		$update->set_param( 'content', 'Rewritten' );
 		self::assertSame( 200, rest_do_request( $update )->get_status() );
@@ -196,7 +197,7 @@ final class PermissionsTest extends TestCase {
 	// WordPress hands the replies of a deleted comment to its parent, which would drop the privacy they took from it.
 	public function test_the_replies_of_a_deleted_private_comment_stay_private(): void {
 		$post    = $this->post( 'author' );
-		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) );
+		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) );
 		$reply   = $this->comment( $post, 'administrator', array( 'comment_parent' => $private ) );
 		wp_set_current_user( self::$users['editor'] ); // A signed-in user who may not change the reply's privacy deletes the comment.
 
@@ -211,7 +212,7 @@ final class PermissionsTest extends TestCase {
 	// The REST server takes a query's id over the route's and matches routes regardless of letter case.
 	public function test_core_rest_writes_are_checked_on_the_comment_core_acts_on(): void {
 		$post    = $this->post( 'administrator' );
-		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( DWS_IC_META_PRIVATE => 'yes' ) ) );
+		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) );
 		$public  = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
 		wp_set_current_user( self::$users['editor'] );
 
@@ -246,8 +247,8 @@ final class PermissionsTest extends TestCase {
 		$listed->set_query_params(
 			array(
 				'post'   => $post,
-				'type'   => DWS_IC_COMMENT_TYPE,
-				'status' => DWS_IC_COMMENT_STATUS,
+				'type'   => Comments::TYPE,
+				'status' => Comments::STATUS,
 			)
 		);
 
@@ -289,12 +290,12 @@ final class PermissionsTest extends TestCase {
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
-			$without = $refuse( DWS_IC_COMMENT_TYPE );
+			$without = $refuse( Comments::TYPE );
 			$cased   = $refuse( ' DWS_Internal ' );
 			$public  = $refuse( 'comment' );
 			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
 			wp_get_current_user()->get_role_caps(); // The user's capabilities were read before the role changed.
-			$with = $refuse( DWS_IC_COMMENT_TYPE );
+			$with = $refuse( Comments::TYPE );
 		} finally {
 			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
 			$GLOBALS['wp_filter']['wp_ajax_replyto-comment'] = $hooked;
