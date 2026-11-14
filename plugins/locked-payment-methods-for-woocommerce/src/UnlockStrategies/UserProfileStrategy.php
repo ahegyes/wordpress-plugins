@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
@@ -73,7 +75,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	#[\Override]
 	public static function should_load(): bool {
-		return dws_lpmwc_get_bool_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES );
+		return Options::get_bool( Options::UNLOCK_VIA_USER_PROFILES );
 	}
 
 	/**
@@ -103,7 +105,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$options = dws_lpmwc_get_grant_choices( dws_lpmwc_get_user_unlocked_payment_method_ids( $object_id ), $object_id );
 		return array(
 			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
-			'capability' => DWS_LPMWC_CAP_UNLOCK_VIA_USER_PROFILES,
+			'capability' => Capabilities::UNLOCK_VIA_USER_PROFILES,
 			'fields'     => array() === $options ? array() : array(
 				array(
 					'type'    => 'checkboxes',

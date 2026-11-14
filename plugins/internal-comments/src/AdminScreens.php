@@ -77,7 +77,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function add_column( array $columns, string $post_type ): array {
-		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( DWS_IC_CAP_SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return $columns;
 		}
 
@@ -184,7 +184,7 @@ final class AdminScreens implements ComponentInterface {
 		$is_trashed = 'trash' === get_post_status( $post_id );
 		if ( $is_trashed ) {
 			$count = \count( dws_ic_get_internal_comments_from_trash_meta( $post_id ) );
-		} elseif ( current_user_can( DWS_IC_CAP_SEE ) && current_user_can( DWS_IC_CAP_SEE_PRIVATE ) && current_user_can( 'edit_post', $post_id ) ) {
+		} elseif ( current_user_can( Capabilities::SEE ) && current_user_can( Capabilities::SEE_PRIVATE ) && current_user_can( 'edit_post', $post_id ) ) {
 			// A user who sees every comment of the post needs no check per comment.
 			$count = \count(
 				get_comments(
@@ -221,7 +221,7 @@ final class AdminScreens implements ComponentInterface {
 		);
 		?>
 		<div class="post-com-count-wrapper dws-ic-column">
-			<?php if ( ! $is_trashed && current_user_can( DWS_IC_CAP_SEE_TABLE ) ) : ?>
+			<?php if ( ! $is_trashed && current_user_can( Capabilities::SEE_TABLE ) ) : ?>
 				<a class="post-com-count" href="<?php echo esc_url( $link ); ?>"><?php echo $number; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></a>
 			<?php else : ?>
 				<span class="post-com-count"><?php echo $number; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></span>
@@ -254,7 +254,7 @@ final class AdminScreens implements ComponentInterface {
 			return;
 		}
 
-		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( DWS_IC_CAP_SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return;
 		}
 
@@ -275,7 +275,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_comments_view(): void {
-		add_comments_page( __( 'Internal Comments', 'internal-comments' ), __( 'Internal Comments', 'internal-comments' ), DWS_IC_CAP_SEE_TABLE, 'edit-comments.php?comment_type=' . DWS_IC_COMMENT_TYPE );
+		add_comments_page( __( 'Internal Comments', 'internal-comments' ), __( 'Internal Comments', 'internal-comments' ), Capabilities::SEE_TABLE, 'edit-comments.php?comment_type=' . DWS_IC_COMMENT_TYPE );
 	}
 
 	/**
@@ -289,7 +289,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function add_comment_type( array $types ): array {
-		if ( current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
+		if ( current_user_can( Capabilities::SEE_TABLE ) ) {
 			$types[ DWS_IC_COMMENT_TYPE ] = __( 'Internal Comments', 'internal-comments' );
 		}
 
@@ -310,7 +310,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function filter_list_table_args( array $args ): array {
 		$args['dws_ic_list_table'] = true;
-		if ( ! current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
+		if ( ! current_user_can( Capabilities::SEE_TABLE ) ) {
 			$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
 			return $args;
 		}
@@ -393,7 +393,7 @@ final class AdminScreens implements ComponentInterface {
 	public function count_listed_comments( mixed $count, int $post_id ): mixed {
 		$screen = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		// While v1's comments are being moved, every count already leaves the internal type out.
-		if ( 'edit-comments' !== $screen?->id || current_user_can( DWS_IC_CAP_SEE_TABLE ) || dws_ic_is_v1_move_pending() ) {
+		if ( 'edit-comments' !== $screen?->id || current_user_can( Capabilities::SEE_TABLE ) || CommentStatusMove::is_pending() ) {
 			return $count;
 		}
 
@@ -547,7 +547,7 @@ final class AdminScreens implements ComponentInterface {
 			return $html;
 		}
 
-		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent ) && ( $is_private || ! dws_ic_has_replies( (int) $comment->comment_ID ) );
+		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( Capabilities::INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent ) && ( $is_private || ! dws_ic_has_replies( (int) $comment->comment_ID ) );
 		\ob_start();
 		?>
 		<div class="misc-pub-section misc-pub-dws-ic-private">

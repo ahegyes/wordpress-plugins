@@ -381,7 +381,7 @@ final class ListTable implements ComponentInterface {
 	 * @return  bool
 	 */
 	protected function can_see(): bool {
-		return current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) && current_user_can( DWS_LOWC_CAP_SEE_TABLE_COLUMN );
+		return current_user_can( Capabilities::SEE_ORDER_LINKS ) && current_user_can( Capabilities::SEE_TABLE_COLUMN );
 	}
 
 	/**

@@ -222,7 +222,7 @@ final class Comments implements ComponentInterface {
 	 * @return  void
 	 */
 	public function hide_unmoved_comments( \WP_Comment_Query $query ): void {
-		if ( ! dws_ic_is_v1_move_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+		if ( ! CommentStatusMove::is_pending() || dws_ic_query_names_internal_type( $query->query_vars ) || \in_array( DWS_IC_COMMENT_STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
 			return;
 		}
 
@@ -243,7 +243,7 @@ final class Comments implements ComponentInterface {
 	 */
 	public function hide_unmoved_feed_comments( string $where ): string {
 		global $wpdb;
-		return dws_ic_is_v1_move_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
+		return CommentStatusMove::is_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' ) : $where;
 	}
 
 	/**

@@ -65,7 +65,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 		);
 
 		$fields = array();
-		foreach ( DWS_LPMWC_V1_SETTINGS as $group => $keys ) {
+		foreach ( Options::V1_SETTINGS as $group => $keys ) {
 			/**
 			 * Filters a group's fields, keyed by their v1 ids.
 			 *
@@ -186,33 +186,33 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 							: \sprintf( __( '%s (disabled)', 'locked-payment-methods-for-woocommerce' ), $gateway->get_title() ),
 						WC()->payment_gateways()->payment_gateways()
 					),
-					'default'  => DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_LOCKED_METHODS ],
+					'default'  => Options::DEFAULTS[ Options::LOCKED_METHODS ],
 					'desc_tip' => __( 'A disabled payment method stays locked, so it is still locked once it is enabled again.', 'locked-payment-methods-for-woocommerce' ),
 				),
 				'unlock-via-user-role'   => array(
 					'title'   => __( 'Unlock via user roles', 'locked-payment-methods-for-woocommerce' ),
 					'type'    => 'checkbox',
 					'desc'    => __( 'Give users with the roles below every locked payment method', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES ] ),
+					'default' => wc_bool_to_string( Options::DEFAULTS[ Options::UNLOCK_VIA_USER_ROLES ] ),
 				),
 				'full-access-user-roles' => array(
 					'title'   => __( 'User roles with full access to every locked payment method', 'locked-payment-methods-for-woocommerce' ),
 					'type'    => 'multiselect',
 					'class'   => 'wc-enhanced-select',
 					'options' => \array_map( 'translate_user_role', wp_roles()->get_names() ),
-					'default' => DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ],
+					'default' => Options::DEFAULTS[ Options::FULL_ACCESS_ROLES ],
 				),
 				'unlock-via-user-meta'   => array(
 					'title'   => __( 'Unlock via user profiles', 'locked-payment-methods-for-woocommerce' ),
 					'type'    => 'checkbox',
 					'desc'    => __( 'Unlock payment methods for a user from their profile, for all their future orders and their unpaid orders', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES ] ),
+					'default' => wc_bool_to_string( Options::DEFAULTS[ Options::UNLOCK_VIA_USER_PROFILES ] ),
 				),
 				'unlock-via-order-meta'  => array(
 					'title'   => __( 'Unlock via orders', 'locked-payment-methods-for-woocommerce' ),
 					'type'    => 'checkbox',
 					'desc'    => __( 'Unlock payment methods for an unpaid order from its edit screen, for that order only', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS ] ),
+					'default' => wc_bool_to_string( Options::DEFAULTS[ Options::UNLOCK_VIA_ORDERS ] ),
 				),
 			),
 			'integrations' => \array_filter(
@@ -221,13 +221,13 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 						'title'   => __( 'Unlock via Groups', 'locked-payment-methods-for-woocommerce' ),
 						'type'    => 'checkbox',
 						'desc'    => __( 'Unlock payment methods for the members of a Groups group from the group\'s settings', 'locked-payment-methods-for-woocommerce' ),
-						'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS ] ),
+						'default' => wc_bool_to_string( Options::DEFAULTS[ Options::UNLOCK_VIA_GROUPS ] ),
 					) : array(),
 					'unlock-via-wc-memberships' => WooCommerceMembershipsStrategy::is_available() ? array(
 						'title'   => __( 'Unlock via WooCommerce Memberships', 'locked-payment-methods-for-woocommerce' ),
 						'type'    => 'checkbox',
 						'desc'    => __( 'Unlock payment methods for the active members of a membership plan from the plan\'s data', 'locked-payment-methods-for-woocommerce' ),
-						'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS ] ),
+						'default' => wc_bool_to_string( Options::DEFAULTS[ Options::UNLOCK_VIA_WC_MEMBERSHIPS ] ),
 					) : array(),
 				)
 			),
@@ -236,7 +236,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 					'title'   => __( 'Remove all data on uninstallation', 'locked-payment-methods-for-woocommerce' ),
 					'type'    => 'checkbox',
 					'desc'    => __( 'Delete the plugin\'s data when it is uninstalled, so it must be configured again if it is installed later', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_DELETE_DATA ] ),
+					'default' => wc_bool_to_string( Options::DEFAULTS[ Options::DELETE_DATA ] ),
 				),
 			),
 			default   => array(),

@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
@@ -62,7 +64,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 */
 	#[\Override]
 	public static function should_load(): bool {
-		return dws_lpmwc_get_bool_option( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+		return Options::get_bool( Options::UNLOCK_VIA_ORDERS );
 	}
 
 	/**
@@ -100,7 +102,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 
 		return array(
 			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
-			'capability' => DWS_LPMWC_CAP_UNLOCK_VIA_ORDERS,
+			'capability' => Capabilities::UNLOCK_VIA_ORDERS,
 			'fields'     => array() === $field['options'] ? array() : array( $field ),
 		);
 	}

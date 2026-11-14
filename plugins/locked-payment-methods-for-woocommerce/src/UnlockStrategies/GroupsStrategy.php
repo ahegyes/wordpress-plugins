@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\Notice;
@@ -72,7 +74,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 */
 	#[\Override]
 	public static function should_load(): bool {
-		return self::is_available() && dws_lpmwc_get_bool_option( DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS );
+		return self::is_available() && Options::get_bool( Options::UNLOCK_VIA_GROUPS );
 	}
 
 	/**
@@ -236,7 +238,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @return  bool
 	 */
 	protected function can_edit(): bool {
-		return current_user_can( DWS_LPMWC_CAP_UNLOCK_VIA_GROUPS ) && \Groups_User::current_user_can( 'groups_admin_groups' );
+		return current_user_can( Capabilities::UNLOCK_VIA_GROUPS ) && \Groups_User::current_user_can( 'groups_admin_groups' );
 	}
 
 	/**

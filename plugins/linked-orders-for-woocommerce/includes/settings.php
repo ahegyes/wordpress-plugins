@@ -8,6 +8,8 @@
  * @package DeepWebSolutions\LinkedOrders
  */
 
+use DeepWebSolutions\LinkedOrders\Options;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -108,12 +110,12 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
  */
 function dws_lowc_validate_setting( $value, string $field_id, ?string $group = null ) {
 	$key = dws_lowc_find_setting( $field_id, $group )[2];
-	if ( DWS_LOWC_OPTION_MAX_DEPTH === $key ) {
-		return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? DWS_LOWC_OPTION_DEFAULTS[ $key ], 1 );
+	if ( Options::MAX_DEPTH === $key ) {
+		return max( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ $key ], 1 );
 	}
 
-	if ( DWS_LOWC_OPTION_AUTOCOMPLETE === $key || DWS_LOWC_OPTION_DELETE_DATA === $key ) {
-		return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? DWS_LOWC_OPTION_DEFAULTS[ $key ];
+	if ( Options::AUTOCOMPLETE === $key || Options::DELETE_DATA === $key ) {
+		return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ $key ];
 	}
 
 	return $value;
@@ -130,7 +132,7 @@ function dws_lowc_validate_setting( $value, string $field_id, ?string $group = n
  * @return  int
  */
 function dws_lowc_get_max_depth(): int {
-	return filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? DWS_LOWC_OPTION_DEFAULTS[ DWS_LOWC_OPTION_MAX_DEPTH ];
+	return filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? Options::DEFAULTS[ Options::MAX_DEPTH ];
 }
 
 /**

@@ -74,7 +74,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 	public function get_options_page( string $page_id ): array {
 		return array(
 			'parent'     => 'options-general.php',
-			'capability' => DWS_IC_CAP_MANAGE_OPTIONS,
+			'capability' => Capabilities::MANAGE_OPTIONS,
 			'page_title' => __( 'Internal Comments Settings', 'internal-comments' ),
 			'menu_title' => __( 'Internal Comments', 'internal-comments' ),
 			'tabs'       => array(
@@ -111,7 +111,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 
 		$fields = array();
 		foreach ( $group_fields as $id => $field ) {
-			$fields[] = array( 'id' => DWS_IC_V1_SETTINGS[ $tab_slug ][ $id ] ?? "dws_ic_{$tab_slug}_$id" ) + $field; // A field a v1 callback adds stores in a row of its own, which v1's getters read.
+			$fields[] = array( 'id' => Options::V1_SETTINGS[ $tab_slug ][ $id ] ?? "dws_ic_{$tab_slug}_$id" ) + $field; // A field a v1 callback adds stores in a row of its own, which v1's getters read.
 		}
 
 		return $fields;
@@ -176,13 +176,13 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 					'type'    => 'checkboxes',
 					'title'   => __( 'Post types that support internal comments', 'internal-comments' ),
 					'options' => \array_map( static fn ( \WP_Post_Type $type ): string => (string) $type->label, get_post_types( array( 'show_ui' => true ), 'objects' ) ),
-					'default' => DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_POST_TYPES ],
+					'default' => Options::DEFAULTS[ Options::POST_TYPES ],
 				),
 				'enable-private-comments' => array(
 					'type'    => 'checkbox',
 					'title'   => __( 'Private comments', 'internal-comments' ),
 					'desc'    => __( 'Allow internal comments that only their author and administrators can see', 'internal-comments' ),
-					'default' => DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_PRIVATE_COMMENTS ],
+					'default' => Options::DEFAULTS[ Options::PRIVATE_COMMENTS ],
 				),
 			);
 		}
@@ -192,7 +192,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 				'type'    => 'checkbox',
 				'title'   => __( 'Remove all data on uninstallation', 'internal-comments' ),
 				'desc'    => __( 'Delete the plugin\'s settings and every internal comment when it is uninstalled, which cannot be undone', 'internal-comments' ),
-				'default' => DWS_IC_OPTION_DEFAULTS[ DWS_IC_OPTION_DELETE_DATA ],
+				'default' => Options::DEFAULTS[ Options::DELETE_DATA ],
 			),
 		);
 	}

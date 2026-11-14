@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Capabilities;
 use DeepWebSolutions\LockedPaymentMethods\EditScreen\Hosts\MembershipPlanTab;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
@@ -62,7 +64,7 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	#[\Override]
 	public static function should_load(): bool {
-		return self::is_available() && dws_lpmwc_get_bool_option( DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS );
+		return self::is_available() && Options::get_bool( Options::UNLOCK_VIA_WC_MEMBERSHIPS );
 	}
 
 	/**
@@ -88,7 +90,7 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 		$options = dws_lpmwc_get_grant_choices( dws_lpmwc_get_plan_unlocked_payment_method_ids( $object_id ), 0 );
 		return array(
 			'title'      => __( 'Unlocked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
-			'capability' => DWS_LPMWC_CAP_UNLOCK_VIA_WC_MEMBERSHIPS,
+			'capability' => Capabilities::UNLOCK_VIA_WC_MEMBERSHIPS,
 			'fields'     => array() === $options ? array() : array(
 				array(
 					'type'    => 'checkboxes',

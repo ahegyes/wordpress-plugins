@@ -8,6 +8,7 @@
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
@@ -508,7 +509,7 @@ function dws_lpmwc_find_v1_setting( string $field_id, ?string $group ): ?array {
 		list( $group, $field_id ) = $parts;
 	}
 
-	$key = DWS_LPMWC_V1_SETTINGS[ $group ][ $field_id ] ?? null;
+	$key = Options::V1_SETTINGS[ $group ][ $field_id ] ?? null;
 	return is_null( $key ) ? null : array(
 		'group' => $group,
 		'field' => $field_id,
@@ -561,7 +562,7 @@ function dws_lpmwc_read_v1_setting( string $field_id, ?string $group ) {
  * @return  mixed
  */
 function dws_lpmwc_validate_v1_setting( $value, string $key ) {
-	$default = DWS_LPMWC_OPTION_DEFAULTS[ $key ] ?? null;
+	$default = Options::DEFAULTS[ $key ] ?? null;
 	if ( is_bool( $default ) ) {
 		return filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? $default;
 	}

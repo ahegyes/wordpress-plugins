@@ -8,6 +8,8 @@
  * @package DeepWebSolutions\InternalComments
  */
 
+use DeepWebSolutions\InternalComments\Capabilities;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -57,7 +59,7 @@ function dws_ic_print_comments_list( int $post_id ): void {
 				is_string( $singular ) ? $singular : __( 'item', 'internal-comments' )
 			)
 		);
-		if ( current_user_can( DWS_IC_CAP_INSERT ) ) {
+		if ( current_user_can( Capabilities::INSERT ) ) {
 			echo ' ' . esc_html__( 'Be the first to post one!', 'internal-comments' );
 		}
 		?>
@@ -196,7 +198,7 @@ function dws_ic_print_comment( DWS_Internal_Comment $comment ): void {
 			<?php if ( $comment->can_edit() ) : ?>
 				<button type="button" class="button-link" data-action="edit" data-comment-id="<?php echo esc_attr( (string) $comment_id ); ?>"><?php esc_html_e( 'Edit', 'internal-comments' ); ?></button>
 			<?php endif; ?>
-			<?php if ( current_user_can( DWS_IC_CAP_INSERT ) ) : ?>
+			<?php if ( current_user_can( Capabilities::INSERT ) ) : ?>
 				<button type="button" class="button-link" data-action="reply" data-comment-id="<?php echo esc_attr( (string) $comment_id ); ?>"><?php esc_html_e( 'Reply', 'internal-comments' ); ?></button>
 			<?php endif; ?>
 			<?php if ( $comment->can_trash() ) : ?>

@@ -8,6 +8,7 @@
  * @package DeepWebSolutions\InternalComments
  */
 
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
@@ -28,10 +29,8 @@ try {
 	}
 
 	require_once __DIR__ . '/vendor/autoload.php';
-	require_once __DIR__ . '/includes/capabilities.php';
-	require_once __DIR__ . '/includes/footprint.php';
-	require_once __DIR__ . '/includes/options.php';
-	$dws_ic_footprint = dws_ic_get_footprint();
+	$dws_ic_footprint = Plugin::FOOTPRINT;
+	$dws_ic_consent   = Options::DELETE_DATA;
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
@@ -52,7 +51,7 @@ try {
 		$dws_ic_identity,
 		$dws_ic_footprint,
 		array(
-			'consent' => array( 'option' => DWS_IC_OPTION_DELETE_DATA ),
+			'consent' => array( 'option' => $dws_ic_consent ),
 		)
 	);
 } catch ( RuntimeException $exception ) {

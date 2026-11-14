@@ -42,7 +42,7 @@ final class MetaBox implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_meta_box( string $screen_id, mixed $post_or_order ): void {
-		if ( ! current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) || ! current_user_can( DWS_LOWC_CAP_SEE_METABOX ) ) {
+		if ( ! current_user_can( Capabilities::SEE_ORDER_LINKS ) || ! current_user_can( Capabilities::SEE_METABOX ) ) {
 			return;
 		}
 

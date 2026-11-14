@@ -135,7 +135,7 @@ final class RestRoutes implements ComponentInterface {
 	 */
 	public function can_read_post_comments( \WP_REST_Request $request ): bool {
 		$post_id = absint( $request['post'] );
-		return $this->can_use_post( $post_id ) && ( current_user_can( DWS_IC_CAP_SEE_METABOX ) || current_user_can( DWS_IC_CAP_SEE_COLUMN ) );
+		return $this->can_use_post( $post_id ) && ( current_user_can( Capabilities::SEE_METABOX ) || current_user_can( Capabilities::SEE_COLUMN ) );
 	}
 
 	/**
@@ -149,7 +149,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  bool
 	 */
 	public function can_create_comment( \WP_REST_Request $request ): bool {
-		return $this->can_use_post( absint( $request['post'] ) ) && current_user_can( DWS_IC_CAP_INSERT );
+		return $this->can_use_post( absint( $request['post'] ) ) && current_user_can( Capabilities::INSERT );
 	}
 
 	/**
@@ -219,7 +219,7 @@ final class RestRoutes implements ComponentInterface {
 
 		// A comment its author meant to keep private is never stored for every reader instead.
 		$private = true === $request['private'];
-		if ( $private && ! ( dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) ) ) {
+		if ( $private && ! ( dws_ic_are_enabled_private_comments() && current_user_can( Capabilities::INSERT_PRIVATE ) ) ) {
 			return new \WP_Error( 'dws_ic_cannot_be_private', __( 'This comment was not posted, because the site\'s settings no longer let you post private internal comments. Clear the private option to post it for everyone who can see internal comments.', 'internal-comments' ), array( 'status' => 403 ) );
 		}
 

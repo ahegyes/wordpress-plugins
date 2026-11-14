@@ -68,12 +68,12 @@ final class Permissions implements ComponentInterface {
 
 		$is_author = 0 !== $user_id && (int) $comment->user_id === $user_id;
 		$caps      = match ( $cap ) {
-			'see_dws_internal_comment'  => $is_author ? array() : array( DWS_IC_CAP_SEE ),
-			'edit_dws_internal_comment' => array( $is_author ? DWS_IC_CAP_EDIT : DWS_IC_CAP_EDIT_OTHERS ),
-			default                     => array( $is_author ? DWS_IC_CAP_TRASH : DWS_IC_CAP_TRASH_OTHERS ),
+			'see_dws_internal_comment'  => $is_author ? array() : array( Capabilities::SEE ),
+			'edit_dws_internal_comment' => array( $is_author ? Capabilities::EDIT : Capabilities::EDIT_OTHERS ),
+			default                     => array( $is_author ? Capabilities::TRASH : Capabilities::TRASH_OTHERS ),
 		};
 		if ( array() !== $owners && ! $is_author && ! \in_array( $user_id, $owners, true ) ) {
-			$caps[] = DWS_IC_CAP_SEE_PRIVATE;
+			$caps[] = Capabilities::SEE_PRIVATE;
 		}
 
 		return \array_values( \array_unique( \array_merge( $caps, map_meta_cap( 'edit_post', $user_id, (int) $comment->comment_post_ID ) ) ) );
@@ -134,7 +134,7 @@ final class Permissions implements ComponentInterface {
 	 */
 	public function guard_core_replies(): void {
 		$type = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
-		if ( DWS_IC_COMMENT_TYPE === $type && ! current_user_can( DWS_IC_CAP_INSERT ) ) {
+		if ( DWS_IC_COMMENT_TYPE === $type && ! current_user_can( Capabilities::INSERT ) ) {
 			wp_die( -1, '', array( 'response' => 403 ) );
 		}
 	}

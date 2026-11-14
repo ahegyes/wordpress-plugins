@@ -104,8 +104,8 @@ final class MetaBox implements ComponentInterface {
 	 */
 	public function render_meta_box( mixed $edited ): void {
 		$object_id   = $this->get_object_id( $edited );
-		$can_post    = current_user_can( DWS_IC_CAP_INSERT );
-		$can_private = $can_post && dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE );
+		$can_post    = current_user_can( Capabilities::INSERT );
+		$can_private = $can_post && dws_ic_are_enabled_private_comments() && current_user_can( Capabilities::INSERT_PRIVATE );
 		?>
 		<div class="dws-internal-comments" tabindex="-1" data-post-id="<?php echo esc_attr( (string) $object_id ); ?>">
 			<div class="dws-internal-comments__comments">
@@ -187,7 +187,7 @@ final class MetaBox implements ComponentInterface {
 	 * @return  bool
 	 */
 	protected function is_shown_for( int $post_id ): bool {
-		return dws_ic_is_selected_post_type( $post_id ) && current_user_can( DWS_IC_CAP_SEE_METABOX ) && current_user_can( 'edit_post', $post_id );
+		return dws_ic_is_selected_post_type( $post_id ) && current_user_can( Capabilities::SEE_METABOX ) && current_user_can( 'edit_post', $post_id );
 	}
 
 	// endregion

@@ -8,6 +8,8 @@
  * @package DeepWebSolutions\InternalComments
  */
 
+use DeepWebSolutions\InternalComments\Options;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -54,11 +56,11 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 	list( $group_id, $id, $option ) = $field;
 	$value                          = get_option( $option, null );
 	switch ( $option ) {
-		case DWS_IC_OPTION_POST_TYPES:
+		case Options::POST_TYPES:
 			$value = is_array( $value ) ? array_values( array_intersect( array_filter( $value, 'is_string' ), get_post_types( array( 'show_ui' => true ) ) ) ) : array();
 			break;
-		case DWS_IC_OPTION_PRIVATE_COMMENTS:
-		case DWS_IC_OPTION_DELETE_DATA:
+		case Options::PRIVATE_COMMENTS:
+		case Options::DELETE_DATA:
 			$value = filter_var( $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ?? false;
 			break;
 	}
@@ -112,7 +114,7 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
  * @return  list<string>
  */
 function dws_ic_get_selected_post_types(): array {
-	$selected = get_option( DWS_IC_OPTION_POST_TYPES, array() );
+	$selected = get_option( Options::POST_TYPES, array() );
 	return is_array( $selected ) ? array_values( array_filter( $selected, 'is_string' ) ) : array();
 }
 
@@ -156,5 +158,5 @@ function dws_ic_find_setting( string $field_id, ?string $group ): ?array {
 		$group = substr( $group, 0, -9 );
 	}
 
-	return isset( DWS_IC_V1_SETTINGS[ $group ] ) ? array( $group, $field_id, DWS_IC_V1_SETTINGS[ $group ][ $field_id ] ?? "dws_ic_{$group}_$field_id" ) : null;
+	return isset( Options::V1_SETTINGS[ $group ] ) ? array( $group, $field_id, Options::V1_SETTINGS[ $group ][ $field_id ] ?? "dws_ic_{$group}_$field_id" ) : null;
 }

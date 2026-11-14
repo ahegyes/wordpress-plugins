@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Holds the plugin's option keys, which are v1's, their defaults, and the maximum depth's validator.
+ * Holds the maximum depth's validator.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -9,50 +9,6 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
-/**
- * The option that holds the deepest level a linked order can be created at, where root orders are level 0.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LOWC_OPTION_MAX_DEPTH = 'dws-lowc_general_max-depth';
-
-/**
- * The option that holds 'yes' where completing an order completes its descendants.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LOWC_OPTION_AUTOCOMPLETE = 'dws-lowc_general_autocomplete-descendants';
-
-/**
- * The option that holds 'yes' where the site consents to uninstall removing the plugin's data.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     string
- */
-const DWS_LOWC_OPTION_DELETE_DATA = 'dws-lowc_plugin_remove-data-uninstall';
-
-/**
- * The value each option reads as while nothing valid is stored.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @var     array<string, bool|int>
- */
-const DWS_LOWC_OPTION_DEFAULTS = array(
-	DWS_LOWC_OPTION_MAX_DEPTH    => 1,
-	DWS_LOWC_OPTION_AUTOCOMPLETE => false,
-	DWS_LOWC_OPTION_DELETE_DATA  => false,
-);
 
 /**
  * Returns the maximum depth in the form WooCommerce stores, or an error when the submission is not a whole number of at least 1.
