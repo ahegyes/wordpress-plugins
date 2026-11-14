@@ -166,7 +166,7 @@ function dws_lpmwc_get_plan_unlocked_payment_method_ids( int $plan_id ): array {
 }
 
 /**
- * Returns whether a payment method is locked for a user and an order: whether the locked list holds it and dws_lpmwc/payment_method/should_lock does not relax it.
+ * Returns whether a payment method is locked for a user and an order: whether the locked list holds it and locked_payment_methods_for_woocommerce/payment_method/should_lock does not relax it.
  *
  * @api
  *

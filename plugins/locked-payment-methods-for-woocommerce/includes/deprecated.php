@@ -313,13 +313,13 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_lpmwc/payment_method/should_lock.
+	 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
 	 *
 	 * @param       bool   $is_locked        Whether the payment method stays locked.
 	 * @param       string $locked_method_id The payment method's id.
 	 * @param       int    $user_id          The user's id.
 	 */
-	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user', array( true, $locked_method_id, $user_id ), '2.0.0', 'dws_lpmwc/payment_method/should_lock' );
+	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user', array( true, $locked_method_id, $user_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
 	return dws_lpmwc_should_lock( false !== $lock, $locked_method_id, $user_id, 0 );
 }
 
@@ -346,13 +346,13 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_lpmwc/payment_method/should_lock.
+	 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
 	 *
 	 * @param       bool   $is_locked        Whether the payment method stays locked.
 	 * @param       string $locked_method_id The payment method's id.
 	 * @param       int    $order_id         The order's id.
 	 */
-	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( true, $locked_method_id, $order_id ), '2.0.0', 'dws_lpmwc/payment_method/should_lock' );
+	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( true, $locked_method_id, $order_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
 	return dws_lpmwc_should_lock( false !== $lock, $locked_method_id, $order instanceof WC_Order ? $order->get_customer_id() : 0, $order_id );
 }
 

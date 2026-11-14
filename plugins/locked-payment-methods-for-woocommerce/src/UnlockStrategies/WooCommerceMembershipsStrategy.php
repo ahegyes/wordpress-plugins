@@ -73,7 +73,7 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'dws_lpmwc/payment_method/should_lock', array( $this, 'unlock_member_methods' ), 10, 3 );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_member_methods' ), 10, 3 );
 		new ObjectForm( $this->identity, self::FORM, $this, new MembershipPlanTab(), $this->notices )->register_hooks();
 	}
 

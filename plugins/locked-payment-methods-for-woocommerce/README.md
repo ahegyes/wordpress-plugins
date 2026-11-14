@@ -14,7 +14,7 @@ Install the plugin from the WordPress plugin directory under Plugins → Add New
 
 ## Extending
 
-Other plugins lock more payment methods through `dws_lpmwc/payment_method/locked_ids`, unlock one for a user and an order by returning `false` from `dws_lpmwc/payment_method/should_lock`, and ask `dws_lpmwc_is_payment_method_locked()` whether one is locked. Every hook is named `dws_lpmwc/area/name`, and each one v1 fired under `locked_payment_methods_for_woocommerce/` still fires, deprecated, where v1 fired it; `CHANGELOG.md` lists the renames and the removals.
+Other plugins lock more payment methods through `locked_payment_methods_for_woocommerce/payment_method/locked_ids`, unlock one for a user and an order by returning `false` from `locked_payment_methods_for_woocommerce/payment_method/should_lock`, and ask `dws_lpmwc_is_payment_method_locked()` whether one is locked. Every hook is named `locked_payment_methods_for_woocommerce/area/name`, under v1's root, and each name v1 fired there still fires, deprecated, where v1 fired it; `CHANGELOG.md` lists the renames and the removals.
 
 ## Development
 

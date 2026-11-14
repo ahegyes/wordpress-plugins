@@ -71,25 +71,13 @@ final class Autocompletion implements ComponentInterface {
 				/**
 				 * Filters whether a descendant of a completed order is completed too.
 				 *
-				 * @since       1.0.0
-				 * @version     2.0.0
-				 * @deprecated  2.0.0 Use dws_lowc/autocompletion/should_autocomplete.
-				 *
-				 * @param       bool $should_autocomplete Whether the descendant is completed.
-				 * @param       int  $descendant_id       The descendant's id.
-				 */
-				$should_autocomplete = apply_filters_deprecated( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', array( true, $descendant_id ), '2.0.0', 'dws_lowc/autocompletion/should_autocomplete' );
-
-				/**
-				 * Filters whether a descendant of a completed order is completed too.
-				 *
-				 * @since   2.0.0
+				 * @since   1.0.0
 				 * @version 2.0.0
 				 *
 				 * @param   bool $should_autocomplete Whether the descendant is completed.
 				 * @param   int  $descendant_id       The descendant's id.
 				 */
-				$should_autocomplete = apply_filters( 'dws_lowc/autocompletion/should_autocomplete', $should_autocomplete, $descendant_id );
+				$should_autocomplete = apply_filters( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', true, $descendant_id );
 				if ( true !== $should_autocomplete ) {
 					continue;
 				}
@@ -102,25 +90,13 @@ final class Autocompletion implements ComponentInterface {
 				/**
 				 * Filters the status a descendant of a completed order is set to.
 				 *
-				 * @since       1.0.0
-				 * @version     2.0.0
-				 * @deprecated  2.0.0 Use dws_lowc/autocompletion/completed_status.
-				 *
-				 * @param       string    $status     The status, without its 'wc-' prefix.
-				 * @param       \WC_Order $descendant The descendant.
-				 */
-				$status = apply_filters_deprecated( 'linked_orders_for_woocommerce/autocompletion/completed_status', array( 'completed', $node->get_order() ), '2.0.0', 'dws_lowc/autocompletion/completed_status' );
-
-				/**
-				 * Filters the status a descendant of a completed order is set to.
-				 *
-				 * @since   2.0.0
+				 * @since   1.0.0
 				 * @version 2.0.0
 				 *
 				 * @param   string    $status     The status, without its 'wc-' prefix.
 				 * @param   \WC_Order $descendant The descendant.
 				 */
-				$status = apply_filters( 'dws_lowc/autocompletion/completed_status', $status, $node->get_order() );
+				$status = apply_filters( 'linked_orders_for_woocommerce/autocompletion/completed_status', 'completed', $node->get_order() );
 
 				$node->get_order()->update_status( $status, __( 'Status set by Linked Orders\' autocompletion.', 'linked-orders-for-woocommerce' ) );
 			}

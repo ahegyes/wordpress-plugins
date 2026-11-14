@@ -91,12 +91,12 @@ function dws_ic_print_comment_thread( array $comments, int $level ): void {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_ic/meta_box/comment_classes.
+		 * @deprecated  2.0.0 Use internal_comments/meta_box/comment_classes.
 		 *
 		 * @param       list<string>         $classes The classes the plugin adds to its own.
 		 * @param       DWS_Internal_Comment $comment The comment.
 		 */
-		$extra = apply_filters_deprecated( 'internal_comments/metabox_output/comment_classes', array( array(), $comment ), '2.0.0', 'dws_ic/meta_box/comment_classes' );
+		$extra = apply_filters_deprecated( 'internal_comments/metabox_output/comment_classes', array( array(), $comment ), '2.0.0', 'internal_comments/meta_box/comment_classes' );
 
 		/**
 		 * Filters the classes of an internal comment's list item in the meta box.
@@ -107,7 +107,7 @@ function dws_ic_print_comment_thread( array $comments, int $level ): void {
 		 * @param   list<string>         $classes The item's classes.
 		 * @param   DWS_Internal_Comment $comment The comment.
 		 */
-		$classes = apply_filters( 'dws_ic/meta_box/comment_classes', array_merge( $classes, is_array( $extra ) ? $extra : array() ), $comment );
+		$classes = apply_filters( 'internal_comments/meta_box/comment_classes', array_merge( $classes, is_array( $extra ) ? $extra : array() ), $comment );
 
 		$replies = array();
 		foreach ( (array) $comment->get_children() as $child ) {
@@ -177,11 +177,11 @@ function dws_ic_print_comment( DWS_Internal_Comment $comment ): void {
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
-			 * @deprecated  2.0.0 Use dws_ic/meta_box/before_comment_actions.
+			 * @deprecated  2.0.0 Use internal_comments/meta_box/before_comment_actions.
 			 *
 			 * @param       DWS_Internal_Comment $comment The comment.
 			 */
-			do_action_deprecated( 'internal_comments/metabox_output/single_comment/actions/start', array( $comment ), '2.0.0', 'dws_ic/meta_box/before_comment_actions' );
+			do_action_deprecated( 'internal_comments/metabox_output/single_comment/actions/start', array( $comment ), '2.0.0', 'internal_comments/meta_box/before_comment_actions' );
 
 			/**
 			 * Fires before the actions of an internal comment in the meta box.
@@ -191,7 +191,7 @@ function dws_ic_print_comment( DWS_Internal_Comment $comment ): void {
 			 *
 			 * @param   DWS_Internal_Comment $comment The comment.
 			 */
-			do_action( 'dws_ic/meta_box/before_comment_actions', $comment );
+			do_action( 'internal_comments/meta_box/before_comment_actions', $comment );
 			?>
 			<?php if ( $comment->can_edit() ) : ?>
 				<button type="button" class="button-link" data-action="edit" data-comment-id="<?php echo esc_attr( (string) $comment_id ); ?>"><?php esc_html_e( 'Edit', 'internal-comments' ); ?></button>
@@ -208,11 +208,11 @@ function dws_ic_print_comment( DWS_Internal_Comment $comment ): void {
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
-			 * @deprecated  2.0.0 Use dws_ic/meta_box/after_comment_actions.
+			 * @deprecated  2.0.0 Use internal_comments/meta_box/after_comment_actions.
 			 *
 			 * @param       DWS_Internal_Comment $comment The comment.
 			 */
-			do_action_deprecated( 'internal_comments/metabox_output/single_comment/actions/end', array( $comment ), '2.0.0', 'dws_ic/meta_box/after_comment_actions' );
+			do_action_deprecated( 'internal_comments/metabox_output/single_comment/actions/end', array( $comment ), '2.0.0', 'internal_comments/meta_box/after_comment_actions' );
 
 			/**
 			 * Fires after the actions of an internal comment in the meta box.
@@ -222,7 +222,7 @@ function dws_ic_print_comment( DWS_Internal_Comment $comment ): void {
 			 *
 			 * @param   DWS_Internal_Comment $comment The comment.
 			 */
-			do_action( 'dws_ic/meta_box/after_comment_actions', $comment );
+			do_action( 'internal_comments/meta_box/after_comment_actions', $comment );
 			?>
 		</div>
 	</div>
@@ -245,9 +245,9 @@ function dws_ic_print_form_buttons( string $form ): void {
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_ic/meta_box/before_form_buttons.
+	 * @deprecated  2.0.0 Use internal_comments/meta_box/before_form_buttons.
 	 */
-	do_action_deprecated( 'internal_comments/metabox_output/inline_actions', array(), '2.0.0', 'dws_ic/meta_box/before_form_buttons' );
+	do_action_deprecated( 'internal_comments/metabox_output/inline_actions', array(), '2.0.0', 'internal_comments/meta_box/before_form_buttons' );
 
 	/**
 	 * Fires before the buttons of each form of the meta box.
@@ -257,7 +257,7 @@ function dws_ic_print_form_buttons( string $form ): void {
 	 *
 	 * @param   string $form The form, 'new', 'edit' or 'reply'.
 	 */
-	do_action( 'dws_ic/meta_box/before_form_buttons', $form );
+	do_action( 'internal_comments/meta_box/before_form_buttons', $form );
 
 	if ( 'new' === $form ) {
 		/**
@@ -265,9 +265,9 @@ function dws_ic_print_form_buttons( string $form ): void {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_ic/meta_box/before_new_comment_buttons.
+		 * @deprecated  2.0.0 Use internal_comments/meta_box/before_new_comment_buttons.
 		 */
-		do_action_deprecated( 'internal_comments/metabox_output/inline_actions/insert', array(), '2.0.0', 'dws_ic/meta_box/before_new_comment_buttons' );
+		do_action_deprecated( 'internal_comments/metabox_output/inline_actions/insert', array(), '2.0.0', 'internal_comments/meta_box/before_new_comment_buttons' );
 
 		/**
 		 * Fires before the buttons of the meta box's form for a new comment.
@@ -275,7 +275,7 @@ function dws_ic_print_form_buttons( string $form ): void {
 		 * @since   2.0.0
 		 * @version 2.0.0
 		 */
-		do_action( 'dws_ic/meta_box/before_new_comment_buttons' );
+		do_action( 'internal_comments/meta_box/before_new_comment_buttons' );
 		?>
 		<button type="button" class="button button-primary" data-action="post"><?php esc_html_e( 'Post comment', 'internal-comments' ); ?></button>
 		<?php
@@ -288,9 +288,9 @@ function dws_ic_print_form_buttons( string $form ): void {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_ic/meta_box/before_edit_comment_buttons.
+		 * @deprecated  2.0.0 Use internal_comments/meta_box/before_edit_comment_buttons.
 		 */
-		do_action_deprecated( 'internal_comments/metabox_output/inline_actions/edit', array(), '2.0.0', 'dws_ic/meta_box/before_edit_comment_buttons' );
+		do_action_deprecated( 'internal_comments/metabox_output/inline_actions/edit', array(), '2.0.0', 'internal_comments/meta_box/before_edit_comment_buttons' );
 
 		/**
 		 * Fires before the buttons of the meta box's form that edits a comment.
@@ -298,16 +298,16 @@ function dws_ic_print_form_buttons( string $form ): void {
 		 * @since   2.0.0
 		 * @version 2.0.0
 		 */
-		do_action( 'dws_ic/meta_box/before_edit_comment_buttons' );
+		do_action( 'internal_comments/meta_box/before_edit_comment_buttons' );
 	} else {
 		/**
 		 * Fires before the buttons of the meta box's form that replies to a comment.
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_ic/meta_box/before_reply_buttons.
+		 * @deprecated  2.0.0 Use internal_comments/meta_box/before_reply_buttons.
 		 */
-		do_action_deprecated( 'internal_comments/metabox_output/reply', array(), '2.0.0', 'dws_ic/meta_box/before_reply_buttons' );
+		do_action_deprecated( 'internal_comments/metabox_output/reply', array(), '2.0.0', 'internal_comments/meta_box/before_reply_buttons' );
 
 		/**
 		 * Fires before the buttons of the meta box's form that replies to a comment.
@@ -315,7 +315,7 @@ function dws_ic_print_form_buttons( string $form ): void {
 		 * @since   2.0.0
 		 * @version 2.0.0
 		 */
-		do_action( 'dws_ic/meta_box/before_reply_buttons' );
+		do_action( 'internal_comments/meta_box/before_reply_buttons' );
 	}
 	?>
 	<button type="button" class="button" data-action="cancel"><?php esc_html_e( 'Cancel', 'internal-comments' ); ?></button>

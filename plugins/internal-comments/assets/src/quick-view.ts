@@ -20,7 +20,7 @@ document
 			}
 			popover.dataset.loaded = 'true';
 			apiFetch< { html: string } >( {
-				path: `/dws_ic/v1/posts/${
+				path: `/internal-comments/v1/posts/${
 					popover.dataset.postId ?? ''
 				}/comments`,
 			} )

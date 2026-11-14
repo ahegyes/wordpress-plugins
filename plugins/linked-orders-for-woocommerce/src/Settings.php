@@ -101,11 +101,11 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
-			 * @deprecated  2.0.0 Use dws_lowc/settings/{group}_fields.
+			 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/settings/{group}_fields.
 			 *
 			 * @param       array<string, Field> $fields The group's fields.
 			 */
-			$group_fields = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group}_settings/get_group_fields", array( $definition['fields'] ), '2.0.0', "dws_lowc/settings/{$group}_fields" );
+			$group_fields = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group}_settings/get_group_fields", array( $definition['fields'] ), '2.0.0', "linked_orders_for_woocommerce/settings/{$group}_fields" );
 
 			$wc_fields = array();
 			foreach ( $group_fields as $id => $field ) {
@@ -120,7 +120,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 			 *
 			 * @param   list<Field> $fields The group's fields.
 			 */
-			$wc_fields = apply_filters( "dws_lowc/settings/{$group}_fields", $wc_fields );
+			$wc_fields = apply_filters( "linked_orders_for_woocommerce/settings/{$group}_fields", $wc_fields );
 
 			$fields = \array_merge(
 				$fields,

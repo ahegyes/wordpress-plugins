@@ -68,7 +68,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.3. Hooks move to dws_lowc/ names, their v1 names still firing, deprecated. Removed: eight settings hooks, v1's notice-markup hooks and accessors, and Freemius with dws_lowc_fs_loaded. dws_lowc_link_orders() refuses a child that has children.
+Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.3. Hooks take new names under v1's root, the v1 names still firing, deprecated, but for six that keep their names. Removed: eight settings hooks, v1's notice-markup hooks and accessors, and Freemius with dws_lowc_fs_loaded. dws_lowc_link_orders() refuses a child that has children.
 
 == Changelog ==
 

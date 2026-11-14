@@ -14,7 +14,7 @@ Install the plugin from the WordPress plugin directory under Plugins → Add New
 
 ## Extending
 
-Other plugins create and read internal comments through the functions in `includes/comments.php`, such as `dws_ic_create_internal_comment()`, `dws_ic_get_internal_comments()` and `dws_ic_is_private_comment()`, and the `DWS_Internal_Comment` class they return; they check what a user may do with a comment through the `see_dws_internal_comment`, `edit_dws_internal_comment` and `trash_dws_internal_comment` capabilities. Every hook is named `dws_ic/area/name`, and each one v1 fired under `internal_comments/` still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
+Other plugins create and read internal comments through the functions in `includes/comments.php`, such as `dws_ic_create_internal_comment()`, `dws_ic_get_internal_comments()` and `dws_ic_is_private_comment()`, and the `DWS_Internal_Comment` class they return; they check what a user may do with a comment through the `see_dws_internal_comment`, `edit_dws_internal_comment` and `trash_dws_internal_comment` capabilities. Every hook is named `internal_comments/area/name`, under v1's root, and each name v1 fired there still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
 
 ## Development
 

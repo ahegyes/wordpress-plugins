@@ -83,7 +83,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'dws_lpmwc/payment_method/should_lock', array( $this, 'unlock_granted_methods' ), 10, 3 );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_granted_methods' ), 10, 3 );
 		new ObjectForm( $this->identity, self::FORM, $this, new UserProfile(), $this->notices )->register_hooks();
 		add_filter( 'manage_users_columns', array( $this, 'add_users_column' ) );
 		add_filter( 'manage_users_custom_column', array( $this, 'render_users_column' ), 10, 3 );

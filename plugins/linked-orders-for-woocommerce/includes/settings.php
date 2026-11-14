@@ -53,12 +53,12 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/settings/validated_value.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/settings/validated_value.
 		 *
 		 * @param       mixed  $value    The validated value.
 		 * @param       string $field_id The field's v1 id.
 		 */
-		$value = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'dws_lowc/settings/validated_value' );
+		$value = apply_filters_deprecated( "linked_orders_for_woocommerce/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'linked_orders_for_woocommerce/settings/validated_value' );
 	} elseif ( is_null( $group ) ) {
 		$value = null;
 	} else {
@@ -71,12 +71,12 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/settings/validated_value.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/settings/validated_value.
 		 *
 		 * @param       mixed  $value    The validated value.
 		 * @param       string $field_id The field's v1 id, prefixed with its group and a slash.
 		 */
-		$value = apply_filters_deprecated( 'linked_orders_for_woocommerce/settings/get_validated_option_value', array( $value, $field_id ), '2.0.0', 'dws_lowc/settings/validated_value' );
+		$value = apply_filters_deprecated( 'linked_orders_for_woocommerce/settings/get_validated_option_value', array( $value, $field_id ), '2.0.0', 'linked_orders_for_woocommerce/settings/validated_value' );
 	}
 
 	/**
@@ -89,7 +89,7 @@ function dws_lowc_get_validated_setting( string $field_id, ?string $group = null
 	 * @param   string $field_id The field's v1 id.
 	 * @param   string $group    The field's v1 group without its '-settings' suffix, empty when the id names none.
 	 */
-	return apply_filters( 'dws_lowc/settings/validated_value', $value, $id, $group_id );
+	return apply_filters( 'linked_orders_for_woocommerce/settings/validated_value', $value, $id, $group_id );
 }
 
 /**

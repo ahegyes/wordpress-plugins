@@ -153,11 +153,11 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_ic/internal_comment/creation_data.
+	 * @deprecated  2.0.0 Use internal_comments/internal_comment/creation_data.
 	 *
 	 * @param       array<string, mixed> $data The comment's fields.
 	 */
-	$data = apply_filters_deprecated( 'internal_comments/create_comment_data', array( $data ), '2.0.0', 'dws_ic/internal_comment/creation_data' );
+	$data = apply_filters_deprecated( 'internal_comments/create_comment_data', array( $data ), '2.0.0', 'internal_comments/internal_comment/creation_data' );
 
 	/**
 	 * Filters the fields of an internal comment before it is stored.
@@ -167,7 +167,7 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 	 *
 	 * @param   array<string, mixed> $data The comment's fields, as wp_insert_comment() takes them unslashed, and its comment_meta.
 	 */
-	$data = apply_filters( 'dws_ic/internal_comment/creation_data', $data );
+	$data = apply_filters( 'internal_comments/internal_comment/creation_data', $data );
 
 	$comment_id = wp_insert_comment( wp_slash( $data ) ); // @phpstan-ignore argument.type (The fields pass through public filters, which wp_insert_comment() accepts in any shape.)
 	return false === $comment_id ? null : $comment_id;

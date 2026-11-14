@@ -145,11 +145,11 @@ final class MetaBox implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/meta_box/after_add_new_child_button.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/meta_box/after_add_new_child_button.
 		 *
 		 * @param       \DWS_Order_Node $node The edited order's node.
 		 */
-		do_action_deprecated( 'linked_orders_for_woocommerce/metabox_output/after_add_new_child_button', array( $node ), '2.0.0', 'dws_lowc/meta_box/after_add_new_child_button' );
+		do_action_deprecated( 'linked_orders_for_woocommerce/metabox_output/after_add_new_child_button', array( $node ), '2.0.0', 'linked_orders_for_woocommerce/meta_box/after_add_new_child_button' );
 
 		/**
 		 * Fires after the meta box's button that creates a child.
@@ -159,7 +159,7 @@ final class MetaBox implements ComponentInterface {
 		 *
 		 * @param   \DWS_Order_Node $node The edited order's node.
 		 */
-		do_action( 'dws_lowc/meta_box/after_add_new_child_button', $node );
+		do_action( 'linked_orders_for_woocommerce/meta_box/after_add_new_child_button', $node );
 	}
 
 	// endregion

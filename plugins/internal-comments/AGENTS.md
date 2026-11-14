@@ -16,7 +16,7 @@ src/                         the composition root and its components only
 ├── Permissions.php          v1's three meta capabilities, and core's edit_comment on an internal comment
 ├── Comments.php             the guards that keep internal comments under their status, and the revision record
 ├── MetaBox.php              the meta box on the edit screens of posts and orders of the selected types
-├── RestRoutes.php           the dws_ic/v1 routes the meta box and the quick view use
+├── RestRoutes.php           the internal-comments/v1 routes the meta box and the quick view use
 └── AdminScreens.php         the posts and orders list column with its quick view, the Comments screen view, the comment edit screen
 models/DWS_Internal_Comment.php  v1's global model class on the classmap, wrapping an internal comment with the user's permissions on it
 includes/                    hook-free code as dws_ic_ functions and DWS_IC_ constants, loaded in name order, _-prefixed files skipped
@@ -82,7 +82,7 @@ The plugin's contract is the elements tagged `@api`, the hooks it fires, and its
 
 - Every PHP file opens with `<?php declare( strict_types=1 );`, uses `array()`, `final` classes, `protected` over `private` and `#[\Override]` on overrides, and groups class members in `// region NAME` blocks outside `tests/`.
 - Docblocks open with one third-person sentence naming the role, such as "Returns …", plus a second paragraph only for a non-obvious why; property and constant docblocks open with "The …", constructors read "Constructor.", overrides read `{@inheritDoc}`. Every other function docblock ends with `@return`, `@return  void` included; tag values align at column 10, each `@param` stays on one line, and `@throws` reads "Thrown when …". Every public `do_action()` and `apply_filters()` carries a hook docblock.
-- A hook the plugin fires is named `dws_ic/area/name`, with `/` between levels and `_` between words, as the framework names its own, and its last level says what kind of hook it is: a past participle for an event (`internal_comments/boot/succeeded`), `before_` or `after_` for a position (`dws_ic/internal_comment/before_insert`), an imperative for a scheduled hook, a predicate (`is_`, `has_`, `can_`, `should_`) for a boolean filter, and the noun of the value for any other filter, plural for a list (`dws_ic/meta_box/comment_classes`).
+- A hook the plugin fires is named `internal_comments/area/name`, with `/` between levels and `_` between words, as the framework names its own, and its last level says what kind of hook it is: a past participle for an event (`internal_comments/boot/succeeded`), `before_` or `after_` for a position (`internal_comments/internal_comment/before_insert`), an imperative for a scheduled hook, a predicate (`is_`, `has_`, `can_`, `should_`) for a boolean filter, and the noun of the value for any other filter, plural for a list (`internal_comments/meta_box/comment_classes`).
 - An element v1 had keeps v1's `@since`, and its `@version` names the release that last changed it.
 - Inline comments state a non-obvious why in one capitalized sentence, and every file describes the present, never the change; a `phpcs:ignore` names its sniff and gives a reason.
 - Markdown keeps one line per paragraph, sentence-case headings and an impersonal, present-tense voice.

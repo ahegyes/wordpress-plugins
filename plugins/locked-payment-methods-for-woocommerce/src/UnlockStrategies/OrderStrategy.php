@@ -73,7 +73,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'dws_lpmwc/payment_method/should_lock', array( $this, 'unlock_granted_methods' ), 10, 4 );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_granted_methods' ), 10, 4 );
 		new ObjectForm( $this->identity, self::FORM, $this, new OrderMetaBox( array( 'shop_order' ), 'side' ), $this->notices )->register_hooks();
 	}
 

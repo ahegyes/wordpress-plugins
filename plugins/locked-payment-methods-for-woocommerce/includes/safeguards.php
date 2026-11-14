@@ -55,7 +55,7 @@ function dws_lpmwc_is_relaxed( $filtered ): bool {
 function dws_lpmwc_get_locked_payment_method_ids(): array {
 	$stored = get_option( 'dws_lpmwc_locked_payment_methods' );
 	$ids    = dws_lpmwc_add_locked_ids( array(), false === $stored ? get_option( 'dws-wc-lpm_general_locked-payment-methods' ) : $stored );
-	$ids    = dws_lpmwc_add_locked_ids( $ids, dws_lpmwc_apply_v1_setting_filter( $ids, 'general', 'locked-payment-methods', 'dws_lpmwc/payment_method/locked_ids' ) );
+	$ids    = dws_lpmwc_add_locked_ids( $ids, dws_lpmwc_apply_v1_setting_filter( $ids, 'general', 'locked-payment-methods', 'locked_payment_methods_for_woocommerce/payment_method/locked_ids' ) );
 
 	/**
 	 * Filters the locked payment methods' ids wherever the plugin reads them, at checkout, in the lock check and on the grants forms; a callback adds the ids it locks, and an id it leaves out stays locked.
@@ -65,7 +65,7 @@ function dws_lpmwc_get_locked_payment_method_ids(): array {
 	 *
 	 * @param   string[] $ids The locked payment methods' ids.
 	 */
-	return dws_lpmwc_add_locked_ids( $ids, apply_filters( 'dws_lpmwc/payment_method/locked_ids', $ids ) );
+	return dws_lpmwc_add_locked_ids( $ids, apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $ids ) );
 }
 
 /**
@@ -135,7 +135,7 @@ function dws_lpmwc_should_lock( bool $lock, string $gateway_id, int $user_id, in
 	 * @param   int    $user_id    The paying user, or 0 for a guest.
 	 * @param   int    $order_id   The order being paid, or 0 off the order-pay page.
 	 */
-	return ! dws_lpmwc_is_relaxed( apply_filters( 'dws_lpmwc/payment_method/should_lock', $lock, $gateway_id, $user_id, $order_id ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
+	return ! dws_lpmwc_is_relaxed( apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', $lock, $gateway_id, $user_id, $order_id ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
 }
 
 /**
@@ -182,12 +182,12 @@ function dws_lpmwc_remove_locked_payment_methods( $gateways ): array {
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_lpmwc/payment_method/locked_ids.
+	 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/locked_ids.
 	 *
 	 * @param       string[]     $ids      The locked payment methods' ids.
 	 * @param       array<mixed> $gateways The payment gateways offered, by id.
 	 */
-	$ids = dws_lpmwc_add_locked_ids( $ids, apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods', array( $ids, $gateways ), '2.0.0', 'dws_lpmwc/payment_method/locked_ids' ) );
+	$ids = dws_lpmwc_add_locked_ids( $ids, apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods', array( $ids, $gateways ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/locked_ids' ) );
 
 	$user_id  = get_current_user_id();
 	$order_id = dws_lpmwc_get_paid_order_id();
@@ -201,23 +201,23 @@ function dws_lpmwc_remove_locked_payment_methods( $gateways ): array {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lpmwc/payment_method/should_lock.
+		 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
 		 *
 		 * @param       bool   $is_locked Whether the payment method stays locked.
 		 * @param       string $id        The payment method's id.
 		 */
-		$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method', array( true, $id ), '2.0.0', 'dws_lpmwc/payment_method/should_lock' );
+		$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method', array( true, $id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
 
 		/**
 		 * Filters whether a payment method stays locked, under its id lowercased and stripped of control and non-ASCII bytes, as v1 named it.
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lpmwc/payment_method/should_lock.
+		 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
 		 *
 		 * @param       bool $is_locked Whether the payment method stays locked.
 		 */
-		$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/' . strtolower( (string) filter_var( $id, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) ), array( $lock ), '2.0.0', 'dws_lpmwc/payment_method/should_lock' );
+		$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/' . strtolower( (string) filter_var( $id, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) ), array( $lock ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
 
 		if ( dws_lpmwc_should_lock( false !== $lock, $id, $user_id, $order_id ) ) {
 			unset( $gateways[ $id ] );

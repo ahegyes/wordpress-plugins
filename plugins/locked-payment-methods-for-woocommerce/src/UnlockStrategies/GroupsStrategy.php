@@ -83,7 +83,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'dws_lpmwc/payment_method/should_lock', array( $this, 'unlock_group_methods' ), 10, 3 );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_group_methods' ), 10, 3 );
 		add_filter( 'groups_admin_groups_add_form_after_fields', array( $this, 'render_group_field' ), 999 );
 		add_filter( 'groups_admin_groups_edit_form_after_fields', array( $this, 'render_group_field' ), 999, 2 );
 		add_action( 'groups_admin_groups_add_submit_success', array( $this, 'save_group_field' ) );

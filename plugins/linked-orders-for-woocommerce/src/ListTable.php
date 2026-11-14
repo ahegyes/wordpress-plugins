@@ -75,13 +75,13 @@ final class ListTable implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/list_table/preceding_column.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/list_table/preceding_column.
 		 *
 		 * @param       string                $column  The column's id.
 		 * @param       string|null           $type    The listed order type.
 		 * @param       array<string, string> $columns The list's columns, keyed by id.
 		 */
-		$preceding = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/insert_after', array( 'order_total', $type, $columns ), '2.0.0', 'dws_lowc/list_table/preceding_column' );
+		$preceding = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/insert_after', array( 'order_total', $type, $columns ), '2.0.0', 'linked_orders_for_woocommerce/list_table/preceding_column' );
 
 		/**
 		 * Filters the id of the column the depth column follows.
@@ -93,7 +93,7 @@ final class ListTable implements ComponentInterface {
 		 * @param   string|null           $type    The listed order type.
 		 * @param   array<string, string> $columns The list's columns, keyed by id.
 		 */
-		$preceding = apply_filters( 'dws_lowc/list_table/preceding_column', $preceding, $type, $columns );
+		$preceding = apply_filters( 'linked_orders_for_woocommerce/list_table/preceding_column', $preceding, $type, $columns );
 		$position  = \array_search( $preceding, \array_keys( $columns ), true );
 		$position  = false === $position ? \count( $columns ) : $position + 1;
 		return \array_slice( $columns, 0, $position, true ) + array( 'dws_lo_depth' => _x( 'Depth', 'list table heading', 'linked-orders-for-woocommerce' ) ) + \array_slice( $columns, $position, null, true );
@@ -128,12 +128,12 @@ final class ListTable implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/list_table/column_content.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/list_table/column_content.
 		 *
 		 * @param       string          $label The label.
 		 * @param       \DWS_Order_Node $node  The order's node.
 		 */
-		$label = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/content', array( $label, $node ), '2.0.0', 'dws_lowc/list_table/column_content' );
+		$label = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/content', array( $label, $node ), '2.0.0', 'linked_orders_for_woocommerce/list_table/column_content' );
 
 		/**
 		 * Filters an order's depth label in the orders list.
@@ -144,7 +144,7 @@ final class ListTable implements ComponentInterface {
 		 * @param   string          $label The label.
 		 * @param   \DWS_Order_Node $node  The order's node.
 		 */
-		echo esc_html( apply_filters( 'dws_lowc/list_table/column_content', $label, $node ) );
+		echo esc_html( apply_filters( 'linked_orders_for_woocommerce/list_table/column_content', $label, $node ) );
 	}
 
 	/**

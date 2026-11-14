@@ -264,21 +264,7 @@ final class DWS_Order_Node {
 		/**
 		 * Filters the status name in an order's formatted name.
 		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/status_name.
-		 *
-		 * @param       string         $status_name The status name.
-		 * @param       WP_Post_Type   $post_type   The post type object of the order's type.
-		 * @param       WC_Order       $order       The order.
-		 * @param       DWS_Order_Node $node        The order's node.
-		 */
-		$status_name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/status_name', array( wc_get_order_status_name( $this->order->get_status() ), $this->post_type, $this->order, $this ), '2.0.0', 'dws_lowc/node/status_name' );
-
-		/**
-		 * Filters the status name in an order's formatted name.
-		 *
-		 * @since   2.0.0
+		 * @since   1.0.0
 		 * @version 2.0.0
 		 *
 		 * @param   string         $status_name The status name.
@@ -286,7 +272,7 @@ final class DWS_Order_Node {
 		 * @param   WC_Order       $order       The order.
 		 * @param   DWS_Order_Node $node        The order's node.
 		 */
-		$status_name = apply_filters( 'dws_lowc/node/status_name', $status_name, $this->post_type, $this->order, $this );
+		$status_name = apply_filters( 'linked_orders_for_woocommerce/node/status_name', wc_get_order_status_name( $this->order->get_status() ), $this->post_type, $this->order, $this );
 		$name        = sprintf(
 			/* translators: 1: The order type's singular name. 2: The order number. 3: The order status's name. */
 			__( '%1$s #%2$s - %3$s', 'linked-orders-for-woocommerce' ),
@@ -300,12 +286,12 @@ final class DWS_Order_Node {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/formatted_name.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/node/formatted_name.
 		 *
 		 * @param       string         $name The formatted name.
 		 * @param       DWS_Order_Node $node The order's node.
 		 */
-		$name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/get_formatted_name', array( $name, $this ), '2.0.0', 'dws_lowc/node/formatted_name' );
+		$name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/get_formatted_name', array( $name, $this ), '2.0.0', 'linked_orders_for_woocommerce/node/formatted_name' );
 
 		/**
 		 * Filters an order's formatted name.
@@ -316,7 +302,7 @@ final class DWS_Order_Node {
 		 * @param   string         $name The formatted name.
 		 * @param   DWS_Order_Node $node The order's node.
 		 */
-		return apply_filters( 'dws_lowc/node/formatted_name', $name, $this );
+		return apply_filters( 'linked_orders_for_woocommerce/node/formatted_name', $name, $this );
 	}
 
 	// endregion
@@ -418,21 +404,7 @@ final class DWS_Order_Node {
 		/**
 		 * Filters whether a user may create a child of an order.
 		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/can_create_child.
-		 *
-		 * @param       bool           $can_create Whether the user may create a child.
-		 * @param       int|null       $user_id    The user's id, or null for the current user.
-		 * @param       WC_Order       $order      The order.
-		 * @param       DWS_Order_Node $node       The order's node.
-		 */
-		$can_create = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/can_create_child', array( $permission && $depth && $status, $user_id, $this->order, $this ), '2.0.0', 'dws_lowc/node/can_create_child' );
-
-		/**
-		 * Filters whether a user may create a child of an order.
-		 *
-		 * @since   2.0.0
+		 * @since   1.0.0
 		 * @version 2.0.0
 		 *
 		 * @param   bool           $can_create Whether the user may create a child.
@@ -440,7 +412,7 @@ final class DWS_Order_Node {
 		 * @param   WC_Order       $order      The order.
 		 * @param   DWS_Order_Node $node       The order's node.
 		 */
-		return apply_filters( 'dws_lowc/node/can_create_child', $can_create, $user_id, $this->order, $this );
+		return apply_filters( 'linked_orders_for_woocommerce/node/can_create_child', $permission && $depth && $status, $user_id, $this->order, $this );
 	}
 
 	/**

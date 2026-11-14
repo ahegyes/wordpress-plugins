@@ -82,24 +82,24 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 	 *
 	 * @since       1.0.0
 	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use dws_ic/settings/validated_value.
+	 * @deprecated  2.0.0 Use internal_comments/settings/validated_value.
 	 *
 	 * @param       mixed  $value    The validated value.
 	 * @param       string $field_id The field's v1 id.
 	 */
-	$value = apply_filters_deprecated( "internal_comments/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'dws_ic/settings/validated_value' );
+	$value = apply_filters_deprecated( "internal_comments/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'internal_comments/settings/validated_value' );
 	if ( is_null( $group ) ) {
 		/**
 		 * Filters the validated value of a setting read through the settings page, after its group's filter.
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_ic/settings/validated_value.
+		 * @deprecated  2.0.0 Use internal_comments/settings/validated_value.
 		 *
 		 * @param       mixed  $value    The validated value.
 		 * @param       string $field_id The field's v1 id, prefixed with its group and a slash.
 		 */
-		$value = apply_filters_deprecated( 'internal_comments/settings/get_validated_option_value', array( $value, $field_id ), '2.0.0', 'dws_ic/settings/validated_value' );
+		$value = apply_filters_deprecated( 'internal_comments/settings/get_validated_option_value', array( $value, $field_id ), '2.0.0', 'internal_comments/settings/validated_value' );
 	}
 
 	/**
@@ -112,7 +112,7 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 	 * @param   string $field_id The field's v1 id.
 	 * @param   string $group    The field's v1 group.
 	 */
-	return apply_filters( 'dws_ic/settings/validated_value', $value, $id, $group_id );
+	return apply_filters( 'internal_comments/settings/validated_value', $value, $id, $group_id );
 }
 
 /**

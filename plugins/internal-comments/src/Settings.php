@@ -62,11 +62,11 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
-			 * @deprecated  2.0.0 Use dws_ic/settings/{$group}_fields.
+			 * @deprecated  2.0.0 Use internal_comments/settings/{$group}_fields.
 			 *
 			 * @param       array<string, Field> $fields The group's fields, keyed by id.
 			 */
-			$group_fields = apply_filters_deprecated( "internal_comments/{$group}_settings/get_group_fields", array( $this->get_group_fields( $group ) ), '2.0.0', "dws_ic/settings/{$group}_fields" );
+			$group_fields = apply_filters_deprecated( "internal_comments/{$group}_settings/get_group_fields", array( $this->get_group_fields( $group ) ), '2.0.0', "internal_comments/settings/{$group}_fields" );
 
 			$fields = array();
 			foreach ( $group_fields as $id => $field ) {
@@ -81,7 +81,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 			 *
 			 * @param   list<Field> $fields The group's fields.
 			 */
-			$fields = apply_filters( "dws_ic/settings/{$group}_fields", $fields );
+			$fields = apply_filters( "internal_comments/settings/{$group}_fields", $fields );
 
 			$tabs[] = array(
 				'slug'   => $group,

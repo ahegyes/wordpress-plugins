@@ -88,12 +88,12 @@ final class AdminScreens implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_ic/list_table/preceding_column.
+		 * @deprecated  2.0.0 Use internal_comments/list_table/preceding_column.
 		 *
 		 * @param       string      $preceding The id of the column it follows.
 		 * @param       string|null $post_type The list's post type.
 		 */
-		$preceding = apply_filters_deprecated( 'internal_comments/wp_table_output/insert_after', array( $preceding, $post_type ), '2.0.0', 'dws_ic/list_table/preceding_column' );
+		$preceding = apply_filters_deprecated( 'internal_comments/wp_table_output/insert_after', array( $preceding, $post_type ), '2.0.0', 'internal_comments/list_table/preceding_column' );
 
 		/**
 		 * Filters the column the internal comments column follows in a posts list, which it ends where that column is missing.
@@ -104,7 +104,7 @@ final class AdminScreens implements ComponentInterface {
 		 * @param   string $preceding The id of the column it follows.
 		 * @param   string $post_type The list's post type.
 		 */
-		$preceding = apply_filters( 'dws_ic/list_table/preceding_column', $preceding, $post_type );
+		$preceding = apply_filters( 'internal_comments/list_table/preceding_column', $preceding, $post_type );
 
 		$position = \array_search( $preceding, \array_keys( $columns ), true );
 		$position = false === $position ? \count( $columns ) : $position + 1;

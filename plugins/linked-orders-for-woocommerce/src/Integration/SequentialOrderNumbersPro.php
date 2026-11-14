@@ -37,7 +37,7 @@ final class SequentialOrderNumbersPro implements ComponentInterface, Conditional
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_action( 'dws_lowc/linked_order/created', array( $this, 'set_order_number' ) );
+		add_action( 'linked_orders_for_woocommerce/linked_order/created', array( $this, 'set_order_number' ) );
 	}
 
 	// endregion
