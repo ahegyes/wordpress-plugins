@@ -44,45 +44,21 @@ final class MigrationsTest extends TestCase {
 		self::assertFalse( get_option( 'dws-internal-comments_general' ) );
 	}
 
-	public function test_the_first_step_keeps_the_settings_a_site_stored(): void {
-		update_option( Options::POST_TYPES, array( 'page' ) );
-		update_option( Options::DELETE_DATA, 'yes' );
-
-		Migrations::get_steps()[0]();
-
-		self::assertSame( array( 'page' ), get_option( Options::POST_TYPES ) );
-		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
-	}
-
-	public function test_the_first_step_throws_when_a_default_cannot_be_stored(): void {
-		global $wpdb;
-		delete_option( Options::DELETE_DATA );
-		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
-		$suppressed = $wpdb->suppress_errors();
-		add_filter( 'query', $fail );
-
-		try {
-			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::DELETE_DATA . ' could not be stored.' ) );
-			Migrations::get_steps()[0]();
-		} finally {
-			remove_filter( 'query', $fail );
-			$wpdb->suppress_errors( $suppressed );
-		}
-	}
-
 	// v1 kept each tab's fields in one row, which stays for a rollback while each field moves to a row of its own.
-	public function test_the_second_step_copies_each_field_of_v1s_rows_over_the_defaults_and_keeps_those_rows(): void {
+	public function test_the_first_step_copies_each_field_of_v1s_rows_and_keeps_those_rows(): void {
 		$general = array(
 			'post-types'              => array( 'page' ),
 			'enable-private-comments' => 'yes',
 			'extra'                   => 'kept',
 			'Not an id'               => 'left',
 		);
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS, Options::DELETE_DATA, 'dws_ic_general_extra' ) as $row ) {
+			delete_option( $row );
+		}
 		update_option( 'dws-internal-comments_general', $general );
 		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
-		Migrations::get_steps()[0]();
 
-		Migrations::get_steps()[1]();
+		Migrations::get_steps()[0]();
 
 		self::assertSame( array( 'page' ), get_option( Options::POST_TYPES ) );
 		self::assertSame( 'yes', get_option( Options::PRIVATE_COMMENTS ) );
@@ -93,32 +69,70 @@ final class MigrationsTest extends TestCase {
 		self::assertSame( array( 'remove-data-uninstall' => 'yes' ), get_option( 'dws-internal-comments_plugin' ) );
 	}
 
-	public function test_the_second_step_leaves_the_settings_of_a_site_without_v1s_rows(): void {
+	public function test_the_first_step_leaves_each_absent_setting_of_a_site_without_v1s_rows_to_the_seeding(): void {
 		delete_option( 'dws-internal-comments_general' );
 		delete_option( 'dws-internal-comments_plugin' );
-		update_option( Options::POST_TYPES, array( 'post' ) );
+		delete_option( Options::POST_TYPES );
 
-		Migrations::get_steps()[1]();
+		Migrations::get_steps()[0]();
 
-		self::assertSame( array( 'post' ), get_option( Options::POST_TYPES ) );
+		self::assertFalse( get_option( Options::POST_TYPES ) );
 	}
 
-	public function test_the_second_step_throws_when_a_field_cannot_be_stored(): void {
+	// Neither settings step overwrites a row, so a value stored before a step runs again outlasts both v1's row and the default.
+	public function test_the_settings_steps_keep_the_settings_a_site_stored(): void {
+		update_option( Options::POST_TYPES, array( 'page' ) );
+		update_option( Options::DELETE_DATA, 'yes' );
+		update_option( 'dws-internal-comments_general', array( 'post-types' => array( 'post' ) ) );
+		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'no' ) );
+
+		Migrations::get_steps()[0]();
+		Migrations::get_steps()[1]();
+
+		self::assertSame( array( 'page' ), get_option( Options::POST_TYPES ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
+	}
+
+	public function test_the_first_step_throws_when_a_field_cannot_be_stored(): void {
 		global $wpdb;
 		update_option( 'dws-internal-comments_general', array( 'post-types' => array( 'page' ) ) );
-		update_option( Options::POST_TYPES, array( 'post' ) );
-		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::POST_TYPES . "'" ) && \str_starts_with( \ltrim( $query ), 'UPDATE' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
+		delete_option( Options::POST_TYPES );
+		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::POST_TYPES . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
 		$suppressed = $wpdb->suppress_errors();
 		add_filter( 'query', $fail );
 
 		try {
 			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::POST_TYPES . ' could not be stored.' ) );
+			Migrations::get_steps()[0]();
+		} finally {
+			remove_filter( 'query', $fail );
+			$wpdb->suppress_errors( $suppressed );
+		}
+	}
+
+	public function test_the_second_step_stores_each_absent_default_and_keeps_the_settings_a_site_stored(): void {
+		update_option( Options::POST_TYPES, array( 'page' ) );
+		delete_option( Options::DELETE_DATA );
+
+		Migrations::get_steps()[1]();
+
+		self::assertSame( array( 'page' ), get_option( Options::POST_TYPES ) );
+		self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
+	}
+
+	public function test_the_second_step_throws_when_a_default_cannot_be_stored(): void {
+		global $wpdb;
+		delete_option( Options::DELETE_DATA );
+		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_ic_missing" : $query;
+		$suppressed = $wpdb->suppress_errors();
+		add_filter( 'query', $fail );
+
+		try {
+			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::DELETE_DATA . ' could not be stored.' ) );
 			Migrations::get_steps()[1]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
-			wp_cache_delete( Options::POST_TYPES, 'options' );
-			wp_cache_delete( 'alloptions', 'options' );
 		}
 	}
 

@@ -177,7 +177,8 @@ final class UninstallTest extends TestCase {
 	}
 
 	#[RunInSeparateProcess]
-	public function test_an_uninstall_on_a_site_that_never_ran_the_update_reads_its_consent_from_v1s_row(): void {
+	// The update copies v1's consent with the other settings, so a site that never ran it consents to nothing.
+	public function test_an_uninstall_on_a_site_that_never_ran_the_update_keeps_its_data_whatever_v1s_row_holds(): void {
 		delete_option( Options::DELETE_DATA );
 		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
 		$post     = wp_insert_post( array( 'post_title' => 'Never migrated' ) );
@@ -192,14 +193,14 @@ final class UninstallTest extends TestCase {
 		try {
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
 			wp_cache_flush();
-			wp_roles()->for_site();
 
-			self::assertNull( get_comment( $internal ) );
-			self::assertFalse( get_option( 'dws-internal-comments_plugin' ) );
+			self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
+			self::assertSame( array( 'remove-data-uninstall' => 'yes' ), get_option( 'dws-internal-comments_plugin' ) );
 		} finally {
-			// The other tests share the database, so v1's consent goes, the roles get their capabilities back, and the runner stores again what a new site starts with, from the first step, which a failed pass would otherwise skip.
+			// The other tests share the database, so v1's row goes, the roles get back any capability a pass removed, and the runner stores again what a new site starts with, from the first step.
 			delete_option( 'dws-internal-comments_plugin' );
 			delete_option( Plugin::PREFIX . '_revision' );
+			wp_roles()->for_site();
 			foreach ( Capabilities::GRANTS as $role => $capabilities ) {
 				foreach ( $capabilities as $capability ) {
 					get_role( $role )?->add_cap( $capability );

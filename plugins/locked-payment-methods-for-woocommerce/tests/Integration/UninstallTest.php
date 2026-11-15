@@ -184,7 +184,8 @@ final class UninstallTest extends TestCase {
 	}
 
 	#[RunInSeparateProcess]
-	public function test_an_uninstall_on_a_site_that_never_ran_the_update_reads_its_consent_from_v1s_row(): void {
+	// The update copies v1's consent with the other settings, so a site that never ran it consents to nothing.
+	public function test_an_uninstall_on_a_site_that_never_ran_the_update_keeps_its_data_whatever_v1s_row_holds(): void {
 		delete_option( Options::DELETE_DATA );
 		update_option( 'dws-wc-lpm_plugin_remove-data-uninstall', 'yes' );
 		update_option( GroupsStrategy::OPTION, array( 7 => array( 'cod' ) ) );
@@ -192,15 +193,15 @@ final class UninstallTest extends TestCase {
 		try {
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
 			wp_cache_flush();
-			wp_roles()->for_site();
 
-			self::assertFalse( get_option( GroupsStrategy::OPTION ) );
-			self::assertFalse( get_option( 'dws-wc-lpm_plugin_remove-data-uninstall' ) );
+			self::assertSame( array( 7 => array( 'cod' ) ), get_option( GroupsStrategy::OPTION ) );
+			self::assertSame( 'yes', get_option( 'dws-wc-lpm_plugin_remove-data-uninstall' ) );
 		} finally {
-			// The other tests share the database, so v1's consent and the group's unlocked methods go, the runner stores again what a new site starts with, from the first step, which a failed pass would otherwise skip, and the capability grants act again.
+			// The other tests share the database, so v1's consent and the group's unlocked methods go, the runner stores again what a new site starts with, from the first step, and the capability grants act again where a pass removed them.
 			delete_option( 'dws-wc-lpm_plugin_remove-data-uninstall' );
 			delete_option( GroupsStrategy::OPTION );
 			delete_option( Plugin::PREFIX . '_revision' );
+			wp_roles()->for_site();
 			dws_lpmwc_plugin()->migrations?->run();
 			do_action( 'wp_loaded' );
 		}
