@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -14,6 +15,20 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Compone
  * @version 2.0.0
  */
 final class ListTable implements ComponentInterface {
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Assets $assets The registrar of the plugin's built scripts and styles.
+	 */
+	public function __construct( protected Assets $assets ) {}
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -75,13 +90,13 @@ final class ListTable implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/list_table/preceding_column.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/list_table/preceding_column.
 		 *
 		 * @param       string                $column  The column's id.
 		 * @param       string|null           $type    The listed order type.
 		 * @param       array<string, string> $columns The list's columns, keyed by id.
 		 */
-		$preceding = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/insert_after', array( 'order_total', $type, $columns ), '2.0.0', 'dws_lowc/list_table/preceding_column' );
+		$preceding = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/insert_after', array( 'order_total', $type, $columns ), '2.0.0', 'linked_orders_for_woocommerce/list_table/preceding_column' );
 
 		/**
 		 * Filters the id of the column the depth column follows.
@@ -93,7 +108,7 @@ final class ListTable implements ComponentInterface {
 		 * @param   string|null           $type    The listed order type.
 		 * @param   array<string, string> $columns The list's columns, keyed by id.
 		 */
-		$preceding = apply_filters( 'dws_lowc/list_table/preceding_column', $preceding, $type, $columns );
+		$preceding = apply_filters( 'linked_orders_for_woocommerce/list_table/preceding_column', $preceding, $type, $columns );
 		$position  = \array_search( $preceding, \array_keys( $columns ), true );
 		$position  = false === $position ? \count( $columns ) : $position + 1;
 		return \array_slice( $columns, 0, $position, true ) + array( 'dws_lo_depth' => _x( 'Depth', 'list table heading', 'linked-orders-for-woocommerce' ) ) + \array_slice( $columns, $position, null, true );
@@ -128,12 +143,12 @@ final class ListTable implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/list_table/column_content.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/list_table/column_content.
 		 *
 		 * @param       string          $label The label.
 		 * @param       \DWS_Order_Node $node  The order's node.
 		 */
-		$label = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/content', array( $label, $node ), '2.0.0', 'dws_lowc/list_table/column_content' );
+		$label = apply_filters_deprecated( 'linked_orders_for_woocommerce/list_table_output/column/content', array( $label, $node ), '2.0.0', 'linked_orders_for_woocommerce/list_table/column_content' );
 
 		/**
 		 * Filters an order's depth label in the orders list.
@@ -144,7 +159,7 @@ final class ListTable implements ComponentInterface {
 		 * @param   string          $label The label.
 		 * @param   \DWS_Order_Node $node  The order's node.
 		 */
-		echo esc_html( apply_filters( 'dws_lowc/list_table/column_content', $label, $node ) );
+		echo esc_html( apply_filters( 'linked_orders_for_woocommerce/list_table/column_content', $label, $node ) );
 	}
 
 	/**
@@ -165,7 +180,7 @@ final class ListTable implements ComponentInterface {
 
 		// The Trash view lists trashed orders, and another plugin's order type may register its statuses only as post statuses, so the deepest stored order is read in every status.
 		$deepest  = wc_get_orders(
-			dws_lowc_get_meta_key_args( DWS_LOWC_META_DEPTH ) + array(
+			Linking::get_meta_key_args( Linking::META_DEPTH ) + array(
 				'type'    => $type,
 				'status'  => \array_values( get_post_stati() ),
 				'limit'   => 1,
@@ -174,7 +189,7 @@ final class ListTable implements ComponentInterface {
 				'order'   => 'DESC',
 			)
 		);
-		$deepest  = \max( dws_lowc_get_max_depth(), ( \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null ) ?? 0 );
+		$deepest  = \max( Linking::get_max_depth(), ( \is_array( $deepest ) && array() !== $deepest ? dws_lowc_get_order_node( \reset( $deepest ) )?->get_depth() : null ) ?? 0 );
 		$selected = $this->get_depth_filter();
 		$email    = $this->get_guest_email();
 		$pivot    = $this->get_tree_pivot();
@@ -310,7 +325,7 @@ final class ListTable implements ComponentInterface {
 
 		$added          = array();
 		$new_tab        = __( '(opens in a new tab)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Core's translation of the cue.
-		$list           = dws_lowc_get_list_url( $node->get_post_type() );
+		$list           = OrderTypes::get_list_url( $node->get_post_type() );
 		$customer_key   = 0 !== $order->get_customer_id() ? '_customer_user' : '_guest_customer_user';
 		$customer_value = 0 !== $order->get_customer_id() ? (string) $order->get_customer_id() : \rawurlencode( $order->get_billing_email() );
 		if ( '' !== $customer_value && ( ! isset( $_GET[ $customer_key ] ) || '' === $_GET[ $customer_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
@@ -324,7 +339,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		// A list page builds every row, so the stored links decide, and a tree whose related order was deleted shows as one order.
-		$children = $order->get_meta( DWS_LOWC_META_CHILDREN );
+		$children = $order->get_meta( Linking::META_CHILDREN );
 		if ( \is_null( $this->get_tree_pivot() ) && ( 0 < $node->get_depth() || ( \is_array( $children ) && array() !== $children ) ) ) {
 			$name                            = __( 'View all linked', 'linked-orders-for-woocommerce' );
 			$added['view_all_linked_orders'] = array(
@@ -337,8 +352,8 @@ final class ListTable implements ComponentInterface {
 
 		if ( $node->can_create_child() ) {
 			$added['create_empty_linked_child'] = array(
-				'url'    => dws_lowc_get_create_child_url( $order->get_id() ),
-				'name'   => dws_lowc_get_add_child_phrase( $node->get_post_type() ),
+				'url'    => ChildCreation::get_url( $order->get_id() ),
+				'name'   => OrderTypes::get_add_child_phrase( $node->get_post_type() ),
 				'action' => 'create-empty-linked-child',
 			);
 		}
@@ -359,11 +374,11 @@ final class ListTable implements ComponentInterface {
 			return;
 		}
 
-		if ( dws_lowc_register_script( Plugin::SLUG . '-orders-list-table', 'assets/build/orders-list-table.js', array( 'strategy' => 'defer' ) ) ) {
+		if ( $this->assets->register_script( Plugin::SLUG . '-orders-list-table', 'assets/build/orders-list-table.js', array( 'strategy' => 'defer' ) ) ) {
 			wp_enqueue_script( Plugin::SLUG . '-orders-list-table' );
 		}
 
-		if ( dws_lowc_register_style( Plugin::SLUG . '-orders-list-table-icons', 'assets/build/orders-list-table-icons.css' ) ) {
+		if ( $this->assets->register_style( Plugin::SLUG . '-orders-list-table-icons', 'assets/build/orders-list-table-icons.css' ) ) {
 			wp_enqueue_style( Plugin::SLUG . '-orders-list-table-icons' );
 		}
 	}
@@ -381,7 +396,7 @@ final class ListTable implements ComponentInterface {
 	 * @return  bool
 	 */
 	protected function can_see(): bool {
-		return current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) && current_user_can( DWS_LOWC_CAP_SEE_TABLE_COLUMN );
+		return current_user_can( Capabilities::SEE_ORDER_LINKS ) && current_user_can( Capabilities::SEE_TABLE_COLUMN );
 	}
 
 	/**
@@ -438,7 +453,7 @@ final class ListTable implements ComponentInterface {
 		}
 
 		$clause = array(
-			'key'   => DWS_LOWC_META_DEPTH,
+			'key'   => Linking::META_DEPTH,
 			'value' => (string) $depth,
 		);
 		return array(
@@ -446,7 +461,7 @@ final class ListTable implements ComponentInterface {
 				'relation' => 'OR',
 				$clause,
 				array(
-					'key'     => DWS_LOWC_META_DEPTH,
+					'key'     => Linking::META_DEPTH,
 					'compare' => 'NOT EXISTS',
 				),
 			) : $clause,

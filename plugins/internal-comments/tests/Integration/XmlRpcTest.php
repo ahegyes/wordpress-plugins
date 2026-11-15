@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -40,7 +41,7 @@ final class XmlRpcTest extends TestCase {
 			array(
 				'comment_post_ID' => $post,
 				'comment_content' => 'Secret',
-				'comment_meta'    => array( DWS_IC_META_PRIVATE => 'yes' ),
+				'comment_meta'    => array( Comments::META_PRIVATE => 'yes' ),
 			),
 			get_user_by( 'id', $admin ) ?: null
 		);
@@ -55,7 +56,7 @@ final class XmlRpcTest extends TestCase {
 					'password',
 					array(
 						'post_id' => $post,
-						'status'  => DWS_IC_COMMENT_STATUS,
+						'status'  => Comments::STATUS,
 					),
 				)
 			);
@@ -80,7 +81,7 @@ final class XmlRpcTest extends TestCase {
 		$private = (int) dws_ic_create_internal_comment(
 			array(
 				'comment_post_ID' => $post,
-				'comment_meta'    => array( DWS_IC_META_PRIVATE => 'yes' ),
+				'comment_meta'    => array( Comments::META_PRIVATE => 'yes' ),
 			)
 		);
 		$reply   = (int) dws_ic_create_internal_comment(

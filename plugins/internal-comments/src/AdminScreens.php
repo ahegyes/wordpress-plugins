@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments;
 
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -24,6 +25,20 @@ final class AdminScreens implements ComponentInterface {
 	 * @var     string
 	 */
 	public const string COLUMN = 'dws-internal-comments';
+
+	// endregion
+
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Assets $assets The registrar of the plugin's built scripts and styles.
+	 */
+	public function __construct( protected Assets $assets ) {}
 
 	// endregion
 
@@ -77,7 +92,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function add_column( array $columns, string $post_type ): array {
-		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( DWS_IC_CAP_SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return $columns;
 		}
 
@@ -88,12 +103,12 @@ final class AdminScreens implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_ic/list_table/preceding_column.
+		 * @deprecated  2.0.0 Use internal_comments/list_table/preceding_column.
 		 *
 		 * @param       string      $preceding The id of the column it follows.
 		 * @param       string|null $post_type The list's post type.
 		 */
-		$preceding = apply_filters_deprecated( 'internal_comments/wp_table_output/insert_after', array( $preceding, $post_type ), '2.0.0', 'dws_ic/list_table/preceding_column' );
+		$preceding = apply_filters_deprecated( 'internal_comments/wp_table_output/insert_after', array( $preceding, $post_type ), '2.0.0', 'internal_comments/list_table/preceding_column' );
 
 		/**
 		 * Filters the column the internal comments column follows in a posts list, which it ends where that column is missing.
@@ -104,7 +119,7 @@ final class AdminScreens implements ComponentInterface {
 		 * @param   string $preceding The id of the column it follows.
 		 * @param   string $post_type The list's post type.
 		 */
-		$preceding = apply_filters( 'dws_ic/list_table/preceding_column', $preceding, $post_type );
+		$preceding = apply_filters( 'internal_comments/list_table/preceding_column', $preceding, $post_type );
 
 		$position = \array_search( $preceding, \array_keys( $columns ), true );
 		$position = false === $position ? \count( $columns ) : $position + 1;
@@ -184,14 +199,14 @@ final class AdminScreens implements ComponentInterface {
 		$is_trashed = 'trash' === get_post_status( $post_id );
 		if ( $is_trashed ) {
 			$count = \count( dws_ic_get_internal_comments_from_trash_meta( $post_id ) );
-		} elseif ( current_user_can( DWS_IC_CAP_SEE ) && current_user_can( DWS_IC_CAP_SEE_PRIVATE ) && current_user_can( 'edit_post', $post_id ) ) {
+		} elseif ( current_user_can( Capabilities::SEE ) && current_user_can( Capabilities::SEE_PRIVATE ) && current_user_can( 'edit_post', $post_id ) ) {
 			// A user who sees every comment of the post needs no check per comment.
 			$count = \count(
 				get_comments(
 					array(
 						'post_id' => $post_id,
-						'type'    => DWS_IC_COMMENT_TYPE,
-						'status'  => DWS_IC_COMMENT_STATUS,
+						'type'    => Comments::TYPE,
+						'status'  => Comments::STATUS,
 						'fields'  => 'ids',
 					)
 				)
@@ -215,13 +230,13 @@ final class AdminScreens implements ComponentInterface {
 		$link    = add_query_arg(
 			array(
 				'p'            => $post_id,
-				'comment_type' => DWS_IC_COMMENT_TYPE,
+				'comment_type' => Comments::TYPE,
 			),
 			admin_url( 'edit-comments.php' )
 		);
 		?>
 		<div class="post-com-count-wrapper dws-ic-column">
-			<?php if ( ! $is_trashed && current_user_can( DWS_IC_CAP_SEE_TABLE ) ) : ?>
+			<?php if ( ! $is_trashed && current_user_can( Capabilities::SEE_TABLE ) ) : ?>
 				<a class="post-com-count" href="<?php echo esc_url( $link ); ?>"><?php echo $number; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></a>
 			<?php else : ?>
 				<span class="post-com-count"><?php echo $number; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></span>
@@ -254,14 +269,14 @@ final class AdminScreens implements ComponentInterface {
 			return;
 		}
 
-		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( DWS_IC_CAP_SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return;
 		}
 
-		if ( dws_ic_register_script( Plugin::SLUG . '-quick-view', 'assets/build/quick-view.js', array( 'strategy' => 'defer' ) ) ) {
+		if ( $this->assets->register_script( Plugin::SLUG . '-quick-view', 'assets/build/quick-view.js', array( 'strategy' => 'defer' ) ) ) {
 			wp_enqueue_script( Plugin::SLUG . '-quick-view' );
 		}
-		if ( dws_ic_register_style( Plugin::SLUG . '-quick-view', 'assets/build/quick-view.css' ) ) {
+		if ( $this->assets->register_style( Plugin::SLUG . '-quick-view', 'assets/build/quick-view.css' ) ) {
 			wp_enqueue_style( Plugin::SLUG . '-quick-view' );
 		}
 	}
@@ -275,7 +290,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_comments_view(): void {
-		add_comments_page( __( 'Internal Comments', 'internal-comments' ), __( 'Internal Comments', 'internal-comments' ), DWS_IC_CAP_SEE_TABLE, 'edit-comments.php?comment_type=' . DWS_IC_COMMENT_TYPE );
+		add_comments_page( __( 'Internal Comments', 'internal-comments' ), __( 'Internal Comments', 'internal-comments' ), Capabilities::SEE_TABLE, 'edit-comments.php?comment_type=' . Comments::TYPE );
 	}
 
 	/**
@@ -289,8 +304,8 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function add_comment_type( array $types ): array {
-		if ( current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
-			$types[ DWS_IC_COMMENT_TYPE ] = __( 'Internal Comments', 'internal-comments' );
+		if ( current_user_can( Capabilities::SEE_TABLE ) ) {
+			$types[ Comments::TYPE ] = __( 'Internal Comments', 'internal-comments' );
 		}
 
 		return $types;
@@ -310,14 +325,14 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function filter_list_table_args( array $args ): array {
 		$args['dws_ic_list_table'] = true;
-		if ( ! current_user_can( DWS_IC_CAP_SEE_TABLE ) ) {
-			$args['type__not_in'] = dws_ic_exclude_internal_type( $args['type__not_in'] ?? array() );
+		if ( ! current_user_can( Capabilities::SEE_TABLE ) ) {
+			$args['type__not_in'] = Comments::exclude_internal_type( $args['type__not_in'] ?? array() );
 			return $args;
 		}
 
 		// The list table queries its All and Mine views under an empty status.
-		if ( DWS_IC_COMMENT_TYPE === ( $args['type'] ?? '' ) && \in_array( $args['status'] ?? '', array( '', 'all' ), true ) ) {
-			$args['status'] = DWS_IC_COMMENT_STATUS;
+		if ( Comments::TYPE === ( $args['type'] ?? '' ) && \in_array( $args['status'] ?? '', array( '', 'all' ), true ) ) {
+			$args['status'] = Comments::STATUS;
 		}
 
 		return $args;
@@ -342,7 +357,7 @@ final class AdminScreens implements ComponentInterface {
 		return \array_values(
 			\array_filter(
 				$comments,
-				static fn ( mixed $comment ): bool => ! $comment instanceof \WP_Comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type || current_user_can( 'see_dws_internal_comment', (int) $comment->comment_ID )
+				static fn ( mixed $comment ): bool => ! $comment instanceof \WP_Comment || Comments::TYPE !== $comment->comment_type || current_user_can( 'see_dws_internal_comment', (int) $comment->comment_ID )
 			)
 		);
 	}
@@ -359,7 +374,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function filter_row_actions( array $actions, \WP_Comment $comment ): array {
-		return DWS_IC_COMMENT_TYPE === $comment->comment_type ? \array_intersect_key( $actions, \array_flip( array( 'edit', 'trash', 'untrash', 'delete' ) ) ) : $actions;
+		return Comments::TYPE === $comment->comment_type ? \array_intersect_key( $actions, \array_flip( array( 'edit', 'trash', 'untrash', 'delete' ) ) ) : $actions;
 	}
 
 	/**
@@ -374,7 +389,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function filter_bulk_actions( array $actions ): array {
 		$type = isset( $_GET['comment_type'] ) && \is_string( $_GET['comment_type'] ) ? sanitize_key( wp_unslash( $_GET['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reads the screen's view.
-		return DWS_IC_COMMENT_TYPE === $type ? \array_intersect_key( $actions, \array_flip( array( 'trash', 'untrash', 'delete' ) ) ) : $actions;
+		return Comments::TYPE === $type ? \array_intersect_key( $actions, \array_flip( array( 'trash', 'untrash', 'delete' ) ) ) : $actions;
 	}
 
 	/**
@@ -393,7 +408,7 @@ final class AdminScreens implements ComponentInterface {
 	public function count_listed_comments( mixed $count, int $post_id ): mixed {
 		$screen = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		// While v1's comments are being moved, every count already leaves the internal type out.
-		if ( 'edit-comments' !== $screen?->id || current_user_can( DWS_IC_CAP_SEE_TABLE ) || dws_ic_is_v1_move_pending() ) {
+		if ( 'edit-comments' !== $screen?->id || current_user_can( Capabilities::SEE_TABLE ) || CommentStatusMove::is_pending() ) {
 			return $count;
 		}
 
@@ -440,7 +455,7 @@ final class AdminScreens implements ComponentInterface {
 	public function leave_out_internal_type( array $clauses ): array {
 		global $wpdb;
 
-		$clauses['where'] = ( $clauses['where'] ?? '' ) . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, DWS_IC_COMMENT_TYPE ) ?? '' );
+		$clauses['where'] = ( $clauses['where'] ?? '' ) . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, Comments::TYPE ) ?? '' );
 		return $clauses;
 	}
 
@@ -457,7 +472,7 @@ final class AdminScreens implements ComponentInterface {
 	public function enqueue_comment_screen_style( string $hook_suffix ): void {
 		// The comment screen loads its comment before it prints the page's head.
 		$comment = $GLOBALS['comment'] ?? null;
-		if ( 'comment.php' !== $hook_suffix || ! $comment instanceof \WP_Comment || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+		if ( 'comment.php' !== $hook_suffix || ! $comment instanceof \WP_Comment || Comments::TYPE !== $comment->comment_type ) {
 			return;
 		}
 
@@ -477,7 +492,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_revisions_meta_box( mixed $comment ): void {
-		if ( $comment instanceof \WP_Comment && DWS_IC_COMMENT_TYPE === $comment->comment_type && current_user_can( 'see_dws_internal_comment', (int) $comment->comment_ID ) ) {
+		if ( $comment instanceof \WP_Comment && Comments::TYPE === $comment->comment_type && current_user_can( 'see_dws_internal_comment', (int) $comment->comment_ID ) ) {
 			add_meta_box( 'dws-internal-comments-revisions', __( 'Revision history', 'internal-comments' ), array( $this, 'render_revisions' ), 'comment', 'normal' );
 		}
 	}
@@ -547,15 +562,15 @@ final class AdminScreens implements ComponentInterface {
 			return $html;
 		}
 
-		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( DWS_IC_CAP_INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent ) && ( $is_private || ! dws_ic_has_replies( (int) $comment->comment_ID ) );
+		$can_choose = get_current_user_id() === (int) $comment->user_id && current_user_can( Capabilities::INSERT_PRIVATE ) && true !== dws_ic_is_private_comment( (int) $comment->comment_parent ) && ( $is_private || ! Comments::has_replies( (int) $comment->comment_ID ) );
 		\ob_start();
 		?>
 		<div class="misc-pub-section misc-pub-dws-ic-private">
 			<?php if ( $can_choose ) : ?>
 				<fieldset>
 					<legend><?php esc_html_e( 'Private:', 'internal-comments' ); ?></legend>
-					<label><input type="radio" name="comment_meta[<?php echo esc_attr( DWS_IC_META_PRIVATE ); ?>]" value="yes" <?php checked( $is_private ); ?> /> <?php echo esc_html_x( 'Yes', 'private comment', 'internal-comments' ); ?></label>
-					<label><input type="radio" name="comment_meta[<?php echo esc_attr( DWS_IC_META_PRIVATE ); ?>]" value="no" <?php checked( ! $is_private ); ?> /> <?php echo esc_html_x( 'No', 'private comment', 'internal-comments' ); ?></label>
+					<label><input type="radio" name="comment_meta[<?php echo esc_attr( Comments::META_PRIVATE ); ?>]" value="yes" <?php checked( $is_private ); ?> /> <?php echo esc_html_x( 'Yes', 'private comment', 'internal-comments' ); ?></label>
+					<label><input type="radio" name="comment_meta[<?php echo esc_attr( Comments::META_PRIVATE ); ?>]" value="no" <?php checked( ! $is_private ); ?> /> <?php echo esc_html_x( 'No', 'private comment', 'internal-comments' ); ?></label>
 				</fieldset>
 			<?php else : ?>
 				<?php esc_html_e( 'Private:', 'internal-comments' ); ?>

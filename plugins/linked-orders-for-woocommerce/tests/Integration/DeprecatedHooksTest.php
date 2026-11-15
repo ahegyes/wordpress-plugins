@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
@@ -19,22 +20,27 @@ final class DeprecatedHooksTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_AUTOCOMPLETE );
+	protected const array OPTIONS = array( Options::AUTOCOMPLETE );
 
 	public static function renamed_hooks(): array {
 		return array(
-			'supported-order-types'        => array( 'post_type/supported_order_types', 'dws_lowc/post_type/supported_order_types', 'read_supported_order_types' ),
-			'valid-statuses-for-new-child' => array( 'post_type/valid_statuses_for_new_child', 'dws_lowc/post_type/valid_statuses_for_new_child', 'read_valid_statuses' ),
-			'creation-args'                => array( 'create_linked_order_args', 'dws_lowc/linked_order/creation_args', 'create_linked_child' ),
-			'created'                      => array( 'created_linked_order', 'dws_lowc/linked_order/created', 'create_linked_child' ),
-			'status-name'                  => array( 'node/status_name', 'dws_lowc/node/status_name', 'format_node_name' ),
-			'formatted-name'               => array( 'node/get_formatted_name', 'dws_lowc/node/formatted_name', 'format_node_name' ),
-			'can-create-child'             => array( 'node/can_create_child', 'dws_lowc/node/can_create_child', 'check_child_creation' ),
-			'should-autocomplete'          => array( 'autocompletion/should_autocomplete', 'dws_lowc/autocompletion/should_autocomplete', 'complete_order' ),
-			'completed-status'             => array( 'autocompletion/completed_status', 'dws_lowc/autocompletion/completed_status', 'complete_order' ),
-			'after-add-new-child-button'   => array( 'metabox_output/after_add_new_child_button', 'dws_lowc/meta_box/after_add_new_child_button', 'render_meta_box' ),
-			'preceding-column'             => array( 'list_table_output/column/insert_after', 'dws_lowc/list_table/preceding_column', 'list_columns' ),
-			'column-content'               => array( 'list_table_output/column/content', 'dws_lowc/list_table/column_content', 'render_depth_cell' ),
+			'creation-args'              => array( 'create_linked_order_args', 'linked_orders_for_woocommerce/linked_order/creation_args', 'create_linked_child' ),
+			'created'                    => array( 'created_linked_order', 'linked_orders_for_woocommerce/linked_order/created', 'create_linked_child' ),
+			'formatted-name'             => array( 'node/get_formatted_name', 'linked_orders_for_woocommerce/node/formatted_name', 'format_node_name' ),
+			'after-add-new-child-button' => array( 'metabox_output/after_add_new_child_button', 'linked_orders_for_woocommerce/meta_box/after_add_new_child_button', 'render_meta_box' ),
+			'preceding-column'           => array( 'list_table_output/column/insert_after', 'linked_orders_for_woocommerce/list_table/preceding_column', 'list_columns' ),
+			'column-content'             => array( 'list_table_output/column/content', 'linked_orders_for_woocommerce/list_table/column_content', 'render_depth_cell' ),
+		);
+	}
+
+	public static function shared_hooks(): array {
+		return array(
+			'supported-order-types'        => array( 'post_type/supported_order_types', 'read_supported_order_types' ),
+			'valid-statuses-for-new-child' => array( 'post_type/valid_statuses_for_new_child', 'read_valid_statuses' ),
+			'status-name'                  => array( 'node/status_name', 'format_node_name' ),
+			'can-create-child'             => array( 'node/can_create_child', 'check_child_creation' ),
+			'should-autocomplete'          => array( 'autocompletion/should_autocomplete', 'complete_order' ),
+			'completed-status'             => array( 'autocompletion/completed_status', 'complete_order' ),
 		);
 	}
 
@@ -83,6 +89,27 @@ final class DeprecatedHooksTest extends TestCase {
 		self::assertSame( array( array( $v1, $v2 ) ), $this->deprecated );
 	}
 
+	// Under the slug root these names equal v1's, so each fires once, as v1 fired it, with no deprecated twin.
+	#[DataProvider( 'shared_hooks' )]
+	public function test_a_hook_that_keeps_its_v1_name_fires_once_without_a_deprecation( string $leaf, string $trigger ): void {
+		$name  = "linked_orders_for_woocommerce/$leaf";
+		$fired = 0;
+		$spy   = static function ( mixed $value ) use ( &$fired ): mixed {
+			++$fired;
+			return $value;
+		};
+		add_filter( $name, $spy );
+
+		try {
+			$this->{$trigger}();
+		} finally {
+			remove_filter( $name, $spy );
+		}
+
+		self::assertSame( 1, $fired );
+		self::assertNotContains( $name, \array_column( $this->deprecated, 0 ) );
+	}
+
 	protected function read_supported_order_types(): void {
 		dws_lowc_get_supported_order_types();
 	}
@@ -108,7 +135,7 @@ final class DeprecatedHooksTest extends TestCase {
 	// A lone order's tree is the order alone, so each autocompletion filter runs once.
 	protected function complete_order(): void {
 		$parent = $this->create_order();
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
+		update_option( Options::AUTOCOMPLETE, 'yes' );
 
 		wc_get_order( $parent->get_id() )->update_status( 'completed' );
 	}

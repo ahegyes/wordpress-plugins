@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
@@ -18,7 +19,7 @@ final class UserRoleStrategyTest extends TestCase {
 
 	protected const string V1_HOOK = 'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value';
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_USER_ROLES, Options::FULL_ACCESS_ROLES );
 
 	protected static array $users = array();
 
@@ -46,7 +47,7 @@ final class UserRoleStrategyTest extends TestCase {
 
 	#[Before]
 	protected function grant_shop_managers_every_method(): void {
-		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
+		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 	}
 
 	#[After]
@@ -55,13 +56,13 @@ final class UserRoleStrategyTest extends TestCase {
 	}
 
 	public function test_the_strategy_loads_while_its_switch_is_on_as_v1s_did_by_default(): void {
-		delete_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES );
+		delete_option( Options::UNLOCK_VIA_USER_ROLES );
 		self::assertTrue( UserRoleStrategy::should_load() );
 
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'no' );
+		update_option( Options::UNLOCK_VIA_USER_ROLES, 'no' );
 		self::assertFalse( UserRoleStrategy::should_load() );
 
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'yes' );
+		update_option( Options::UNLOCK_VIA_USER_ROLES, 'yes' );
 		self::assertTrue( UserRoleStrategy::should_load() );
 	}
 
@@ -80,13 +81,13 @@ final class UserRoleStrategyTest extends TestCase {
 	}
 
 	public function test_an_empty_roles_list_unlocks_no_one(): void {
-		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array() );
+		update_option( Options::FULL_ACCESS_ROLES, array() );
 
 		self::assertTrue( new UserRoleStrategy()->unlock_for_full_access_roles( true, 'cod', self::$users['shop_manager'] ) );
 	}
 
 	public function test_at_checkout_the_lock_opens_for_a_full_access_user_only(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod' ) );
 
 		wp_set_current_user( self::$users['shop_manager'] );
 		self::assertArrayHasKey( 'cod', apply_filters( 'woocommerce_available_payment_gateways', WC()->payment_gateways()->payment_gateways() ) );
@@ -111,6 +112,6 @@ final class UserRoleStrategyTest extends TestCase {
 
 		self::assertFalse( $lock );
 		self::assertSame( array( array( array( 'shop_manager' ), 'full-access-user-roles' ) ), $seen );
-		self::assertSame( array( array( self::V1_HOOK, 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ) ), $this->deprecated );
+		self::assertSame( array( array( self::V1_HOOK, 'option_' . Options::FULL_ACCESS_ROLES ) ), $this->deprecated );
 	}
 }

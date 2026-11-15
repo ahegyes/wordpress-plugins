@@ -2,9 +2,12 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Migrations;
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -29,19 +32,19 @@ final class MigrationsTest extends TestCase {
 	);
 
 	protected const array KEYS = array(
-		DWS_LPMWC_OPTION_LOCKED_METHODS,
-		DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES,
-		DWS_LPMWC_OPTION_FULL_ACCESS_ROLES,
-		DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES,
-		DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS,
-		DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS,
-		DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS,
-		DWS_LPMWC_OPTION_DELETE_DATA,
+		Options::LOCKED_METHODS,
+		Options::UNLOCK_VIA_USER_ROLES,
+		Options::FULL_ACCESS_ROLES,
+		Options::UNLOCK_VIA_USER_PROFILES,
+		Options::UNLOCK_VIA_ORDERS,
+		Options::UNLOCK_VIA_GROUPS,
+		Options::UNLOCK_VIA_WC_MEMBERSHIPS,
+		Options::DELETE_DATA,
 	);
 
 	#[After]
 	protected function restore_the_revision(): void {
-		update_option( Plugin::PREFIX . '_revision', \count( dws_lpmwc_get_migration_steps() ) );
+		update_option( Plugin::PREFIX . '_revision', \count( Migrations::get_steps() ) );
 	}
 
 	// The runner's time budget lasts for its request, and this process's bootstrap spends it when it migrates a new site, so the row runs as a request of its own.
@@ -56,20 +59,9 @@ final class MigrationsTest extends TestCase {
 
 		dws_lpmwc_plugin()->migrations?->run();
 
-		self::assertSame( \count( dws_lpmwc_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
-		self::assertSame(
-			array(
-				DWS_LPMWC_OPTION_LOCKED_METHODS            => array(),
-				DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES     => 'yes',
-				DWS_LPMWC_OPTION_FULL_ACCESS_ROLES         => array( 'administrator', 'shop_manager' ),
-				DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES  => 'yes',
-				DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS         => 'no',
-				DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS         => 'no',
-				DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS => 'no',
-				DWS_LPMWC_OPTION_DELETE_DATA               => 'no',
-			),
-			\array_combine( self::KEYS, \array_map( 'get_option', self::KEYS ) )
-		);
+		self::assertSame( \count( Migrations::get_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
+		self::assertEqualsCanonicalizing( \array_keys( Options::DEFAULTS ), self::KEYS, 'KEYS lists every key in Options::DEFAULTS.' );
+		self::assertSame( Options::DEFAULTS, \array_combine( \array_keys( Options::DEFAULTS ), \array_map( 'get_option', \array_keys( Options::DEFAULTS ) ) ) );
 		foreach ( self::KEYS as $key ) {
 			self::assertSame( 'on', $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $key ) ), $key ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the stored autoload flag.
 		}
@@ -93,18 +85,18 @@ final class MigrationsTest extends TestCase {
 			update_option( $key, $value );
 		}
 
-		dws_lpmwc_add_settings();
+		Migrations::get_steps()[0]();
 
 		self::assertSame(
 			array(
-				DWS_LPMWC_OPTION_LOCKED_METHODS            => array( 'cod', 'bacs' ),
-				DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES     => 'no',
-				DWS_LPMWC_OPTION_FULL_ACCESS_ROLES         => array( 'administrator' ),
-				DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES  => 'no',
-				DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS         => 'yes',
-				DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS         => 'yes',
-				DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS => 'yes',
-				DWS_LPMWC_OPTION_DELETE_DATA               => 'yes',
+				Options::LOCKED_METHODS            => array( 'cod', 'bacs' ),
+				Options::UNLOCK_VIA_USER_ROLES     => 'no',
+				Options::FULL_ACCESS_ROLES         => array( 'administrator' ),
+				Options::UNLOCK_VIA_USER_PROFILES  => 'no',
+				Options::UNLOCK_VIA_ORDERS         => 'yes',
+				Options::UNLOCK_VIA_GROUPS         => 'yes',
+				Options::UNLOCK_VIA_WC_MEMBERSHIPS => 'yes',
+				Options::DELETE_DATA               => 'yes',
 			),
 			\array_combine( self::KEYS, \array_map( 'get_option', self::KEYS ) )
 		);
@@ -112,15 +104,15 @@ final class MigrationsTest extends TestCase {
 	}
 
 	public function test_the_step_keeps_the_values_a_site_stored(): void {
-		update_option( DWS_LPMWC_OPTION_DELETE_DATA, 'yes' );
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array() );
+		update_option( Options::DELETE_DATA, 'yes' );
+		update_option( Options::LOCKED_METHODS, array() );
 		update_option( 'dws-wc-lpm_plugin_remove-data-uninstall', 'no' );
 		update_option( 'dws-wc-lpm_general_locked-payment-methods', array( 'cod' ) );
 
-		dws_lpmwc_add_settings();
+		Migrations::get_steps()[0]();
 
-		self::assertSame( 'yes', get_option( DWS_LPMWC_OPTION_DELETE_DATA ) );
-		self::assertSame( array(), get_option( DWS_LPMWC_OPTION_LOCKED_METHODS ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
+		self::assertSame( array(), get_option( Options::LOCKED_METHODS ) );
 	}
 
 	public function test_the_step_stores_the_default_for_a_v1_value_of_the_wrong_kind(): void {
@@ -131,30 +123,31 @@ final class MigrationsTest extends TestCase {
 		update_option( 'dws-wc-lpm_general_locked-payment-methods', 'cod' );
 		update_option( 'dws-wc-lpm_general_full-access-user-roles', array( 'editor', 7, array( 'nested' ) ) );
 
-		dws_lpmwc_add_settings();
+		Migrations::get_steps()[0]();
+		Migrations::get_steps()[1]();
 
-		self::assertSame( 'yes', get_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES ) );
-		self::assertSame( array(), get_option( DWS_LPMWC_OPTION_LOCKED_METHODS ) );
-		self::assertSame( array( 'editor' ), get_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ) );
+		self::assertSame( 'yes', get_option( Options::UNLOCK_VIA_USER_ROLES ) );
+		self::assertSame( array(), get_option( Options::LOCKED_METHODS ) );
+		self::assertSame( array( 'editor' ), get_option( Options::FULL_ACCESS_ROLES ) );
 	}
 
 	public function test_v1s_settings_map_onto_the_plugins_settings_one_to_one(): void {
 		$v1_keys = array();
-		foreach ( DWS_LPMWC_V1_SETTINGS as $group => $fields ) {
+		foreach ( Options::V1_SETTINGS as $group => $fields ) {
 			foreach ( \array_keys( $fields ) as $id ) {
 				$v1_keys[] = "dws-wc-lpm_{$group}_{$id}";
 			}
 		}
 
 		self::assertEqualsCanonicalizing( self::V1_KEYS, $v1_keys );
-		self::assertEqualsCanonicalizing( self::KEYS, \array_merge( ...\array_values( \array_map( 'array_values', DWS_LPMWC_V1_SETTINGS ) ) ) );
-		self::assertEqualsCanonicalizing( self::KEYS, \array_keys( DWS_LPMWC_OPTION_DEFAULTS ) );
+		self::assertEqualsCanonicalizing( self::KEYS, \array_merge( ...\array_values( \array_map( 'array_values', Options::V1_SETTINGS ) ) ) );
+		self::assertEqualsCanonicalizing( self::KEYS, \array_keys( Options::DEFAULTS ) );
 	}
 
 	public function test_the_grants_step_moves_v1s_user_grants_into_the_sites_lists_and_deletes_every_v1_grant_row(): void {
 		global $wpdb;
 
-		$key   = $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS;
+		$key   = $wpdb->get_blog_prefix() . UserProfileStrategy::USER_OPTION;
 		$users = self::create_users( 2 );
 		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', 'yes' );
 		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_bacs', 'no' );
@@ -162,8 +155,8 @@ final class MigrationsTest extends TestCase {
 		update_user_meta( $users[1], $key, array( 'cheque' ) );
 
 		try {
-			dws_lpmwc_move_user_grants();
-			dws_lpmwc_move_user_grants();
+			Migrations::get_steps()[2]();
+			Migrations::get_steps()[2]();
 			wp_cache_flush();
 
 			self::assertSame( array( 'cod' ), get_user_meta( $users[0], $key, true ) );
@@ -177,12 +170,12 @@ final class MigrationsTest extends TestCase {
 	public function test_the_grants_step_throws_when_a_users_grants_cannot_be_stored(): void {
 		$users = self::create_users( 1 );
 		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', 'yes' );
-		$fail = static fn ( mixed $check, int $object_id, string $meta_key ): mixed => \str_ends_with( $meta_key, DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS ) ? false : $check;
+		$fail = static fn ( mixed $check, int $object_id, string $meta_key ): mixed => \str_ends_with( $meta_key, UserProfileStrategy::USER_OPTION ) ? false : $check;
 		add_filter( 'update_user_metadata', $fail, 10, 3 );
 
 		try {
 			$this->expectExceptionObject( new \RuntimeException( "The payment methods unlocked for user {$users[0]} could not be stored." ) );
-			dws_lpmwc_move_user_grants();
+			Migrations::get_steps()[2]();
 		} finally {
 			remove_filter( 'update_user_metadata', $fail );
 			self::assertSame( 'yes', get_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', true ) );
@@ -193,13 +186,13 @@ final class MigrationsTest extends TestCase {
 	public function test_the_step_throws_when_a_setting_cannot_be_stored(): void {
 		global $wpdb;
 
-		delete_option( DWS_LPMWC_OPTION_DELETE_DATA );
-		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . DWS_LPMWC_OPTION_DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_lpmwc_missing" : $query;
+		delete_option( Options::DELETE_DATA );
+		$fail       = static fn ( string $query ): string => \str_contains( $query, "'" . Options::DELETE_DATA . "'" ) && \str_starts_with( \ltrim( $query ), 'INSERT' ) ? "SELECT * FROM {$wpdb->prefix}dws_lpmwc_missing" : $query;
 		$suppressed = $wpdb->suppress_errors();
 		add_filter( 'query', $fail );
 		try {
-			$this->expectExceptionObject( new \RuntimeException( 'The option ' . DWS_LPMWC_OPTION_DELETE_DATA . ' could not be stored.' ) );
-			dws_lpmwc_add_settings();
+			$this->expectExceptionObject( new \RuntimeException( 'The option ' . Options::DELETE_DATA . ' could not be stored.' ) );
+			Migrations::get_steps()[1]();
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );

@@ -9,8 +9,7 @@ trait RunsRequestsTrait {
 
 	// A row whose fixture provokes a diagnostic names it, so that diagnostic and what follows it, such as a fatal error's trace, pass, while any output before it fails the row.
 	protected static function request_provoking( string $diagnostic, string $php, string ...$flags ): array {
-		$arguments = \implode( '', \array_map( static fn ( string $flag ): string => ' ' . \escapeshellarg( $flag ), $flags ) );
-		\exec( 'wp --path=' . \escapeshellarg( ABSPATH ) . "$arguments eval " . \escapeshellarg( $php ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Each row needs a fresh request that loads the plugin.
+		\exec( self::command( $php, ...$flags ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Each row needs a fresh request that loads the plugin.
 		$output   = \array_values( \array_filter( $output, static fn ( string $line ): bool => '' !== \trim( $line ) ) );
 		$provoked = '' === $diagnostic ? null : \array_find_key( $output, static fn ( string $line ): bool => \str_contains( $line, $diagnostic ) );
 
@@ -20,5 +19,10 @@ trait RunsRequestsTrait {
 			'output' => \implode( "\n", $output ),
 			'last'   => (string) \end( $output ),
 		);
+	}
+
+	protected static function command( string $php, string ...$flags ): string {
+		$arguments = \implode( '', \array_map( static fn ( string $flag ): string => ' ' . \escapeshellarg( $flag ), $flags ) );
+		return 'wp --path=' . \escapeshellarg( ABSPATH ) . "$arguments eval " . \escapeshellarg( $php );
 	}
 }

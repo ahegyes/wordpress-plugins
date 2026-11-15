@@ -1,4 +1,4 @@
 Significance: minor
 Type: changed
 
-The maximum depth setting rejects a value that is not a whole number of 1 or more and keeps the stored value, where v1 saved it and corrected it on read.
+The maximum depth setting rejects a value below 1, above 99, with a fraction or that is not a number, keeps the stored value and names the bound it missed, where v1 saved it and corrected it on read; an emptied field reads as the default of 1, which it shows.

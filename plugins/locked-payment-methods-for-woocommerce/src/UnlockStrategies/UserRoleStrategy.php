@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
+use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
 
@@ -24,7 +26,7 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 	 */
 	#[\Override]
 	public static function should_load(): bool {
-		return dws_lpmwc_get_bool_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES );
+		return Options::get_bool( Options::UNLOCK_VIA_USER_ROLES );
 	}
 
 	/**
@@ -35,7 +37,7 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'dws_lpmwc/payment_method/should_lock', array( $this, 'unlock_for_full_access_roles' ), 10, 3 );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_for_full_access_roles' ), 10, 3 );
 	}
 
 	// endregion
@@ -59,7 +61,7 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 			return false;
 		}
 
-		$roles = dws_lpmwc_apply_v1_setting_filter( dws_lpmwc_get_list_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), 'general', 'full-access-user-roles', 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+		$roles = Safeguards::apply_v1_setting_filter( Options::get_list( Options::FULL_ACCESS_ROLES ), 'general', 'full-access-user-roles', 'option_' . Options::FULL_ACCESS_ROLES );
 		return \is_array( $roles ) && array() !== \array_intersect( $user->roles, \array_filter( $roles, 'is_string' ) );
 	}
 

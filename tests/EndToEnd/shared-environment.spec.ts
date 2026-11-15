@@ -48,7 +48,7 @@ test( 'every plugin boots from its own scoped framework', () => {
 	expect(
 		cli(
 			'eval',
-			'echo wp_json_encode( array( did_action( "dws_lowc/boot/succeeded" ), did_action( "dws_ic/boot/succeeded" ), did_action( "dws_lpmwc/boot/succeeded" ), class_exists( "DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\PluginKernel", false ), class_exists( "DeepWebSolutions\\InternalComments\\Scoped\\DeepWebSolutions\\Framework\\Core\\PluginKernel", false ), class_exists( "DeepWebSolutions\\LockedPaymentMethods\\Scoped\\DeepWebSolutions\\Framework\\Core\\PluginKernel", false ) ) );'
+			'echo wp_json_encode( array( did_action( "linked_orders_for_woocommerce/boot/succeeded" ), did_action( "internal_comments/boot/succeeded" ), did_action( "locked_payment_methods_for_woocommerce/boot/succeeded" ), class_exists( "DeepWebSolutions\\LinkedOrders\\Scoped\\DeepWebSolutions\\Framework\\Core\\PluginKernel", false ), class_exists( "DeepWebSolutions\\InternalComments\\Scoped\\DeepWebSolutions\\Framework\\Core\\PluginKernel", false ), class_exists( "DeepWebSolutions\\LockedPaymentMethods\\Scoped\\DeepWebSolutions\\Framework\\Core\\PluginKernel", false ) ) );'
 		)
 	).toBe( '[1,1,1,true,true,true]' );
 } );
@@ -60,8 +60,8 @@ test( 'Linked Orders and Internal Comments share an order screen', async ( {
 	cli(
 		'option',
 		'update',
-		'dws-internal-comments_general',
-		JSON.stringify( { 'post-types': [ 'shop_order' ] } ),
+		'dws_ic_post_types',
+		JSON.stringify( [ 'shop_order' ] ),
 		'--format=json'
 	);
 	const order = await requestUtils.rest< { id: number } >( {
@@ -85,8 +85,8 @@ test( 'Linked Orders and Internal Comments share an order screen', async ( {
 		cli(
 			'option',
 			'update',
-			'dws-internal-comments_general',
-			JSON.stringify( { 'post-types': [] } ),
+			'dws_ic_post_types',
+			JSON.stringify( [] ),
 			'--format=json'
 		);
 	}

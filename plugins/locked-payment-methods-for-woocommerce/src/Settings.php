@@ -7,8 +7,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\Setting\SectionFieldsDefinitionInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\Setting\SettingsSection;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UnlockStrategySettings;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -64,8 +63,13 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 			'plugin'       => __( 'Plugin Settings', 'locked-payment-methods-for-woocommerce' ),
 		);
 
+		$definitions = array();
+		foreach ( array( ...$this->get_fields(), ...UnlockStrategySettings::get_fields() ) as $field ) {
+			$definitions[ $field['id'] ?? '' ] = \array_diff_key( $field, array( 'id' => true ) );
+		}
+
 		$fields = array();
-		foreach ( DWS_LPMWC_V1_SETTINGS as $group => $keys ) {
+		foreach ( Options::V1_SETTINGS as $group => $keys ) {
 			/**
 			 * Filters a group's fields, keyed by their v1 ids.
 			 *
@@ -75,7 +79,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 			 *
 			 * @param       array<string, Field> $fields The group's fields.
 			 */
-			$group_fields = apply_filters_deprecated( "locked_payment_methods_for_woocommerce/{$group}_settings/get_group_fields", array( $this->get_group_fields( $group ) ), '2.0.0', 'woocommerce_get_settings_advanced' );
+			$group_fields = apply_filters_deprecated( "locked_payment_methods_for_woocommerce/{$group}_settings/get_group_fields", array( \array_filter( \array_map( static fn ( string $key ): ?array => $definitions[ $key ] ?? null, $keys ), 'is_array' ) ), '2.0.0', 'woocommerce_get_settings_advanced' );
 			if ( array() === $group_fields ) {
 				continue;
 			}
@@ -163,84 +167,38 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	// region HELPERS
 
 	/**
-	 * Returns a group's fields, keyed by their v1 ids.
+	 * Returns the fields of the settings no strategy owns, each under the option it stores.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $group The group's v1 id.
-	 *
-	 * @return  array<string, Field>
+	 * @return  list<Field>
 	 */
-	protected function get_group_fields( string $group ): array {
-		return match ( $group ) {
-			'general' => array(
-				'locked-payment-methods' => array(
-					'title'    => __( 'Payment methods which are locked by default', 'locked-payment-methods-for-woocommerce' ),
-					'type'     => 'multiselect',
-					'class'    => 'wc-enhanced-select',
-					'options'  => \array_map(
-						static fn ( \WC_Payment_Gateway $gateway ): string => 'yes' === $gateway->enabled // @phpstan-ignore argument.type (WooCommerce's registry holds only WC_Payment_Gateway instances, which its stubs leave untyped.)
-							? $gateway->get_title()
-							/* translators: %s: payment method title. */
-							: \sprintf( __( '%s (disabled)', 'locked-payment-methods-for-woocommerce' ), $gateway->get_title() ),
-						WC()->payment_gateways()->payment_gateways()
-					),
-					'default'  => DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_LOCKED_METHODS ],
-					'desc_tip' => __( 'A disabled payment method stays locked, so it is still locked once it is enabled again.', 'locked-payment-methods-for-woocommerce' ),
+	protected function get_fields(): array {
+		return array(
+			array(
+				'id'       => Options::LOCKED_METHODS,
+				'title'    => __( 'Payment methods which are locked by default', 'locked-payment-methods-for-woocommerce' ),
+				'type'     => 'multiselect',
+				'class'    => 'wc-enhanced-select',
+				'options'  => \array_map(
+					static fn ( \WC_Payment_Gateway $gateway ): string => 'yes' === $gateway->enabled // @phpstan-ignore argument.type (WooCommerce's registry holds only WC_Payment_Gateway instances, which its stubs leave untyped.)
+						? $gateway->get_title()
+						/* translators: %s: payment method title. */
+						: \sprintf( __( '%s (disabled)', 'locked-payment-methods-for-woocommerce' ), $gateway->get_title() ),
+					WC()->payment_gateways()->payment_gateways()
 				),
-				'unlock-via-user-role'   => array(
-					'title'   => __( 'Unlock via user roles', 'locked-payment-methods-for-woocommerce' ),
-					'type'    => 'checkbox',
-					'desc'    => __( 'Give users with the roles below every locked payment method', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES ] ),
-				),
-				'full-access-user-roles' => array(
-					'title'   => __( 'User roles with full access to every locked payment method', 'locked-payment-methods-for-woocommerce' ),
-					'type'    => 'multiselect',
-					'class'   => 'wc-enhanced-select',
-					'options' => \array_map( 'translate_user_role', wp_roles()->get_names() ),
-					'default' => DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ],
-				),
-				'unlock-via-user-meta'   => array(
-					'title'   => __( 'Unlock via user profiles', 'locked-payment-methods-for-woocommerce' ),
-					'type'    => 'checkbox',
-					'desc'    => __( 'Unlock payment methods for a user from their profile, for all their future orders and their unpaid orders', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES ] ),
-				),
-				'unlock-via-order-meta'  => array(
-					'title'   => __( 'Unlock via orders', 'locked-payment-methods-for-woocommerce' ),
-					'type'    => 'checkbox',
-					'desc'    => __( 'Unlock payment methods for an unpaid order from its edit screen, for that order only', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS ] ),
-				),
+				'default'  => Options::DEFAULTS[ Options::LOCKED_METHODS ],
+				'desc_tip' => __( 'A disabled payment method stays locked, so it is still locked once it is enabled again.', 'locked-payment-methods-for-woocommerce' ),
 			),
-			'integrations' => \array_filter(
-				array(
-					'unlock-via-groups'         => GroupsStrategy::is_available() ? array(
-						'title'   => __( 'Unlock via Groups', 'locked-payment-methods-for-woocommerce' ),
-						'type'    => 'checkbox',
-						'desc'    => __( 'Unlock payment methods for the members of a Groups group from the group\'s settings', 'locked-payment-methods-for-woocommerce' ),
-						'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_GROUPS ] ),
-					) : array(),
-					'unlock-via-wc-memberships' => WooCommerceMembershipsStrategy::is_available() ? array(
-						'title'   => __( 'Unlock via WooCommerce Memberships', 'locked-payment-methods-for-woocommerce' ),
-						'type'    => 'checkbox',
-						'desc'    => __( 'Unlock payment methods for the active members of a membership plan from the plan\'s data', 'locked-payment-methods-for-woocommerce' ),
-						'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_UNLOCK_VIA_WC_MEMBERSHIPS ] ),
-					) : array(),
-				)
+			array(
+				'id'      => Options::DELETE_DATA,
+				'title'   => __( 'Remove all data on uninstallation', 'locked-payment-methods-for-woocommerce' ),
+				'type'    => 'checkbox',
+				'desc'    => __( 'Delete the plugin\'s data when it is uninstalled, so it must be configured again if it is installed later', 'locked-payment-methods-for-woocommerce' ),
+				'default' => Options::DEFAULTS[ Options::DELETE_DATA ],
 			),
-			'plugin'  => array(
-				'remove-data-uninstall' => array(
-					'title'   => __( 'Remove all data on uninstallation', 'locked-payment-methods-for-woocommerce' ),
-					'type'    => 'checkbox',
-					'desc'    => __( 'Delete the plugin\'s data when it is uninstalled, so it must be configured again if it is installed later', 'locked-payment-methods-for-woocommerce' ),
-					'default' => wc_bool_to_string( DWS_LPMWC_OPTION_DEFAULTS[ DWS_LPMWC_OPTION_DELETE_DATA ] ),
-				),
-			),
-			default   => array(),
-		};
+		);
 	}
 
 	// endregion

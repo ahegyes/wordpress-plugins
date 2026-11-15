@@ -86,37 +86,39 @@ final class DeprecatedApiTest extends TestCase {
 		};
 		add_action( 'dws_ic_initialized', $spy );
 		add_action( 'dws_ic_initialization_failure', $spy );
-		add_action( 'dws_ic/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-		add_action( 'dws_ic/boot/failed', $spy, PHP_INT_MIN + 1 );
+		add_action( 'internal_comments/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+		add_action( 'internal_comments/boot/failed', $spy, PHP_INT_MIN + 1 );
 		$error = new \RuntimeException( 'Failed.' );
 
 		try {
-			do_action( 'dws_ic/boot/succeeded' );
-			do_action( 'dws_ic/boot/failed', $error );
+			do_action( 'internal_comments/boot/succeeded' );
+			do_action( 'internal_comments/boot/failed', $error );
 		} finally {
 			remove_action( 'dws_ic_initialized', $spy );
 			remove_action( 'dws_ic_initialization_failure', $spy );
-			remove_action( 'dws_ic/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-			remove_action( 'dws_ic/boot/failed', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'internal_comments/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'internal_comments/boot/failed', $spy, PHP_INT_MIN + 1 );
 		}
 
 		self::assertSame(
 			array(
 				array( 'dws_ic_initialized', null ),
-				array( 'dws_ic/boot/succeeded', '' ),
+				array( 'internal_comments/boot/succeeded', '' ),
 				array( 'dws_ic_initialization_failure', $error ),
-				array( 'dws_ic/boot/failed', $error ),
+				array( 'internal_comments/boot/failed', $error ),
 			),
 			$fired
 		);
 		self::assertSame(
 			array(
-				array( 'dws_ic_initialized', 'dws_ic/boot/succeeded' ),
-				array( 'dws_ic_initialization_failure', 'dws_ic/boot/failed' ),
+				array( 'dws_ic_initialized', 'internal_comments/boot/succeeded' ),
+				array( 'dws_ic_initialization_failure', 'internal_comments/boot/failed' ),
 			),
 			$this->deprecated
 		);
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_ic/boot/succeeded', 'dws_ic_fire_v1_initialized' ) );
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_ic/boot/failed', 'dws_ic_fire_v1_initialization_failure' ) );
+		foreach ( array( 'internal_comments/boot/succeeded', 'internal_comments/boot/failed' ) as $hook ) {
+			$relays = \array_filter( $GLOBALS['wp_filter'][ $hook ]->callbacks[ PHP_INT_MIN ] ?? array(), static fn ( array $callback ): bool => $callback['function'] instanceof \Closure && \dirname( DWS_IC_FILE ) . '/functions.php' === new \ReflectionFunction( $callback['function'] )->getFileName() );
+			self::assertCount( 1, $relays, $hook );
+		}
 	}
 }

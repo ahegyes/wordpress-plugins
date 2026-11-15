@@ -3,6 +3,12 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\AdminScreens;
+use DeepWebSolutions\InternalComments\Capabilities;
+use DeepWebSolutions\InternalComments\Comments;
+use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -20,7 +26,7 @@ final class AdminScreensTest extends TestCase {
 
 	protected int $post;
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -49,8 +55,10 @@ final class AdminScreensTest extends TestCase {
 
 	#[Before]
 	protected function create_post(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( Options::POST_TYPES, array( 'post' ) );
 		$this->post = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Screens',
@@ -63,7 +71,9 @@ final class AdminScreensTest extends TestCase {
 	#[After]
 	protected function delete_post(): void {
 		wp_delete_post( $this->post, true );
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 		unset( $_GET['comment_type'] );
 	}
@@ -79,10 +89,10 @@ final class AdminScreensTest extends TestCase {
 			return 'title';
 		};
 		add_filter( self::V1_PRECEDING_COLUMN, $v1, 10, 2 );
-		add_filter( 'dws_ic/list_table/preceding_column', $v2, 10, 2 );
+		add_filter( 'internal_comments/list_table/preceding_column', $v2, 10, 2 );
 
 		try {
-			$columns = new AdminScreens()->add_column(
+			$columns = new AdminScreens( self::make_assets() )->add_column(
 				array(
 					'cb'       => '',
 					'title'    => 'Title',
@@ -93,21 +103,21 @@ final class AdminScreensTest extends TestCase {
 			);
 		} finally {
 			remove_filter( self::V1_PRECEDING_COLUMN, $v1 );
-			remove_filter( 'dws_ic/list_table/preceding_column', $v2 );
+			remove_filter( 'internal_comments/list_table/preceding_column', $v2 );
 		}
 
 		self::assertSame( array( 'cb', 'title', 'dws-internal-comments', 'comments', 'date' ), \array_keys( $columns ) );
 		self::assertSame( array( array( 'v1', 'comments', 'post' ), array( 'v2', 'comments', 'post' ) ), $seen );
-		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'dws_ic/list_table/preceding_column' ) ), $this->deprecated );
+		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'internal_comments/list_table/preceding_column' ) ), $this->deprecated );
 		wp_set_current_user( self::$users['editor'] );
-		self::assertArrayHasKey( 'dws-internal-comments', new AdminScreens()->add_column( array( 'title' => 'Title' ), 'post' ) );
-		self::assertSame( array( 'title' => 'Title' ), new AdminScreens()->add_column( array( 'title' => 'Title' ), 'page' ) );
+		self::assertArrayHasKey( 'dws-internal-comments', new AdminScreens( self::make_assets() )->add_column( array( 'title' => 'Title' ), 'post' ) );
+		self::assertSame( array( 'title' => 'Title' ), new AdminScreens( self::make_assets() )->add_column( array( 'title' => 'Title' ), 'page' ) );
 	}
 
 	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
 	public function test_the_column_joins_a_list_after_woocommerce_rebuilds_it(): void {
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'shop_order' ) ) );
-		$screens = new AdminScreens();
+		update_option( Options::POST_TYPES, array( 'shop_order' ) );
+		$screens = new AdminScreens( self::make_assets() );
 		$screens->register_hooks();
 
 		try {
@@ -130,7 +140,7 @@ final class AdminScreensTest extends TestCase {
 
 	public function test_the_cell_counts_the_comments_the_user_can_see_and_opens_their_quick_view(): void {
 		$this->comment( 'Open' );
-		$this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
 
 		$admin = $this->cell();
 		wp_set_current_user( self::$users['editor'] );
@@ -152,45 +162,45 @@ final class AdminScreensTest extends TestCase {
 	}
 
 	public function test_the_comments_screen_lists_internal_comments_only_under_their_type_for_users_who_may(): void {
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 
-		$_GET['comment_type'] = DWS_IC_COMMENT_TYPE;
+		$_GET['comment_type'] = Comments::TYPE;
 		$args                 = $screens->filter_list_table_args(
 			array(
 				'status' => '',
-				'type'   => DWS_IC_COMMENT_TYPE,
+				'type'   => Comments::TYPE,
 			)
 		);
-		self::assertSame( DWS_IC_COMMENT_STATUS, $args['status'] );
-		self::assertSame( 'trash', $screens->filter_list_table_args( array( 'status' => 'trash', 'type' => DWS_IC_COMMENT_TYPE ) )['status'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The list table's two arguments.
+		self::assertSame( Comments::STATUS, $args['status'] );
+		self::assertSame( 'trash', $screens->filter_list_table_args( array( 'status' => 'trash', 'type' => Comments::TYPE ) )['status'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The list table's two arguments.
 
 		wp_set_current_user( self::$users['editor'] );
 		foreach ( array( 'all', 'trash' ) as $status ) {
-			self::assertContains( DWS_IC_COMMENT_TYPE, $screens->filter_list_table_args( array( 'status' => $status ) )['type__not_in'] ?? array() );
+			self::assertContains( Comments::TYPE, $screens->filter_list_table_args( array( 'status' => $status ) )['type__not_in'] ?? array() );
 		}
-		self::assertArrayNotHasKey( DWS_IC_COMMENT_TYPE, $screens->add_comment_type( array() ) );
+		self::assertArrayNotHasKey( Comments::TYPE, $screens->add_comment_type( array() ) );
 		wp_set_current_user( self::$users['administrator'] );
-		self::assertArrayHasKey( DWS_IC_COMMENT_TYPE, $screens->add_comment_type( array() ) );
+		self::assertArrayHasKey( Comments::TYPE, $screens->add_comment_type( array() ) );
 	}
 
 	public function test_the_comments_screen_leaves_out_the_rows_its_reader_cannot_see(): void {
 		$open = $this->comment( 'Open' );
-		$this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
-		get_role( 'editor' )?->add_cap( DWS_IC_CAP_SEE_TABLE );
+		$this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
+		get_role( 'editor' )?->add_cap( Capabilities::SEE_TABLE );
 		wp_set_current_user( self::$users['editor'] );
 
 		try {
-			$args = new AdminScreens()->filter_list_table_args(
+			$args = new AdminScreens( self::make_assets() )->filter_list_table_args(
 				array(
 					'post_id' => $this->post,
-					'type'    => DWS_IC_COMMENT_TYPE,
+					'type'    => Comments::TYPE,
 					'status'  => 'all',
 				)
 			);
 			$rows = new \WP_Comment_Query( $args )->comments;
-			$all  = get_comments( array( 'post_id' => $this->post, 'type' => DWS_IC_COMMENT_TYPE, 'status' => DWS_IC_COMMENT_STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
+			$all  = get_comments( array( 'post_id' => $this->post, 'type' => Comments::TYPE, 'status' => Comments::STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
 		} finally {
-			get_role( 'editor' )?->remove_cap( DWS_IC_CAP_SEE_TABLE );
+			get_role( 'editor' )?->remove_cap( Capabilities::SEE_TABLE );
 		}
 
 		self::assertSame( array( (string) $open ), wp_list_pluck( $rows, 'comment_ID' ) );
@@ -202,18 +212,13 @@ final class AdminScreensTest extends TestCase {
 		$actions = \array_fill_keys( array( 'approve', 'unapprove', 'reply', 'quickedit', 'edit', 'spam', 'trash', 'untrash', 'delete' ), '' );
 
 		self::assertInstanceOf( \WP_Comment::class, $comment );
-		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( new AdminScreens()->filter_row_actions( $actions, $comment ) ) );
+		self::assertSame( array( 'edit', 'trash', 'untrash', 'delete' ), \array_keys( new AdminScreens( self::make_assets() )->filter_row_actions( $actions, $comment ) ) );
 	}
 
 	public function test_the_edit_screen_of_an_internal_comment_shows_its_revisions_and_its_author_its_privacy(): void {
 		global $wp_meta_boxes;
-		update_option(
-			DWS_IC_OPTION_GENERAL,
-			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
-			)
-		);
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		$comment = $this->comment( 'Before' );
 		wp_update_comment(
 			array(
@@ -221,7 +226,7 @@ final class AdminScreensTest extends TestCase {
 				'comment_content' => 'After',
 			)
 		);
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 
 		$wp_meta_boxes = array();
 		$screens->add_revisions_meta_box( get_comment( $comment ) );
@@ -240,7 +245,7 @@ final class AdminScreensTest extends TestCase {
 
 		// Once someone has replied, the author may still make a private comment public, but not the other way round.
 		wp_set_current_user( self::$users['administrator'] );
-		$private = $this->comment( 'Private', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$private = $this->comment( 'Private', array( Comments::META_PRIVATE => 'yes' ) );
 		foreach ( array( $comment, $private ) as $replied_to ) {
 			dws_ic_create_internal_comment(
 				array(
@@ -255,7 +260,7 @@ final class AdminScreensTest extends TestCase {
 
 	// Saving keeps an internal comment's author, status and date as stored, so the edit screen does not offer them.
 	public function test_the_comment_edit_screen_hides_the_fields_an_internal_comment_keeps(): void {
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 		$styles  = static function ( int $comment ) use ( $screens ): string {
 			$GLOBALS['comment'] = get_comment( $comment );
 			try {
@@ -373,7 +378,7 @@ final class AdminScreensTest extends TestCase {
 	}
 
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
-		new AdminScreens()->enqueue_list_assets( 'edit.php' );
+		new AdminScreens( self::make_assets() )->enqueue_list_assets( 'edit.php' );
 
 		self::assertTrue( wp_script_is( 'internal-comments-quick-view' ) );
 		self::assertTrue( wp_style_is( 'internal-comments-quick-view' ) );
@@ -383,7 +388,7 @@ final class AdminScreensTest extends TestCase {
 
 	protected function cell(): \Dom\HTMLDocument {
 		\ob_start();
-		new AdminScreens()->render_cell( 'dws-internal-comments', $this->post );
+		new AdminScreens( self::make_assets() )->render_cell( 'dws-internal-comments', $this->post );
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 
@@ -396,5 +401,9 @@ final class AdminScreensTest extends TestCase {
 			),
 			get_user_by( 'id', self::$users['administrator'] ) ?: null
 		);
+	}
+
+	protected static function make_assets(): Assets {
+		return new Assets( new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX ) );
 	}
 }

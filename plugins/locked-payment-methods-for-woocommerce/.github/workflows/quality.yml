@@ -57,7 +57,7 @@ jobs:
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-versions: '["7.4"]'
-      paths: ${{ format('["{0}.php", "uninstall.php", "includes"]', needs.slug.outputs.slug) }}
+      paths: ${{ format('["{0}.php", "uninstall.php", "Safeguards.php"]', needs.slug.outputs.slug) }}
 
   readme-lint:
     name: readme.txt lint

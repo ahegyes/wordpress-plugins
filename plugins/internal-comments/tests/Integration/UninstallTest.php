@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Capabilities;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\AfterClass;
@@ -40,21 +42,21 @@ final class UninstallTest extends TestCase {
 
 	// WordPress uninstalls an inactive plugin, so the request loads uninstall.php alone, never the entry file or functions.php.
 	public function test_an_uninstall_in_a_request_that_skips_the_plugin_removes_its_data(): void {
-		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
-		$php = 'uninstall_plugin( "internal-comments/internal-comments.php" ); echo wp_json_encode( array( defined( "DWS_IC_FILE" ), get_option( "' . DWS_IC_OPTION_PLUGIN . '" ) ) );';
+		update_option( Options::DELETE_DATA, 'yes' );
+		$php = 'uninstall_plugin( "internal-comments/internal-comments.php" ); echo wp_json_encode( array( defined( "DWS_IC_FILE" ), get_option( "' . Options::DELETE_DATA . '" ) ) );';
 
 		$request = self::request( $php, '--skip-plugins=' . Plugin::SLUG );
 
 		// The other tests share the database, so a request with the plugin stores again what a new site starts with, as the site's next request would.
-		$restored = self::request( 'do_action( "' . Plugin::PREFIX . '_revision/migration/run" );' );
+		$restored = self::request( 'do_action( "internal_comments/migration/run" );' );
 		wp_cache_flush();
 		wp_roles()->for_site();
 
 		self::assertSame( 0, $request['status'], $request['output'] );
 		self::assertSame( '[false,false]', $request['last'], $request['output'] );
 		self::assertSame( 0, $restored['status'], $restored['output'] );
-		self::assertSame( DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ], get_option( DWS_IC_OPTION_PLUGIN ) );
-		self::assertTrue( get_role( 'editor' )?->has_cap( DWS_IC_CAP_INSERT ) );
+		self::assertSame( Options::DEFAULTS[ Options::DELETE_DATA ], get_option( Options::DELETE_DATA ) );
+		self::assertTrue( get_role( 'editor' )?->has_cap( Capabilities::INSERT ) );
 	}
 
 	#[RunInSeparateProcess]
@@ -62,7 +64,7 @@ final class UninstallTest extends TestCase {
 		global $wpdb;
 
 		\define( 'WP_UNINSTALL_PLUGIN', plugin_basename( DWS_IC_FILE ) );
-		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
+		update_option( Options::DELETE_DATA, 'yes' );
 		$failing = "DELETE FROM `$wpdb->options` WHERE `option_name` = '" . Plugin::PREFIX . "_revision'";
 		add_filter( 'query', static fn ( string $query ): string => \str_contains( $query, $failing ) ? 'SELECT * FROM dws_ic_missing_table' : $query );
 		add_filter( 'wp_die_handler', static fn (): \Closure => static fn ( string $message, string $title, array $args ): never => throw new \LogicException( $args['response'] . ' ' . $message ) );
@@ -73,23 +75,24 @@ final class UninstallTest extends TestCase {
 			self::fail( 'The uninstall finished.' );
 		} catch ( \LogicException $died ) {
 			self::assertStringStartsWith( '500 Uninstall could not remove everything: option ' . Plugin::PREFIX . '_revision', $died->getMessage() );
-			self::assertSame( 'yes', get_option( DWS_IC_OPTION_PLUGIN )[ DWS_IC_SETTING_DELETE_DATA ] ?? null );
+			self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 		} finally {
 			remove_all_filters( 'query' );
-			delete_option( DWS_IC_OPTION_PLUGIN );
+			delete_option( Options::DELETE_DATA );
 			delete_option( Plugin::PREFIX . '_revision' );
 			wp_cache_flush();
 			wp_roles()->for_site();
 			// The other tests share the database, so the runner stores again what a new site starts with, and the grants act again.
-			do_action( Plugin::PREFIX . '_revision/migration/run' ); // A batched migration step runs only from the runner's scheduled hook.
+			do_action( 'internal_comments/migration/run' ); // A batched migration step runs only from the runner's scheduled hook.
 			do_action( 'wp_loaded' );
 		}
 	}
 
 	#[RunInSeparateProcess]
-	public function test_an_uninstall_after_v1_consent_removes_the_internal_comments_v1s_rows_and_the_capabilities(): void {
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
-		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
+	public function test_a_consenting_uninstall_removes_the_internal_comments_the_settings_v1s_rows_and_the_capabilities(): void {
+		update_option( 'dws-internal-comments_general', array( 'post-types' => array( 'post' ) ) );
+		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
+		update_option( Options::DELETE_DATA, 'yes' );
 		update_option( 'internal_comments_version', array( 'seeded' ) );
 		update_option( 'internal_comments_original_version', array( 'seeded' ) );
 		update_option( '_internal_comments_admin_notices', array( 'seeded' ) );
@@ -128,29 +131,30 @@ final class UninstallTest extends TestCase {
 		}
 		self::assertSame( '', get_comment_meta( $internal[0], 'dws_ic_is_private', true ) );
 		self::assertInstanceOf( \WP_Comment::class, get_comment( $public ) );
-		foreach ( array( DWS_IC_OPTION_GENERAL, DWS_IC_OPTION_PLUGIN, 'internal_comments_version', 'internal_comments_original_version', '_internal_comments_admin_notices' ) as $option ) {
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS, Options::DELETE_DATA, 'dws-internal-comments_general', 'dws-internal-comments_plugin', 'internal_comments_version', 'internal_comments_original_version', '_internal_comments_admin_notices' ) as $option ) {
 			self::assertFalse( get_option( $option ), "The option $option is still stored." );
 		}
 		self::assertSame( '', get_user_meta( self::USER, '_internal_comments_admin_notices', true ) );
-		foreach ( DWS_IC_CAPABILITY_GRANTS as $role => $capabilities ) {
+		foreach ( Capabilities::GRANTS as $role => $capabilities ) {
 			foreach ( $capabilities as $capability ) {
 				self::assertFalse( (bool) get_role( $role )?->has_cap( $capability ), "The $role role still holds $capability." );
 			}
 		}
 
 		// The other tests share the database, so the roles get their capabilities back and the runner stores again what a new site starts with.
-		foreach ( DWS_IC_CAPABILITY_GRANTS as $role => $capabilities ) {
+		foreach ( Capabilities::GRANTS as $role => $capabilities ) {
 			foreach ( $capabilities as $capability ) {
 				get_role( $role )?->add_cap( $capability );
 			}
 		}
-		do_action( Plugin::PREFIX . '_revision/migration/run' );
+		do_action( 'internal_comments/migration/run' );
 		wp_delete_post( $post, true );
 	}
 
 	#[RunInSeparateProcess]
-	public function test_an_uninstall_without_consent_keeps_the_internal_comments(): void {
-		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'no' ) );
+	public function test_an_uninstall_without_consent_keeps_the_internal_comments_whatever_v1s_row_holds(): void {
+		update_option( Options::DELETE_DATA, 'no' );
+		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
 		$post     = wp_insert_post( array( 'post_title' => 'Kept' ) );
 		$internal = wp_insert_comment(
 			array(
@@ -160,37 +164,75 @@ final class UninstallTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
-		wp_cache_flush();
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
+			wp_cache_flush();
 
-		self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
-		self::assertSame( array( DWS_IC_SETTING_DELETE_DATA => 'no' ), get_option( DWS_IC_OPTION_PLUGIN ) );
+			self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
+			self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
+		} finally {
+			delete_option( 'dws-internal-comments_plugin' );
+			wp_delete_post( $post, true );
+		}
+	}
 
-		wp_delete_post( $post, true );
+	#[RunInSeparateProcess]
+	// The update copies v1's consent with the other settings, so a site that never ran it consents to nothing.
+	public function test_an_uninstall_on_a_site_that_never_ran_the_update_keeps_its_data_whatever_v1s_row_holds(): void {
+		delete_option( Options::DELETE_DATA );
+		update_option( 'dws-internal-comments_plugin', array( 'remove-data-uninstall' => 'yes' ) );
+		$post     = wp_insert_post( array( 'post_title' => 'Never migrated' ) );
+		$internal = wp_insert_comment(
+			array(
+				'comment_post_ID' => $post,
+				'comment_content' => 'Never migrated',
+				'comment_type'    => 'dws_internal',
+			)
+		);
+
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
+			wp_cache_flush();
+
+			self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
+			self::assertSame( array( 'remove-data-uninstall' => 'yes' ), get_option( 'dws-internal-comments_plugin' ) );
+		} finally {
+			// The other tests share the database, so v1's row goes, the roles get back any capability a pass removed, and the runner stores again what a new site starts with, from the first step.
+			delete_option( 'dws-internal-comments_plugin' );
+			delete_option( Plugin::PREFIX . '_revision' );
+			wp_roles()->for_site();
+			foreach ( Capabilities::GRANTS as $role => $capabilities ) {
+				foreach ( $capabilities as $capability ) {
+					get_role( $role )?->add_cap( $capability );
+				}
+			}
+			do_action( 'internal_comments/migration/run' );
+			wp_delete_post( $post, true );
+		}
 	}
 
 	#[RunInSeparateProcess]
 	public function test_a_consenting_uninstall_removes_a_row_of_every_kind_the_framework_roots_store(): void {
 		$prefix = Plugin::PREFIX . '_';
-		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
+		update_option( Options::DELETE_DATA, 'yes' );
 		update_option( "{$prefix}notices", array( 'seeded' ) );
 		update_network_option( null, "{$prefix}network_notices", array( 'seeded' ) );
 		set_transient( "{$prefix}boot_failure_seeded", 1, HOUR_IN_SECONDS );
 		update_user_option( self::USER, "{$prefix}hidden_notices", array( 'seeded' ) );
 		update_user_meta( self::USER, "{$prefix}network_hidden_notices", array( 'seeded' ) );
-		wp_schedule_single_event( \time() + HOUR_IN_SECONDS, "{$prefix}revision/migration/run" );
+		wp_schedule_single_event( \time() + HOUR_IN_SECONDS, 'internal_comments/migration/run' );
 		as_schedule_single_action( \time() + HOUR_IN_SECONDS, "{$prefix}seeded", array(), Plugin::PREFIX );
 
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
 		wp_cache_flush();
 
-		self::assertFalse( get_option( DWS_IC_OPTION_PLUGIN ) );
+		self::assertFalse( get_option( Options::DELETE_DATA ) );
 		self::assertFalse( get_option( "{$prefix}notices" ) );
 		self::assertFalse( get_network_option( null, "{$prefix}network_notices" ) );
 		self::assertFalse( get_transient( "{$prefix}boot_failure_seeded" ) );
 		self::assertFalse( get_user_option( "{$prefix}hidden_notices", self::USER ) );
 		self::assertSame( '', get_user_meta( self::USER, "{$prefix}network_hidden_notices", true ) );
-		self::assertFalse( wp_next_scheduled( "{$prefix}revision/migration/run" ) );
+		self::assertFalse( wp_next_scheduled( 'internal_comments/migration/run' ) );
 		self::assertSame(
 			array(),
 			as_get_scheduled_actions(
@@ -203,12 +245,12 @@ final class UninstallTest extends TestCase {
 		);
 
 		// The other tests share the database, so the runner stores again what a new site starts with.
-		foreach ( DWS_IC_CAPABILITY_GRANTS as $role => $capabilities ) {
+		foreach ( Capabilities::GRANTS as $role => $capabilities ) {
 			foreach ( $capabilities as $capability ) {
 				get_role( $role )?->add_cap( $capability );
 			}
 		}
-		do_action( Plugin::PREFIX . '_revision/migration/run' );
-		self::assertSame( DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ], get_option( DWS_IC_OPTION_PLUGIN ) );
+		do_action( 'internal_comments/migration/run' );
+		self::assertSame( Options::DEFAULTS[ Options::DELETE_DATA ], get_option( Options::DELETE_DATA ) );
 	}
 }

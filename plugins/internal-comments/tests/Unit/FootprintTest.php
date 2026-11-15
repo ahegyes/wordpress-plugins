@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Unit;
 
+use DeepWebSolutions\InternalComments\Capabilities;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -21,20 +23,20 @@ final class FootprintTest extends TestCase {
 		self::assertSame( 1, \preg_match( '/@phpstan-type Footprint (.+)$/m', $doc, $type ) );
 		\preg_match_all( '/(\w+)\?:/', $type[1], $kinds );
 
-		self::assertSame( array(), \array_diff( \array_keys( dws_ic_get_footprint() ), $kinds[1] ) );
+		self::assertSame( array(), \array_diff( \array_keys( Plugin::FOOTPRINT ), $kinds[1] ) );
 	}
 
 	public function test_every_entry_is_in_the_plugin_prefix_family(): void {
 		$family = array(
 			Plugin::PREFIX . '_',
-			Plugin::PREFIX . '/', // Hook names put a slash after the prefix.
+			\str_replace( '-', '_', Plugin::SLUG ) . '/', // Hook names root in the slug.
 			'_' . Plugin::PREFIX . '_', // WordPress hides meta keys that start with an underscore.
 			'_transient_' . Plugin::PREFIX . '_',
 			'_transient_timeout_' . Plugin::PREFIX . '_',
 			...self::LEGACY_FAMILIES,
 		);
 
-		foreach ( dws_ic_get_footprint() as $kind => $entries ) {
+		foreach ( Plugin::FOOTPRINT as $kind => $entries ) {
 			$entries = \in_array( $kind, array( 'meta', 'meta_prefixes' ), true ) ? \array_merge( ...\array_values( $entries ) ) : $entries;
 			foreach ( $entries as $entry ) {
 				$covered = 'as_groups' === $kind ? Plugin::PREFIX === $entry : \array_any( $family, static fn ( string $start ): bool => \str_starts_with( $entry, $start ) );
@@ -46,28 +48,28 @@ final class FootprintTest extends TestCase {
 	public function test_it_covers_what_the_framework_roots_store(): void {
 		$prefix = Plugin::PREFIX . '_';
 
-		self::assertContains( $prefix, dws_ic_get_footprint()['option_prefixes'] );
-		self::assertContains( '_transient_' . $prefix, dws_ic_get_footprint()['option_prefixes'] );
-		self::assertContains( '_transient_timeout_' . $prefix, dws_ic_get_footprint()['option_prefixes'] );
-		self::assertContains( $prefix, dws_ic_get_footprint()['user_meta_site_prefixes'] );
-		self::assertContains( $prefix, dws_ic_get_footprint()['user_meta_global_prefixes'] );
-		self::assertContains( $prefix . 'network_notices', dws_ic_get_footprint()['network_options'] );
-		self::assertContains( $prefix . 'revision/migration/run', dws_ic_get_footprint()['cron_hooks'] );
-		self::assertContains( Plugin::PREFIX, dws_ic_get_footprint()['as_groups'] );
+		self::assertContains( $prefix, Plugin::FOOTPRINT['option_prefixes'] );
+		self::assertContains( '_transient_' . $prefix, Plugin::FOOTPRINT['option_prefixes'] );
+		self::assertContains( '_transient_timeout_' . $prefix, Plugin::FOOTPRINT['option_prefixes'] );
+		self::assertContains( $prefix, Plugin::FOOTPRINT['user_meta_site_prefixes'] );
+		self::assertContains( $prefix, Plugin::FOOTPRINT['user_meta_global_prefixes'] );
+		self::assertContains( $prefix . 'network_notices', Plugin::FOOTPRINT['network_options'] );
+		self::assertContains( 'internal_comments/migration/run', Plugin::FOOTPRINT['cron_hooks'] );
+		self::assertContains( Plugin::PREFIX, Plugin::FOOTPRINT['as_groups'] );
 	}
 
 	public function test_it_covers_every_option_key(): void {
-		$keys = \array_filter( \get_defined_constants( true )['user'], static fn ( mixed $value, string $name ): bool => \str_starts_with( $name, 'DWS_IC_OPTION_' ) && \is_string( $value ), \ARRAY_FILTER_USE_BOTH );
+		$keys = \array_filter( new \ReflectionClass( Options::class )->getConstants(), \is_string( ... ) );
 
 		self::assertNotSame( array(), $keys );
 		foreach ( $keys as $key ) {
-			$covered = \in_array( $key, dws_ic_get_footprint()['options'] ?? array(), true ) || \array_any( dws_ic_get_footprint()['option_prefixes'], static fn ( string $prefix ): bool => \str_starts_with( $key, $prefix ) );
+			$covered = \in_array( $key, Plugin::FOOTPRINT['options'] ?? array(), true ) || \array_any( Plugin::FOOTPRINT['option_prefixes'], static fn ( string $prefix ): bool => \str_starts_with( $key, $prefix ) );
 			self::assertTrue( $covered, "The option $key is outside the footprint." );
 		}
 	}
 
 	public function test_it_covers_what_v1_stored(): void {
-		$footprint = dws_ic_get_footprint();
+		$footprint = Plugin::FOOTPRINT;
 
 		self::assertContains( 'dws-internal-comments_', $footprint['option_prefixes'] );
 		self::assertSame( array( 'dws_internal' ), $footprint['comment_types'] );
@@ -76,8 +78,8 @@ final class FootprintTest extends TestCase {
 	}
 
 	public function test_it_covers_every_capability_the_plugin_grants(): void {
-		foreach ( DWS_IC_CAPABILITY_GRANTS as $capabilities ) {
-			self::assertSame( array(), \array_diff( $capabilities, dws_ic_get_footprint()['capabilities'] ) );
+		foreach ( Capabilities::GRANTS as $capabilities ) {
+			self::assertSame( array(), \array_diff( $capabilities, Plugin::FOOTPRINT['capabilities'] ) );
 		}
 	}
 }

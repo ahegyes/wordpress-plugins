@@ -6,6 +6,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
@@ -71,6 +72,30 @@ final class Plugin {
 	);
 
 	/**
+	 * The plugin's stored data by kind, which uninstall and deactivation read.
+	 *
+	 * It also covers the grants on Groups groups and WooCommerce Memberships plans, and what v1 stored under its own names.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array{option_prefixes: list<non-empty-string>, options: list<non-empty-string>, meta: array<string, list<non-empty-string>>, meta_prefixes: array<string, list<non-empty-string>>, user_meta_site_prefixes: list<non-empty-string>, user_meta_global_prefixes: list<non-empty-string>, user_meta_global: list<non-empty-string>, network_options: list<non-empty-string>, capabilities: list<non-empty-string>, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
+	 */
+	public const array FOOTPRINT = array(
+		'option_prefixes'           => array( self::PREFIX . '_', '_transient_' . self::PREFIX . '_', '_transient_timeout_' . self::PREFIX . '_', 'dws-wc-lpm_' ),
+		'options'                   => array( 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ),
+		'meta'                      => array( 'post' => array( '_dws_lpmwc_unlocked_payment_methods', '_dws_wc_lpm_unlocked_payment_methods' ) ),
+		'meta_prefixes'             => array( 'order' => array( '_' . self::PREFIX . '_', '_dws_wc_lpm_' ) ),
+		'user_meta_site_prefixes'   => array( self::PREFIX . '_' ),
+		'user_meta_global_prefixes' => array( self::PREFIX . '_', 'dws_wc_lpm_grant_access_' ),
+		'user_meta_global'          => array( '_locked_payment_methods_for_woocommerce_admin_notices' ),
+		'network_options'           => array( 'dws_lpmwc_network_notices' ),
+		'capabilities'              => array( Capabilities::UNLOCK_VIA_USER_PROFILES, Capabilities::UNLOCK_VIA_ORDERS, Capabilities::UNLOCK_VIA_GROUPS, Capabilities::UNLOCK_VIA_WC_MEMBERSHIPS ),
+		'cron_hooks'                => array( 'locked_payment_methods_for_woocommerce/migration/run' ),
+		'as_groups'                 => array( self::PREFIX ),
+	);
+
+	/**
 	 * The boot boundary, whose status tells whether the plugin booted.
 	 *
 	 * @since   2.0.0
@@ -120,6 +145,16 @@ final class Plugin {
 	 */
 	protected readonly PsrLoggerInterface $logger;
 
+	/**
+	 * The plugin's identity, which every framework class the root builds takes.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     PluginIdentity
+	 */
+	protected readonly PluginIdentity $identity;
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -131,9 +166,10 @@ final class Plugin {
 	 * @version 2.0.0
 	 */
 	public function __construct() {
-		$this->logger    = new WooCommerceLogger( self::SLUG, \defined( 'DWS_LPMWC_DEBUG' ) && true === \constant( 'DWS_LPMWC_DEBUG' ) ? 'debug' : null );
-		$this->scheduler = new Scheduler( self::PREFIX );
-		$this->boundary  = new PluginBoot( DWS_LPMWC_FILE, self::PREFIX, $this->logger );
+		$this->identity  = new PluginIdentity( DWS_LPMWC_FILE, self::SLUG, self::PREFIX );
+		$this->logger    = new WooCommerceLogger( $this->identity, \defined( 'DWS_LPMWC_DEBUG' ) && true === \constant( 'DWS_LPMWC_DEBUG' ) ? 'debug' : null );
+		$this->scheduler = new Scheduler( $this->identity );
+		$this->boundary  = new PluginBoot( $this->identity, $this->logger );
 	}
 
 	// endregion
@@ -162,7 +198,7 @@ final class Plugin {
 	 */
 	public function deactivate(): void {
 		foreach ( array( 'cron_hooks', 'as_hooks' ) as $kind ) {
-			foreach ( dws_lpmwc_get_footprint()[ $kind ] ?? array() as $hook ) {
+			foreach ( self::FOOTPRINT[ $kind ] ?? array() as $hook ) {
 				$unscheduled = $this->scheduler->unschedule_hook( $hook );
 				if ( true !== $unscheduled ) {
 					$this->logger->warning(
@@ -192,14 +228,14 @@ final class Plugin {
 	 */
 	protected function compose(): bool {
 		$this->scheduler->register_hooks(); // Before the WooCommerce check, so the plugin's recurring WP-Cron events keep their schedules while it is blocked.
-		if ( ! WooCommerceRequirement::check( DWS_LPMWC_FILE ) ) {
+		if ( ! WooCommerceRequirement::check( $this->identity ) ) {
 			return false;
 		}
 
-		$this->migrations = new MigrationRunner( DWS_LPMWC_FILE, self::PREFIX . '_revision', dws_lpmwc_get_migration_steps(), $this->logger, $this->scheduler );
+		$this->migrations = new MigrationRunner( $this->identity, Migrations::get_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
-		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
+		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->identity, $this->logger, $this->scheduler ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );
 		return true;
 	}
@@ -210,18 +246,20 @@ final class Plugin {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @param   PluginIdentity     $identity  The plugin's identity.
 	 * @param   PsrLoggerInterface $logger    The plugin's logger.
 	 * @param   Scheduler          $scheduler The plugin's scheduler.
 	 *
 	 * @return  array<string, \Closure(): object>
 	 */
-	protected function get_definitions( PsrLoggerInterface $logger, Scheduler $scheduler ): array {
+	protected function get_definitions( PluginIdentity $identity, PsrLoggerInterface $logger, Scheduler $scheduler ): array {
 		return array(
+			PluginIdentity::class     => static fn (): PluginIdentity => $identity,
 			PsrLoggerInterface::class => static fn (): PsrLoggerInterface => $logger,
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
-			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
-			CapabilityGrants::class   => static fn (): CapabilityGrants => new CapabilityGrants( self::PREFIX . '_capabilities', DWS_LPMWC_CAPABILITY_GRANTS, $logger ),
+			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( $identity, $logger ),
+			CapabilityGrants::class   => static fn (): CapabilityGrants => new CapabilityGrants( $identity, Capabilities::GRANTS, $logger ),
 		);
 	}
 

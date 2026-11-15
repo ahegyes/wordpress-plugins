@@ -4,7 +4,12 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
+use DeepWebSolutions\InternalComments\CommentsList;
 use DeepWebSolutions\InternalComments\MetaBox;
+use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\OrderStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -19,7 +24,7 @@ final class OrdersTest extends TestCase {
 
 	protected static array $users = array();
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -48,15 +53,19 @@ final class OrdersTest extends TestCase {
 
 	#[Before]
 	protected function select_orders(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'shop_order' ) ) );
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( Options::POST_TYPES, array( 'shop_order' ) );
 	}
 
 	#[After]
 	protected function restore_settings(): void {
 		global $wp_meta_boxes;
 		$wp_meta_boxes = array();
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 	}
 
@@ -71,7 +80,7 @@ final class OrdersTest extends TestCase {
 		self::assertSame( 403, $this->post_comment( 'editor', $order->get_id(), 'By an editor' ) );
 
 		wp_set_current_user( self::$users['shop_manager'] );
-		$html = dws_ic_get_comments_list_html( $order->get_id() );
+		$html = CommentsList::get_html( $order->get_id() );
 		self::assertStringContainsString( 'By an administrator', $html );
 		self::assertStringContainsString( 'By a shop manager', $html );
 		self::assertCount( 2, dws_ic_get_internal_comments( $order->get_id() ) );
@@ -87,7 +96,7 @@ final class OrdersTest extends TestCase {
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id(), 'comment_content' => 'On the order' ), get_user_by( 'id', self::$users['administrator'] ) ?: null ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
 		wp_set_current_user( self::$users['shop_manager'] );
 
-		new MetaBox()->add_meta_box( $screen, $object );
+		new MetaBox( self::make_assets() )->add_meta_box( $screen, $object );
 		$box = $wp_meta_boxes[ $screen ]['normal']['core'][ MetaBox::ID ] ?? null;
 		self::assertIsArray( $box );
 		\ob_start();
@@ -104,7 +113,7 @@ final class OrdersTest extends TestCase {
 		$order = $this->create_order();
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
 		wp_set_current_user( self::$users['shop_manager'] );
-		$screens = new AdminScreens();
+		$screens = new AdminScreens( self::make_assets() );
 
 		self::assertArrayHasKey( AdminScreens::COLUMN, $screens->add_column( array( 'order_number' => 'Order' ), 'shop_order' ) );
 		\ob_start();
@@ -118,8 +127,12 @@ final class OrdersTest extends TestCase {
 
 	protected function post_comment( string $role, int $order_id, string $content ): int {
 		wp_set_current_user( self::$users[ $role ] );
-		$request = new \WP_REST_Request( 'POST', "/dws_ic/v1/posts/$order_id/comments" );
+		$request = new \WP_REST_Request( 'POST', "/internal-comments/v1/posts/$order_id/comments" );
 		$request->set_param( 'content', $content );
 		return rest_do_request( $request )->get_status();
+	}
+
+	protected static function make_assets(): Assets {
+		return new Assets( new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX ) );
 	}
 }

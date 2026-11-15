@@ -4,6 +4,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\MetaBox;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\LoadsAdminScreensTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
@@ -23,7 +24,7 @@ final class MetaBoxTest extends TestCase {
 	use RegistersOrderTypeTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
+	protected const array OPTIONS = array( Options::MAX_DEPTH );
 
 	#[Before]
 	protected function log_in(): void {
@@ -68,7 +69,7 @@ final class MetaBoxTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_the_box_shows_the_parent_the_children_and_the_button_to_add_a_child( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
+		update_option( Options::MAX_DEPTH, '2' );
 		$root  = $this->create_order();
 		$order = $this->create_order();
 		$child = $this->create_order();

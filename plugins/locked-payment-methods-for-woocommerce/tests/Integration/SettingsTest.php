@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Settings;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
@@ -18,9 +19,9 @@ final class SettingsTest extends TestCase {
 
 	protected const string SECTION = 'dws-locked-payment-methods';
 
-	protected const array CHECKBOXES = array( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS, DWS_LPMWC_OPTION_DELETE_DATA );
+	protected const array CHECKBOXES = array( Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_USER_PROFILES, Options::UNLOCK_VIA_ORDERS, Options::DELETE_DATA );
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, ...self::CHECKBOXES );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::FULL_ACCESS_ROLES, ...self::CHECKBOXES );
 
 	protected static \WC_Settings_Page $advanced;
 
@@ -52,6 +53,16 @@ final class SettingsTest extends TestCase {
 		self::assertSame( 'Locked Payment Methods', self::$advanced->get_sections()[ self::SECTION ] ?? null );
 	}
 
+	// WooCommerce stores each field's default whenever its own version changes, so a default other than the seeded one would win or lose by which write runs first; an integration's field lists only while its plugin is active.
+	public function test_each_field_defaults_to_the_value_the_migrations_seed(): void {
+		$fields = \array_filter( self::$advanced->get_settings_for_section( self::SECTION ), static fn ( array $field ): bool => \array_key_exists( $field['id'] ?? '', Options::DEFAULTS ) );
+
+		self::assertSame( array(), \array_diff( \array_keys( Options::DEFAULTS ), \array_column( $fields, 'id' ), array( Options::UNLOCK_VIA_GROUPS, Options::UNLOCK_VIA_WC_MEMBERSHIPS ) ) );
+		foreach ( $fields as $field ) {
+			self::assertSame( Options::DEFAULTS[ $field['id'] ], $field['default'] ?? null, "The field {$field['id']} defaults to another value than Options::DEFAULTS holds." );
+		}
+	}
+
 	public function test_the_section_shows_v1s_groups_with_their_defaults(): void {
 		foreach ( self::OPTIONS as $key ) {
 			delete_option( $key );
@@ -60,15 +71,15 @@ final class SettingsTest extends TestCase {
 		$form = $this->render();
 
 		self::assertSame( GroupsStrategy::is_available() ? array( 'General Settings', 'Integrations Settings', 'Plugin Settings' ) : array( 'General Settings', 'Plugin Settings' ), \array_map( static fn ( \Dom\Element $heading ): string => \trim( $heading->textContent ), \iterator_to_array( $form->querySelectorAll( 'h2' ) ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertSame( array(), self::selected( $form, DWS_LPMWC_OPTION_LOCKED_METHODS ) );
-		self::assertSame( array( 'administrator', 'shop_manager' ), self::selected( $form, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ) );
+		self::assertSame( array(), self::selected( $form, Options::LOCKED_METHODS ) );
+		self::assertSame( array( 'administrator', 'shop_manager' ), self::selected( $form, Options::FULL_ACCESS_ROLES ) );
 		foreach ( self::CHECKBOXES as $key ) {
 			self::assertSame( 'checkbox', $form->getElementById( $key )?->getAttribute( 'type' ), $key );
 		}
-		self::assertTrue( $form->getElementById( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES )?->hasAttribute( 'checked' ) );
-		self::assertTrue( $form->getElementById( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES )?->hasAttribute( 'checked' ) );
-		self::assertFalse( $form->getElementById( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS )?->hasAttribute( 'checked' ) );
-		self::assertFalse( $form->getElementById( DWS_LPMWC_OPTION_DELETE_DATA )?->hasAttribute( 'checked' ) );
+		self::assertTrue( $form->getElementById( Options::UNLOCK_VIA_USER_ROLES )?->hasAttribute( 'checked' ) );
+		self::assertTrue( $form->getElementById( Options::UNLOCK_VIA_USER_PROFILES )?->hasAttribute( 'checked' ) );
+		self::assertFalse( $form->getElementById( Options::UNLOCK_VIA_ORDERS )?->hasAttribute( 'checked' ) );
+		self::assertFalse( $form->getElementById( Options::DELETE_DATA )?->hasAttribute( 'checked' ) );
 	}
 
 	public function test_the_locked_list_offers_every_registered_gateway_and_marks_the_disabled_ones(): void {
@@ -78,7 +89,7 @@ final class SettingsTest extends TestCase {
 		}
 
 		$options = array();
-		foreach ( $this->render()->querySelectorAll( '[id="' . DWS_LPMWC_OPTION_LOCKED_METHODS . '"] option' ) as $option ) {
+		foreach ( $this->render()->querySelectorAll( '[id="' . Options::LOCKED_METHODS . '"] option' ) as $option ) {
 			$options[ (string) $option->getAttribute( 'value' ) ] = \trim( $option->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		}
 
@@ -89,20 +100,20 @@ final class SettingsTest extends TestCase {
 
 	public function test_a_disabled_gateway_stays_locked_through_a_save(): void {
 		$disabled = \array_key_first( \array_filter( WC()->payment_gateways()->payment_gateways(), static fn ( \WC_Payment_Gateway $gateway ): bool => 'yes' !== $gateway->enabled ) );
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( $disabled ) );
+		update_option( Options::LOCKED_METHODS, array( $disabled ) );
 
-		self::assertSame( array( $disabled ), self::selected( $this->render(), DWS_LPMWC_OPTION_LOCKED_METHODS ) );
+		self::assertSame( array( $disabled ), self::selected( $this->render(), Options::LOCKED_METHODS ) );
 
-		$this->save( array( DWS_LPMWC_OPTION_LOCKED_METHODS => array( $disabled ) ) );
+		$this->save( array( Options::LOCKED_METHODS => array( $disabled ) ) );
 
-		self::assertSame( array( $disabled ), get_option( DWS_LPMWC_OPTION_LOCKED_METHODS ) );
+		self::assertSame( array( $disabled ), get_option( Options::LOCKED_METHODS ) );
 	}
 
 	public function test_the_roles_field_offers_every_role_and_shows_while_the_role_strategy_is_off(): void {
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'no' );
+		update_option( Options::UNLOCK_VIA_USER_ROLES, 'no' );
 
 		$options = array();
-		foreach ( $this->render()->querySelectorAll( '[id="' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES . '"] option' ) as $option ) {
+		foreach ( $this->render()->querySelectorAll( '[id="' . Options::FULL_ACCESS_ROLES . '"] option' ) as $option ) {
 			$options[ (string) $option->getAttribute( 'value' ) ] = \trim( $option->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		}
 
@@ -147,7 +158,7 @@ final class SettingsTest extends TestCase {
 
 		self::assertSame( array( $v1_ids ), $seen );
 		foreach ( $v1_ids as $v1_id ) {
-			self::assertContains( DWS_LPMWC_V1_SETTINGS[ $group ][ $v1_id ], $ids );
+			self::assertContains( Options::V1_SETTINGS[ $group ][ $v1_id ], $ids );
 		}
 		self::assertContains( "dws-wc-lpm_{$group}_extra", $ids );
 		self::assertSame( array( array( $v1_hook, 'woocommerce_get_settings_advanced' ) ), $this->deprecated );

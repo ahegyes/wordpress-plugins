@@ -42,7 +42,7 @@ final class OrderDeletion implements ComponentInterface {
 	 * @return  void
 	 */
 	public function reroot_children( int $order_id ): void {
-		dws_lowc_reroot_children( $order_id );
+		Linking::reroot_children( $order_id );
 	}
 
 	/**
@@ -60,7 +60,7 @@ final class OrderDeletion implements ComponentInterface {
 	 */
 	public function reroot_post_children( int $post_id, \WP_Post $post ): void {
 		if ( \in_array( $post->post_type, dws_lowc_get_supported_order_types(), true ) ) {
-			dws_lowc_reroot_children( $post_id );
+			Linking::reroot_children( $post_id );
 		}
 	}
 

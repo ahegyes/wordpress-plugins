@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments;
 
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -24,6 +25,20 @@ final class MetaBox implements ComponentInterface {
 	 * @var     string
 	 */
 	public const string ID = 'dws-internal-comments';
+
+	// endregion
+
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Assets $assets The registrar of the plugin's built scripts and styles.
+	 */
+	public function __construct( protected Assets $assets ) {}
 
 	// endregion
 
@@ -82,10 +97,10 @@ final class MetaBox implements ComponentInterface {
 			return;
 		}
 
-		if ( dws_ic_register_script( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.js', array( 'strategy' => 'defer' ) ) ) {
+		if ( $this->assets->register_script( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.js', array( 'strategy' => 'defer' ) ) ) {
 			wp_enqueue_script( Plugin::SLUG . '-meta-box' );
 		}
-		if ( dws_ic_register_style( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.css' ) ) {
+		if ( $this->assets->register_style( Plugin::SLUG . '-meta-box', 'assets/build/meta-box.css' ) ) {
 			wp_enqueue_style( Plugin::SLUG . '-meta-box' );
 		}
 	}
@@ -104,12 +119,12 @@ final class MetaBox implements ComponentInterface {
 	 */
 	public function render_meta_box( mixed $edited ): void {
 		$object_id   = $this->get_object_id( $edited );
-		$can_post    = current_user_can( DWS_IC_CAP_INSERT );
-		$can_private = $can_post && dws_ic_are_enabled_private_comments() && current_user_can( DWS_IC_CAP_INSERT_PRIVATE );
+		$can_post    = current_user_can( Capabilities::INSERT );
+		$can_private = $can_post && dws_ic_are_enabled_private_comments() && current_user_can( Capabilities::INSERT_PRIVATE );
 		?>
 		<div class="dws-internal-comments" tabindex="-1" data-post-id="<?php echo esc_attr( (string) $object_id ); ?>">
 			<div class="dws-internal-comments__comments">
-				<?php dws_ic_print_comments_list( $object_id ); ?>
+				<?php CommentsList::render( $object_id ); ?>
 			</div>
 			<p class="dws-internal-comments__status" role="status"></p>
 			<?php if ( $can_post ) : ?>
@@ -126,7 +141,7 @@ final class MetaBox implements ComponentInterface {
 						</p>
 					<?php endif; ?>
 					<p class="dws-internal-comments-inline-action__actions">
-						<?php dws_ic_print_form_buttons( 'new' ); ?>
+						<?php CommentsList::render_form_buttons( 'new' ); ?>
 					</p>
 				</div>
 				<template id="dws-ic-reply-form">
@@ -135,7 +150,7 @@ final class MetaBox implements ComponentInterface {
 							<label><?php esc_html_e( 'Reply', 'internal-comments' ); ?> <textarea rows="3"></textarea></label>
 						</p>
 						<p class="dws-internal-comments-inline-action__actions">
-							<?php dws_ic_print_form_buttons( 'reply' ); ?>
+							<?php CommentsList::render_form_buttons( 'reply' ); ?>
 						</p>
 					</div>
 				</template>
@@ -146,7 +161,7 @@ final class MetaBox implements ComponentInterface {
 						<label><?php esc_html_e( 'Edit internal comment', 'internal-comments' ); ?> <textarea rows="4"></textarea></label>
 					</p>
 					<p class="dws-internal-comments-inline-action__actions">
-						<?php dws_ic_print_form_buttons( 'edit' ); ?>
+						<?php CommentsList::render_form_buttons( 'edit' ); ?>
 					</p>
 				</div>
 			</template>
@@ -187,7 +202,7 @@ final class MetaBox implements ComponentInterface {
 	 * @return  bool
 	 */
 	protected function is_shown_for( int $post_id ): bool {
-		return dws_ic_is_selected_post_type( $post_id ) && current_user_can( DWS_IC_CAP_SEE_METABOX ) && current_user_can( 'edit_post', $post_id );
+		return dws_ic_is_selected_post_type( $post_id ) && current_user_can( Capabilities::SEE_METABOX ) && current_user_can( 'edit_post', $post_id );
 	}
 
 	// endregion

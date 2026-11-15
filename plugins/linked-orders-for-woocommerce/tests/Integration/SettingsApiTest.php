@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -13,17 +14,17 @@ final class SettingsApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array OPTIONS = array( Options::MAX_DEPTH, Options::AUTOCOMPLETE, Options::DELETE_DATA );
 
 	public static function stored_settings(): array {
 		return array(
-			'depth'             => array( DWS_LOWC_OPTION_MAX_DEPTH, '3', 'max-depth', 'general', 3 ),
-			'depth-below-one'   => array( DWS_LOWC_OPTION_MAX_DEPTH, '0', 'max-depth', 'general', 1 ),
-			'autocomplete-on'   => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes', 'autocomplete-descendants', 'general', true ),
-			'autocomplete-off'  => array( DWS_LOWC_OPTION_AUTOCOMPLETE, 'no', 'autocomplete-descendants', 'general', false ),
-			'consent-on'        => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
-			'group-with-suffix' => array( DWS_LOWC_OPTION_DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
-			'group-in-field-id' => array( DWS_LOWC_OPTION_MAX_DEPTH, '5', 'general/max-depth', null, 5 ),
+			'depth'             => array( Options::MAX_DEPTH, '3', 'max-depth', 'general', 3 ),
+			'depth-below-one'   => array( Options::MAX_DEPTH, '0', 'max-depth', 'general', 1 ),
+			'autocomplete-on'   => array( Options::AUTOCOMPLETE, 'yes', 'autocomplete-descendants', 'general', true ),
+			'autocomplete-off'  => array( Options::AUTOCOMPLETE, 'no', 'autocomplete-descendants', 'general', false ),
+			'consent-on'        => array( Options::DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin', true ),
+			'group-with-suffix' => array( Options::DELETE_DATA, 'yes', 'remove-data-uninstall', 'plugin-settings', true ),
+			'group-in-field-id' => array( Options::MAX_DEPTH, '5', 'general/max-depth', null, 5 ),
 		);
 	}
 
@@ -100,7 +101,7 @@ final class SettingsApiTest extends TestCase {
 	// v1 fired its section filter only for a read through the section, which names the group in the field id.
 	#[DataProvider( 'paths' )]
 	public function test_a_validated_value_passes_the_v1_filters_of_its_path_then_the_v2_filter( string $field_id, ?string $group, array $expected, array $deprecated ): void {
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
+		update_option( Options::MAX_DEPTH, '2' );
 		$seen    = array();
 		$filters = array(
 			'linked_orders_for_woocommerce/general_settings/get_validated_option_value' => static function ( mixed $value, string $field_id ) use ( &$seen ): mixed {
@@ -119,7 +120,7 @@ final class SettingsApiTest extends TestCase {
 		foreach ( $filters as $hook => $filter ) {
 			add_filter( $hook, $filter, 10, 2 );
 		}
-		add_filter( 'dws_lowc/settings/validated_value', $v2, 10, 3 );
+		add_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2, 10, 3 );
 
 		try {
 			$value = dws_lowc_get_validated_setting( $field_id, $group );
@@ -127,12 +128,12 @@ final class SettingsApiTest extends TestCase {
 			foreach ( $filters as $hook => $filter ) {
 				remove_filter( $hook, $filter );
 			}
-			remove_filter( 'dws_lowc/settings/validated_value', $v2 );
+			remove_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2 );
 		}
 
 		self::assertSame( 6, $value );
 		self::assertSame( $expected, $seen );
-		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'dws_lowc/settings/validated_value' ), $deprecated ), $this->deprecated );
+		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'linked_orders_for_woocommerce/settings/validated_value' ), $deprecated ), $this->deprecated );
 	}
 
 	// v1 read every id through the section's filter, so an extension answered for an id no group maps.
@@ -152,7 +153,7 @@ final class SettingsApiTest extends TestCase {
 
 		self::assertSame( array( 'extension:extension-field', 'extension:other/field', null ), $values );
 		self::assertSame( array( array( null, 'extension-field' ), array( null, 'other/field' ) ), $seen );
-		self::assertSame( \array_fill( 0, 2, array( 'linked_orders_for_woocommerce/settings/get_validated_option_value', 'dws_lowc/settings/validated_value' ) ), $this->deprecated );
+		self::assertSame( \array_fill( 0, 2, array( 'linked_orders_for_woocommerce/settings/get_validated_option_value', 'linked_orders_for_woocommerce/settings/validated_value' ) ), $this->deprecated );
 	}
 
 	// The v1 filter's deprecation names the v2 filter, so an extension that moves its callback there still answers.
@@ -164,13 +165,13 @@ final class SettingsApiTest extends TestCase {
 			return "v2:{$field_id}";
 		};
 		add_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $v1, 10, 2 );
-		add_filter( 'dws_lowc/settings/validated_value', $v2, 10, 3 );
+		add_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2, 10, 3 );
 
 		try {
 			$values = array( dws_lowc_get_validated_setting( 'extension-field' ), dws_lowc_get_validated_setting( 'other/field' ), dws_lowc_get_validated_setting( 'other-settings/field' ), dws_lowc_get_validated_setting( 'field', 'other' ) );
 		} finally {
 			remove_filter( 'linked_orders_for_woocommerce/settings/get_validated_option_value', $v1 );
-			remove_filter( 'dws_lowc/settings/validated_value', $v2 );
+			remove_filter( 'linked_orders_for_woocommerce/settings/validated_value', $v2 );
 		}
 
 		self::assertSame( array( 'v2:extension-field', 'v2:field', 'v2:field', null ), $values );

@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -54,10 +56,10 @@ final class CommentsTest extends TestCase {
 
 		$comment = get_comment( (int) $id );
 		self::assertInstanceOf( \WP_Comment::class, $comment );
-		self::assertSame( 'dws_internal', DWS_IC_COMMENT_TYPE );
-		self::assertSame( 'dws_internal', DWS_IC_COMMENT_STATUS );
-		self::assertSame( DWS_IC_COMMENT_TYPE, $comment->comment_type );
-		self::assertSame( DWS_IC_COMMENT_STATUS, $comment->comment_approved );
+		self::assertSame( 'dws_internal', Comments::TYPE );
+		self::assertSame( 'dws_internal', Comments::STATUS );
+		self::assertSame( Comments::TYPE, $comment->comment_type );
+		self::assertSame( Comments::STATUS, $comment->comment_approved );
 		self::assertSame( 'A back\\slashed note', $comment->comment_content );
 		self::assertSame( (string) $this->admin, $comment->user_id );
 		self::assertSame( 'Comments Admin', $comment->comment_author );
@@ -76,18 +78,18 @@ final class CommentsTest extends TestCase {
 			return $data;
 		};
 		add_filter( 'internal_comments/create_comment_data', $v1 );
-		add_filter( 'dws_ic/internal_comment/creation_data', $v2 );
+		add_filter( 'internal_comments/internal_comment/creation_data', $v2 );
 
 		try {
 			$id = dws_ic_create_internal_comment( array( 'comment_post_ID' => $this->post ) );
 		} finally {
 			remove_filter( 'internal_comments/create_comment_data', $v1 );
-			remove_filter( 'dws_ic/internal_comment/creation_data', $v2 );
+			remove_filter( 'internal_comments/internal_comment/creation_data', $v2 );
 		}
 
 		self::assertSame( array( 'v1', 'v2:v1' ), $seen );
 		self::assertSame( 'v2', get_comment( (int) $id )?->comment_content );
-		self::assertSame( array( array( 'internal_comments/create_comment_data', 'dws_ic/internal_comment/creation_data' ) ), $this->deprecated );
+		self::assertSame( array( array( 'internal_comments/create_comment_data', 'internal_comments/internal_comment/creation_data' ) ), $this->deprecated );
 	}
 
 	public function test_a_comment_reads_as_internal_by_its_type(): void {
@@ -105,15 +107,15 @@ final class CommentsTest extends TestCase {
 	}
 
 	public function test_a_post_supports_internal_comments_when_its_type_is_selected(): void {
-		$stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'page' ) ) );
+		$stored = get_option( Options::POST_TYPES );
+		update_option( Options::POST_TYPES, array( 'page' ) );
 
 		try {
 			self::assertFalse( dws_ic_is_selected_post_type( $this->post ) );
-			update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+			update_option( Options::POST_TYPES, array( 'post' ) );
 			self::assertTrue( dws_ic_is_selected_post_type( $this->post ) );
 		} finally {
-			update_option( DWS_IC_OPTION_GENERAL, $stored );
+			update_option( Options::POST_TYPES, $stored );
 		}
 	}
 

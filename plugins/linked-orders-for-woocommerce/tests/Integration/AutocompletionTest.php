@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use DeepWebSolutions\LinkedOrders\Autocompletion;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\Before;
@@ -15,11 +16,11 @@ final class AutocompletionTest extends TestCase {
 	use OrderStorageTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_AUTOCOMPLETE );
+	protected const array OPTIONS = array( Options::AUTOCOMPLETE );
 
 	#[Before]
 	protected function enable_autocompletion(): void {
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'yes' );
+		update_option( Options::AUTOCOMPLETE, 'yes' );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -47,12 +48,12 @@ final class AutocompletionTest extends TestCase {
 			$seen[] = $order_id;
 			return $should;
 		};
-		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record, 10, 2 );
 
 		try {
 			$root->update_status( 'completed' );
 		} finally {
-			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $record );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record );
 		}
 
 		self::assertSame( array( $root->get_id(), $child->get_id() ), \array_slice( $seen, 0, 2 ) );
@@ -74,12 +75,12 @@ final class AutocompletionTest extends TestCase {
 
 			return $should;
 		};
-		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $record, 10, 2 );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record, 10, 2 );
 
 		try {
 			$root->update_status( 'completed' );
 		} finally {
-			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $record );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $record );
 		}
 
 		self::assertSame( array( $root->get_id(), $child->get_id(), $other->get_id(), $other_child->get_id(), $other_grandchild->get_id(), $grandchild->get_id() ), $seen );
@@ -103,7 +104,7 @@ final class AutocompletionTest extends TestCase {
 	#[DataProvider( 'storages' )]
 	public function test_nothing_is_autocompleted_while_the_setting_is_off( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
-		update_option( DWS_LOWC_OPTION_AUTOCOMPLETE, 'no' );
+		update_option( Options::AUTOCOMPLETE, 'no' );
 		list( $root, $child ) = $this->create_tree();
 
 		$root->update_status( 'completed' );
@@ -118,14 +119,14 @@ final class AutocompletionTest extends TestCase {
 
 		$skip   = static fn ( bool $should, int $descendant_id ): bool => $should && $descendant_id !== $child->get_id();
 		$status = static fn (): string => 'processing';
-		add_filter( 'dws_lowc/autocompletion/should_autocomplete', $skip, 10, 2 );
-		add_filter( 'dws_lowc/autocompletion/completed_status', $status );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $skip, 10, 2 );
+		add_filter( 'linked_orders_for_woocommerce/autocompletion/completed_status', $status );
 
 		try {
 			$root->update_status( 'completed' );
 		} finally {
-			remove_filter( 'dws_lowc/autocompletion/should_autocomplete', $skip );
-			remove_filter( 'dws_lowc/autocompletion/completed_status', $status );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/should_autocomplete', $skip );
+			remove_filter( 'linked_orders_for_woocommerce/autocompletion/completed_status', $status );
 		}
 
 		self::assertSame( 'processing', wc_get_order( $root->get_id() )->get_status() );

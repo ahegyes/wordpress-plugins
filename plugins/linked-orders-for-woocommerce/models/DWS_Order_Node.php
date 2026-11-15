@@ -1,5 +1,9 @@
 <?php declare( strict_types=1 );
 
+use DeepWebSolutions\LinkedOrders\Capabilities;
+use DeepWebSolutions\LinkedOrders\Linking;
+use DeepWebSolutions\LinkedOrders\OrderTypes;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -264,21 +268,7 @@ final class DWS_Order_Node {
 		/**
 		 * Filters the status name in an order's formatted name.
 		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/status_name.
-		 *
-		 * @param       string         $status_name The status name.
-		 * @param       WP_Post_Type   $post_type   The post type object of the order's type.
-		 * @param       WC_Order       $order       The order.
-		 * @param       DWS_Order_Node $node        The order's node.
-		 */
-		$status_name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/status_name', array( wc_get_order_status_name( $this->order->get_status() ), $this->post_type, $this->order, $this ), '2.0.0', 'dws_lowc/node/status_name' );
-
-		/**
-		 * Filters the status name in an order's formatted name.
-		 *
-		 * @since   2.0.0
+		 * @since   1.0.0
 		 * @version 2.0.0
 		 *
 		 * @param   string         $status_name The status name.
@@ -286,11 +276,11 @@ final class DWS_Order_Node {
 		 * @param   WC_Order       $order       The order.
 		 * @param   DWS_Order_Node $node        The order's node.
 		 */
-		$status_name = apply_filters( 'dws_lowc/node/status_name', $status_name, $this->post_type, $this->order, $this );
+		$status_name = apply_filters( 'linked_orders_for_woocommerce/node/status_name', wc_get_order_status_name( $this->order->get_status() ), $this->post_type, $this->order, $this );
 		$name        = sprintf(
 			/* translators: 1: The order type's singular name. 2: The order number. 3: The order status's name. */
 			__( '%1$s #%2$s - %3$s', 'linked-orders-for-woocommerce' ),
-			dws_lowc_get_singular_name( $this->post_type ),
+			OrderTypes::get_singular_name( $this->post_type ),
 			$this->order->get_order_number(),
 			$status_name
 		);
@@ -300,12 +290,12 @@ final class DWS_Order_Node {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/formatted_name.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/node/formatted_name.
 		 *
 		 * @param       string         $name The formatted name.
 		 * @param       DWS_Order_Node $node The order's node.
 		 */
-		$name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/get_formatted_name', array( $name, $this ), '2.0.0', 'dws_lowc/node/formatted_name' );
+		$name = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/get_formatted_name', array( $name, $this ), '2.0.0', 'linked_orders_for_woocommerce/node/formatted_name' );
 
 		/**
 		 * Filters an order's formatted name.
@@ -316,7 +306,7 @@ final class DWS_Order_Node {
 		 * @param   string         $name The formatted name.
 		 * @param   DWS_Order_Node $node The order's node.
 		 */
-		return apply_filters( 'dws_lowc/node/formatted_name', $name, $this );
+		return apply_filters( 'linked_orders_for_woocommerce/node/formatted_name', $name, $this );
 	}
 
 	// endregion
@@ -411,28 +401,14 @@ final class DWS_Order_Node {
 	public function can_create_child( ?int $user_id = null ): bool {
 		$user       = $user_id ?? get_current_user_id();
 		$edit       = $this->post_type->cap->edit_post;
-		$permission = user_can( $user, DWS_LOWC_CAP_CREATE_LINKED_CHILDREN, $this->order->get_id() ) && ( ( is_string( $edit ) && user_can( $user, $edit, $this->order->get_id() ) ) || user_can( $user, 'manage_woocommerce' ) );
-		$depth      = dws_lowc_get_max_depth() > $this->get_depth();
+		$permission = user_can( $user, Capabilities::CREATE_LINKED_CHILDREN, $this->order->get_id() ) && ( ( is_string( $edit ) && user_can( $user, $edit, $this->order->get_id() ) ) || user_can( $user, 'manage_woocommerce' ) );
+		$depth      = Linking::get_max_depth() > $this->get_depth();
 		$status     = $this->order->has_status( dws_lowc_get_valid_statuses_for_new_child( $this->post_type->name, $this->order ) );
 
 		/**
 		 * Filters whether a user may create a child of an order.
 		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/node/can_create_child.
-		 *
-		 * @param       bool           $can_create Whether the user may create a child.
-		 * @param       int|null       $user_id    The user's id, or null for the current user.
-		 * @param       WC_Order       $order      The order.
-		 * @param       DWS_Order_Node $node       The order's node.
-		 */
-		$can_create = apply_filters_deprecated( 'linked_orders_for_woocommerce/node/can_create_child', array( $permission && $depth && $status, $user_id, $this->order, $this ), '2.0.0', 'dws_lowc/node/can_create_child' );
-
-		/**
-		 * Filters whether a user may create a child of an order.
-		 *
-		 * @since   2.0.0
+		 * @since   1.0.0
 		 * @version 2.0.0
 		 *
 		 * @param   bool           $can_create Whether the user may create a child.
@@ -440,7 +416,7 @@ final class DWS_Order_Node {
 		 * @param   WC_Order       $order      The order.
 		 * @param   DWS_Order_Node $node       The order's node.
 		 */
-		return apply_filters( 'dws_lowc/node/can_create_child', $can_create, $user_id, $this->order, $this );
+		return apply_filters( 'linked_orders_for_woocommerce/node/can_create_child', $permission && $depth && $status, $user_id, $this->order, $this );
 	}
 
 	/**
@@ -452,9 +428,9 @@ final class DWS_Order_Node {
 	 * @return  void
 	 */
 	public function save(): void {
-		$this->order->update_meta_data( DWS_LOWC_META_DEPTH, (string) $this->get_depth() );
-		$this->order->update_meta_data( DWS_LOWC_META_PARENT, (string) $this->get_parent()?->get_order()->get_id() );
-		$this->order->update_meta_data( DWS_LOWC_META_CHILDREN, array_map( static fn ( DWS_Order_Node $child ): int => $child->get_order()->get_id(), $this->get_children() ) );
+		$this->order->update_meta_data( Linking::META_DEPTH, (string) $this->get_depth() );
+		$this->order->update_meta_data( Linking::META_PARENT, (string) $this->get_parent()?->get_order()->get_id() );
+		$this->order->update_meta_data( Linking::META_CHILDREN, array_map( static fn ( DWS_Order_Node $child ): int => $child->get_order()->get_id(), $this->get_children() ) );
 		$this->order->save();
 	}
 
@@ -476,9 +452,9 @@ final class DWS_Order_Node {
 		}
 
 		$this->is_read   = true;
-		$this->depth     = filter_var( $this->order->get_meta( DWS_LOWC_META_DEPTH ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
-		$this->parent_id = filter_var( $this->order->get_meta( DWS_LOWC_META_PARENT ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
-		$children        = $this->order->get_meta( DWS_LOWC_META_CHILDREN );
+		$this->depth     = filter_var( $this->order->get_meta( Linking::META_DEPTH ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0;
+		$this->parent_id = filter_var( $this->order->get_meta( Linking::META_PARENT ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
+		$children        = $this->order->get_meta( Linking::META_CHILDREN );
 		$this->child_ids = is_array( $children ) ? filter_var( $children, FILTER_VALIDATE_INT, FILTER_REQUIRE_ARRAY | FILTER_NULL_ON_FAILURE ) : array();
 	}
 

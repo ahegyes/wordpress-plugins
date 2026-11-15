@@ -188,7 +188,7 @@ if ( root ) {
 				newForm,
 				() =>
 					apiFetch< ListResponse >( {
-						path: `/dws_ic/v1/posts/${ postId }/comments`,
+						path: `/internal-comments/v1/posts/${ postId }/comments`,
 						method: 'POST',
 						data: { content, private: isPrivate },
 					} ),
@@ -232,7 +232,7 @@ if ( root ) {
 		}
 		const commentId = button.dataset.commentId ?? '';
 		const action = button.dataset.action ?? '';
-		const path = `/dws_ic/v1/comments/${ commentId }`;
+		const path = `/internal-comments/v1/comments/${ commentId }`;
 
 		if ( action === 'edit' ) {
 			button.disabled = true;
@@ -277,7 +277,7 @@ if ( root ) {
 						group,
 						() =>
 							apiFetch< ListResponse >( {
-								path: `/dws_ic/v1/posts/${ postId }/comments`,
+								path: `/internal-comments/v1/posts/${ postId }/comments`,
 								method: 'POST',
 								data: { content, parent: Number( commentId ) },
 							} ),

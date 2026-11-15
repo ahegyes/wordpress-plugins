@@ -154,12 +154,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wp-framework-bootstrap.git",
-                "reference": "02dc34c2641643e48cda5364008c0bd157832f1a"
+                "reference": "540d66c264eb1e2e08859a2e58bae97413d9e434"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wp-framework-bootstrap/zipball/02dc34c2641643e48cda5364008c0bd157832f1a",
-                "reference": "02dc34c2641643e48cda5364008c0bd157832f1a",
+                "url": "https://api.github.com/repos/ahegyes/wp-framework-bootstrap/zipball/540d66c264eb1e2e08859a2e58bae97413d9e434",
+                "reference": "540d66c264eb1e2e08859a2e58bae97413d9e434",
                 "shasum": ""
             },
             "require": {
@@ -181,7 +181,7 @@
             "support": {
                 "source": "https://github.com/ahegyes/wp-framework-bootstrap/tree/trunk"
             },
-            "time": "2026-11-10T11:50:48+00:00"
+            "time": "2026-11-12T18:58:26+00:00"
         },
         {
             "name": "ahegyes/wp-framework-core",
@@ -189,12 +189,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wp-framework-core.git",
-                "reference": "e002d7760e8452fe9c583571d533e97d60317e28"
+                "reference": "16a409b9f3503ac21dbd7225916d27cd4bf6cc5f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wp-framework-core/zipball/e002d7760e8452fe9c583571d533e97d60317e28",
-                "reference": "e002d7760e8452fe9c583571d533e97d60317e28",
+                "url": "https://api.github.com/repos/ahegyes/wp-framework-core/zipball/16a409b9f3503ac21dbd7225916d27cd4bf6cc5f",
+                "reference": "16a409b9f3503ac21dbd7225916d27cd4bf6cc5f",
                 "shasum": ""
             },
             "require": {
@@ -229,7 +229,7 @@
             "support": {
                 "source": "https://github.com/ahegyes/wp-framework-core/tree/trunk"
             },
-            "time": "2026-11-10T11:50:49+00:00"
+            "time": "2026-11-14T10:07:01+00:00"
         },
         {
             "name": "ahegyes/wp-framework-settings",
@@ -237,12 +237,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wp-framework-settings.git",
-                "reference": "2a5de7c03cdb62804e5d67972d0d9b9d72f79900"
+                "reference": "bcdb7184554d6c7d8a2f2a0f4a8362f5303308ab"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wp-framework-settings/zipball/2a5de7c03cdb62804e5d67972d0d9b9d72f79900",
-                "reference": "2a5de7c03cdb62804e5d67972d0d9b9d72f79900",
+                "url": "https://api.github.com/repos/ahegyes/wp-framework-settings/zipball/bcdb7184554d6c7d8a2f2a0f4a8362f5303308ab",
+                "reference": "bcdb7184554d6c7d8a2f2a0f4a8362f5303308ab",
                 "shasum": ""
             },
             "require": {
@@ -271,7 +271,7 @@
             "support": {
                 "source": "https://github.com/ahegyes/wp-framework-settings/tree/trunk"
             },
-            "time": "2026-11-10T11:50:49+00:00"
+            "time": "2026-11-14T11:10:00+00:00"
         },
         {
             "name": "ahegyes/wp-framework-shared",
@@ -2730,16 +2730,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "13.4.6",
+            "version": "13.4.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "4821376960d0e1e5a7b7b700955ebcab33ecd71b"
+                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/4821376960d0e1e5a7b7b700955ebcab33ecd71b",
-                "reference": "4821376960d0e1e5a7b7b700955ebcab33ecd71b",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
+                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
                 "shasum": ""
             },
             "require": {
@@ -2753,7 +2753,7 @@
                 "phar-io/manifest": "^2.0.4",
                 "phar-io/version": "^3.2.1",
                 "php": ">=8.4.1",
-                "phpunit/php-code-coverage": "^14.5.0",
+                "phpunit/php-code-coverage": "^14.5.2",
                 "phpunit/php-file-iterator": "^7.0.2",
                 "phpunit/php-invoker": "^7.0.0",
                 "phpunit/php-text-template": "^6.0.1",
@@ -2769,7 +2769,7 @@
                 "sebastian/object-enumerator": "^8.1.0",
                 "sebastian/recursion-context": "^8.0.1",
                 "sebastian/type": "^7.0.2",
-                "sebastian/version": "^7.0.1",
+                "sebastian/version": "^7.1.0",
                 "staabm/side-effects-detector": "^1.0.5"
             },
             "bin": [
@@ -2810,7 +2810,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.6"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.7"
             },
             "funding": [
                 {
@@ -2818,8 +2818,8 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-11-02T07:12:28+00:00",
-            "published-time": "2026-11-02T07:13:08+00:00"
+            "time": "2026-11-13T11:10:10+00:00",
+            "published-time": "2026-11-13T11:11:23+00:00"
         },
         {
             "name": "pronamic/changelog-md-to-wordpress-plugin-readme-txt",

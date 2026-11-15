@@ -29,7 +29,7 @@ trait RegistersOrderTypeTrait {
 				'class_name'      => \DWS_LOWC_Test_Order::class,
 			)
 		);
-		add_filter( 'dws_lowc/post_type/supported_order_types', array( $this, 'support_order_type' ) );
+		add_filter( 'linked_orders_for_woocommerce/post_type/supported_order_types', array( $this, 'support_order_type' ) );
 	}
 
 	public function support_order_type( array $types ): array {
@@ -47,7 +47,7 @@ trait RegistersOrderTypeTrait {
 	// The type goes after the rows' orders, which load through its class, and unregistering it drops the meta capabilities it shares with WooCommerce's orders from the one map WordPress keeps.
 	#[After( priority: -1 )]
 	protected function unregister_order_type(): void {
-		remove_filter( 'dws_lowc/post_type/supported_order_types', array( $this, 'support_order_type' ) );
+		remove_filter( 'linked_orders_for_woocommerce/post_type/supported_order_types', array( $this, 'support_order_type' ) );
 		if ( post_type_exists( self::ORDER_TYPE ) ) {
 			unregister_post_type( self::ORDER_TYPE );
 			$GLOBALS['post_type_meta_caps'] = $this->meta_caps;

@@ -2,10 +2,11 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
-use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -13,61 +14,69 @@ use PHPUnit\Framework\TestCase;
 final class PartialDeployTest extends TestCase {
 	use RunsRequestsTrait;
 
-	public function test_a_missing_built_asset_shows_the_build_notice_and_loads_nothing_built(): void {
-		$manifest = \dirname( DWS_IC_FILE ) . '/assets/build/meta-box.asset.php';
-		\rename( $manifest, "$manifest.hidden" );
+	protected const string NOTICE = 'Internal Comments is missing some of its files, so its features stay off until the plugin is reinstalled.';
+
+	// Finds the notice the entry hooks for an incomplete build, and prints whether the plugin booted and what an administrator and a visitor see of the notice.
+	protected const string PROBE = '$notice = null; foreach ( isset( $GLOBALS["wp_filter"]["all_admin_notices"] ) ? $GLOBALS["wp_filter"]["all_admin_notices"]->callbacks : array() as $callbacks ) { foreach ( $callbacks as $callback ) { if ( $callback["function"] instanceof Closure && DWS_IC_FILE === new ReflectionFunction( $callback["function"] )->getFileName() ) { $notice = $callback["function"]; } } } $seen = array(); foreach ( array( 1, 0 ) as $user ) { wp_set_current_user( $user ); ob_start(); if ( $notice instanceof Closure ) { $notice(); } $seen[] = trim( wp_strip_all_tags( (string) ob_get_clean() ) ); } echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), $seen ) );';
+
+	public static function missing_build_files(): array {
+		return array(
+			'bootstrap-package' => array( 'vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php', '' ),
+			'scripts-build'     => array( 'assets/build/meta-box.asset.php', '' ),
+			'autoloader'        => array( 'vendor/autoload.php', 'Failed to open stream' ),
+		);
+	}
+
+	public function test_a_complete_build_boots_and_shows_no_build_notice(): void {
+		$request = self::request( self::PROBE );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( wp_json_encode( array( 1, array( '', '' ) ) ), $request['last'] );
+	}
+
+	#[DataProvider( 'missing_build_files' )]
+	public function test_a_missing_build_file_shows_the_build_notice_to_plugin_managers_and_boots_nothing( string $file, string $diagnostic ): void {
+		$path = \dirname( DWS_IC_FILE ) . "/$file";
+		\rename( $path, "$path.hidden" );
 		try {
-			$request = self::request( 'echo wp_json_encode( array( function_exists( "dws_ic_boot" ), false !== has_action( "all_admin_notices", "dws_ic_render_build_notice" ) ) );' );
+			$request = self::request_provoking( $diagnostic, self::PROBE );
 		} finally {
-			\rename( "$manifest.hidden", $manifest );
+			\rename( "$path.hidden", $path );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( '[false,true]', $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, array( self::NOTICE, '' ) ) ), $request['last'] );
 	}
 
-	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing(): void {
+	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing_without_a_log_line(): void {
 		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php';
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_ic_boot" ), false !== has_action( "all_admin_notices", "dws_ic_render_build_notice" ) ) );' );
+			$request = self::request( self::PROBE );
 		} finally {
 			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( '[false,true]', $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, array( self::NOTICE, '' ) ) ), $request['last'] );
 	}
 
 	public function test_the_peer_getters_a_partial_deploy_defines_still_answer(): void {
-		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php'; // It loads after metadata.php.
+		$include = \dirname( DWS_IC_FILE ) . '/includes/metadata_zz-throws.php'; // Sorts right after metadata.php, so no later include loads.
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
 		try {
-			$request = self::request_provoking( 'did not finish loading', 'echo wp_json_encode( array( false !== has_action( "plugins_loaded", "dws_ic_boot" ), dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) );' );
+			$request = self::request( 'echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) );' );
 		} finally {
 			\unlink( $include );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( wp_json_encode( array( false, dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) ), $request['last'] );
-	}
-
-	public function test_a_deactivation_whose_composition_root_cannot_be_built_is_reported_as_a_build_error(): void {
-		$root = \dirname( DWS_IC_FILE ) . '/vendor-prefixed/ahegyes/wp-framework-core/src/PluginBoot.php'; // The composition root constructs it, and no include reads it.
-		\rename( $root, "$root.hidden" );
-		try {
-			$request = self::request_provoking( 'PluginBoot.php', 'remove_action( "all_admin_notices", "dws_ic_render_build_notice" ); do_action( "deactivate_" . plugin_basename( DWS_IC_FILE ), false ); echo false !== has_action( "all_admin_notices", "dws_ic_render_build_notice" ) ? "reported" : "silent";' );
-		} finally {
-			\rename( "$root.hidden", $root );
-		}
-
-		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( 'reported', $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) ), $request['last'] );
 	}
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
-		update_option( DWS_IC_OPTION_PLUGIN, array( DWS_IC_SETTING_DELETE_DATA => 'yes' ) );
+		update_option( Options::DELETE_DATA, 'yes' );
 		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
@@ -81,26 +90,10 @@ final class PartialDeployTest extends TestCase {
 		);
 
 		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
-		self::assertSame( array( DWS_IC_SETTING_DELETE_DATA => 'yes' ), get_option( DWS_IC_OPTION_PLUGIN ) );
+		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
 		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
 
 		\unlink( $log );
-		update_option( DWS_IC_OPTION_PLUGIN, DWS_IC_SETTING_DEFAULTS[ DWS_IC_OPTION_PLUGIN ] );
-	}
-
-	public function test_a_build_error_is_logged_with_its_location_once_an_hour(): void {
-		$message = 'A partial deploy ' . \uniqid() . '.';
-		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php';
-		\file_put_contents( $include, "<?php\nthrow new RuntimeException( '$message' );\n" );
-		try {
-			$first  = self::request_provoking( 'did not finish loading', 'echo 1;' );
-			$second = self::request_provoking( 'did not finish loading', 'echo 1;' );
-		} finally {
-			\unlink( $include );
-			delete_transient( Plugin::PREFIX . '_build_error_' . \md5( $message ) );
-		}
-
-		self::assertStringContainsString( "did not finish loading: $message in $include:2", $first['output'] );
-		self::assertStringNotContainsString( 'did not finish loading', $second['output'] );
+		update_option( Options::DELETE_DATA, Options::DEFAULTS[ Options::DELETE_DATA ] );
 	}
 }

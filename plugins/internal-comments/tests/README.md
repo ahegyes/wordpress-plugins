@@ -6,7 +6,7 @@ This document describes the plugin's three test suites, the environments they ru
 
 | Suite | Where | Runs on | Covers |
 | --- | --- | --- | --- |
-| Unit | `tests/Unit/` | PHP alone, without WordPress | the component tree, the footprint's shape and coverage of v1's data and capabilities, the readme's version and floors, the entry's `WC tested up to` against the locked WooCommerce, the entry's lack of a `Tested up to`, which the readme alone holds, and the stub in every shipped directory |
+| Unit | `tests/Unit/` | PHP alone, without WordPress | the component tree, the footprint's shape and coverage of v1's data and capabilities, the key set each seeding step stores, the `@api` tag on every global function and constant, the readme's version and floors, the entry's `WC tested up to` against the locked WooCommerce, the entry's lack of a `Tested up to`, which the readme alone holds, and the stub in every shipped directory |
 | Integration | `tests/Integration/` | the tests site, with WordPress, WooCommerce and order tables loaded, and the multisite site for its `multisite` group | the boot, every component, v1's keys, settings page and API, comment API, model class, capabilities and deprecated functions and hooks, the meta capabilities and private threads, the guards that keep internal comments under their status and the reads that leave them out without the plugin, the REST routes, the meta box, the list column, Comments screen and edit screen, orders, the migrations and the batched move of v1's comments, uninstall after v1's consent, the peer getters, and a partial deploy: a missing build file or engine, or an include that throws, and the boot and settings on a second site of a network; every row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait` |
 | End to end | `tests/EndToEnd/` | the tests site, in a browser through Playwright | posting, replying to, editing and trashing comments in the meta box, on a post and on an order, an empty comment refused, the quick view and the Comments screen's view, axe on the meta box and the quick view, and the plugin with WooCommerce deactivated |
 
@@ -58,7 +58,7 @@ composer quality-check
 - **Tests** runs Unit once, and Integration and the end-to-end suite once per WordPress branch, from the entry file's `Requires at least` up to the newest release, which WordPress's version API lists, so a new release joins without an edit.
 - **Tests (nightly)** runs Integration and the end-to-end suite on WordPress trunk every day, outside pull requests.
 - **Release** builds the zip on every pull request as a tag would, runs Plugin Check and the archive checks, then activates the zip on a site and runs the end-to-end suite against it.
-- **Quality** runs PHPCS, PHPStan, the PHP 7.4 parse of the entry file, `uninstall.php` and `includes/`, the script, style and type lints, the `block.json` schema, the readme lint and the changelog fragments.
+- **Quality** runs PHPCS, PHPStan, the PHP 7.4 parse of the entry file, `uninstall.php` and `Safeguards.php`, the script, style and type lints, the `block.json` schema, the readme lint and the changelog fragments.
 
 ## Conventions
 

@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\RestRoutes;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -19,7 +21,7 @@ final class RestRoutesTest extends TestCase {
 
 	protected int $page;
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	protected array $seen = array();
 
@@ -55,14 +57,11 @@ final class RestRoutesTest extends TestCase {
 
 	#[Before]
 	protected function create_posts(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option(
-			DWS_IC_OPTION_GENERAL,
-			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
-			)
-		);
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		foreach ( array( 'post', 'page' ) as $type ) {
 			$this->$type = (int) wp_insert_post(
 				array(
@@ -80,7 +79,9 @@ final class RestRoutesTest extends TestCase {
 	protected function delete_posts(): void {
 		wp_delete_post( $this->post, true );
 		wp_delete_post( $this->page, true );
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 	}
 
@@ -92,12 +93,12 @@ final class RestRoutesTest extends TestCase {
 		$recorder = function ( int $post_id ): void {
 			$this->seen[] = "before:$post_id";
 		};
-		add_action( 'dws_ic/internal_comment/before_insert', $recorder );
+		add_action( 'internal_comments/internal_comment/before_insert', $recorder );
 
 		try {
 			$response = $this->create( 'administrator', $this->post, array( 'content' => "<b>Bold</b> line\nnext" ) );
 		} finally {
-			remove_action( 'dws_ic/internal_comment/before_insert', $recorder );
+			remove_action( 'internal_comments/internal_comment/before_insert', $recorder );
 		}
 
 		$comments = $this->stored_comments();
@@ -122,7 +123,7 @@ final class RestRoutesTest extends TestCase {
 	// A request for a private comment the site no longer allows is refused rather than stored for every reader.
 	public function test_a_comment_is_private_only_where_the_site_allows_it(): void {
 		$allowed = $this->create( 'administrator', $this->post, array( 'content' => 'Private', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		update_option( Options::PRIVATE_COMMENTS, 'no' );
 		$refused = $this->create( 'administrator', $this->post, array( 'content' => 'Disabled', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 		$public  = $this->create( 'administrator', $this->post, array( 'content' => 'Public', 'private' => false ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
 
@@ -152,15 +153,15 @@ final class RestRoutesTest extends TestCase {
 
 	public function test_the_list_shows_the_comments_the_user_can_see(): void {
 		$open    = $this->comment( 'Open' );
-		$private = $this->comment( 'Hidden', array( DWS_IC_META_PRIVATE => 'yes' ) );
+		$private = $this->comment( 'Hidden', array( Comments::META_PRIVATE => 'yes' ) );
 
-		$response = $this->request( 'editor', 'GET', "/dws_ic/v1/posts/{$this->post}/comments" );
+		$response = $this->request( 'editor', 'GET', "/internal-comments/v1/posts/{$this->post}/comments" );
 
 		self::assertSame( 200, $response->get_status() );
 		self::assertStringContainsString( "comment-$open", $response->get_data()['html'] ?? '' );
 		self::assertStringNotContainsString( 'Hidden', $response->get_data()['html'] ?? '' );
 		self::assertStringNotContainsString( "comment-$private", $response->get_data()['html'] ?? '' );
-		self::assertSame( 403, $this->request( 'subscriber', 'GET', "/dws_ic/v1/posts/{$this->post}/comments" )->get_status() );
+		self::assertSame( 403, $this->request( 'subscriber', 'GET', "/internal-comments/v1/posts/{$this->post}/comments" )->get_status() );
 	}
 
 	public function test_editing_reads_and_replaces_the_text_of_a_comment_the_user_can_edit(): void {
@@ -172,33 +173,33 @@ final class RestRoutesTest extends TestCase {
 		$before  = function ( array $comment, array $data ): void {
 			$this->seen[] = "before:{$data['comment_content']}";
 		};
-		add_filter( 'dws_ic/internal_comment/update_data', $extra );
-		add_action( 'dws_ic/internal_comment/before_update', $before, 10, 2 );
+		add_filter( 'internal_comments/internal_comment/update_data', $extra );
+		add_action( 'internal_comments/internal_comment/before_update', $before, 10, 2 );
 
 		try {
-			$read   = $this->request( 'administrator', 'GET', "/dws_ic/v1/comments/$comment" );
-			$update = $this->request( 'administrator', 'PUT', "/dws_ic/v1/comments/$comment", array( 'content' => 'Changed' ) );
+			$read   = $this->request( 'administrator', 'GET', "/internal-comments/v1/comments/$comment" );
+			$update = $this->request( 'administrator', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => 'Changed' ) );
 		} finally {
-			remove_filter( 'dws_ic/internal_comment/update_data', $extra );
-			remove_action( 'dws_ic/internal_comment/before_update', $before );
+			remove_filter( 'internal_comments/internal_comment/update_data', $extra );
+			remove_action( 'internal_comments/internal_comment/before_update', $before );
 		}
 
 		self::assertSame( array( 'id' => $comment, 'content' => "Raw\ntext" ), $read->get_data() ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The response's two fields.
 		self::assertSame( 200, $update->get_status() );
 		self::assertSame( 'Changed', get_comment( $comment )?->comment_content );
 		self::assertSame( array( 'deprecated:internal_comments/ajax/update_internal_comment_data', 'deprecated:internal_comments/ajax/before_update_comment', 'before:Changed' ), $this->seen );
-		self::assertSame( 403, $this->request( 'editor', 'GET', "/dws_ic/v1/comments/$comment" )->get_status() );
-		self::assertSame( 403, $this->request( 'editor', 'PUT', "/dws_ic/v1/comments/$comment", array( 'content' => 'Denied' ) )->get_status() );
-		self::assertSame( 400, $this->request( 'administrator', 'PUT', "/dws_ic/v1/comments/$comment", array( 'content' => '' ) )->get_status() );
+		self::assertSame( 403, $this->request( 'editor', 'GET', "/internal-comments/v1/comments/$comment" )->get_status() );
+		self::assertSame( 403, $this->request( 'editor', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => 'Denied' ) )->get_status() );
+		self::assertSame( 400, $this->request( 'administrator', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => '' ) )->get_status() );
 	}
 
 	public function test_trashing_moves_a_comment_the_user_can_trash_to_the_trash(): void {
 		$comment = $this->comment( 'Trashed' );
 		$public  = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
 
-		self::assertSame( 403, $this->request( 'editor', 'DELETE', "/dws_ic/v1/comments/$comment" )->get_status() );
-		self::assertSame( 403, $this->request( 'administrator', 'DELETE', "/dws_ic/v1/comments/$public" )->get_status() );
-		$response = $this->request( 'administrator', 'DELETE', "/dws_ic/v1/comments/$comment" );
+		self::assertSame( 403, $this->request( 'editor', 'DELETE', "/internal-comments/v1/comments/$comment" )->get_status() );
+		self::assertSame( 403, $this->request( 'administrator', 'DELETE', "/internal-comments/v1/comments/$public" )->get_status() );
+		$response = $this->request( 'administrator', 'DELETE', "/internal-comments/v1/comments/$comment" );
 
 		self::assertSame( 200, $response->get_status() );
 		self::assertSame( 'trash', get_comment( $comment )?->comment_approved );
@@ -218,7 +219,7 @@ final class RestRoutesTest extends TestCase {
 	}
 
 	protected function create( string $role, int $post, array $params ): \WP_REST_Response {
-		return $this->request( $role, 'POST', "/dws_ic/v1/posts/$post/comments", $params );
+		return $this->request( $role, 'POST', "/internal-comments/v1/posts/$post/comments", $params );
 	}
 
 	protected function reply( int $parent_id ): int {
@@ -236,8 +237,8 @@ final class RestRoutesTest extends TestCase {
 		return get_comments(
 			array(
 				'post_id' => $this->post,
-				'type'    => DWS_IC_COMMENT_TYPE,
-				'status'  => DWS_IC_COMMENT_STATUS,
+				'type'    => Comments::TYPE,
+				'status'  => Comments::STATUS,
 				'orderby' => 'comment_ID',
 				'order'   => 'ASC',
 			)

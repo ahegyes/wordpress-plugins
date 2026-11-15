@@ -2,8 +2,10 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -14,7 +16,7 @@ final class DeprecatedApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::FULL_ACCESS_ROLES, Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_ORDERS );
 
 	protected static array $users = array();
 
@@ -55,8 +57,8 @@ final class DeprecatedApiTest extends TestCase {
 
 	#[Before]
 	protected function store_the_settings(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
-		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod' ) );
+		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
@@ -117,38 +119,40 @@ final class DeprecatedApiTest extends TestCase {
 		};
 		add_action( 'dws_lpmwc_initialized', $spy );
 		add_action( 'dws_lpmwc_initialization_failure', $spy );
-		add_action( 'dws_lpmwc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-		add_action( 'dws_lpmwc/boot/failed', $spy, PHP_INT_MIN + 1 );
+		add_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+		add_action( 'locked_payment_methods_for_woocommerce/boot/failed', $spy, PHP_INT_MIN + 1 );
 		$error = new \RuntimeException( 'Failed.' );
 
 		try {
-			do_action( 'dws_lpmwc/boot/succeeded' );
-			do_action( 'dws_lpmwc/boot/failed', $error );
+			do_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' );
+			do_action( 'locked_payment_methods_for_woocommerce/boot/failed', $error );
 		} finally {
 			remove_action( 'dws_lpmwc_initialized', $spy );
 			remove_action( 'dws_lpmwc_initialization_failure', $spy );
-			remove_action( 'dws_lpmwc/boot/succeeded', $spy, PHP_INT_MIN + 1 );
-			remove_action( 'dws_lpmwc/boot/failed', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', $spy, PHP_INT_MIN + 1 );
+			remove_action( 'locked_payment_methods_for_woocommerce/boot/failed', $spy, PHP_INT_MIN + 1 );
 		}
 
 		self::assertSame(
 			array(
 				array( 'dws_lpmwc_initialized', null ),
-				array( 'dws_lpmwc/boot/succeeded', '' ),
+				array( 'locked_payment_methods_for_woocommerce/boot/succeeded', '' ),
 				array( 'dws_lpmwc_initialization_failure', $error ),
-				array( 'dws_lpmwc/boot/failed', $error ),
+				array( 'locked_payment_methods_for_woocommerce/boot/failed', $error ),
 			),
 			$fired
 		);
 		self::assertSame(
 			array(
-				array( 'dws_lpmwc_initialized', 'dws_lpmwc/boot/succeeded' ),
-				array( 'dws_lpmwc_initialization_failure', 'dws_lpmwc/boot/failed' ),
+				array( 'dws_lpmwc_initialized', 'locked_payment_methods_for_woocommerce/boot/succeeded' ),
+				array( 'dws_lpmwc_initialization_failure', 'locked_payment_methods_for_woocommerce/boot/failed' ),
 			),
 			$this->deprecated
 		);
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_lpmwc/boot/succeeded', 'dws_lpmwc_fire_v1_initialized' ) );
-		self::assertSame( PHP_INT_MIN, has_action( 'dws_lpmwc/boot/failed', 'dws_lpmwc_fire_v1_initialization_failure' ) );
+		foreach ( array( 'locked_payment_methods_for_woocommerce/boot/succeeded', 'locked_payment_methods_for_woocommerce/boot/failed' ) as $hook ) {
+			$relays = \array_filter( $GLOBALS['wp_filter'][ $hook ]->callbacks[ PHP_INT_MIN ] ?? array(), static fn ( array $callback ): bool => $callback['function'] instanceof \Closure && \dirname( DWS_LPMWC_FILE ) . '/functions.php' === new \ReflectionFunction( $callback['function'] )->getFileName() );
+			self::assertCount( 1, $relays, $hook );
+		}
 	}
 
 	public function test_a_payment_method_is_locked_for_a_user_when_it_is_listed_and_no_strategy_unlocks_it(): void {
@@ -176,7 +180,7 @@ final class DeprecatedApiTest extends TestCase {
 
 		self::assertSame( array( array( true, 'bacs', self::$users['customer'] ), array( true, 'bacs', self::$users['shop_manager'] ) ), $seen );
 		self::assertContains( array( 'dws_lpmwc_check_payment_method_access_for_user', 'dws_lpmwc_is_payment_method_locked()' ), $this->deprecated );
-		self::assertContains( array( $v1, 'dws_lpmwc/payment_method/should_lock' ), $this->deprecated );
+		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
 	}
 
 	public function test_v1s_order_access_check_judges_the_order_and_its_customer_after_v1s_filter(): void {
@@ -198,12 +202,12 @@ final class DeprecatedApiTest extends TestCase {
 		}
 
 		self::assertSame( array( array( true, 'cod', $order_id ) ), $seen );
-		self::assertContains( array( $v1, 'dws_lpmwc/payment_method/should_lock' ), $this->deprecated );
+		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
 	}
 
 	public function test_v1s_per_strategy_checks_answer_from_their_strategy_alone_and_true_while_it_is_off(): void {
 		$order = wc_create_order();
-		$order->update_meta_data( DWS_LPMWC_META_UNLOCKED_METHODS, array( 'cod' ) );
+		$order->update_meta_data( OrderStrategy::META_KEY, array( 'cod' ) );
 		$order->save();
 
 		try {
@@ -212,10 +216,10 @@ final class DeprecatedApiTest extends TestCase {
 			self::assertTrue( dws_lpmwc_check_payment_method_access_via_user_meta( 'cod', self::$users['shop_manager'] ) );
 			self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
 
-			update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_ORDERS, 'yes' );
+			update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
 			self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
 
-			update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'no' );
+			update_option( Options::UNLOCK_VIA_USER_ROLES, 'no' );
 			self::assertTrue( dws_lpmwc_check_payment_method_access_via_user_roles( 'cod', self::$users['shop_manager'] ) );
 		} finally {
 			$order->delete( true );
@@ -225,7 +229,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_v1s_setting_readers_map_v1s_ids_to_the_plugins_options_through_v1s_filters(): void {
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_ROLES, 'yes' );
+		update_option( Options::UNLOCK_VIA_USER_ROLES, 'yes' );
 		$page    = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
 		$group   = 'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value';
 		$through = static fn ( mixed $value ): mixed => $value;
@@ -243,8 +247,8 @@ final class DeprecatedApiTest extends TestCase {
 			remove_filter( $group, $through );
 		}
 
-		self::assertContains( array( $group, 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), $this->deprecated );
-		self::assertNotContains( array( $page, 'option_' . DWS_LPMWC_OPTION_FULL_ACCESS_ROLES ), $this->deprecated ); // No callback hooks the page's filter, so it reports no deprecation.
+		self::assertContains( array( $group, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
+		self::assertNotContains( array( $page, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated ); // No callback hooks the page's filter, so it reports no deprecation.
 		self::assertContains( array( 'dws_lpmwc_get_validated_general_setting', 'get_option()' ), $this->deprecated );
 	}
 }

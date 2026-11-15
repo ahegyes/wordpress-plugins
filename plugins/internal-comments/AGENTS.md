@@ -2,34 +2,34 @@
 
 Internal Comments, the v2 port of the wordpress.org plugin of that name, built on four wp-framework packages (`ahegyes/wp-framework-{bootstrap,shared,core,settings}`) from the plugin template, with WooCommerce as an optional host for orders. It ships its own copy of the framework, PHP-DI and their dependencies, prefixed under `DeepWebSolutions\InternalComments\Scoped` by php-scoper through wordpress-configs into `vendor-prefixed/` on every development install. Its architecture follows the framework's conventions 1–10 in [wordpress-framework's AGENTS.md](https://github.com/ahegyes/wordpress-framework/blob/trunk/AGENTS.md); this file covers what is particular to the plugin. `docs/ARCHITECTURE.md` describes the boot and the data, `tests/README.md` the suites, and the template's [recipes](https://github.com/ahegyes/wordpress-plugin-template/blob/trunk/docs/recipes.md) the common changes, under the template's `dws_tpl` prefix.
 
-v1 sites upgrade in place, so the port keeps v1's comment type, settings rows, capabilities, comment meta, settings page and helper API, and fires each v1 hook, deprecated, before its v2 name.
+v1 sites upgrade in place, so the port keeps v1's comment type, capabilities, comment meta, settings page and helper API, copies each setting from v1's rows to a row of its own, and fires each v1 hook, deprecated, before its v2 name.
 
 ## Layout
 
 ```
-internal-comments.php        the entry: safeguards, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader
-functions.php                dws_ic_plugin(), the boot on plugins_loaded 15, deactivation, the order-tables declaration, v1's boot hooks, the includes/ loader
-uninstall.php                the framework's uninstall engine over the footprint, with v1's remove-data-uninstall consent
-src/                         the composition root and its components only
-├── Plugin.php               SLUG, PREFIX (dws_ic), COMPONENTS, the logger, the scheduler, the migration runner and the kernel
-├── Settings.php             v1's settings page under Settings, its General and Plugin tabs, and the plugin row's links
+internal-comments.php        the entry: the safeguards, then, in one try, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader and functions.php, whose catch shows the build notice
+Safeguards.php               an empty slot for restrictions that hold whenever the plugin cannot boot, which the entry requires before the floor check
+functions.php                the @api dws_ic_plugin(), the includes/ loader, then the boot on plugins_loaded 15, the order-tables declaration, v1's boot hooks and deactivation, as static closures
+uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with Options::DELETE_DATA's consent
+src/                         the plugin's classes, each named for its concept
+├── Plugin.php               SLUG, PREFIX (dws_ic), COMPONENTS, FOOTPRINT, the identity, the logger, the scheduler, the migration runner and the kernel
+├── Options.php              each setting's row, its default in stored form, v1's settings map and its lookup
+├── Capabilities.php         v1's twelve capabilities and the roles CapabilityGrants gives them
+├── Migrations.php           get_steps() over the protected steps, append-only: v1's settings rows, then the defaults
+├── CommentStatusMove.php    the batched step that moves v1's comments to the status, and whether it is pending
+├── Settings.php             v1's settings page under Settings, its General and Plugin tabs from Options' map, and the plugin row's links
 ├── Permissions.php          v1's three meta capabilities, and core's edit_comment on an internal comment
-├── Comments.php             the guards that keep internal comments under their status, and the revision record
+├── Comments.php             the comment type, status and private meta, their query helpers, the guards that keep internal comments under their status, and the revision record
+├── CommentsList.php         the comment list, comment and form markup the meta box prints and the REST routes answer with
 ├── MetaBox.php              the meta box on the edit screens of posts and orders of the selected types
-├── RestRoutes.php           the dws_ic/v1 routes the meta box and the quick view use
-└── AdminScreens.php         the posts and orders list column with its quick view, the Comments screen view, the comment edit screen
+├── RestRoutes.php           the internal-comments/v1 routes the meta box and the quick view use
+├── AdminScreens.php         the posts and orders list column with its quick view, the Comments screen view, the comment edit screen
+└── Deprecated.php           v1's hook-tag roots and joiner, which only v1's deprecated API calls
 models/DWS_Internal_Comment.php  v1's global model class on the classmap, wrapping an internal comment with the user's permissions on it
-includes/                    hook-free code as dws_ic_ functions and DWS_IC_ constants, loaded in name order, _-prefixed files skipped
-├── safeguards.php           restrictions that hold whenever the plugin cannot boot; loaded by the entry before the floor check
-├── capabilities.php         v1's twelve capabilities and the roles CapabilityGrants gives them
-├── options.php              v1's two settings rows, their fields and their defaults
+includes/                    v1's @api functions and constants, grouped by topic, loaded in name order, _-prefixed files skipped
 ├── settings.php             v1's settings API: the raw and validated reads, by v1 field id and group
-├── comments.php             the comment type and status, and v1's comment API: create, read, thread, trash meta, privacy
-├── markup.php               the comment list, comment and form markup the meta box prints and the REST routes answer with
-├── deprecated.php           v1's root getters, hook-tag builders, constants and boot-hook relays, deprecated
-├── footprint.php            dws_ic_get_footprint(), including what v1 stored under its own names
-├── migrations.php           dws_ic_get_migration_steps(): v1's default rows, then the batched move of v1's comments to the status
-├── assets.php               the *.asset.php reader and the script and style registrars
+├── comments.php             v1's comment API: create, read, thread, trash meta, privacy
+├── deprecated.php           v1's root getters, hook-tag builders and constants, deprecated
 └── metadata.php             the slug, name and version getters, the plugin's surface for a peer plugin
 assets/src/                  the meta box's and quick view's TypeScript and SCSS, built into assets/build/ (untracked)
 changelog/                   the pending entries changelog:write turns into CHANGELOG.md and readme.txt's changelog
@@ -62,17 +62,17 @@ Each runs PHP 8.5 with WooCommerce from `vendor/` and its order tables on; CI ru
 
 ## Conventions
 
-1. **Placement.** `src/` holds only the composition root and its components. Code that registers no hooks, such as keys, readers, v1's helper API, markup, the footprint, migration steps and asset registrars, is `dws_ic_` functions and `DWS_IC_` constants in `includes/`, which parses on PHP 7.4: no `mixed` or union types, typed constants, `match`, nullsafe calls or first-class callables there. `DWS_Internal_Comment` keeps v1's global name in `models/`, outside that limit. Container definitions are composition and stay in `Plugin::get_definitions()`.
+1. **Placement.** The global namespace holds only the plugin's contract: `functions.php` and `includes/` declare its `@api` functions and constants, v1's helper API among them, and `functions.php` registers its hooks as static closures. Every other symbol is a member of a final class in `src/` named for its concept, `protected` wherever only its class uses it: the composition root, which holds the footprint, a component, `Options`, `Migrations` or another class that registers no hooks, such as `CommentsList`. `DWS_Internal_Comment` keeps v1's global name in `models/`. No namespace or folder is named "Internal". Container definitions are composition and stay in `Plugin::get_definitions()`; a component takes a service such as `Assets` by constructor.
 2. **Variants.** A component that exists only in one build variant is a child in a branch of its parent's `get_child_component_classes()`, never a second entry in `COMPONENTS`.
 3. **Request context.** `is_admin()` is false on REST requests and true in admin-ajax ones, so an admin-only feature decides the request context in its callbacks, never in `should_load()`.
 4. **Add-ons.** An add-on extends a base plugin only through the base plugin's documented hooks. It reads a template-built base plugin's slug, name and version only through that plugin's `{prefix}_get_plugin_*()` getters, from `plugins_loaded` on, since the add-on may load first, and behind `function_exists()`, since a base plugin below its floors or with a partial build may stay active without defining them.
 5. **Request reads.** An integer or boolean is read as `filter_var( wp_unslash( $_POST['key'] ?? '' ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? $default` (`FILTER_VALIDATE_BOOL` for a boolean, where an absent key reads false, as an unchecked checkbox posts nothing), and a string through an `is_string()` guard and the field's sanitizer; never `filter_input()`, the `default` filter option or a cast on request input. A REST route declares each parameter's type and sanitizer in its `args`.
-6. **Options and data.** A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. v1's settings keep their `dws-internal-comments_` rows and its comments their `dws_internal` type and `dws_ic_is_private` and `_dws_ic_` meta; anything new lives under `dws_ic_`, or `_dws_ic_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
+6. **Options and data.** Each setting is one autoloaded option, its key on `Options` and its default in stored form in `DEFAULTS`, which the seeding step stores after the copy of v1's settings, a release that adds settings seeds again, and its field reads. A setting is read through v1's API in `includes/settings.php`, whose validation is each setting's one typed read and whose reads apply v1's filters, safeguards excepted. Each setting has a row of its own under `dws_ic_`, while v1's `dws-internal-comments_` rows stay as they were for one major; v1's comments keep their `dws_internal` type and `dws_ic_is_private` and `_dws_ic_` meta; anything new lives under `dws_ic_`, or `_dws_ic_` for hidden meta. The footprint covers those prefixes and v1's other rows by name.
 7. **Internal status.** An internal comment is stored under the `dws_internal` status, which keeps it out of WordPress's queries, counts, feeds and REST API without the plugin's help, so no code stores one under another status, and a query that lists them names the status. `Comments` puts back any that WordPress or another plugin moves, announcing the move as a status change after WordPress announces its own, so caches that follow status changes, such as WooCommerce's comment counts, end where the comment is; the migration's bulk move resets WooCommerce's counts instead. Until the migration has moved the comments v1 stored approved, it leaves the type out of every comment query and feed that names neither it nor the status. Every check of what a user may do with one goes through the `see_`, `edit_` and `trash_dws_internal_comment` meta capabilities.
-8. **Order storage.** Order code takes ids WooCommerce resolves in either storage, through `dws_ic_get_post_type()` and `edit_post`, which WooCommerce maps for orders, and WooCommerce's screen ids and list hooks, never the posts table; every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait`.
+8. **Order storage.** Order code takes ids WooCommerce resolves in either storage, through `Comments::get_post_type()` and `edit_post`, which WooCommerce maps for orders, and WooCommerce's screen ids and list hooks, never the posts table; every Integration row whose outcome the order storage can change runs on all four storages through `OrderStorageTrait`.
 9. **v1 hooks.** A hook v1 fired keeps its v1 literal, fired first through `apply_filters_deprecated()` or `do_action_deprecated()` with `'2.0.0'` and the v2 name, then the v2 name.
-10. **Safeguards** live in `includes/safeguards.php`, call only WordPress and that file, and relax only through their own filter, through `dws_ic_is_relaxed()` (the template's recipes). The entry loads them before the floor check, so they parse on PHP 7.4 and call only WordPress APIs present at the oldest WordPress the bootstrap package runs on, or guard them, which `phpstan.safeguards.neon` checks.
-11. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails; bulk work is a batched step, which runs only from the runner's scheduled hook.
+10. **Safeguards.** `Safeguards.php` holds none yet. A safeguard added there follows the template's safeguard recipe: `register()` hooks it as a static closure, which no code can remove by name, and it relaxes only through its own filter, through the protected `is_relaxed()`. The entry requires the class before the floor check, so it parses on PHP 7.4 and calls only WordPress APIs present at the oldest WordPress the bootstrap package runs on, or guards them, which `phpstan.safeguards.neon` checks.
+11. **Migrations** are append-only: a step converges from any partial state, verifies its writes and throws when one fails; bulk work is a batched step, a final class of its own that runs only from the runner's scheduled hook. A step names each stored name it touches, such as an option or meta key or the comment type, and each default as a literal and reads stored rows directly, never through `Options`, a reader or a constant another class declares, so a later rename leaves what it does as it shipped; the seeding step alone reads `Options::DEFAULTS`.
 
 ## Contract
 
@@ -82,7 +82,7 @@ The plugin's contract is the elements tagged `@api`, the hooks it fires, and its
 
 - Every PHP file opens with `<?php declare( strict_types=1 );`, uses `array()`, `final` classes, `protected` over `private` and `#[\Override]` on overrides, and groups class members in `// region NAME` blocks outside `tests/`.
 - Docblocks open with one third-person sentence naming the role, such as "Returns …", plus a second paragraph only for a non-obvious why; property and constant docblocks open with "The …", constructors read "Constructor.", overrides read `{@inheritDoc}`. Every other function docblock ends with `@return`, `@return  void` included; tag values align at column 10, each `@param` stays on one line, and `@throws` reads "Thrown when …". Every public `do_action()` and `apply_filters()` carries a hook docblock.
-- A hook the plugin fires is named `dws_ic/area/name`, with `/` between levels and `_` between words, as the framework names its own, and its last level says what kind of hook it is: a past participle for an event (`dws_ic/boot/succeeded`), `before_` or `after_` for a position (`dws_ic/internal_comment/before_insert`), an imperative for a scheduled hook, a predicate (`is_`, `has_`, `can_`, `should_`) for a boolean filter, and the noun of the value for any other filter, plural for a list (`dws_ic/meta_box/comment_classes`).
+- A hook the plugin fires is named `internal_comments/area/name`, with `/` between levels and `_` between words, as the framework names its own, and its last level says what kind of hook it is: a past participle for an event (`internal_comments/boot/succeeded`), `before_` or `after_` for a position (`internal_comments/internal_comment/before_insert`), an imperative for a scheduled hook, a predicate (`is_`, `has_`, `can_`, `should_`) for a boolean filter, and the noun of the value for any other filter, plural for a list (`internal_comments/meta_box/comment_classes`).
 - An element v1 had keeps v1's `@since`, and its `@version` names the release that last changed it.
 - Inline comments state a non-obvious why in one capitalized sentence, and every file describes the present, never the change; a `phpcs:ignore` names its sniff and gives a reason.
 - Markdown keeps one line per paragraph, sentence-case headings and an impersonal, present-tense voice.

@@ -58,7 +58,7 @@ test.describe( 'Checkout', () => {
 		);
 		cli(
 			'eval',
-			`update_user_option( ${ customer }, DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, array( 'cod' ) );`
+			`update_user_option( ${ customer }, 'dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );`
 		);
 	} );
 

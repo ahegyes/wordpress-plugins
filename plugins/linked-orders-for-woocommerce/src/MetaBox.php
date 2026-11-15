@@ -42,7 +42,7 @@ final class MetaBox implements ComponentInterface {
 	 * @return  void
 	 */
 	public function add_meta_box( string $screen_id, mixed $post_or_order ): void {
-		if ( ! current_user_can( DWS_LOWC_CAP_SEE_ORDER_LINKS ) || ! current_user_can( DWS_LOWC_CAP_SEE_METABOX ) ) {
+		if ( ! current_user_can( Capabilities::SEE_ORDER_LINKS ) || ! current_user_can( Capabilities::SEE_METABOX ) ) {
 			return;
 		}
 
@@ -97,7 +97,7 @@ final class MetaBox implements ComponentInterface {
 			<div class="dws-linked-orders__no-children">
 				<?php esc_html_e( 'There are no attached children.', 'linked-orders-for-woocommerce' ); ?>
 				<?php if ( ! $can_create ) : ?>
-					<?php echo esc_html( dws_lowc_get_child_refusal( $node ) ); ?>
+					<?php echo esc_html( ChildCreation::get_refusal( $node ) ); ?>
 				<?php endif; ?>
 			</div>
 			<?php
@@ -122,7 +122,7 @@ final class MetaBox implements ComponentInterface {
 		if ( ! \is_null( $parent ) || $node->has_children() ) {
 			?>
 			<p>
-				<a class="dws-linked-orders__tree" href="<?php echo esc_url( add_query_arg( '_dws_linked_order_id', $node->get_order()->get_id(), dws_lowc_get_list_url( $node->get_post_type() ) ) ); ?>" target="_blank">
+				<a class="dws-linked-orders__tree" href="<?php echo esc_url( add_query_arg( '_dws_linked_order_id', $node->get_order()->get_id(), OrderTypes::get_list_url( $node->get_post_type() ) ) ); ?>" target="_blank">
 					<?php esc_html_e( 'View all linked', 'linked-orders-for-woocommerce' ); ?>
 					<span class="screen-reader-text"><?php echo esc_html( $new_tab ); ?></span>
 				</a>
@@ -135,8 +135,8 @@ final class MetaBox implements ComponentInterface {
 		}
 
 		?>
-		<a class="button button-alt" href="<?php echo esc_url( dws_lowc_get_create_child_url( $node->get_order()->get_id() ) ); ?>">
-			<?php echo esc_html( dws_lowc_get_add_child_phrase( $node->get_post_type() ) ); ?>
+		<a class="button button-alt" href="<?php echo esc_url( ChildCreation::get_url( $node->get_order()->get_id() ) ); ?>">
+			<?php echo esc_html( OrderTypes::get_add_child_phrase( $node->get_post_type() ) ); ?>
 		</a>
 		<?php
 
@@ -145,11 +145,11 @@ final class MetaBox implements ComponentInterface {
 		 *
 		 * @since       1.0.0
 		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use dws_lowc/meta_box/after_add_new_child_button.
+		 * @deprecated  2.0.0 Use linked_orders_for_woocommerce/meta_box/after_add_new_child_button.
 		 *
 		 * @param       \DWS_Order_Node $node The edited order's node.
 		 */
-		do_action_deprecated( 'linked_orders_for_woocommerce/metabox_output/after_add_new_child_button', array( $node ), '2.0.0', 'dws_lowc/meta_box/after_add_new_child_button' );
+		do_action_deprecated( 'linked_orders_for_woocommerce/metabox_output/after_add_new_child_button', array( $node ), '2.0.0', 'linked_orders_for_woocommerce/meta_box/after_add_new_child_button' );
 
 		/**
 		 * Fires after the meta box's button that creates a child.
@@ -159,7 +159,7 @@ final class MetaBox implements ComponentInterface {
 		 *
 		 * @param   \DWS_Order_Node $node The edited order's node.
 		 */
-		do_action( 'dws_lowc/meta_box/after_add_new_child_button', $node );
+		do_action( 'linked_orders_for_woocommerce/meta_box/after_add_new_child_button', $node );
 	}
 
 	// endregion

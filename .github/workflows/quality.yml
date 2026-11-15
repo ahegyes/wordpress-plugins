@@ -65,7 +65,7 @@ jobs:
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-versions: '["7.4"]'
-      paths: ${{ format('["{0}.php", "uninstall.php", "includes"]', matrix.plugin) }}
+      paths: ${{ format('["{0}.php", "uninstall.php", "Safeguards.php"]', matrix.plugin) }}
 
   readme-lint:
     name: readme.txt lint (${{ matrix.plugin }})

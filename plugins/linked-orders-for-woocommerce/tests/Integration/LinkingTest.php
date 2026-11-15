@@ -3,6 +3,10 @@
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
 use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore;
+use DeepWebSolutions\LinkedOrders\Capabilities;
+use DeepWebSolutions\LinkedOrders\Options;
+use DeepWebSolutions\LinkedOrders\Plugin;
+use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Storage\LockClaim;
 use DeepWebSolutions\LinkedOrders\Tests\Support\CreatesUsersTrait;
@@ -24,7 +28,7 @@ final class LinkingTest extends TestCase {
 	use RunsRequestsTrait;
 	use StoresLinksTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH );
+	protected const array OPTIONS = array( Options::MAX_DEPTH );
 
 	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
 	public static function storages_and_data_caching(): array {
@@ -102,7 +106,7 @@ final class LinkingTest extends TestCase {
 		global $wpdb;
 		$parent = $this->create_order();
 		$child  = $this->create_order();
-		$php    = '$lock = new ' . Lock::class . '( "dws_lowc_linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
+		$php    = '$lock = new ' . Lock::class . '( new ' . PluginIdentity::class . '( DWS_LOWC_FILE, "' . Plugin::SLUG . '", "' . Plugin::PREFIX . '" ), "linking", 30 ); $lock->acquire( "another-request" ); sleep( 1 ); $lock->release( "another-request" );';
 		\exec( self::command( $php ) . ' > /dev/null 2>&1 &' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- The other request must hold the lock while this one links.
 
 		$held  = static fn (): bool => ! \is_null( $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'dws_lowc_linking'" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Watches the other request's lock row past the options cache.
@@ -127,7 +131,7 @@ final class LinkingTest extends TestCase {
 	public function test_a_link_is_refused_once_another_request_has_held_the_lock_for_five_seconds(): void {
 		$parent = $this->create_order();
 		$child  = $this->create_order();
-		$lock   = new Lock( 'dws_lowc_linking', 30 );
+		$lock   = new Lock( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), 'linking', 30 );
 		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
 
 		$started = \microtime( true );
@@ -193,13 +197,13 @@ final class LinkingTest extends TestCase {
 
 			return $types;
 		};
-		add_filter( 'dws_lowc/post_type/supported_order_types', $bound );
+		add_filter( 'linked_orders_for_woocommerce/post_type/supported_order_types', $bound );
 
 		try {
 			self::assertSame( array( $first->get_id(), $second->get_id() ), dws_lowc_get_orders_tree( $first->get_id() ) );
 			self::assertSame( $second->get_id(), dws_lowc_get_root_order( $first->get_id() )?->get_id() );
 		} finally {
-			remove_filter( 'dws_lowc/post_type/supported_order_types', $bound );
+			remove_filter( 'linked_orders_for_woocommerce/post_type/supported_order_types', $bound );
 		}
 	}
 
@@ -306,7 +310,7 @@ final class LinkingTest extends TestCase {
 		$user   = $this->create_user( 'dws-lowc-linking-editor', 'subscriber' );
 		$editor = new \WP_User( $user );
 		$editor->add_cap( 'edit_shop_orders' );
-		$editor->add_cap( DWS_LOWC_CAP_CREATE_LINKED_CHILDREN );
+		$editor->add_cap( Capabilities::CREATE_LINKED_CHILDREN );
 
 		self::assertFalse( dws_lowc_get_order_node( $order->get_id() )?->can_create_child( $user ) );
 
@@ -321,11 +325,11 @@ final class LinkingTest extends TestCase {
 		$child = $this->create_order();
 		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
 
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '1' );
+		update_option( Options::MAX_DEPTH, '1' );
 		self::assertTrue( dws_lowc_get_order_node( $root->get_id() )?->can_create_child() );
 		self::assertFalse( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, '2' );
+		update_option( Options::MAX_DEPTH, '2' );
 		self::assertTrue( dws_lowc_get_order_node( $child->get_id() )?->can_create_child() );
 
 		self::assertFalse( dws_lowc_get_order_node( $root->get_id() )?->can_create_child( $this->create_user( 'dws-lowc-linking-customer', 'customer' ) ) );
@@ -336,12 +340,12 @@ final class LinkingTest extends TestCase {
 		$this->use_storage( $hpos, $sync );
 		$order    = $this->create_order();
 		$statuses = static fn ( array $statuses ): array => \array_values( \array_diff( $statuses, array( 'pending' ) ) );
-		add_filter( 'dws_lowc/post_type/valid_statuses_for_new_child', $statuses );
+		add_filter( 'linked_orders_for_woocommerce/post_type/valid_statuses_for_new_child', $statuses );
 
 		try {
 			self::assertFalse( dws_lowc_get_order_node( $order->get_id() )?->can_create_child() );
 		} finally {
-			remove_filter( 'dws_lowc/post_type/valid_statuses_for_new_child', $statuses );
+			remove_filter( 'linked_orders_for_woocommerce/post_type/valid_statuses_for_new_child', $statuses );
 		}
 	}
 
@@ -415,15 +419,15 @@ final class LinkingTest extends TestCase {
 		$record  = static function ( \WC_Order $child ) use ( &$created ): void {
 			$created = $child->get_id();
 		};
-		add_action( 'dws_lowc/linked_order/created', $record );
-		$lock = new Lock( 'dws_lowc_linking', 30 );
+		add_action( 'linked_orders_for_woocommerce/linked_order/created', $record );
+		$lock = new Lock( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), 'linking', 30 );
 		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
 
 		try {
 			$result = dws_lowc_create_linked_child( $parent->get_id() );
 		} finally {
 			$lock->release( 'another-request' );
-			remove_action( 'dws_lowc/linked_order/created', $record );
+			remove_action( 'linked_orders_for_woocommerce/linked_order/created', $record );
 		}
 
 		$this->orders[] = \is_int( $result ) ? $result : $created;
@@ -501,12 +505,12 @@ final class LinkingTest extends TestCase {
 			$created = $child->get_id();
 			$fail    = self::fail_saving( $created );
 		};
-		add_action( 'dws_lowc/linked_order/created', $record );
+		add_action( 'linked_orders_for_woocommerce/linked_order/created', $record );
 
 		try {
 			$result = dws_lowc_create_linked_child( $parent->get_id() );
 		} finally {
-			remove_action( 'dws_lowc/linked_order/created', $record );
+			remove_action( 'linked_orders_for_woocommerce/linked_order/created', $record );
 			if ( $fail instanceof \Closure ) {
 				remove_action( 'woocommerce_before_order_object_save', $fail );
 			}

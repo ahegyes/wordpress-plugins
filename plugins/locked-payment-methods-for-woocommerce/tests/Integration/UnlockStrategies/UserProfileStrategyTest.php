@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
@@ -16,7 +17,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected const string FORM = 'dws_lpmwc_user_profile';
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, DWS_LPMWC_OPTION_FULL_ACCESS_ROLES );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_USER_PROFILES, Options::FULL_ACCESS_ROLES );
 
 	protected static array $users = array();
 
@@ -43,8 +44,8 @@ final class UserProfileStrategyTest extends TestCase {
 	#[Before]
 	protected function create_the_customer(): void {
 		self::$users['customer'] = self::create_user( 'customer' );
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 'bacs' ) );
-		update_option( DWS_LPMWC_OPTION_FULL_ACCESS_ROLES, array( 'shop_manager' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod', 'bacs' ) );
+		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 	}
 
 	#[After]
@@ -52,7 +53,7 @@ final class UserProfileStrategyTest extends TestCase {
 		wp_delete_user( self::$users['customer'] );
 		foreach ( self::$users as $user ) {
 			delete_user_meta( $user, self::key() );
-			delete_user_meta( $user, DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS );
+			delete_user_meta( $user, UserProfileStrategy::USER_OPTION );
 		}
 		delete_option( 'dws_lpmwc_notices' );
 		unset( $_POST[ self::FORM ], $_POST[ self::FORM . '_nonce' ], $_GET['dws_lpmwc_unlocked_for_top'], $_GET['dws_lpmwc_unlocked_for_bottom'], $_GET['bottom'] );
@@ -62,10 +63,10 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	public function test_the_strategy_loads_while_its_switch_is_on_as_v1s_did_by_default(): void {
-		delete_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES );
+		delete_option( Options::UNLOCK_VIA_USER_PROFILES );
 		self::assertTrue( UserProfileStrategy::should_load() );
 
-		update_option( DWS_LPMWC_OPTION_UNLOCK_VIA_USER_PROFILES, 'no' );
+		update_option( Options::UNLOCK_VIA_USER_PROFILES, 'no' );
 		self::assertFalse( UserProfileStrategy::should_load() );
 	}
 
@@ -76,9 +77,9 @@ final class UserProfileStrategyTest extends TestCase {
 
 	public function test_a_user_is_unlocked_only_for_the_methods_their_site_grants_list_holds(): void {
 		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
-		update_user_meta( self::$users['editor'], DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, array( 'cod' ) );
+		update_user_meta( self::$users['editor'], UserProfileStrategy::USER_OPTION, array( 'cod' ) );
 
-		self::assertSame( array( 'cod' ), dws_lpmwc_get_user_unlocked_payment_method_ids( self::$users['customer'] ) );
+		self::assertSame( array( 'cod' ), UserProfileStrategy::get_unlocked_ids( self::$users['customer'] ) );
 		self::assertFalse( self::should_lock( 'cod', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'cod', self::$users['editor'] ) );
@@ -88,7 +89,7 @@ final class UserProfileStrategyTest extends TestCase {
 	public function test_a_stored_grants_value_that_is_not_a_list_unlocks_nothing(): void {
 		update_user_meta( self::$users['customer'], self::key(), 'cod' );
 
-		self::assertSame( array(), dws_lpmwc_get_user_unlocked_payment_method_ids( self::$users['customer'] ) );
+		self::assertSame( array(), UserProfileStrategy::get_unlocked_ids( self::$users['customer'] ) );
 	}
 
 	public function test_at_checkout_a_customer_may_use_the_methods_granted_to_them(): void {
@@ -120,13 +121,13 @@ final class UserProfileStrategyTest extends TestCase {
 
 	public function test_the_profile_offers_the_methods_the_locked_ids_filter_adds_as_locked(): void {
 		$add = static fn ( array $ids ): array => array( ...$ids, 'cheque' );
-		add_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
 			$form = self::render( self::$users['customer'] );
 		} finally {
-			remove_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+			remove_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
 		}
 
 		self::assertSame(
@@ -159,7 +160,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 	public function test_the_profile_shows_nothing_while_there_is_nothing_to_offer(): void {
 		wp_set_current_user( self::$users['administrator'] );
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array() );
+		update_option( Options::LOCKED_METHODS, array() );
 
 		self::assertNull( self::render( self::$users['customer'] )->querySelector( 'input' ) );
 	}
@@ -170,7 +171,7 @@ final class UserProfileStrategyTest extends TestCase {
 		self::save( self::$users['customer'], array( 'bacs' ) );
 
 		self::assertSame( array( 'bacs' ), get_user_meta( self::$users['customer'], self::key(), true ) );
-		self::assertSame( '', get_user_meta( self::$users['customer'], DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS, true ) );
+		self::assertSame( '', get_user_meta( self::$users['customer'], UserProfileStrategy::USER_OPTION, true ) );
 	}
 
 	public function test_saving_the_profile_with_nothing_checked_stores_an_empty_list(): void {
@@ -260,11 +261,11 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected static function key(): string {
 		global $wpdb;
-		return $wpdb->get_blog_prefix() . DWS_LPMWC_USER_OPTION_UNLOCKED_METHODS;
+		return $wpdb->get_blog_prefix() . UserProfileStrategy::USER_OPTION;
 	}
 
 	protected static function should_lock( string $gateway_id, int $user_id ): mixed {
-		return apply_filters( 'dws_lpmwc/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
+		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
 	}
 
 	protected static function render( int $user_id ): \Dom\HTMLDocument {

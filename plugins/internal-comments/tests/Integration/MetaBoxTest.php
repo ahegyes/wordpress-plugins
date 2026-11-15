@@ -2,7 +2,12 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\MetaBox;
+use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
+use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -19,7 +24,7 @@ final class MetaBoxTest extends TestCase {
 
 	protected int $page;
 
-	protected mixed $stored;
+	protected array $stored = array();
 
 	// WordPress reports a deprecated hook only when something listens on it.
 	protected const array V1_HOOKS = array(
@@ -59,14 +64,11 @@ final class MetaBoxTest extends TestCase {
 
 	#[Before]
 	protected function create_posts(): void {
-		$this->stored = get_option( DWS_IC_OPTION_GENERAL );
-		update_option(
-			DWS_IC_OPTION_GENERAL,
-			array(
-				DWS_IC_SETTING_POST_TYPES       => array( 'post' ),
-				DWS_IC_SETTING_PRIVATE_COMMENTS => 'yes',
-			)
-		);
+		foreach ( array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) as $option ) {
+			$this->stored[ $option ] = get_option( $option );
+		}
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		foreach ( array( 'post', 'page' ) as $type ) {
 			$this->$type = (int) wp_insert_post(
 				array(
@@ -85,7 +87,9 @@ final class MetaBoxTest extends TestCase {
 		$wp_meta_boxes = array();
 		wp_delete_post( $this->post, true );
 		wp_delete_post( $this->page, true );
-		update_option( DWS_IC_OPTION_GENERAL, $this->stored );
+		foreach ( $this->stored as $option => $value ) {
+			update_option( $option, $value );
+		}
 		wp_set_current_user( 0 );
 		wp_dequeue_script( 'internal-comments-meta-box' );
 		wp_dequeue_style( 'internal-comments-meta-box' );
@@ -114,13 +118,13 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( '-1', $admin->querySelector( '.dws-internal-comments' )?->getAttribute( 'tabindex' ) );
 		self::assertSame( array( 'edit', 'reply', 'trash' ), $this->actions( $admin, $comment ) );
 		self::assertSame( array( 'reply' ), $this->actions( $editor, $comment ) );
-		update_option( DWS_IC_OPTION_GENERAL, array( DWS_IC_SETTING_POST_TYPES => array( 'post' ) ) );
+		update_option( Options::PRIVATE_COMMENTS, 'no' );
 		self::assertNull( $this->render( 'administrator' )->querySelector( '#dws-ic-new-comment-private' ) );
 	}
 
 	public function test_a_reply_the_user_cannot_see_is_left_out_of_its_thread(): void {
 		$parent  = $this->comment( 'Open' );
-		$private = $this->comment( 'Private reply', array( DWS_IC_META_PRIVATE => 'yes' ), $parent );
+		$private = $this->comment( 'Private reply', array( Comments::META_PRIVATE => 'yes' ), $parent );
 
 		self::assertNotNull( $this->render( 'administrator' )->querySelector( "#reply-$private" ) );
 		self::assertNull( $this->render( 'editor' )->querySelector( "#reply-$private" ) );
@@ -132,29 +136,29 @@ final class MetaBoxTest extends TestCase {
 		$action  = static function ( \DWS_Internal_Comment $comment ): void {
 			echo '<span class="from-action">' . esc_html( (string) $comment->comment_ID ) . '</span>';
 		};
-		add_filter( 'dws_ic/meta_box/comment_classes', $classes );
-		add_action( 'dws_ic/meta_box/before_comment_actions', $action );
+		add_filter( 'internal_comments/meta_box/comment_classes', $classes );
+		add_action( 'internal_comments/meta_box/before_comment_actions', $action );
 
 		try {
 			$document = $this->render( 'administrator' );
 		} finally {
-			remove_filter( 'dws_ic/meta_box/comment_classes', $classes );
-			remove_action( 'dws_ic/meta_box/before_comment_actions', $action );
+			remove_filter( 'internal_comments/meta_box/comment_classes', $classes );
+			remove_action( 'internal_comments/meta_box/before_comment_actions', $action );
 		}
 
 		self::assertTrue( (bool) $document->querySelector( "#comment-$comment" )?->classList->contains( 'from-v2' ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNotNull( $document->querySelector( "#comment-$comment .from-action" ) );
 		self::assertEqualsCanonicalizing(
 			array(
-				array( 'internal_comments/metabox_output/comment_classes', 'dws_ic/meta_box/comment_classes' ),
-				array( 'internal_comments/metabox_output/single_comment/actions/start', 'dws_ic/meta_box/before_comment_actions' ),
-				array( 'internal_comments/metabox_output/single_comment/actions/end', 'dws_ic/meta_box/after_comment_actions' ),
-				array( 'internal_comments/metabox_output/inline_actions', 'dws_ic/meta_box/before_form_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions/insert', 'dws_ic/meta_box/before_new_comment_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions', 'dws_ic/meta_box/before_form_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions/edit', 'dws_ic/meta_box/before_edit_comment_buttons' ),
-				array( 'internal_comments/metabox_output/inline_actions', 'dws_ic/meta_box/before_form_buttons' ),
-				array( 'internal_comments/metabox_output/reply', 'dws_ic/meta_box/before_reply_buttons' ),
+				array( 'internal_comments/metabox_output/comment_classes', 'internal_comments/meta_box/comment_classes' ),
+				array( 'internal_comments/metabox_output/single_comment/actions/start', 'internal_comments/meta_box/before_comment_actions' ),
+				array( 'internal_comments/metabox_output/single_comment/actions/end', 'internal_comments/meta_box/after_comment_actions' ),
+				array( 'internal_comments/metabox_output/inline_actions', 'internal_comments/meta_box/before_form_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions/insert', 'internal_comments/meta_box/before_new_comment_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions', 'internal_comments/meta_box/before_form_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions/edit', 'internal_comments/meta_box/before_edit_comment_buttons' ),
+				array( 'internal_comments/metabox_output/inline_actions', 'internal_comments/meta_box/before_form_buttons' ),
+				array( 'internal_comments/metabox_output/reply', 'internal_comments/meta_box/before_reply_buttons' ),
 			),
 			$this->deprecated
 		);
@@ -165,7 +169,7 @@ final class MetaBoxTest extends TestCase {
 		wp_set_current_user( self::$users['administrator'] );
 
 		try {
-			new MetaBox()->enqueue_assets( 'post.php' );
+			new MetaBox( self::make_assets() )->enqueue_assets( 'post.php' );
 		} finally {
 			unset( $GLOBALS['post'] );
 		}
@@ -207,5 +211,9 @@ final class MetaBoxTest extends TestCase {
 			),
 			get_user_by( 'id', self::$users['administrator'] ) ?: null
 		);
+	}
+
+	protected static function make_assets(): Assets {
+		return new Assets( new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX ) );
 	}
 }

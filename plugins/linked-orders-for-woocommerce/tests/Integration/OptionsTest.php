@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Linking;
+use DeepWebSolutions\LinkedOrders\Options;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RestoresOptionsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -11,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 final class OptionsTest extends TestCase {
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( DWS_LOWC_OPTION_MAX_DEPTH, DWS_LOWC_OPTION_AUTOCOMPLETE, DWS_LOWC_OPTION_DELETE_DATA );
+	protected const array OPTIONS = array( Options::MAX_DEPTH, Options::AUTOCOMPLETE, Options::DELETE_DATA );
 
 	public static function stored_depths(): array {
 		return array(
@@ -22,23 +24,10 @@ final class OptionsTest extends TestCase {
 		);
 	}
 
-	public static function submitted_depths(): array {
-		return array(
-			'one'      => array( '1', '1' ),
-			'padded'   => array( ' 3 ', '3' ),
-			'zero'     => array( '0', null ),
-			'negative' => array( '-3', null ),
-			'decimal'  => array( '2.5', null ),
-			'word'     => array( 'three', null ),
-			'empty'    => array( '', null ),
-			'array'    => array( array( '3' ), null ),
-		);
-	}
-
 	public function test_the_settings_keep_the_keys_v1_stored_them_under(): void {
-		self::assertSame( 'dws-lowc_general_max-depth', DWS_LOWC_OPTION_MAX_DEPTH );
-		self::assertSame( 'dws-lowc_general_autocomplete-descendants', DWS_LOWC_OPTION_AUTOCOMPLETE );
-		self::assertSame( 'dws-lowc_plugin_remove-data-uninstall', DWS_LOWC_OPTION_DELETE_DATA );
+		self::assertSame( 'dws-lowc_general_max-depth', Options::MAX_DEPTH );
+		self::assertSame( 'dws-lowc_general_autocomplete-descendants', Options::AUTOCOMPLETE );
+		self::assertSame( 'dws-lowc_plugin_remove-data-uninstall', Options::DELETE_DATA );
 	}
 
 	public function test_a_missing_depth_reads_as_v1s_default(): void {
@@ -46,32 +35,25 @@ final class OptionsTest extends TestCase {
 			delete_option( $key );
 		}
 
-		self::assertSame( 1, dws_lowc_get_max_depth() );
+		self::assertSame( 1, Linking::get_max_depth() );
 	}
 
 	// v1 compared the filtered value as it came, so a filter could stop new children with 0.
 	public function test_a_filter_on_the_validated_depth_is_the_last_word(): void {
 		$zero = static fn ( mixed $value, string $field_id ): mixed => 'max-depth' === $field_id ? 0 : $value;
-		add_filter( 'dws_lowc/settings/validated_value', $zero, 10, 2 );
+		add_filter( 'linked_orders_for_woocommerce/settings/validated_value', $zero, 10, 2 );
 
 		try {
-			self::assertSame( 0, dws_lowc_get_max_depth() );
+			self::assertSame( 0, Linking::get_max_depth() );
 		} finally {
-			remove_filter( 'dws_lowc/settings/validated_value', $zero );
+			remove_filter( 'linked_orders_for_woocommerce/settings/validated_value', $zero );
 		}
 	}
 
 	#[DataProvider( 'stored_depths' )]
 	public function test_the_maximum_depth_reads_at_least_one( string $stored, int $expected ): void {
-		update_option( DWS_LOWC_OPTION_MAX_DEPTH, $stored );
+		update_option( Options::MAX_DEPTH, $stored );
 
-		self::assertSame( $expected, dws_lowc_get_max_depth() );
-	}
-
-	#[DataProvider( 'submitted_depths' )]
-	public function test_a_submitted_depth_validates_as_a_whole_number_of_at_least_one( mixed $submitted, ?string $expected ): void {
-		$validated = dws_lowc_validate_max_depth( $submitted );
-
-		\is_null( $expected ) ? self::assertInstanceOf( \WP_Error::class, $validated ) : self::assertSame( $expected, $validated );
+		self::assertSame( $expected, Linking::get_max_depth() );
 	}
 }

@@ -2,12 +2,13 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Migrations;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
-use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
@@ -28,7 +29,7 @@ final class PluginBootTest extends TestCase {
 		self::assertContains( $includes . 'index.php', \get_included_files() );
 		self::assertIsInt( \file_put_contents( $includes . '_lpmwc-skipped.php', "<?php\nconst DWS_LPMWC_SKIPPED_INCLUDE = true;\n" ) );
 		try {
-			$request = self::request( 'echo 0 < did_action( "dws_lpmwc/boot/succeeded" ) ? ( defined( "DWS_LPMWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
+			$request = self::request( 'echo 0 < did_action( "locked_payment_methods_for_woocommerce/boot/succeeded" ) ? ( defined( "DWS_LPMWC_SKIPPED_INCLUDE" ) ? "loaded" : "skipped" ) : "not booted";' );
 		} finally {
 			\unlink( $includes . '_lpmwc-skipped.php' );
 		}
@@ -39,7 +40,7 @@ final class PluginBootTest extends TestCase {
 
 	public function test_a_boot_listener_that_throws_is_not_reported_as_an_incomplete_build(): void {
 		$include = \dirname( DWS_LPMWC_FILE ) . '/includes/zz-boot-listener.php';
-		\file_put_contents( $include, "<?php\nadd_action( 'dws_lpmwc/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
+		\file_put_contents( $include, "<?php\nadd_action( 'locked_payment_methods_for_woocommerce/boot/succeeded', static function (): void { throw new RuntimeException( 'A boot listener failed.' ); } );\n" );
 		try {
 			$request = self::request_provoking( 'A boot listener failed.', 'echo 1;' );
 		} finally {
@@ -52,7 +53,7 @@ final class PluginBootTest extends TestCase {
 
 	public function test_the_entry_loads_its_safeguards_before_the_bootstrap_package_and_its_floor_gate(): void {
 		$root       = \dirname( DWS_LPMWC_FILE );
-		$safeguards = \array_search( $root . '/includes/safeguards.php', \get_included_files(), true );
+		$safeguards = \array_search( $root . '/Safeguards.php', \get_included_files(), true );
 		$bootstrap  = \array_search( $root . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php', \get_included_files(), true );
 
 		self::assertIsInt( $safeguards );
@@ -62,7 +63,7 @@ final class PluginBootTest extends TestCase {
 
 	public function test_the_stored_data_is_at_the_revision_of_the_code(): void {
 		self::assertInstanceOf( MigrationRunner::class, dws_lpmwc_plugin()->migrations );
-		self::assertSame( \count( dws_lpmwc_get_migration_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
+		self::assertSame( \count( Migrations::get_steps() ), MigrationRunner::get_revision( Plugin::PREFIX . '_revision' ) );
 	}
 
 	public function test_the_plugin_declares_itself_compatible_with_woocommerces_order_tables(): void {

@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 
+use DeepWebSolutions\InternalComments\Comments;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -43,7 +45,7 @@ final class DWS_Internal_Comment {
 	 */
 	public function __construct( $comment ) {
 		$comment = dws_ic_get_comment( $comment );
-		if ( is_null( $comment ) || DWS_IC_COMMENT_TYPE !== $comment->comment_type ) {
+		if ( is_null( $comment ) || Comments::TYPE !== $comment->comment_type ) {
 			throw new InvalidArgumentException( 'The comment is not an internal comment.' );
 		}
 

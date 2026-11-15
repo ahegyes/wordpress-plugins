@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
+use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
@@ -18,9 +19,9 @@ final class SafeguardsTest extends TestCase {
 	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
 
-	protected const array OPTIONS = array( DWS_LPMWC_OPTION_LOCKED_METHODS, self::V1_KEY );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, self::V1_KEY );
 
-	protected const string FILTER = 'dws_lpmwc/payment_method/should_lock';
+	protected const string FILTER = 'locked_payment_methods_for_woocommerce/payment_method/should_lock';
 
 	protected const string V1_KEY = 'dws-wc-lpm_general_locked-payment-methods';
 
@@ -66,7 +67,7 @@ final class SafeguardsTest extends TestCase {
 
 	#[Before]
 	protected function lock_cod(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod' ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod' ) );
 	}
 
 	#[After]
@@ -126,21 +127,21 @@ final class SafeguardsTest extends TestCase {
 
 	public function test_an_explicit_false_does_not_unlock_before_the_plugin_booted(): void {
 		global $wp_actions;
-		self::assertGreaterThan( 0, did_action( 'dws_lpmwc/boot/succeeded' ) );
-		$fired = $wp_actions['dws_lpmwc/boot/succeeded'];
-		unset( $wp_actions['dws_lpmwc/boot/succeeded'] );
+		self::assertGreaterThan( 0, did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) );
+		$fired = $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'];
+		unset( $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] );
 		add_filter( self::FILTER, '__return_false' );
 
 		try {
 			self::assertArrayNotHasKey( 'cod', self::available() );
 		} finally {
 			remove_filter( self::FILTER, '__return_false' );
-			$wp_actions['dws_lpmwc/boot/succeeded'] = $fired;
+			$wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] = $fired;
 		}
 	}
 
 	public function test_the_lock_reads_v1s_list_while_the_plugin_has_stored_none(): void {
-		delete_option( DWS_LPMWC_OPTION_LOCKED_METHODS );
+		delete_option( Options::LOCKED_METHODS );
 		update_option( self::V1_KEY, array( 'bacs' ) );
 
 		$available = self::available();
@@ -150,7 +151,7 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	public function test_v1s_list_stops_counting_once_the_plugin_stores_its_own_even_an_empty_one(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array() );
+		update_option( Options::LOCKED_METHODS, array() );
 		update_option( self::V1_KEY, array( 'bacs' ) );
 
 		$available = self::available();
@@ -160,12 +161,12 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	public function test_only_the_strings_of_a_stored_list_are_locked(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( 'cod', 7, array( 'bacs' ) ) );
+		update_option( Options::LOCKED_METHODS, array( 'cod', 7, array( 'bacs' ) ) );
 		$available = self::available();
 		self::assertArrayNotHasKey( 'cod', $available );
 		self::assertArrayHasKey( 'bacs', $available );
 
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, 'bacs' );
+		update_option( Options::LOCKED_METHODS, 'bacs' );
 		$available = self::available();
 		self::assertArrayHasKey( 'bacs', $available );
 		self::assertArrayHasKey( 'cod', $available );
@@ -173,12 +174,12 @@ final class SafeguardsTest extends TestCase {
 
 	public function test_the_locked_ids_filter_locks_more_methods_but_cannot_unlock_the_stored_ones(): void {
 		$replace = static fn (): array => array( 'bacs' );
-		add_filter( 'dws_lpmwc/payment_method/locked_ids', $replace );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $replace );
 
 		try {
 			$available = self::available();
 		} finally {
-			remove_filter( 'dws_lpmwc/payment_method/locked_ids', $replace );
+			remove_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $replace );
 		}
 
 		self::assertArrayNotHasKey( 'cod', $available );
@@ -187,12 +188,12 @@ final class SafeguardsTest extends TestCase {
 
 	public function test_the_lock_check_counts_the_methods_the_locked_ids_filter_adds(): void {
 		$add = static fn ( array $ids ): array => array( ...$ids, 'bacs' );
-		add_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
 
 		try {
 			self::assertTrue( dws_lpmwc_is_payment_method_locked( 'bacs', 0 ) );
 		} finally {
-			remove_filter( 'dws_lpmwc/payment_method/locked_ids', $add );
+			remove_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
 		}
 
 		self::assertFalse( dws_lpmwc_is_payment_method_locked( 'bacs', 0 ) );
@@ -203,7 +204,7 @@ final class SafeguardsTest extends TestCase {
 		$gateways = WC()->payment_gateways()->payment_gateways();
 		$hooks    = array(
 			'locked_payment_methods_for_woocommerce/general_settings/get_validated_option_value' => 'first',
-			'dws_lpmwc/payment_method/locked_ids' => 'second',
+			'locked_payment_methods_for_woocommerce/payment_method/locked_ids' => 'second',
 			'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods' => 'third',
 		);
 		$adders   = array();
@@ -236,7 +237,7 @@ final class SafeguardsTest extends TestCase {
 	}
 
 	public function test_v1s_lock_filters_fire_as_deprecated_before_should_lock_under_v1s_safe_id(): void {
-		update_option( DWS_LPMWC_OPTION_LOCKED_METHODS, array( "WooCommerce_Pay\x01ments" ) );
+		update_option( Options::LOCKED_METHODS, array( "WooCommerce_Pay\x01ments" ) );
 		$seen         = array();
 		$v1           = 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method';
 		$v1_safe      = "$v1/woocommerce_payments";
@@ -339,7 +340,7 @@ final class SafeguardsTest extends TestCase {
 		}
 
 		try {
-			$request = self::request( 'add_filter( "dws_lpmwc/payment_method/should_lock", "__return_false" ); echo wp_json_encode( array( did_action( "dws_lpmwc/boot/succeeded" ), array_key_exists( "cod", apply_filters( "woocommerce_available_payment_gateways", WC()->payment_gateways()->payment_gateways() ) ) ) );' );
+			$request = self::request( 'add_filter( "locked_payment_methods_for_woocommerce/payment_method/should_lock", "__return_false" ); echo wp_json_encode( array( did_action( "locked_payment_methods_for_woocommerce/boot/succeeded" ), array_key_exists( "cod", apply_filters( "woocommerce_available_payment_gateways", WC()->payment_gateways()->payment_gateways() ) ) ) );' );
 		} finally {
 			\file_put_contents( DWS_LPMWC_FILE, $source );
 		}
@@ -383,7 +384,7 @@ final class SafeguardsTest extends TestCase {
 
 	// WordPress loads the plugin while WooCommerce is inactive, so a safeguard that calls WooCommerce waits for it to load.
 	public function test_the_gateway_lock_is_hooked_only_once_woocommerce_has_loaded(): void {
-		$php     = 'echo wp_json_encode( array( did_action( "woocommerce_loaded" ), false !== has_filter( "woocommerce_available_payment_gateways", "dws_lpmwc_remove_locked_payment_methods" ) ) );';
+		$php     = '$hooked = false; foreach ( isset( $GLOBALS["wp_filter"]["woocommerce_available_payment_gateways"] ) ? $GLOBALS["wp_filter"]["woocommerce_available_payment_gateways"]->callbacks[999] ?? array() : array() as $callback ) { $hooked = $hooked || ( $callback["function"] instanceof Closure && dirname( DWS_LPMWC_FILE ) . "/Safeguards.php" === new ReflectionFunction( $callback["function"] )->getFileName() ); } echo wp_json_encode( array( did_action( "woocommerce_loaded" ), $hooked ) );';
 		$with    = self::request( $php );
 		$without = self::request( $php, '--skip-plugins=woocommerce' );
 

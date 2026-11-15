@@ -7,7 +7,7 @@ test.describe( 'Posts list and Comments screen', () => {
 	let post = 0;
 
 	test.beforeAll( async ( { requestUtils } ) => {
-		storeSettings( { 'post-types': [ 'post' ] } );
+		storeSettings( { dws_ic_post_types: [ 'post' ] } );
 		post = (
 			await requestUtils.rest< { id: number } >( {
 				method: 'POST',
@@ -17,14 +17,14 @@ test.describe( 'Posts list and Comments screen', () => {
 		).id;
 		await requestUtils.rest( {
 			method: 'POST',
-			path: `/dws_ic/v1/posts/${ post }/comments`,
+			path: `/internal-comments/v1/posts/${ post }/comments`,
 			data: { content: 'Seen in the list' },
 		} );
 	} );
 
 	test.afterAll( async ( { requestUtils } ) => {
 		await requestUtils.deleteAllPosts();
-		storeSettings( { 'post-types': [] } );
+		storeSettings( { dws_ic_post_types: [] } );
 	} );
 
 	test( 'the quick view shows a post’s internal comments', async ( {

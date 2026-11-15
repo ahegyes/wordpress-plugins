@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Capabilities;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
@@ -34,18 +35,18 @@ final class CapabilitiesTest extends TestCase {
 		self::assertSame(
 			self::EVERY,
 			array(
-				DWS_IC_CAP_INSERT,
-				DWS_IC_CAP_EDIT,
-				DWS_IC_CAP_EDIT_OTHERS,
-				DWS_IC_CAP_TRASH,
-				DWS_IC_CAP_TRASH_OTHERS,
-				DWS_IC_CAP_SEE,
-				DWS_IC_CAP_SEE_TABLE,
-				DWS_IC_CAP_SEE_METABOX,
-				DWS_IC_CAP_SEE_COLUMN,
-				DWS_IC_CAP_MANAGE_OPTIONS,
-				DWS_IC_CAP_INSERT_PRIVATE,
-				DWS_IC_CAP_SEE_PRIVATE,
+				Capabilities::INSERT,
+				Capabilities::EDIT,
+				Capabilities::EDIT_OTHERS,
+				Capabilities::TRASH,
+				Capabilities::TRASH_OTHERS,
+				Capabilities::SEE,
+				Capabilities::SEE_TABLE,
+				Capabilities::SEE_METABOX,
+				Capabilities::SEE_COLUMN,
+				Capabilities::MANAGE_OPTIONS,
+				Capabilities::INSERT_PRIVATE,
+				Capabilities::SEE_PRIVATE,
 			)
 		);
 	}
@@ -59,9 +60,9 @@ final class CapabilitiesTest extends TestCase {
 				'contributor'   => self::CONTRIBUTING,
 				'shop_manager'  => self::CONTRIBUTING,
 			),
-			DWS_IC_CAPABILITY_GRANTS
+			Capabilities::GRANTS
 		);
-		foreach ( DWS_IC_CAPABILITY_GRANTS as $role => $capabilities ) {
+		foreach ( Capabilities::GRANTS as $role => $capabilities ) {
 			if ( \is_null( get_role( $role ) ) ) {
 				continue; // The shop manager role exists only beside WooCommerce.
 			}
@@ -69,7 +70,7 @@ final class CapabilitiesTest extends TestCase {
 				self::assertTrue( get_role( $role )->has_cap( $capability ), "The $role role lacks $capability." );
 			}
 		}
-		self::assertFalse( get_role( 'subscriber' )?->has_cap( DWS_IC_CAP_SEE ) );
-		self::assertFalse( get_role( 'editor' )?->has_cap( DWS_IC_CAP_SEE_PRIVATE ) );
+		self::assertFalse( get_role( 'subscriber' )?->has_cap( Capabilities::SEE ) );
+		self::assertFalse( get_role( 'editor' )?->has_cap( Capabilities::SEE_PRIVATE ) );
 	}
 }

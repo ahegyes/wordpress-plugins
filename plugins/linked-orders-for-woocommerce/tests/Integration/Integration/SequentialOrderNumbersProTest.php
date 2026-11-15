@@ -48,7 +48,7 @@ final class SequentialOrderNumbersProTest extends TestCase {
 			20
 		);
 		add_action(
-			'dws_lowc/linked_order/created',
+			'linked_orders_for_woocommerce/linked_order/created',
 			static function ( \WC_Order $child ) use ( &$seen ): void {
 				$seen[] = array( 'v2', $child->get_meta( '_order_number' ) );
 				$child->update_meta_data( '_order_number', 'CUSTOM' );
