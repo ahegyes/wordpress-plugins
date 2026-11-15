@@ -48,14 +48,6 @@ try {
 	return;
 }
 
-// A site that never ran the update holds its consent only in v1's row, which v1's uninstall honored; the engine deletes that row with the rest, so where a pass fails after it, the retry keeps what remains.
-add_filter(
-	'default_option_' . $dws_lpmwc_consent,
-	static function ( $value ) {
-		return true === filter_var( get_option( 'dws-wc-lpm_plugin_remove-data-uninstall' ), FILTER_VALIDATE_BOOLEAN ) ? 'yes' : $value;
-	}
-);
-
 try {
 	Uninstaller::run(
 		$dws_lpmwc_identity,

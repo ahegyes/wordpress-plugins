@@ -1,4 +1,4 @@
 Significance: minor
 Type: changed
 
-Uninstalling with Remove all data on uninstallation checked also deletes the unlocked payment methods of customers, orders, groups and plans, v1's options and the capabilities, on every site of a network that consents.
+Uninstalling with Remove all data on uninstallation checked also deletes the unlocked payment methods of customers, orders, groups and plans, v1's options and the capabilities, on every site of a network that consents. A site that never runs 2.0.0 while the plugin is active, such as one updated while deactivated and then deleted, keeps its data, since its consent moves with its other settings when 2.0.0 first runs there.
