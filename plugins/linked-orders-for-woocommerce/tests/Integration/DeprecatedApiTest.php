@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
+use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\BeforeClass;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -10,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
+	use OrderStorageTrait;
 	use RecordsDeprecationsTrait;
 
 	protected static array $header = array();
@@ -74,6 +76,54 @@ final class DeprecatedApiTest extends TestCase {
 	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, string $expected ): void {
 		self::assertSame( $expected, $shim( ...$arguments ) );
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
+	}
+
+	// v1's setters write the links outside the linking lock, so each names the functions that write them under it, and keeps working as v1's did.
+	#[DataProvider( 'storages' )]
+	public function test_the_node_setters_store_links_as_v1_did_and_name_their_replacements( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent      = $this->create_order();
+		$child       = $this->create_order();
+		$other       = $this->create_order();
+		$parent_node = dws_lowc_get_order_node( $parent->get_id() );
+		$child_node  = dws_lowc_get_order_node( $child->get_id() );
+		$other_node  = dws_lowc_get_order_node( $other->get_id() );
+		self::assertInstanceOf( \DWS_Order_Node::class, $parent_node );
+		self::assertInstanceOf( \DWS_Order_Node::class, $child_node );
+		self::assertInstanceOf( \DWS_Order_Node::class, $other_node );
+
+		self::assertTrue( $parent_node->add_child( $child_node ) );
+		$child_node->save();
+		$parent_node->save();
+		self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_order()->get_id() );
+		self::assertSame( array( $parent->get_id(), $child->get_id() ), dws_lowc_get_orders_tree( $parent->get_id() ) );
+
+		$other_node->set_parent( $parent_node );
+		self::assertSame( 1, $other_node->get_depth() );
+		$parent_node->set_children( array( $other_node, 'not a node' ) );
+		$other_node->set_depth( 3 );
+		$other_node->save();
+		$parent_node->save();
+
+		$stored = wc_get_order( $other->get_id() );
+		self::assertSame( '3', (string) $stored->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( (string) $parent->get_id(), (string) $stored->get_meta( '_dws_lo_parent' ) );
+		self::assertSame( array( $other->get_id() ), wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
+
+		$either = 'dws_lowc_link_orders() or dws_lowc_unlink_order()';
+		self::assertSame(
+			array(
+				array( 'DWS_Order_Node::add_child', 'dws_lowc_link_orders()' ),
+				array( 'DWS_Order_Node::save', $either ),
+				array( 'DWS_Order_Node::save', $either ),
+				array( 'DWS_Order_Node::set_parent', 'dws_lowc_link_orders()' ),
+				array( 'DWS_Order_Node::set_children', $either ),
+				array( 'DWS_Order_Node::set_depth', $either ),
+				array( 'DWS_Order_Node::save', $either ),
+				array( 'DWS_Order_Node::save', $either ),
+			),
+			$this->deprecated
+		);
 	}
 
 	// The v1 hooks fire at the earliest priority, so every v1 listener runs before a v2 listener of any later one.
