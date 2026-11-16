@@ -12,6 +12,7 @@ parameters:
 		- includes
 		- models
 		- src
+		- templates
 	# phpstan.safeguards.neon analyzes the entry and the safeguards at the oldest runtime they parse on, so this profile only scans them.
 	scanFiles:
 		- internal-comments.php
