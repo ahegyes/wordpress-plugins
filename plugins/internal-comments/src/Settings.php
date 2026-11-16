@@ -98,6 +98,29 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 	 */
 	#[\Override]
 	public function get_tab_fields( string $page_id, string $tab_slug ): array {
+		// Keyed by v1's field ids, which v1's group filter passes on.
+		$group_fields = 'general' === $tab_slug ? array(
+			'post-types'              => array(
+				'type'    => 'checkboxes',
+				'title'   => __( 'Post types that support internal comments', 'internal-comments' ),
+				'options' => \array_map( static fn ( \WP_Post_Type $type ): string => (string) $type->label, get_post_types( array( 'show_ui' => true ), 'objects' ) ),
+				'default' => Options::DEFAULTS[ Options::POST_TYPES ],
+			),
+			'enable-private-comments' => array(
+				'type'    => 'checkbox',
+				'title'   => __( 'Private comments', 'internal-comments' ),
+				'desc'    => __( 'Allow internal comments that only their author and administrators can see', 'internal-comments' ),
+				'default' => Options::DEFAULTS[ Options::PRIVATE_COMMENTS ],
+			),
+		) : array(
+			'remove-data-uninstall' => array(
+				'type'    => 'checkbox',
+				'title'   => __( 'Remove all data on uninstallation', 'internal-comments' ),
+				'desc'    => __( 'Delete the plugin\'s settings and every internal comment when it is uninstalled, which cannot be undone', 'internal-comments' ),
+				'default' => Options::DEFAULTS[ Options::DELETE_DATA ],
+			),
+		);
+
 		/**
 		 * Filters the fields of one of the settings page's groups, keyed by field id.
 		 *
@@ -107,7 +130,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 		 *
 		 * @param       array<string, Field> $fields The group's fields, keyed by id.
 		 */
-		$group_fields = apply_filters_deprecated( "internal_comments/{$tab_slug}_settings/get_group_fields", array( $this->get_group_fields( $tab_slug ) ), '2.0.0', 'internal_comments/options_page/fields' );
+		$group_fields = apply_filters_deprecated( "internal_comments/{$tab_slug}_settings/get_group_fields", array( $group_fields ), '2.0.0', 'internal_comments/options_page/fields' );
 
 		$fields = array();
 		foreach ( $group_fields as $id => $field ) {
@@ -157,48 +180,6 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 		}
 
 		return $meta;
-	}
-
-	// endregion
-
-	// region HELPERS
-
-	/**
-	 * Returns the fields of one of v1's settings groups, keyed by v1 field id.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $group The group, general or plugin.
-	 *
-	 * @return  array<string, Field>
-	 */
-	protected function get_group_fields( string $group ): array {
-		if ( 'general' === $group ) {
-			return array(
-				'post-types'              => array(
-					'type'    => 'checkboxes',
-					'title'   => __( 'Post types that support internal comments', 'internal-comments' ),
-					'options' => \array_map( static fn ( \WP_Post_Type $type ): string => (string) $type->label, get_post_types( array( 'show_ui' => true ), 'objects' ) ),
-					'default' => Options::DEFAULTS[ Options::POST_TYPES ],
-				),
-				'enable-private-comments' => array(
-					'type'    => 'checkbox',
-					'title'   => __( 'Private comments', 'internal-comments' ),
-					'desc'    => __( 'Allow internal comments that only their author and administrators can see', 'internal-comments' ),
-					'default' => Options::DEFAULTS[ Options::PRIVATE_COMMENTS ],
-				),
-			);
-		}
-
-		return array(
-			'remove-data-uninstall' => array(
-				'type'    => 'checkbox',
-				'title'   => __( 'Remove all data on uninstallation', 'internal-comments' ),
-				'desc'    => __( 'Delete the plugin\'s settings and every internal comment when it is uninstalled, which cannot be undone', 'internal-comments' ),
-				'default' => Options::DEFAULTS[ Options::DELETE_DATA ],
-			),
-		);
 	}
 
 	// endregion
