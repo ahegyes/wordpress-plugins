@@ -1,5 +1,5 @@
 import { speak } from '@wordpress/a11y';
-import apiFetch from '@wordpress/api-fetch';
+import apiFetch, { type APIFetchOptions } from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
 import './meta-box.scss';
@@ -94,7 +94,7 @@ if ( root ) {
 	// Every request answers with the post's comments rendered by the server, which replace the list, so one runs at a time.
 	const send = async (
 		group: HTMLElement,
-		request: () => Promise< ListResponse >,
+		options: APIFetchOptions< true >,
 		done: string
 	): Promise< boolean > => {
 		if ( root.hasAttribute( 'aria-busy' ) ) {
@@ -110,7 +110,7 @@ if ( root ) {
 		fields.forEach( ( field ) => ( field.readOnly = true ) );
 		root.setAttribute( 'aria-busy', 'true' );
 		try {
-			const response = await request();
+			const response = await apiFetch< ListResponse >( options );
 			if ( list ) {
 				// The edit and reply forms open on other comments carry their drafts over to the new list.
 				const drafts = Array.from(
@@ -246,12 +246,11 @@ if ( root ) {
 			content !== null &&
 			( await send(
 				newForm,
-				() =>
-					apiFetch< ListResponse >( {
-						path: `/internal-comments/v1/posts/${ postId }/comments`,
-						method: 'POST',
-						data: { content, private: isPrivate },
-					} ),
+				{
+					path: `/internal-comments/v1/posts/${ postId }/comments`,
+					method: 'POST',
+					data: { content, private: isPrivate },
+				},
 				__( 'Internal comment posted.', 'internal-comments' )
 			) )
 		) {
@@ -306,12 +305,11 @@ if ( root ) {
 						( group, content ) =>
 							send(
 								group,
-								() =>
-									apiFetch< ListResponse >( {
-										path,
-										method: 'PUT',
-										data: { content },
-									} ),
+								{
+									path,
+									method: 'PUT',
+									data: { content },
+								},
 								__(
 									'Internal comment saved.',
 									'internal-comments'
@@ -335,12 +333,11 @@ if ( root ) {
 				( group, content ) =>
 					send(
 						group,
-						() =>
-							apiFetch< ListResponse >( {
-								path: `/internal-comments/v1/posts/${ postId }/comments`,
-								method: 'POST',
-								data: { content, parent: Number( commentId ) },
-							} ),
+						{
+							path: `/internal-comments/v1/posts/${ postId }/comments`,
+							method: 'POST',
+							data: { content, parent: Number( commentId ) },
+						},
 						__( 'Reply posted.', 'internal-comments' )
 					)
 			);
@@ -352,7 +349,7 @@ if ( root ) {
 			}
 			void send(
 				item,
-				() => apiFetch< ListResponse >( { path, method: 'DELETE' } ),
+				{ path, method: 'DELETE' },
 				confirmation
 					? __(
 							'Internal comment deleted permanently.',

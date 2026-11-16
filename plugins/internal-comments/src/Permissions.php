@@ -55,7 +55,11 @@ final class Permissions implements ComponentInterface {
 	public function map_meta_cap( array $caps, string $cap, int $user_id, array $args ): array {
 		// Core trashes, deletes, restores and moderates a comment on edit_comment alone, so it asks for both capabilities.
 		if ( 'edit_comment' === $cap ) {
-			return true === dws_ic_is_internal_comment( $args[0] ?? null ) ? \array_values( \array_unique( \array_merge( map_meta_cap( 'edit_dws_internal_comment', $user_id, ...$args ), map_meta_cap( 'trash_dws_internal_comment', $user_id, ...$args ) ) ) ) : $caps;
+			if ( true !== dws_ic_is_internal_comment( $args[0] ?? null ) ) {
+				return $caps;
+			}
+
+			return self::get_unique( \array_merge( map_meta_cap( 'edit_dws_internal_comment', $user_id, ...$args ), map_meta_cap( 'trash_dws_internal_comment', $user_id, ...$args ) ) );
 		}
 
 		if ( ! \in_array( $cap, array( 'see_dws_internal_comment', 'edit_dws_internal_comment', 'trash_dws_internal_comment' ), true ) ) {
@@ -78,7 +82,7 @@ final class Permissions implements ComponentInterface {
 			$caps[] = Capabilities::SEE_PRIVATE;
 		}
 
-		return \array_values( \array_unique( \array_merge( $caps, map_meta_cap( 'edit_post', $user_id, (int) $comment->comment_post_ID ) ) ) );
+		return self::get_unique( \array_merge( $caps, map_meta_cap( 'edit_post', $user_id, (int) $comment->comment_post_ID ) ) );
 	}
 
 	/**
@@ -208,6 +212,24 @@ final class Permissions implements ComponentInterface {
 		if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! Comments::query_names_internal_type( $query->query_vars ) ) {
 			$query->query_vars['type__not_in'] = Comments::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 		}
+	}
+
+	// endregion
+
+	// region HELPERS
+
+	/**
+	 * Returns a list of primitive capabilities without its repeats.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<string> $caps The capabilities.
+	 *
+	 * @return  list<string>
+	 */
+	protected static function get_unique( array $caps ): array {
+		return \array_values( \array_unique( $caps ) );
 	}
 
 	// endregion

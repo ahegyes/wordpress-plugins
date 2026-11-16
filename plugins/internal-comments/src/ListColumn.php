@@ -136,14 +136,12 @@ final class ListColumn implements ComponentInterface {
 			$count = \count( dws_ic_get_internal_comments_from_trash_meta( $post_id ) );
 		} elseif ( current_user_can( Capabilities::SEE ) && current_user_can( Capabilities::SEE_PRIVATE ) && current_user_can( 'edit_post', $post_id ) ) {
 			// A user who sees every comment of the post needs no check per comment.
-			$count = \count(
-				get_comments(
-					array(
-						'post_id' => $post_id,
-						'type'    => Comments::TYPE,
-						'status'  => Comments::STATUS,
-						'fields'  => 'ids',
-					)
+			$count = get_comments(
+				array(
+					'post_id' => $post_id,
+					'type'    => Comments::TYPE,
+					'status'  => Comments::STATUS,
+					'count'   => true,
 				)
 			);
 		} else {

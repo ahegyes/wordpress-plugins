@@ -30,7 +30,11 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
 	}
 
 	// get_comment() reads an empty id as the comment of the current loop.
-	$comment = $comment instanceof WP_Comment || ( is_numeric( $comment ) && (int) $comment > 0 ) ? get_comment( $comment instanceof WP_Comment ? $comment : (int) $comment ) : null;
+	if ( ! $comment instanceof WP_Comment && ( ! is_numeric( $comment ) || (int) $comment <= 0 ) ) {
+		return null;
+	}
+
+	$comment = get_comment( $comment instanceof WP_Comment ? $comment : (int) $comment );
 	return $comment instanceof WP_Comment ? $comment : null;
 }
 
