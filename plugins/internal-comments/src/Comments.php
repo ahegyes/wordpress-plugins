@@ -10,7 +10,7 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Com
 /**
  * Keeps internal comments under their own status through every way WordPress changes a comment, and records each change to an internal comment's content.
  *
- * The status is what keeps them out of WordPress's queries, counts, feeds and REST API, so a comment stored, approved, held, marked spam or restored from the trash under another status is put back under it. Their type keeps them out of every comment query and feed that names neither it nor the status as well, which holds the comments v1 stored approved until the migration moves them, and a comment whose move back failed.
+ * The status is what keeps them out of WordPress's queries, counts, feeds and REST API, so a comment stored, approved, held, marked spam or restored from the trash under another status is put back under it. The safeguards leave their type out of every comment query and feed that names neither it nor the status as well, which holds the comments v1 stored approved until the migration moves them, and a comment whose move back failed.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -114,8 +114,6 @@ final class Comments implements ComponentInterface {
 		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
 		add_filter( 'delete_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
 		add_action( 'delete_comment', array( $this, 'keep_replies_private' ) );
-		add_filter( 'comments_clauses', array( $this, 'leave_out_of_queries' ), 10, 2 );
-		add_filter( 'comment_feed_where', array( $this, 'leave_out_of_feeds' ) );
 	}
 
 	// endregion
@@ -484,43 +482,6 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
-	 * Leaves internal comments out of a comment query that names neither their type nor their status.
-	 *
-	 * The condition goes in the query's WHERE clause, since WooCommerce leaves product reviews out of no query that names types to leave out.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   array<string, string> $clauses The query's clauses.
-	 * @param   \WP_Comment_Query     $query   The comment query.
-	 *
-	 * @return  array<string, string>
-	 */
-	public function leave_out_of_queries( array $clauses, \WP_Comment_Query $query ): array {
-		if ( Safeguards::names_internal_type( $query->query_vars ) || \in_array( self::STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
-			return $clauses;
-		}
-
-		$where            = $clauses['where'] ?? '';
-		$clauses['where'] = ( '' === $where ? '' : "$where AND " ) . self::get_type_condition();
-		return $clauses;
-	}
-
-	/**
-	 * Leaves internal comments out of comment feeds.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $where The feed query's WHERE clause.
-	 *
-	 * @return  string
-	 */
-	public function leave_out_of_feeds( string $where ): string {
-		return $where . ' AND ' . self::get_type_condition();
-	}
-
-	/**
 	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author, turning one private by a signed-in user who may not mark comments private, and turning one private once anyone has replied to it.
 	 *
 	 * @since   2.0.0
@@ -609,21 +570,6 @@ final class Comments implements ComponentInterface {
 			)
 		);
 		return \is_array( $replies ) ? \array_map( 'intval', \array_values( $replies ) ) : array();
-	}
-
-	/**
-	 * Returns the SQL condition that leaves internal comments out of a comment query.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @global  \wpdb $wpdb The WordPress database connection.
-	 *
-	 * @return  string
-	 */
-	protected static function get_type_condition(): string {
-		global $wpdb;
-		return $wpdb->prepare( '%i.comment_type <> %s', $wpdb->comments, self::TYPE ) ?? '';
 	}
 
 	// endregion

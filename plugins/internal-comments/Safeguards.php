@@ -5,7 +5,7 @@ namespace DeepWebSolutions\InternalComments;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Keeps WordPress's own actions on internal comments refused unless the booted plugin relaxes them, and WooCommerce's note routes and core's REST and XML-RPC listings off them, so a failed boot never leaves them to whoever can edit their post, moderate comments or edit orders.
+ * Keeps WordPress's own actions on internal comments refused unless the booted plugin relaxes them, and WooCommerce's note routes, comment queries and feeds that do not name them, and core's REST and XML-RPC listings off them, so a failed boot never leaves them to whoever can edit their post, moderate comments or edit orders.
  *
  * The entry requires it by path before the floor gate, so it parses on PHP 7.4 and calls only what the oldest WordPress the bootstrap package runs on provides.
  *
@@ -85,6 +85,28 @@ final class Safeguards {
 			-10
 		);
 
+		// 1.2.4 stored internal comments approved, so until the migration moves them under their status only their type keeps them out of a query that names neither, through the WHERE clause, since WooCommerce leaves product reviews out of no query that names types to leave out.
+		add_filter(
+			'comments_clauses',
+			static function ( array $clauses, \WP_Comment_Query $query ): array {
+				if ( self::names_internal_type( $query->query_vars ) || \in_array( 'dws_internal', (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+					return $clauses;
+				}
+
+				$where            = \is_string( $clauses['where'] ?? null ) ? $clauses['where'] : '';
+				$clauses['where'] = ( '' === $where ? '' : "$where AND " ) . self::get_type_condition();
+				return $clauses;
+			},
+			10,
+			2
+		);
+		add_filter(
+			'comment_feed_where',
+			static function ( string $where ): string {
+				return $where . ' AND ' . self::get_type_condition();
+			}
+		);
+
 		// Core's REST listing lets a user who moderates comments name any type and status, so internal comments reach REST only through the plugin's own routes.
 		add_filter(
 			'rest_comment_query',
@@ -141,6 +163,23 @@ final class Safeguards {
 	// endregion
 
 	// region HELPERS
+
+	/**
+	 * Returns the SQL condition that leaves internal comments out of a query on the comments table.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @return  string
+	 */
+	protected static function get_type_condition(): string {
+		global $wpdb;
+
+		// The comments table's name comes from WordPress, and wpdb::prepare() takes identifiers only since WordPress 6.2.
+		return "$wpdb->comments.comment_type <> 'dws_internal'";
+	}
 
 	/**
 	 * Returns whether a value is an internal comment.
