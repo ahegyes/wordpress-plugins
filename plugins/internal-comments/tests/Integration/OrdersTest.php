@@ -13,6 +13,7 @@ use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\InternalComments\Tests\Support\RegistersHooksTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class OrdersTest extends TestCase {
 	use OrderStorageTrait;
+	use RegistersHooksTrait;
 
 	protected static array $users = array();
 
@@ -34,6 +36,7 @@ final class OrdersTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/template.php';
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
+		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
 		foreach ( array( 'administrator', 'shop_manager', 'editor' ) as $role ) {
 			self::$users[ $role ] = (int) wp_insert_user(
 				array(
@@ -109,18 +112,37 @@ final class OrdersTest extends TestCase {
 		self::assertStringContainsString( 'data-post-id="' . $order->get_id() . '"', $markup );
 	}
 
+	// Each storage lists orders through hooks of its own: WordPress's posts list, or WooCommerce's order tables list for each order type.
 	#[DataProvider( 'storages' )]
-	public function test_the_orders_list_shows_the_column( bool $hpos, bool $sync ): void {
+	public function test_the_orders_list_shows_the_column_and_loads_its_quick_view( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
 		$order = $this->create_order();
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
 		wp_set_current_user( self::$users['shop_manager'] );
-		$screens = new ListColumn( self::make_assets() );
+		$column                    = new ListColumn( self::make_assets() );
+		$GLOBALS['current_screen'] = \WP_Screen::get( $hpos ? wc_get_page_screen_id( 'shop_order' ) : 'edit-shop_order' );
 
-		self::assertArrayHasKey( 'dws-internal-comments', $screens->add_column( array( 'order_number' => 'Order' ), 'shop_order' ) );
-		\ob_start();
-		$screens->render_order_cell( 'dws-internal-comments', $order );
-		self::assertStringContainsString( '1 internal comment', (string) \ob_get_clean() );
+		$this->register( $column );
+
+		try {
+			$columns = apply_filters( $hpos ? 'woocommerce_shop_order_list_table_columns' : 'manage_shop_order_posts_columns', array( 'order_number' => 'Order' ) );
+			\ob_start();
+			do_action( $hpos ? 'woocommerce_shop_order_list_table_custom_column' : 'manage_shop_order_posts_custom_column', 'dws-internal-comments', $hpos ? $order : $order->get_id() );
+			$cell = (string) \ob_get_clean();
+			$column->enqueue_list_assets( $hpos ? wc_get_page_screen_id( 'shop_order' ) : 'edit.php' );
+			$loaded = wp_script_is( 'internal-comments-quick-view' );
+		} finally {
+			unset( $GLOBALS['current_screen'] );
+			// WordPress refuses to register a handle twice, so the next row's enqueue starts afresh.
+			wp_dequeue_script( 'internal-comments-quick-view' );
+			wp_dequeue_style( 'internal-comments-quick-view' );
+			wp_deregister_script( 'internal-comments-quick-view' );
+			wp_deregister_style( 'internal-comments-quick-view' );
+		}
+
+		self::assertSame( array( 'order_number', 'dws-internal-comments' ), \array_keys( $columns ) );
+		self::assertStringContainsString( '1 internal comment', $cell );
+		self::assertTrue( $loaded );
 	}
 
 	// WooCommerce's v1 to v3 note routes check only that a comment sits on the order, never its type.

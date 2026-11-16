@@ -10,6 +10,7 @@ use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
+use DeepWebSolutions\InternalComments\Tests\Support\RegistersHooksTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -18,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( ListColumn::class )]
 final class ListColumnTest extends TestCase {
 	use RecordsDeprecationsTrait;
+	use RegistersHooksTrait;
 
 	// WordPress reports a deprecated hook only when something listens on it.
 	protected const string V1_PRECEDING_COLUMN = 'internal_comments/wp_table_output/insert_after';
@@ -59,6 +61,7 @@ final class ListColumnTest extends TestCase {
 			$this->stored[ $option ] = get_option( $option );
 		}
 		update_option( Options::POST_TYPES, array( 'post' ) );
+		$this->register( new ListColumn( self::make_assets() ) );
 		$this->post = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Screens',
@@ -92,14 +95,14 @@ final class ListColumnTest extends TestCase {
 		add_filter( 'internal_comments/list_table/preceding_column', $v2, 10, 2 );
 
 		try {
-			$columns = new ListColumn( self::make_assets() )->add_column(
+			$columns = apply_filters(
+				'manage_post_posts_columns',
 				array(
 					'cb'       => '',
 					'title'    => 'Title',
 					'comments' => 'Comments',
 					'date'     => 'Date',
-				),
-				'post'
+				)
 			);
 		} finally {
 			remove_filter( self::V1_PRECEDING_COLUMN, $v1 );
@@ -110,29 +113,16 @@ final class ListColumnTest extends TestCase {
 		self::assertSame( array( array( 'v1', 'comments', 'post' ), array( 'v2', 'comments', 'post' ) ), $seen );
 		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'internal_comments/list_table/preceding_column' ) ), $this->deprecated );
 		wp_set_current_user( self::$users['editor'] );
-		self::assertArrayHasKey( 'dws-internal-comments', new ListColumn( self::make_assets() )->add_column( array( 'title' => 'Title' ), 'post' ) );
-		self::assertSame( array( 'title' => 'Title' ), new ListColumn( self::make_assets() )->add_column( array( 'title' => 'Title' ), 'page' ) );
+		self::assertArrayHasKey( 'dws-internal-comments', apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) ) );
+		self::assertSame( array( 'title' => 'Title' ), apply_filters( 'manage_page_posts_columns', array( 'title' => 'Title' ) ) );
 	}
 
 	// WooCommerce rebuilds the columns of its orders and coupons lists on that hook at the default priority.
 	public function test_the_column_joins_a_list_after_woocommerce_rebuilds_it(): void {
 		update_option( Options::POST_TYPES, array( 'shop_order' ) );
-		$screens = new ListColumn( self::make_assets() );
-		$screens->register_hooks();
+		$column = $this->register( new ListColumn( self::make_assets() ) );
 
-		try {
-			$priority = has_filter( 'manage_shop_order_posts_columns', array( $screens, 'add_posts_column' ) );
-		} finally {
-			foreach ( $GLOBALS['wp_filter'] as $hook => $wp_hook ) {
-				foreach ( $wp_hook->callbacks as $level => $callbacks ) {
-					foreach ( $callbacks as $callback ) {
-						if ( \is_array( $callback['function'] ) && $screens === $callback['function'][0] ) {
-							remove_filter( $hook, $callback['function'], $level );
-						}
-					}
-				}
-			}
-		}
+		$priority = has_filter( 'manage_shop_order_posts_columns', array( $column, 'add_posts_column' ) );
 
 		self::assertIsInt( $priority );
 		self::assertGreaterThan( 10, $priority );
@@ -169,7 +159,7 @@ final class ListColumnTest extends TestCase {
 		wp_get_current_user()->get_role_caps();
 
 		try {
-			$column = $screens->add_column( array( 'title' => 'Title' ), 'post' );
+			$column = apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) );
 			$screens->enqueue_list_assets( 'edit.php' );
 			$loaded = wp_script_is( 'internal-comments-quick-view' );
 		} finally {
@@ -181,7 +171,7 @@ final class ListColumnTest extends TestCase {
 
 		self::assertArrayNotHasKey( 'dws-internal-comments', $column );
 		self::assertFalse( $loaded );
-		self::assertArrayHasKey( 'dws-internal-comments', $screens->add_column( array( 'title' => 'Title' ), 'post' ) );
+		self::assertArrayHasKey( 'dws-internal-comments', apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) ) );
 	}
 
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
@@ -191,11 +181,13 @@ final class ListColumnTest extends TestCase {
 		self::assertTrue( wp_style_is( 'internal-comments-quick-view' ) );
 		wp_dequeue_script( 'internal-comments-quick-view' );
 		wp_dequeue_style( 'internal-comments-quick-view' );
+		wp_deregister_script( 'internal-comments-quick-view' );
+		wp_deregister_style( 'internal-comments-quick-view' );
 	}
 
 	protected function cell(): \Dom\HTMLDocument {
 		\ob_start();
-		new ListColumn( self::make_assets() )->render_cell( 'dws-internal-comments', $this->post );
+		do_action( 'manage_post_posts_custom_column', 'dws-internal-comments', $this->post );
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 
