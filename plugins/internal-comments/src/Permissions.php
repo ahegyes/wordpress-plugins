@@ -31,6 +31,7 @@ final class Permissions implements ComponentInterface {
 		add_action( 'pre_get_comments', array( $this, 'exclude_from_xml_rpc' ) );
 		// Before WooCommerce's handler for product reviews at -1 and core's at 1.
 		add_action( 'wp_ajax_replyto-comment', array( $this, 'guard_core_replies' ), -10 );
+		add_action( 'wp_ajax_woocommerce_delete_order_note', array( $this, 'guard_woocommerce_note_deletion' ), -10 );
 	}
 
 	// endregion
@@ -80,9 +81,9 @@ final class Permissions implements ComponentInterface {
 	}
 
 	/**
-	 * Refuses core's REST API a read, update or deletion of an internal comment the current user may not see, edit or trash.
+	 * Refuses core's REST API a read, update or deletion of an internal comment the current user may not see, edit or trash, and answers WooCommerce's order-note routes for one as for a missing note.
 	 *
-	 * Core lets a comment's author read it, and any user who moderates comments update or delete one, before it asks about the comment itself. The check names the comment core acts on, the request's id, which a query or body parameter can set apart from the route's.
+	 * Core lets a comment's author read it, and any user who moderates comments update or delete one, before it asks about the comment itself, and WooCommerce's v1 to v3 note routes, which v2 and v3 inherit, read and delete any comment on the order. The check names the comment the route acts on, the request's id, which a query or body parameter can set apart from the route's.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -95,14 +96,24 @@ final class Permissions implements ComponentInterface {
 	 */
 	public function guard_core_rest_comment( mixed $response, mixed $handler, \WP_REST_Request $request ): mixed {
 		$callback   = \is_array( $handler ) ? ( $handler['callback'] ?? null ) : null;
-		$capability = \is_array( $callback ) && ( $callback[0] ?? null ) instanceof \WP_REST_Comments_Controller ? match ( $callback[1] ?? null ) {
+		$controller = \is_array( $callback ) ? ( $callback[0] ?? null ) : null;
+		$method     = \is_array( $callback ) ? ( $callback[1] ?? null ) : null;
+		$comment_id = \is_numeric( $request['id'] ) ? (int) $request['id'] : 0;
+		if ( is_wp_error( $response ) || true !== dws_ic_is_internal_comment( $comment_id ) ) {
+			return $response;
+		}
+
+		if ( $controller instanceof \WC_REST_Order_Notes_V1_Controller && \in_array( $method, array( 'get_item', 'delete_item' ), true ) ) {
+			return new \WP_Error( 'woocommerce_rest_invalid_id', __( 'Invalid resource ID.', 'internal-comments' ), array( 'status' => 404 ) );
+		}
+
+		$capability = $controller instanceof \WP_REST_Comments_Controller ? match ( $method ) {
 			'get_item'    => 'see_dws_internal_comment',
 			'update_item' => 'edit_dws_internal_comment',
 			'delete_item' => 'trash_dws_internal_comment',
 			default       => null,
 		} : null;
-		$comment_id = \is_numeric( $request['id'] ) ? (int) $request['id'] : 0;
-		if ( is_wp_error( $response ) || \is_null( $capability ) || true !== dws_ic_is_internal_comment( $comment_id ) || current_user_can( $capability, $comment_id ) ) {
+		if ( \is_null( $capability ) || current_user_can( $capability, $comment_id ) ) {
 			return $response;
 		}
 
@@ -135,6 +146,21 @@ final class Permissions implements ComponentInterface {
 	public function guard_core_replies(): void {
 		$type = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
 		if ( Comments::TYPE === $type && ! current_user_can( Capabilities::INSERT ) ) {
+			wp_die( -1, '', array( 'response' => 403 ) );
+		}
+	}
+
+	/**
+	 * Refuses WooCommerce's note deletion an internal comment, as the action deletes any comment it is given for good, whatever its type or post.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  void
+	 */
+	public function guard_woocommerce_note_deletion(): void {
+		$note_id = \filter_var( wp_unslash( $_POST['note_id'] ?? '' ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the nonce once this refusal has passed.
+		if ( ! \is_null( $note_id ) && true === dws_ic_is_internal_comment( $note_id ) ) {
 			wp_die( -1, '', array( 'response' => 403 ) );
 		}
 	}
