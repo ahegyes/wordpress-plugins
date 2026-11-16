@@ -13,7 +13,7 @@ use DeepWebSolutions\LinkedOrders\Linking;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Returns an order's node, or null when the value names no order of a supported type.
+ * Returns an order's node, or null when the value names no order of a supported type or the plugin has not booted.
  *
  * @api
  *
@@ -33,7 +33,7 @@ function dws_lowc_get_order_node( $order ): ?DWS_Order_Node {
 }
 
 /**
- * Returns whether an order is at the top of its tree, or null when it has no node.
+ * Returns whether an order is at the top of its tree, or null when it has no node, as no order has until the plugin has booted.
  *
  * @api
  *
@@ -52,7 +52,7 @@ function dws_lowc_is_root_order( $order ): ?bool {
 /**
  * Links two orders as parent and child.
  *
- * It returns false when the child is the parent or has a parent or children, when another request still links orders after five seconds, or when the child's save does not store its parent, and null when either order has no node.
+ * It returns false when the child is the parent or has a parent or children, when another request still links orders after five seconds, or when the child's save does not store its parent, and null when either order has no node, as no order has until the plugin has booted.
  *
  * A link reads and rewrites the parent's list of children, so it holds the linking lock and reads both orders' meta from the database under it. WooCommerce logs a save that fails and returns as if it had saved, so the parent lists the child only once the child's parent reads back from the database.
  *
@@ -100,7 +100,7 @@ function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
 }
 
 /**
- * Returns the node at the top of an order's tree, or null when the order has no node.
+ * Returns the node at the top of an order's tree, or null when the order has no node, as no order has until the plugin has booted.
  *
  * A root is its own top, and so is a child whose parent was deleted.
  *
@@ -132,7 +132,7 @@ function dws_lowc_get_root_order( $order ): ?DWS_Order_Node {
 }
 
 /**
- * Returns the ids of an order and its descendants, each child before the next with its own descendants, or null when the order has no node.
+ * Returns the ids of an order and its descendants, each child before the next with its own descendants, or null when the order has no node, as no order has until the plugin has booted.
  *
  * Each order is listed once, since v1 stored links without refusing a cycle.
  *

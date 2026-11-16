@@ -115,10 +115,10 @@ final class DWS_Order_Node {
 	 *
 	 * @param   mixed $order The order or its id.
 	 *
-	 * @throws  InvalidArgumentException Thrown when the order is missing or of an unsupported type.
+	 * @throws  InvalidArgumentException Thrown when the order is missing or of an unsupported type, or the plugin has not booted.
 	 */
 	public function __construct( mixed $order ) {
-		$order     = wc_get_order( $order );
+		$order     = OrderTypes::get_order( $order );
 		$post_type = $order instanceof WC_Order && true === dws_lowc_is_supported_order( $order ) ? get_post_type_object( $order->get_type() ) : null;
 		if ( ! $order instanceof WC_Order || is_null( $post_type ) ) {
 			throw new InvalidArgumentException( 'The order is missing or of an unsupported type.' );

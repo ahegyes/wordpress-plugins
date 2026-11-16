@@ -246,7 +246,7 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 }
 
 /**
- * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's filter first.
+ * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's filter first, and true until the plugin has booted.
  *
  * @api
  *
@@ -261,7 +261,7 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
  */
 function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_method_id, int $order_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	$order = wc_get_order( $order_id );
+	$order = OrderStrategy::get_order( $order_id );
 
 	/**
 	 * Filters whether a payment method stays locked for paying an order.
@@ -355,7 +355,7 @@ function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locke
 }
 
 /**
- * Returns whether the order strategy leaves a payment method locked for paying an order, true while the strategy is off.
+ * Returns whether the order strategy leaves a payment method locked for paying an order, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
