@@ -26,17 +26,8 @@ final class OptionsTest extends TestCase {
 	}
 
 	public function test_v1s_groups_map_each_of_their_fields_to_its_row(): void {
-		self::assertSame(
-			array(
-				'general' => array(
-					'post-types'              => Options::POST_TYPES,
-					'enable-private-comments' => Options::PRIVATE_COMMENTS,
-				),
-				'plugin'  => array(
-					'remove-data-uninstall' => Options::DELETE_DATA,
-				),
-			),
-			Options::V1_SETTINGS
-		);
+		self::assertSame( array( 'general', 'post-types', Options::POST_TYPES ), Options::find_v1_setting( 'post-types', 'general' ) );
+		self::assertSame( array( 'general', 'enable-private-comments', Options::PRIVATE_COMMENTS ), Options::find_v1_setting( 'enable-private-comments', 'general' ) );
+		self::assertSame( array( 'plugin', 'remove-data-uninstall', Options::DELETE_DATA ), Options::find_v1_setting( 'remove-data-uninstall', 'plugin' ) );
 	}
 }

@@ -5,7 +5,7 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 final class DeprecatedApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
+	use RunsRequestsTrait;
 
 	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::FULL_ACCESS_ROLES, Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_ORDERS );
 
@@ -24,12 +25,16 @@ final class DeprecatedApiTest extends TestCase {
 		return array(
 			'plugin'              => array( 'dws_lpmwc_get_hook_tag', array( 'check_payment_method_access_for_user' ), 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user' ),
 			'plugin-unsafe'       => array( 'dws_lpmwc_get_hook_tag', array( 'Some Name', array( 'A\\B', '' ) ), 'locked_payment_methods_for_woocommerce/some_name/a_b' ),
+			'plugin-non-ascii'    => array( 'dws_lpmwc_get_hook_tag', array( "Caf\u{e9}" ), 'locked_payment_methods_for_woocommerce/caf' ),
+			'plugin-bytes'        => array( 'dws_lpmwc_get_hook_tag', array( 'name', array( "ex\x01tra\u{e9}" ) ), 'locked_payment_methods_for_woocommerce/name/extra' ),
 			'component'           => array( 'dws_lpmwc_get_component_hook_tag', array( 'lock-manager', 'is_locked_payment_method', array( 'cod' ) ), 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/cod' ),
+			'component-gateway'   => array( 'dws_lpmwc_get_component_hook_tag', array( 'lock-manager', 'is_locked_payment_method', 'My_Gateway' ), 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/my_gateway' ),
 			'component-group'     => array( 'dws_lpmwc_get_component_hook_tag', array( 'general-settings', 'get_group_fields' ), 'locked_payment_methods_for_woocommerce/general_settings/get_group_fields' ),
+			'component-bytes'     => array( 'dws_lpmwc_get_component_hook_tag', array( 'general-settings', "get_group\x01_fields\u{e9}" ), 'locked_payment_methods_for_woocommerce/general_settings/get_group_fields' ),
 			'component-strategy'  => array( 'dws_lpmwc_get_component_hook_tag', array( 'user-meta-strategy', 'name' ), 'locked_payment_methods_for_woocommerce/user_meta_unlock_strategy/name' ),
 			'component-premium'   => array( 'dws_lpmwc_get_component_hook_tag', array( 'wc-memberships-strategy', 'name' ), 'locked_payment_methods_for_woocommerce/wc_memberships_unlock_strategy/name' ),
 			'component-integrate' => array( 'dws_lpmwc_get_component_hook_tag', array( 'integrations-settings', 'get_group_fields' ), 'locked_payment_methods_for_woocommerce/integrations_settings/get_group_fields' ),
-			'component-absent'    => array( 'dws_lpmwc_get_component_hook_tag', array( 'freemius', 'name' ), null ),
+			'component-unmapped'  => array( 'dws_lpmwc_get_component_hook_tag', array( 'some-component', 'name' ), 'locked_payment_methods_for_woocommerce/some_component/name' ),
 		);
 	}
 
@@ -106,7 +111,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	#[DataProvider( 'hook_tags' )]
-	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, ?string $expected ): void {
+	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, string $expected ): void {
 		self::assertSame( $expected, $shim( ...$arguments ) );
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
 	}
@@ -205,9 +210,37 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
 	}
 
+	public function test_v1s_order_checks_answer_locked_until_the_plugin_has_booted(): void {
+		global $wp_actions;
+
+		update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
+		$order = wc_create_order( array( 'customer_id' => self::$users['shop_manager'] ) );
+		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
+		$order->save();
+		self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
+		self::assertGreaterThan( 0, did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) );
+		$fired = $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'];
+		unset( $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] );
+
+		try {
+			self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
+			self::assertTrue( dws_lpmwc_check_payment_method_access_for_wc_order( 'cod', $order->get_id() ) );
+		} finally {
+			$wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] = $fired;
+			$order->delete( true );
+		}
+	}
+
+	public function test_with_woocommerce_inactive_v1s_order_checks_answer_locked(): void {
+		$request = self::request( 'add_filter( "deprecated_function_trigger_error", "__return_false" ); add_filter( "pre_option_' . Options::UNLOCK_VIA_ORDERS . '", static fn (): string => "yes" ); echo wp_json_encode( array( dws_lpmwc_check_payment_method_access_for_wc_order( "cod", 1 ), dws_lpmwc_check_payment_method_access_via_wc_order_meta( "cod", 1 ) ) );', '--skip-plugins=woocommerce' );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( '[true,true]', $request['last'], $request['output'] );
+	}
+
 	public function test_v1s_per_strategy_checks_answer_from_their_strategy_alone_and_true_while_it_is_off(): void {
 		$order = wc_create_order();
-		$order->update_meta_data( OrderStrategy::META_KEY, array( 'cod' ) );
+		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->save();
 
 		try {
@@ -248,7 +281,12 @@ final class DeprecatedApiTest extends TestCase {
 		}
 
 		self::assertContains( array( $group, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
+		self::assertContains( array( $group, 'locked_payment_methods_for_woocommerce/payment_method/locked_ids' ), $this->deprecated );
 		self::assertNotContains( array( $page, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated ); // No callback hooks the page's filter, so it reports no deprecation.
-		self::assertContains( array( 'dws_lpmwc_get_validated_general_setting', 'get_option()' ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_general_setting', 'dws_lpmwc_get_locked_payment_method_ids(), the locked_payment_methods_for_woocommerce/payment_method/locked_ids filter or dws_lpmwc_is_payment_method_locked()' ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option() on ' . Options::UNLOCK_VIA_USER_ROLES ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option() on ' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_raw_setting', 'get_option() on ' . Options::UNLOCK_VIA_USER_ROLES ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option()' ), $this->deprecated );
 	}
 }

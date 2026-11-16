@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+dws_lpmwc_get_locked_payment_method_ids(), the locked payment methods the lock check reads: the plugin's list, or v1's while it has stored none, with the ids the list's filters add.

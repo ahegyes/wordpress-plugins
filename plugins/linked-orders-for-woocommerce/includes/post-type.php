@@ -8,8 +8,8 @@
  * @package DeepWebSolutions\LinkedOrders
  */
 
-use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\LinkedOrders\Linking;
+use DeepWebSolutions\LinkedOrders\OrderTypes;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -36,7 +36,7 @@ function dws_lowc_get_supported_order_types(): array {
 }
 
 /**
- * Returns whether an order is of a type that can be linked, or null when it is not an order.
+ * Returns whether an order is of a type that can be linked, or null when it is not an order or the plugin has not booted.
  *
  * @api
  *
@@ -52,12 +52,14 @@ function dws_lowc_is_supported_order( $order ): ?bool {
 		return null;
 	}
 
-	$order = wc_get_order( $order );
+	$order = OrderTypes::get_order( $order );
 	return $order instanceof WC_Order ? in_array( $order->get_type(), dws_lowc_get_supported_order_types(), true ) : null;
 }
 
 /**
  * Returns the statuses, without their 'wc-' prefix, that an order must have for a child to be created from it.
+ *
+ * Until the plugin has booted, the filter starts from no statuses.
  *
  * @api
  *
@@ -70,7 +72,7 @@ function dws_lowc_is_supported_order( $order ): ?bool {
  * @return  string[]
  */
 function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_order', ?WC_Order $order = null ): array {
-	$statuses   = array_map( array( OrderUtil::class, 'remove_status_prefix' ), array_keys( wc_get_order_statuses() ) );
+	$statuses   = OrderTypes::get_statuses();
 	$order_type = is_null( $order ) ? $order_type : $order->get_type();
 
 	/**
@@ -89,7 +91,7 @@ function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_o
 /**
  * Creates an order linked as the child of a supported order, with the parent's customer and addresses, and returns its id.
  *
- * The creator must create a new order, because a refused link deletes what it returned, so the function refuses the parent and any order with a parent or children before it changes them. An existing order without links that a creator returns is still deleted when the link gives up waiting for another request's. Returns null when the parent is missing or unsupported, or when the creator is not callable or returns no such order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
+ * The creator must create a new order, because a refused link deletes what it returned, so the function refuses the parent and any order with a parent or children before it changes them. An existing order without links that a creator returns is still deleted when the link gives up waiting for another request's. Returns null when the parent is missing or unsupported or the plugin has not booted, or when the creator is not callable or returns no such order, the creator's error when it fails, and an error when the link is refused, after deleting the child.
  *
  * @api
  *
@@ -102,7 +104,7 @@ function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_o
  * @return  int|WP_Error|null
  */
 function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
-	$parent = wc_get_order( $parent_id );
+	$parent = OrderTypes::get_order( $parent_id );
 	if ( ! $parent instanceof WC_Order || true !== dws_lowc_is_supported_order( $parent ) ) {
 		return null;
 	}

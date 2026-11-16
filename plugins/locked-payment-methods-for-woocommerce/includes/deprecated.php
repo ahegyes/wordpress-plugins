@@ -8,7 +8,6 @@
  * @package DeepWebSolutions\LockedPaymentMethods
  */
 
-use DeepWebSolutions\LockedPaymentMethods\Deprecated;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
@@ -175,7 +174,7 @@ function dws_lpmwc_min_wp(): string {
 }
 
 /**
- * Returns a hook name as v1 built it for the plugin.
+ * Returns a hook name under the plugin's v1 root, its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it.
  *
  * @api
  *
@@ -190,11 +189,11 @@ function dws_lpmwc_min_wp(): string {
  */
 function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return Deprecated::join_hook_tag( 'locked_payment_methods_for_woocommerce', $name, $extra );
+	return strtolower( (string) filter_var( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( 'locked_payment_methods_for_woocommerce', $name ), (array) $extra ), 'boolval' ) ) ), FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) );
 }
 
 /**
- * Returns a hook name as v1 built it for one of its components, or null for an id v1 had no component for.
+ * Returns a hook name under one of v1's components, its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it: the root v1 named the component's hooks under, which is its id with dashes as underscores but for the unlock strategies, which v1 renamed.
  *
  * @api
  *
@@ -206,11 +205,20 @@ function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
  * @param       string               $name         The hook's name.
  * @param       string|array<string> $extra        The name's further parts.
  *
- * @return      string|null
+ * @return      string
  */
-function dws_lpmwc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
+function dws_lpmwc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return isset( Deprecated::COMPONENTS[ $component_id ] ) ? Deprecated::join_hook_tag( 'locked_payment_methods_for_woocommerce/' . Deprecated::COMPONENTS[ $component_id ], $name, $extra ) : null;
+	$root = match ( $component_id ) {
+		'user-meta-strategy'      => 'user_meta_unlock_strategy',
+		'user-role-strategy'      => 'user_role_unlock_strategy',
+		'order-meta-strategy'     => 'order_meta_unlock_strategy',
+		'groups-strategy'         => 'groups_unlock_strategy',
+		'wc-memberships-strategy' => 'wc_memberships_unlock_strategy',
+		default                   => str_replace( '-', '_', $component_id ),
+	};
+
+	return strtolower( (string) filter_var( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( 'locked_payment_methods_for_woocommerce', $root, $name ), (array) $extra ), 'boolval' ) ) ), FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) );
 }
 
 /**
@@ -246,7 +254,7 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 }
 
 /**
- * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's filter first.
+ * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's filter first, and true until the plugin has booted.
  *
  * @api
  *
@@ -261,7 +269,7 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
  */
 function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_method_id, int $order_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	$order = wc_get_order( $order_id );
+	$order = OrderStrategy::get_order( $order_id );
 
 	/**
 	 * Filters whether a payment method stays locked for paying an order.
@@ -355,7 +363,7 @@ function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locke
 }
 
 /**
- * Returns whether the order strategy leaves a payment method locked for paying an order, true while the strategy is off.
+ * Returns whether the order strategy leaves a payment method locked for paying an order, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -380,7 +388,7 @@ function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked
  *
  * @since       1.0.0
  * @version     2.0.0
- * @deprecated  2.0.0 Use get_option().
+ * @deprecated  2.0.0 Use what the deprecation notice names.
  *
  * @param       string      $field_id v1's id of the setting, prefixed with its group and a slash when the group is null.
  * @param       string|null $group    Optional. v1's id of the setting's group. Default null.
@@ -388,8 +396,8 @@ function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked
  * @return      mixed
  */
 function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
-	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
 	$setting = Options::find_v1_setting( $field_id, $group );
+	_deprecated_function( __FUNCTION__, '2.0.0', esc_html( Options::get_v1_read_replacement( $setting['key'] ?? null ) ) );
 	return is_null( $setting ) ? null : get_option( $setting['key'], null );
 }
 
@@ -400,7 +408,7 @@ function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
  *
  * @since       1.0.0
  * @version     2.0.0
- * @deprecated  2.0.0 Use get_option().
+ * @deprecated  2.0.0 Use what the deprecation notice names.
  *
  * @param       string      $field_id v1's id of the setting, prefixed with its group and a slash when the group is null.
  * @param       string|null $group    Optional. v1's id of the setting's group. Default null.
@@ -408,8 +416,8 @@ function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
  * @return      mixed
  */
 function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = null ) {
-	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
-	return Deprecated::read_setting( $field_id, $group );
+	_deprecated_function( __FUNCTION__, '2.0.0', esc_html( Options::get_v1_read_replacement( Options::find_v1_setting( $field_id, $group )['key'] ?? null ) ) );
+	return Options::read_setting( $field_id, $group );
 }
 
 /**
@@ -430,7 +438,7 @@ function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = nul
 function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = null ) {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
 	$setting = Options::find_v1_setting( $field_id, $group );
-	return is_null( $setting ) ? null : Deprecated::validate_setting( $value, $setting['key'] );
+	return is_null( $setting ) ? null : Options::validate_setting( $value, $setting['key'] );
 }
 
 /**
@@ -440,13 +448,13 @@ function dws_lpmwc_validate_setting( $value, string $field_id, ?string $group = 
  *
  * @since       1.0.0
  * @version     2.0.0
- * @deprecated  2.0.0 Use get_option().
+ * @deprecated  2.0.0 Use what the deprecation notice names.
  *
  * @param       string $field_id v1's id of the setting.
  *
  * @return      mixed
  */
 function dws_lpmwc_get_validated_general_setting( string $field_id ) {
-	_deprecated_function( __FUNCTION__, '2.0.0', 'get_option()' );
-	return Deprecated::read_setting( $field_id, 'general' );
+	_deprecated_function( __FUNCTION__, '2.0.0', esc_html( Options::get_v1_read_replacement( Options::find_v1_setting( $field_id, 'general' )['key'] ?? null ) ) );
+	return Options::read_setting( $field_id, 'general' );
 }

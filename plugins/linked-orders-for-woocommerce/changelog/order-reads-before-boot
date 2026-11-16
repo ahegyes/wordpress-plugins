@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+Until the plugin has booted on plugins_loaded, and so while WooCommerce is inactive, DWS_Order_Node's constructor throws, dws_lowc_get_order_node() and the other node, link and tree functions, dws_lowc_is_supported_order() and dws_lowc_create_linked_child() answer null, and post_type/valid_statuses_for_new_child starts from no statuses.

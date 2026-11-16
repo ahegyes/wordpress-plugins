@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+dws_lowc_get_raw_setting(), dws_lowc_get_validated_setting() and dws_lowc_validate_setting(); use get_option() on each setting's option, such as dws-lowc_general_max-depth.

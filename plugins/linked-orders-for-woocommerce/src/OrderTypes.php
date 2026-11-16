@@ -7,7 +7,7 @@ use Automattic\WooCommerce\Utilities\OrderUtil;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Words the order types that can be linked: their singular names, the phrase that adds a child and their admin lists.
+ * Reads the orders and statuses of the order types that can be linked, and words those types: their singular names, the phrase that adds a child and their admin lists.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -26,6 +26,45 @@ final class OrderTypes {
 	// endregion
 
 	// region METHODS
+
+	/**
+	 * Returns an order, or null when there is none or the plugin has not booted.
+	 *
+	 * The plugin's global functions and model stay defined where WooCommerce is inactive, so they read orders only through here, once the boot has checked WooCommerce.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $order The order, its post or its id.
+	 *
+	 * @return  \WC_Order|null
+	 */
+	public static function get_order( mixed $order ): ?\WC_Order {
+		if ( 0 === did_action( 'linked_orders_for_woocommerce/boot/succeeded' ) ) {
+			return null;
+		}
+
+		$order = wc_get_order( $order );
+		return $order instanceof \WC_Order ? $order : null;
+	}
+
+	/**
+	 * Returns WooCommerce's order statuses without their 'wc-' prefix, or none until the plugin has booted.
+	 *
+	 * The plugin's global functions stay defined where WooCommerce is inactive, so they read the statuses only through here, once the boot has checked WooCommerce.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  string[]
+	 */
+	public static function get_statuses(): array {
+		if ( 0 === did_action( 'linked_orders_for_woocommerce/boot/succeeded' ) ) {
+			return array();
+		}
+
+		return \array_map( array( OrderUtil::class, 'remove_status_prefix' ), \array_keys( wc_get_order_statuses() ) );
+	}
 
 	/**
 	 * Returns an order type's singular name, or its plural name where the type registered no singular one.

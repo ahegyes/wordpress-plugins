@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Tells whether a payment method is locked for a user and an order.
+ * Tells which payment methods are locked, and whether one is locked for a user and an order.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -11,6 +11,22 @@
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * Returns the ids of the locked payment methods, the list the lock check reads: the plugin's list, or v1's while the plugin has stored none, with the ids v1's value filter and locked_payment_methods_for_woocommerce/payment_method/locked_ids add.
+ *
+ * At checkout, v1's deprecated locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods filter can lock more of the offered methods.
+ *
+ * @api
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @return  string[]
+ */
+function dws_lpmwc_get_locked_payment_method_ids(): array {
+	return Safeguards::get_locked_payment_method_ids();
+}
 
 /**
  * Returns whether a payment method is locked for a user and an order: whether the locked list holds it and locked_payment_methods_for_woocommerce/payment_method/should_lock does not relax it.

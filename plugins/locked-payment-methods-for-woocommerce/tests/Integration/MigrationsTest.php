@@ -7,7 +7,6 @@ use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -147,7 +146,7 @@ final class MigrationsTest extends TestCase {
 	public function test_the_grants_step_moves_v1s_user_grants_into_the_sites_lists_and_deletes_every_v1_grant_row(): void {
 		global $wpdb;
 
-		$key   = $wpdb->get_blog_prefix() . UserProfileStrategy::USER_OPTION;
+		$key   = $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods';
 		$users = self::create_users( 2 );
 		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', 'yes' );
 		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_bacs', 'no' );
@@ -170,7 +169,7 @@ final class MigrationsTest extends TestCase {
 	public function test_the_grants_step_throws_when_a_users_grants_cannot_be_stored(): void {
 		$users = self::create_users( 1 );
 		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', 'yes' );
-		$fail = static fn ( mixed $check, int $object_id, string $meta_key ): mixed => \str_ends_with( $meta_key, UserProfileStrategy::USER_OPTION ) ? false : $check;
+		$fail = static fn ( mixed $check, int $object_id, string $meta_key ): mixed => \str_ends_with( $meta_key, 'dws_lpmwc_unlocked_payment_methods' ) ? false : $check;
 		add_filter( 'update_user_metadata', $fail, 10, 3 );
 
 		try {

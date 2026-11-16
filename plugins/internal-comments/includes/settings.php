@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Keeps v1's settings API, which reads each setting by its v1 field id within its group of the plugin's settings page.
+ * Keeps v1's deprecated settings API, which reads each setting by its v1 field id within its group of the plugin's settings page, and the plugin's readers of its settings.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -17,38 +17,38 @@ defined( 'ABSPATH' ) || exit;
  *
  * @api
  *
- * @since   1.0.0
- * @version 2.0.0
+ * @since       1.0.0
+ * @version     2.0.0
+ * @deprecated  2.0.0 Use get_option() on the option the notice names.
  *
- * @param   string      $field_id The field's v1 id, prefixed with its group and a slash when no group is given.
- * @param   string|null $group    The field's v1 group, with or without its '-settings' suffix.
+ * @param       string      $field_id The field's v1 id, prefixed with its group and a slash when no group is given.
+ * @param       string|null $group    The field's v1 group, with or without its '-settings' suffix.
  *
- * @return  mixed
+ * @return      mixed
  */
 function dws_ic_get_raw_setting( string $field_id, ?string $group = null ) {
 	$field = Options::find_v1_setting( $field_id, $group );
-	if ( is_null( $field ) ) {
-		return null;
-	}
-
-	return get_option( $field[2], null );
+	_deprecated_function( __FUNCTION__, '2.0.0', esc_html( Options::get_v1_read_replacement( $field[2] ?? null ) ) );
+	return is_null( $field ) ? null : get_option( $field[2], null );
 }
 
 /**
- * Returns the validated value of a setting, filtered, or null for a group v1 did not have.
+ * Returns the validated value of a setting, through v1's filters, or null for a group v1 did not have.
  *
  * @api
  *
- * @since   1.1.0
- * @version 2.0.0
+ * @since       1.1.0
+ * @version     2.0.0
+ * @deprecated  2.0.0 Use get_option() on the option the notice names.
  *
- * @param   string      $field_id The field's v1 id, prefixed with its group and a slash when no group is given.
- * @param   string|null $group    The field's v1 group, with or without its '-settings' suffix.
+ * @param       string      $field_id The field's v1 id, prefixed with its group and a slash when no group is given.
+ * @param       string|null $group    The field's v1 group, with or without its '-settings' suffix.
  *
- * @return  mixed
+ * @return      mixed
  */
 function dws_ic_get_validated_setting( string $field_id, ?string $group = null ) {
 	$field = Options::find_v1_setting( $field_id, $group );
+	_deprecated_function( __FUNCTION__, '2.0.0', esc_html( Options::get_v1_read_replacement( $field[2] ?? null ) ) );
 	if ( is_null( $field ) ) {
 		return null;
 	}
@@ -65,42 +65,22 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
 			break;
 	}
 
-	/**
-	 * Filters a setting's validated value.
-	 *
-	 * @since       1.0.0
-	 * @version     2.0.0
-	 * @deprecated  2.0.0 Use internal_comments/settings/validated_value.
-	 *
-	 * @param       mixed  $value    The validated value.
-	 * @param       string $field_id The field's v1 id.
-	 */
-	$value = apply_filters_deprecated( "internal_comments/{$group_id}_settings/get_validated_option_value", array( $value, $id ), '2.0.0', 'internal_comments/settings/validated_value' );
-	if ( is_null( $group ) ) {
-		/**
-		 * Filters the validated value of a setting read through the settings page, after its group's filter.
-		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use internal_comments/settings/validated_value.
-		 *
-		 * @param       mixed  $value    The validated value.
-		 * @param       string $field_id The field's v1 id, prefixed with its group and a slash.
-		 */
-		$value = apply_filters_deprecated( 'internal_comments/settings/get_validated_option_value', array( $value, $field_id ), '2.0.0', 'internal_comments/settings/validated_value' );
+	$value = Options::apply_v1_setting_filter( $value, $group_id, $id, $option );
+	if ( ! is_null( $group ) ) {
+		return $value;
 	}
 
 	/**
-	 * Filters a setting's validated value.
+	 * Filters the validated value of a setting read through the settings page, after its group's filter.
 	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
+	 * @since       1.0.0
+	 * @version     2.0.0
+	 * @deprecated  2.0.0 Use the hook the deprecation notice names.
 	 *
-	 * @param   mixed  $value    The validated value.
-	 * @param   string $field_id The field's v1 id.
-	 * @param   string $group    The field's v1 group.
+	 * @param       mixed  $value    The validated value.
+	 * @param       string $field_id The field's v1 id, prefixed with its group and a slash.
 	 */
-	return apply_filters( 'internal_comments/settings/validated_value', $value, $id, $group_id );
+	return apply_filters_deprecated( 'internal_comments/settings/get_validated_option_value', array( $value, $field_id ), '2.0.0', "option_{$option}" );
 }
 
 /**
@@ -114,8 +94,7 @@ function dws_ic_get_validated_setting( string $field_id, ?string $group = null )
  * @return  list<string>
  */
 function dws_ic_get_selected_post_types(): array {
-	$selected = get_option( Options::POST_TYPES, array() );
-	return is_array( $selected ) ? array_values( array_filter( $selected, 'is_string' ) ) : array();
+	return Options::get_list( Options::POST_TYPES );
 }
 
 /**
@@ -129,5 +108,5 @@ function dws_ic_get_selected_post_types(): array {
  * @return  bool
  */
 function dws_ic_are_enabled_private_comments(): bool {
-	return true === dws_ic_get_validated_setting( 'enable-private-comments', 'general' );
+	return Options::get_bool( Options::PRIVATE_COMMENTS );
 }

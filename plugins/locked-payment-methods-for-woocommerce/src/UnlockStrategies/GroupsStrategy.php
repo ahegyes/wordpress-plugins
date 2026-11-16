@@ -54,7 +54,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 *
 	 * @var     string
 	 */
-	public const string OPTION = 'dws_lpmwc_groups_unlocked_payment_methods';
+	protected const string OPTION = 'dws_lpmwc_groups_unlocked_payment_methods';
 
 	// endregion
 

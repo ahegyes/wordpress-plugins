@@ -1,4 +1,4 @@
 Significance: major
 Type: changed
 
-Each setting moves from v1's dws-internal-comments_general and dws-internal-comments_plugin rows to a row of its own, dws_ic_post_types, dws_ic_private_comments_enabled and dws_ic_delete_data, copied there on update. v1's rows stay as they were for one major, so a rollback to 1.x reads them and code that reads them directly sees their values at the update. A field an extension adds through a group's get_group_fields filter stores in dws_ic_{group}_{id}, which dws_ic_get_raw_setting() reads.
+Each setting moves from v1's dws-internal-comments_general and dws-internal-comments_plugin rows to a row of its own, dws_ic_post_types, dws_ic_private_comments_enabled and dws_ic_delete_data, copied there on update. v1's rows stay as they were for one major, so a rollback to 1.x reads them and code that reads them directly sees their values at the update. A field an extension adds through a group's get_group_fields filter stores in dws_ic_{group}_{id}, which get_option() reads.

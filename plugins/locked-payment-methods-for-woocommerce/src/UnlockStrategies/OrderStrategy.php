@@ -42,7 +42,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 *
 	 * @var     string
 	 */
-	public const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
+	protected const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
 
 	// endregion
 
@@ -122,6 +122,27 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	// region METHODS
 
 	/**
+	 * Returns an order, or null for none or until the plugin has booted.
+	 *
+	 * The plugin's v1 order functions stay defined where WooCommerce is inactive, so they read orders only through here, once the boot has checked WooCommerce.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $order_id The order's id, or 0 for none.
+	 *
+	 * @return  \WC_Order|null
+	 */
+	public static function get_order( int $order_id ): ?\WC_Order {
+		if ( 0 === $order_id || 0 === did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) ) {
+			return null;
+		}
+
+		$order = wc_get_order( $order_id );
+		return $order instanceof \WC_Order ? $order : null;
+	}
+
+	/**
 	 * Returns whether the order's grants list holds the payment method.
 	 *
 	 * @since   2.0.0
@@ -137,7 +158,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	}
 
 	/**
-	 * Returns the ids of the payment methods unlocked for paying an order.
+	 * Returns the ids of the payment methods unlocked for paying an order, none until the plugin has booted.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -147,8 +168,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 * @return  string[]
 	 */
 	public static function get_unlocked_ids( int $order_id ): array {
-		$order = 0 === $order_id ? false : wc_get_order( $order_id );
-		$ids   = $order instanceof \WC_Order ? $order->get_meta( self::META_KEY ) : array();
+		$ids = self::get_order( $order_id )?->get_meta( self::META_KEY );
 		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
 	}
 

@@ -1,0 +1,4 @@
+Significance: patch
+Type: changed
+
+v1's dws_lpmwc_check_payment_method_access_for_wc_order() and dws_lpmwc_check_payment_method_access_via_wc_order_meta() answer locked until the plugin has booted on plugins_loaded, and so while WooCommerce is inactive.
