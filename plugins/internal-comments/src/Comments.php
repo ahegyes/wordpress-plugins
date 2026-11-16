@@ -477,7 +477,7 @@ final class Comments implements ComponentInterface {
 		$comment_id = (int) \filter_var( $comment['comment_ID'] ?? 0, \FILTER_VALIDATE_INT );
 		$previous   = wp_unslash( $comment['comment_content'] ?? '' );
 		if ( ( $data['comment_content'] ?? '' ) !== $previous ) {
-			$change_id = \uniqid( (string) get_current_user_id(), true );
+			$change_id = wp_generate_uuid4();
 			add_comment_meta( $comment_id, self::META_CHANGE_ID, wp_slash( $change_id ) );
 			add_comment_meta( $comment_id, self::META_PREVIOUS_CONTENT . $change_id, wp_slash( $previous ) );
 			add_comment_meta( $comment_id, self::META_CHANGED_BY . $change_id, get_current_user_id() );

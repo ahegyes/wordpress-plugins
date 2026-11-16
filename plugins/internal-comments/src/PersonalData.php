@@ -9,7 +9,7 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Com
 /**
  * Adds internal comments to WordPress's personal data export and erasure, whose own comment exporter and eraser query only the public statuses.
  *
- * The eraser anonymizes each comment's author as WordPress's own eraser does and keeps the text, which the comment's thread still needs; the administrator decides each request by running it.
+ * The eraser anonymizes each comment's author as WordPress's own eraser does, and the user each of their revisions names, and keeps the text, which the comment's thread still needs; the administrator decides each request by running it.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -134,9 +134,9 @@ final class PersonalData implements ComponentInterface {
 	}
 
 	/**
-	 * Anonymizes the author of each internal comment an email address wrote, under any status, and keeps the text.
+	 * Anonymizes the author of each internal comment an email address wrote, under any status, and the address's user in each revision they made, on any comment, and keeps the text.
 	 *
-	 * It always reads the first page, since an anonymized comment no longer matches the address, and stops at a page that anonymizes nothing, so a comment whose write fails cannot hold it in a loop.
+	 * It always reads the first page of each, since an anonymized comment or revision no longer matches the address, and stops at a page that anonymizes nothing, so a row whose write fails cannot hold it in a loop.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -174,11 +174,33 @@ final class PersonalData implements ComponentInterface {
 			}
 		}
 
+		$user      = '' === $email_address ? false : get_user_by( 'email', $email_address );
+		$revisions = false === $user ? array() : $wpdb->get_results( $wpdb->prepare( 'SELECT meta_id, comment_id, meta_key FROM %i WHERE meta_key LIKE %s AND meta_value = %s LIMIT %d', $wpdb->commentmeta, $wpdb->esc_like( Comments::META_CHANGED_BY ) . '%', (string) $user->ID, self::PAGE_SIZE ), \ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The meta API reads no rows by key prefix and value, and the writes below clean the cache.
+		foreach ( \is_array( $revisions ) ? $revisions : array() as $revision ) {
+			$meta_id    = (int) \filter_var( $revision['meta_id'] ?? 0, \FILTER_VALIDATE_INT );
+			$comment_id = (int) \filter_var( $revision['comment_id'] ?? 0, \FILTER_VALIDATE_INT );
+			$change_id  = \substr( \is_string( $revision['meta_key'] ?? null ) ? $revision['meta_key'] : '', \strlen( Comments::META_CHANGED_BY ) );
+			$rekeyed    = true;
+			// 1.2.4 began each change id with its user's id, so such a revision takes a new id, in its record and in each of its keys.
+			if ( ! wp_is_uuid( $change_id, 4 ) ) {
+				$uuid = wp_generate_uuid4();
+				// One statement renames the three keys and rewrites the record, so a failed write leaves the revision whole; MySQL assigns meta_key first, which only the record's row keeps.
+				$rekeyed = false !== $wpdb->query( $wpdb->prepare( 'UPDATE %i SET meta_key = REPLACE( meta_key, %s, %s ), meta_value = IF( meta_key = %s, %s, meta_value ) WHERE comment_id = %d AND ( meta_key IN ( %s, %s, %s ) OR ( meta_key = %s AND meta_value = %s ) )', $wpdb->commentmeta, $change_id, $uuid, Comments::META_CHANGE_ID, $uuid, $comment_id, Comments::META_PREVIOUS_CONTENT . $change_id, Comments::META_CHANGED_BY . $change_id, Comments::META_CHANGED_TIME . $change_id, Comments::META_CHANGE_ID, $change_id ) ?? '' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The meta API renames no key, and the cache is cleaned below.
+				wp_cache_delete( $comment_id, 'comment_meta' );
+			}
+
+			if ( $rekeyed && update_metadata_by_mid( 'comment', $meta_id, '0' ) ) {
+				$removed = true;
+			} else {
+				$retained = true;
+			}
+		}
+
 		return array(
 			'items_removed'  => $removed,
 			'items_retained' => $retained,
 			'messages'       => array(),
-			'done'           => \count( $comments ) < self::PAGE_SIZE || ! $removed,
+			'done'           => ( \count( $comments ) < self::PAGE_SIZE && \count( (array) $revisions ) < self::PAGE_SIZE ) || ! $removed,
 		);
 	}
 
