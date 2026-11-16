@@ -14,7 +14,14 @@ Install the plugin from the WordPress plugin directory under Plugins → Add New
 
 ## Extending
 
-Other plugins create and read internal comments through the functions in `includes/comments.php`, such as `dws_ic_create_internal_comment()`, `dws_ic_get_internal_comments()` and `dws_ic_is_private_comment()`, and the `DWS_Internal_Comment` class they return; they check what a user may do with a comment through the `see_dws_internal_comment`, `edit_dws_internal_comment` and `trash_dws_internal_comment` capabilities. Every hook is named `internal_comments/area/name`, under v1's root, and each name v1 fired there still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals.
+Other plugins integrate through the plugin's functions, its `DWS_Internal_Comment` model, its hooks and WordPress's APIs on the names below, never through its classes in `src/`. They call its functions no earlier than `plugins_loaded`, and behind `function_exists()`, since the plugin may load later or stay active below its floors without defining them, and register their extensions on `internal_comments/boot/succeeded`, hooked before `plugins_loaded` reaches priority 15, where the plugin boots.
+
+- The functions in `includes/comments.php` create and read internal comments, such as `dws_ic_create_internal_comment()`, which returns the new comment's id or null, `dws_ic_get_internal_comments()`, which returns a post's comments as `DWS_Internal_Comment` objects, and `dws_ic_is_internal_comment()`.
+- `dws_ic_get_selected_post_types()` lists the post types that take internal comments, and `dws_ic_are_enabled_private_comments()` answers whether one can be marked private.
+- `dws_ic_get_plugin_slug()`, `dws_ic_get_plugin_name()` and `dws_ic_get_plugin_version()` read the plugin's header.
+- Every hook is named `internal_comments/area/name`, under v1's root, and each name v1 fired there still fires first, deprecated; `CHANGELOG.md` lists the renames and the removals. `internal_comments/boot/succeeded`, `internal_comments/boot/blocked` and `internal_comments/boot/failed` fire once the plugin's boot has an outcome.
+- The meta box and the quick view use the `internal-comments/v1` REST routes, and internal comments are comments of the `dws_internal` type and status.
+- The settings are the options `dws_ic_post_types`, `dws_ic_private_comments_enabled` and `dws_ic_delete_data`, which `get_option()` reads. What a user may do with a comment is checked through the `see_dws_internal_comment`, `edit_dws_internal_comment` and `trash_dws_internal_comment` capabilities.
 
 ## Development
 
