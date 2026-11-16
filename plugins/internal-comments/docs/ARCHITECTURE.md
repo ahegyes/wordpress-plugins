@@ -17,7 +17,7 @@ This document describes how the plugin loads, boots, stores its data and leaves 
 
 `src/Plugin.php` is the composition root. Its constructor builds the plugin's identity from its entry file, slug and prefix, then the logger, the scheduler and the framework's `PluginBoot`, which each take the identity, and `PluginBoot` runs the composition and reports its outcome:
 
-- The scheduler, on WP-Cron, registers its hooks first, so the migration runner's scheduled hook keeps running.
+- The scheduler, on Action Scheduler where WooCommerce provides it and on WP-Cron otherwise, registers its hooks first, so the migration runner's scheduled hook keeps running.
 - The migration runner registers, and runs pending steps on `wp_loaded` and from its scheduled hook.
 - The kernel builds each class in `Plugin::COMPONENTS` through a PHP-DI container and calls its `register_hooks()`.
 - `CapabilityGrants` gives v1's twelve capabilities to administrators, and the five that post, see and mark comments private to editors, authors, contributors and shop managers, on `wp_loaded`, once per change of the declaration or the roles.

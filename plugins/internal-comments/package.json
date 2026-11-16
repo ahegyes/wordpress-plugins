@@ -1,7 +1,7 @@
 {
 	"name": "@ahegyes/internal-comments",
 	"private": true,
-	"description": "DWS WordPress plugin template — wp-env, script and style tooling.",
+	"description": "Lets the people who run a site leave comments on its posts, pages, products and orders that only they can read.",
 	"license": "GPL-3.0-or-later",
 	"repository": {
 		"type": "git",
