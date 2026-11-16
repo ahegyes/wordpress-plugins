@@ -75,6 +75,8 @@ final class FootprintTest extends TestCase {
 		self::assertSame( array( 'dws_internal' ), $footprint['comment_types'] );
 		self::assertSame( array( 'internal_comments_version', 'internal_comments_original_version', '_internal_comments_admin_notices' ), $footprint['options'] );
 		self::assertSame( array( '_internal_comments_admin_notices' ), $footprint['user_meta_global'] );
+		// v1's premium edition recorded revisions on any comment, so they outlive the internal comments' own deletion.
+		self::assertSame( array( 'comment' => array( '_dws_ic_' ) ), $footprint['meta_prefixes'] ?? null );
 	}
 
 	public function test_it_covers_every_capability_the_plugin_grants(): void {

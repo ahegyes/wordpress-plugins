@@ -193,6 +193,23 @@ final class RestRoutesTest extends TestCase {
 		self::assertSame( 400, $this->request( 'administrator', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => '' ) )->get_status() );
 	}
 
+	// WordPress stores no comment text longer than its column, so the routes refuse it before they write anything.
+	public function test_a_text_longer_than_wordpress_stores_is_refused_before_any_write(): void {
+		$comment = $this->comment( 'Short' );
+		$long    = \str_repeat( 'a', wp_get_comment_fields_max_lengths()['comment_content'] + 1 );
+
+		$created = $this->create( 'administrator', $this->post, array( 'content' => $long ) );
+		$updated = $this->request( 'administrator', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => $long ) );
+
+		self::assertSame( 400, $created->get_status() );
+		self::assertSame( 'dws_ic_too_long', $created->as_error()?->get_error_code() );
+		self::assertSame( 400, $updated->get_status() );
+		self::assertSame( 'dws_ic_too_long', $updated->as_error()?->get_error_code() );
+		self::assertCount( 1, $this->stored_comments() );
+		self::assertSame( 'Short', get_comment( $comment )?->comment_content );
+		self::assertSame( array(), new \DWS_Internal_Comment( $comment )->get_revisions() );
+	}
+
 	public function test_trashing_moves_a_comment_the_user_can_trash_to_the_trash(): void {
 		$comment = $this->comment( 'Trashed' );
 		$public  = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
