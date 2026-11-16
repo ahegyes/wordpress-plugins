@@ -52,11 +52,12 @@ final class Permissions implements ComponentInterface {
 	public function map_meta_cap( array $caps, string $cap, int $user_id, array $args ): array {
 		// Core trashes, deletes, restores and moderates a comment on edit_comment alone, so it asks for both capabilities.
 		if ( 'edit_comment' === $cap ) {
-			if ( true !== dws_ic_is_internal_comment( $args[0] ?? null ) ) {
+			$comment = isset( $args[0] ) ? get_comment( $args[0] ) : null; // @phpstan-ignore argument.type (Core's own mapping resolves the argument as given, an empty one naming the loop's comment.)
+			if ( ! $comment instanceof \WP_Comment || Comments::TYPE !== $comment->comment_type ) {
 				return $caps;
 			}
 
-			return self::get_unique( \array_merge( map_meta_cap( 'edit_dws_internal_comment', $user_id, ...$args ), map_meta_cap( 'trash_dws_internal_comment', $user_id, ...$args ) ) );
+			return self::get_unique( \array_merge( map_meta_cap( 'edit_dws_internal_comment', $user_id, (int) $comment->comment_ID ), map_meta_cap( 'trash_dws_internal_comment', $user_id, (int) $comment->comment_ID ) ) );
 		}
 
 		if ( ! \in_array( $cap, array( 'see_dws_internal_comment', 'edit_dws_internal_comment', 'trash_dws_internal_comment' ), true ) ) {

@@ -40,9 +40,7 @@ final class Safeguards {
 		add_filter(
 			'map_meta_cap',
 			static function ( array $caps, string $cap, int $user_id, array $args ): array {
-				// An empty id names the loop's comment, as in core's own mapping.
-				$comment = 'edit_comment' === $cap && isset( $args[0] ) ? $args[0] : null;
-				$comment = \is_numeric( $comment ) ? get_comment( (int) $comment ) : $comment;
+				$comment = 'edit_comment' === $cap && isset( $args[0] ) ? get_comment( $args[0] ) : null; // @phpstan-ignore argument.type (Core's own mapping resolves the argument as given, an empty one naming the loop's comment.)
 				return ! self::is_internal( $comment ) || ! self::is_restricted( (int) $comment->comment_ID ) ? $caps : array( 'do_not_allow' );
 			},
 			\PHP_INT_MAX,
