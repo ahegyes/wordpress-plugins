@@ -1,4 +1,4 @@
 Significance: minor
-Type: added
+Type: changed
 
-Posting, replying to, editing and trashing internal comments in place in the meta box, by mouse or keyboard, with each outcome announced to screen readers.
+The meta box posts, edits and trashes internal comments in place through the internal-comments/v1 REST routes, by mouse or keyboard, with each outcome announced to screen readers, and replies to them, a premium feature in 1.x.
