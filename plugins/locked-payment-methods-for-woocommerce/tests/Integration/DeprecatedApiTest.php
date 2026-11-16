@@ -5,6 +5,7 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 final class DeprecatedApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
+	use RunsRequestsTrait;
 
 	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::FULL_ACCESS_ROLES, Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_ORDERS );
 
@@ -203,6 +205,34 @@ final class DeprecatedApiTest extends TestCase {
 
 		self::assertSame( array( array( true, 'cod', $order_id ) ), $seen );
 		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
+	}
+
+	public function test_v1s_order_checks_answer_locked_until_the_plugin_has_booted(): void {
+		global $wp_actions;
+
+		update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
+		$order = wc_create_order( array( 'customer_id' => self::$users['shop_manager'] ) );
+		$order->update_meta_data( OrderStrategy::META_KEY, array( 'cod' ) );
+		$order->save();
+		self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
+		self::assertGreaterThan( 0, did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) );
+		$fired = $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'];
+		unset( $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] );
+
+		try {
+			self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
+			self::assertTrue( dws_lpmwc_check_payment_method_access_for_wc_order( 'cod', $order->get_id() ) );
+		} finally {
+			$wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] = $fired;
+			$order->delete( true );
+		}
+	}
+
+	public function test_with_woocommerce_inactive_v1s_order_checks_answer_locked(): void {
+		$request = self::request( 'add_filter( "deprecated_function_trigger_error", "__return_false" ); add_filter( "pre_option_' . Options::UNLOCK_VIA_ORDERS . '", static fn (): string => "yes" ); echo wp_json_encode( array( dws_lpmwc_check_payment_method_access_for_wc_order( "cod", 1 ), dws_lpmwc_check_payment_method_access_via_wc_order_meta( "cod", 1 ) ) );', '--skip-plugins=woocommerce' );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( '[true,true]', $request['last'], $request['output'] );
 	}
 
 	public function test_v1s_per_strategy_checks_answer_from_their_strategy_alone_and_true_while_it_is_off(): void {
