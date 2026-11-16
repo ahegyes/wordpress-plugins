@@ -98,6 +98,12 @@ if ( root ) {
 		done: string
 	): Promise< boolean > => {
 		if ( root.hasAttribute( 'aria-busy' ) ) {
+			announce(
+				__(
+					'Wait for the previous change to finish, then try again.',
+					'internal-comments'
+				)
+			);
 			return false;
 		}
 		// The fields stay as sent until the answer clears or replaces them; read-only keeps the focus that disabling would drop.
