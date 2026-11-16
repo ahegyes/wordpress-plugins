@@ -121,6 +121,33 @@ final class MetaBoxTest extends TestCase {
 		self::assertTrue( $this->registers( 'editor', $this->post ) );
 	}
 
+	// The meta box's own capability and the capability to post each refuse on their own, for a role that keeps the rest.
+	public function test_the_meta_box_and_its_form_each_need_their_own_capability(): void {
+		$role = get_role( 'editor' );
+		$role?->remove_cap( Capabilities::SEE_METABOX );
+		wp_set_current_user( self::$users['editor'] );
+		wp_get_current_user()->get_role_caps();
+		try {
+			$boxed = $this->registers( 'editor', $this->post );
+		} finally {
+			$role?->add_cap( Capabilities::SEE_METABOX );
+			wp_get_current_user()->get_role_caps();
+		}
+
+		$role?->remove_cap( Capabilities::INSERT );
+		wp_get_current_user()->get_role_caps();
+		try {
+			$form = $this->render( 'editor' )->querySelector( 'textarea#dws-ic-new-comment' );
+		} finally {
+			$role?->add_cap( Capabilities::INSERT );
+			wp_get_current_user()->get_role_caps();
+		}
+
+		self::assertFalse( $boxed );
+		self::assertNull( $form );
+		self::assertNotNull( $this->render( 'editor' )->querySelector( 'textarea#dws-ic-new-comment' ) );
+	}
+
 	public function test_the_meta_box_lists_the_comments_and_the_forms_the_user_may_use(): void {
 		$comment = $this->comment( 'First' );
 
@@ -222,6 +249,46 @@ final class MetaBoxTest extends TestCase {
 			),
 			$this->deprecated
 		);
+	}
+
+	// Each v1 name runs before its v2 name, and the v2 filter receives what the v1 filter returned.
+	public function test_each_markup_hook_fires_its_v1_name_first_and_passes_its_value_on(): void {
+		$this->comment( 'Ordered' );
+		$events = array();
+		$record = static function ( string $event ) use ( &$events ): \Closure {
+			return static function () use ( &$events, $event ): void {
+				$events[] = $event;
+			};
+		};
+		$v1     = static function ( array $extra ) use ( &$events ): array {
+			$events[] = 'v1 classes';
+			return array( ...$extra, 'from-v1' );
+		};
+		$v2     = static function ( array $classes ) use ( &$events ): array {
+			$events[] = \in_array( 'from-v1', $classes, true ) ? 'v2 classes after v1' : 'v2 classes alone';
+			return $classes;
+		};
+		$hooks  = array(
+			'internal_comments/metabox_output/comment_classes' => $v1,
+			'internal_comments/meta_box/comment_classes' => $v2,
+			'internal_comments/metabox_output/single_comment/actions/start' => $record( 'v1 start' ),
+			'internal_comments/meta_box/before_comment_actions' => $record( 'v2 start' ),
+			'internal_comments/metabox_output/single_comment/actions/end' => $record( 'v1 end' ),
+			'internal_comments/meta_box/after_comment_actions' => $record( 'v2 end' ),
+		);
+		foreach ( $hooks as $hook => $callback ) {
+			add_filter( $hook, $callback );
+		}
+
+		try {
+			$this->render( 'administrator' );
+		} finally {
+			foreach ( $hooks as $hook => $callback ) {
+				remove_filter( $hook, $callback );
+			}
+		}
+
+		self::assertSame( array( 'v1 classes', 'v2 classes after v1', 'v1 start', 'v2 start', 'v1 end', 'v2 end' ), $events );
 	}
 
 	public function test_the_edit_screen_of_a_selected_post_loads_the_meta_boxs_assets(): void {

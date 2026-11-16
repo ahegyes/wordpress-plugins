@@ -222,4 +222,55 @@ final class MigrationsTest extends TestCase {
 
 		wp_delete_post( $post, true );
 	}
+
+	// Each call moves one window of ids from the stored cursor, so ids far apart take a call each, and a later call resumes from the cursor.
+	public function test_the_move_walks_one_window_of_ids_per_call_and_resumes_from_its_cursor(): void {
+		global $wpdb;
+		$post   = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Windowed',
+				'post_status' => 'publish',
+			)
+		);
+		$base   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(comment_ID) FROM %i', $wpdb->comments ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Finds where the seeded ids start.
+		$insert = static function ( int $id ) use ( $wpdb, $post ): int {
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
+				$wpdb->comments,
+				array(
+					'comment_ID'       => $id,
+					'comment_post_ID'  => $post,
+					'comment_type'     => Comments::TYPE,
+					'comment_approved' => '1',
+					'comment_date'     => current_time( 'mysql' ),
+					'comment_date_gmt' => current_time( 'mysql', true ),
+				)
+			);
+			return (int) $wpdb->insert_id;
+		};
+		$near   = $insert( $base + 1 );
+		$far    = $insert( $base + 25000 );
+		update_option( 'dws_ic_v1_comments_cursor', $base, false );
+
+		try {
+			$first  = new CommentStatusMove()->process_batch();
+			$cursor = get_option( 'dws_ic_v1_comments_cursor' );
+			clean_comment_cache( array( $near, $far ) );
+			$moved = array( get_comment( $near )?->comment_approved, get_comment( $far )?->comment_approved );
+			$calls = 1;
+			do {
+				++$calls;
+			} while ( new CommentStatusMove()->process_batch() );
+			clean_comment_cache( $far );
+			$done = get_comment( $far )?->comment_approved;
+		} finally {
+			delete_option( 'dws_ic_v1_comments_cursor' );
+			wp_delete_post( $post, true );
+		}
+
+		self::assertTrue( $first );
+		self::assertSame( $base + 10000, (int) $cursor );
+		self::assertSame( array( Comments::STATUS, '1' ), $moved );
+		self::assertSame( 3, $calls );
+		self::assertSame( Comments::STATUS, $done );
+	}
 }

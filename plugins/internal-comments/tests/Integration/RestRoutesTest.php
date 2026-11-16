@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\RestRoutes;
@@ -175,7 +176,7 @@ final class RestRoutesTest extends TestCase {
 	public function test_editing_reads_and_replaces_the_text_of_a_comment_the_user_can_edit(): void {
 		$comment = $this->comment( "Raw\ntext" );
 		$extra   = static fn ( array $extra ): array => $extra + array(
-			'comment_karma'   => 5,
+			'comment_meta'    => array( 'dws_ic_test' => 'merged' ),
 			'comment_content' => 'Ignored',
 		);
 		$before  = function ( array $comment, array $data ): void {
@@ -201,12 +202,34 @@ final class RestRoutesTest extends TestCase {
 		);
 		self::assertSame( 200, $update->get_status() );
 		self::assertSame( 'Changed', get_comment( $comment )?->comment_content );
+		self::assertSame( 'merged', get_comment_meta( $comment, 'dws_ic_test', true ) );
 		self::assertSame( array( 'deprecated:internal_comments/ajax/update_internal_comment_data', 'deprecated:internal_comments/ajax/before_update_comment', 'before:Changed' ), $this->seen );
 		self::assertSame( 403, $this->request( 'editor', 'GET', "/internal-comments/v1/comments/$comment" )->get_status() );
 		self::assertSame( 403, $this->request( 'editor', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => 'Denied' ) )->get_status() );
 		$empty = $this->request( 'administrator', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => '' ) );
 		self::assertSame( 400, $empty->get_status() );
 		self::assertSame( 'An internal comment cannot be empty.', $empty->as_error()?->get_error_message() );
+	}
+
+	// Sites hide internal comments from a role by taking one of v1's capabilities from it, so each refuses on its own.
+	public function test_each_capability_the_routes_ask_for_refuses_a_role_that_keeps_the_rest(): void {
+		$comment = $this->comment( 'Admin note' );
+		$private = $this->comment( 'Admin secret', array( Comments::META_PRIVATE => 'yes' ) );
+		$list    = fn (): \WP_REST_Response => $this->request( 'editor', 'GET', "/internal-comments/v1/posts/$this->post/comments" );
+
+		$unseen    = $this->without( array( Capabilities::SEE ), $list );
+		$unlisted  = $this->without( array( Capabilities::SEE_METABOX, Capabilities::SEE_COLUMN ), $list );
+		$unposted  = $this->without( array( Capabilities::INSERT ), fn (): \WP_REST_Response => $this->create( 'editor', $this->post, array( 'content' => 'Posted' ) ) );
+		$unprivate = $this->without( array( Capabilities::INSERT_PRIVATE ), fn (): \WP_REST_Response => $this->create( 'editor', $this->post, $this->private_request( 'Private', true ) ) );
+
+		self::assertSame( 200, $unseen->get_status() );
+		self::assertStringNotContainsString( 'Admin note', $unseen->get_data()['html'] ?? '' );
+		self::assertStringContainsString( 'Admin note', $list()->get_data()['html'] ?? '' );
+		self::assertSame( 403, $unlisted->get_status() );
+		self::assertSame( 403, $unposted->get_status() );
+		self::assertSame( 403, $unprivate->get_status() );
+		self::assertSame( 400, $this->reply( $private, 'editor' ) );
+		self::assertSame( 201, $this->reply( $comment, 'editor' ) );
 	}
 
 	// WordPress stores no comment text longer than its column, so the routes refuse it before they write anything.
@@ -251,6 +274,25 @@ final class RestRoutesTest extends TestCase {
 		);
 	}
 
+	// The editor keeps access to the post, so only the withheld capability can refuse it.
+	protected function without( array $capabilities, callable $request ): mixed {
+		$role = get_role( 'editor' );
+		foreach ( $capabilities as $capability ) {
+			$role?->remove_cap( $capability );
+		}
+		wp_set_current_user( self::$users['editor'] );
+		wp_get_current_user()->get_role_caps();
+
+		try {
+			return $request();
+		} finally {
+			foreach ( $capabilities as $capability ) {
+				$role?->add_cap( $capability );
+			}
+			wp_get_current_user()->get_role_caps();
+		}
+	}
+
 	protected function private_request( string $content, bool $is_private ): array {
 		return array(
 			'content' => $content,
@@ -262,9 +304,9 @@ final class RestRoutesTest extends TestCase {
 		return $this->request( $role, 'POST', "/internal-comments/v1/posts/$post/comments", $params );
 	}
 
-	protected function reply( int $parent_id ): int {
+	protected function reply( int $parent_id, string $role = 'administrator' ): int {
 		return $this->create(
-			'administrator',
+			$role,
 			$this->post,
 			array(
 				'content' => 'Reply',

@@ -178,6 +178,21 @@ final class ListColumnTest extends TestCase {
 		self::assertArrayHasKey( ListColumn::COLUMN, apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) ) );
 	}
 
+	public function test_the_column_needs_its_own_capability(): void {
+		get_role( 'editor' )?->remove_cap( Capabilities::SEE_COLUMN );
+		wp_set_current_user( self::$users['editor'] );
+		wp_get_current_user()->get_role_caps();
+
+		try {
+			$columns = apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) );
+		} finally {
+			get_role( 'editor' )?->add_cap( Capabilities::SEE_COLUMN );
+			wp_get_current_user()->get_role_caps();
+		}
+
+		self::assertArrayNotHasKey( ListColumn::COLUMN, $columns );
+	}
+
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
 		new ListColumn( self::make_assets() )->enqueue_list_assets( 'edit.php' );
 

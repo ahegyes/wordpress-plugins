@@ -131,6 +131,38 @@ final class CommentsScreenTest extends TestCase {
 		self::assertGreaterThan( 0, $count );
 	}
 
+	public function test_the_internal_view_offers_only_the_bulk_actions_internal_comments_support(): void {
+		$actions = \array_fill_keys( array( 'unapprove', 'approve', 'spam', 'trash', 'untrash', 'delete' ), '' );
+		$screen  = new CommentsScreen();
+
+		$general              = $screen->filter_bulk_actions( $actions );
+		$_GET['comment_type'] = Comments::TYPE;
+
+		self::assertSame( $actions, $general );
+		self::assertSame( array( 'trash', 'untrash', 'delete' ), \array_keys( $screen->filter_bulk_actions( $actions ) ) );
+	}
+
+	public function test_the_comments_menu_offers_the_internal_view_to_users_who_may_list_internal_comments(): void {
+		global $submenu;
+		$stored = $submenu;
+		$entry  = static function () use ( &$submenu ): bool {
+			$submenu = array( 'edit-comments.php' => array() );
+			new CommentsScreen()->add_comments_view();
+			return \in_array( 'edit-comments.php?comment_type=' . Comments::TYPE, \array_column( $submenu['edit-comments.php'], 2 ), true );
+		};
+
+		try {
+			$administrator = $entry();
+			wp_set_current_user( self::$users['editor'] );
+			$editor = $entry();
+		} finally {
+			$submenu = $stored;
+		}
+
+		self::assertTrue( $administrator );
+		self::assertFalse( $editor );
+	}
+
 	public function test_the_menu_marks_the_internal_comments_view_current_on_it(): void {
 		$general              = apply_filters( 'submenu_file', null, 'edit-comments.php' );
 		$_GET['comment_type'] = Comments::TYPE;
