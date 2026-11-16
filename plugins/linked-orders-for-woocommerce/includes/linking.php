@@ -50,11 +50,9 @@ function dws_lowc_is_root_order( $order ): ?bool {
 }
 
 /**
- * Links two orders as parent and child.
+ * Links two orders as parent and child, then fires linked_orders_for_woocommerce/link/created.
  *
  * It returns false when the child is the parent or has a parent or children, when another request still links orders after five seconds, or when the child's save does not store its parent, and null when either order has no node, as no order has until the plugin has booted.
- *
- * A link reads and rewrites the parent's list of children, so it holds the linking lock and reads both orders' meta from the database under it. WooCommerce logs a save that fails and returns as if it had saved, so the parent lists the child only once the child's parent reads back from the database.
  *
  * @api
  *
@@ -67,36 +65,25 @@ function dws_lowc_is_root_order( $order ): ?bool {
  * @return  bool|null
  */
 function dws_lowc_link_orders( int $parent_id, int $child_id ): ?bool {
-	$parent = dws_lowc_get_order_node( $parent_id );
-	$child  = dws_lowc_get_order_node( $child_id );
-	if ( is_null( $parent ) || is_null( $child ) ) {
-		return null;
-	}
+	return Linking::link( $parent_id, $child_id );
+}
 
-	$owner = wp_generate_uuid4();
-	$lock  = Linking::acquire_lock( $owner );
-	if ( is_null( $lock ) ) {
-		return false;
-	}
-
-	try {
-		Linking::refresh_links( $parent->get_order(), $child->get_order() );
-		if ( ! $parent->add_child( $child ) ) {
-			return false;
-		}
-
-		$child->save();
-		Linking::refresh_links( $child->get_order() );
-		if ( (string) $parent->get_order()->get_id() !== $child->get_order()->get_meta( Linking::META_PARENT ) ) {
-			return false;
-		}
-
-		$parent->save();
-	} finally {
-		$lock->release( $owner );
-	}
-
-	return true;
+/**
+ * Makes an order the root of its own tree, its descendants staying below it, and drops it from its parent's children, then fires linked_orders_for_woocommerce/link/removed.
+ *
+ * It returns true once the order is a root, an order already at the top of its tree included, false when another request still links orders after five seconds or when the order's save does not store it as a root, and null when the order has no node, as no order has until the plugin has booted.
+ *
+ * @api
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   int $child_id The id of the order to unlink from its parent.
+ *
+ * @return  bool|null
+ */
+function dws_lowc_unlink_order( int $child_id ): ?bool {
+	return Linking::unlink( $child_id );
 }
 
 /**

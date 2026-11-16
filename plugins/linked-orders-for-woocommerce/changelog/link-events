@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+The linked_orders_for_woocommerce/link/created and linked_orders_for_woocommerce/link/removed actions fire with the parent's and the child's ids once a link is stored or removed, a link removed because its parent is deleted for good included.

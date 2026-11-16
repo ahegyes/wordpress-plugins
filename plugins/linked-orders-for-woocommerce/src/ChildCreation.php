@@ -91,6 +91,8 @@ final class ChildCreation implements ComponentInterface {
 	/**
 	 * Returns the URL that creates a linked child of an order through the plugin's admin-post action, with its nonce.
 	 *
+	 * The URL is unescaped, as WooCommerce's order URLs are, so a caller can add query arguments to it or redirect to it, and escapes it where it prints it.
+	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
@@ -99,7 +101,14 @@ final class ChildCreation implements ComponentInterface {
 	 * @return  string
 	 */
 	public static function get_url( int $parent_id ): string {
-		return wp_nonce_url( admin_url( 'admin-post.php?action=' . self::ACTION . '&parent_id=' . $parent_id ), self::NONCE );
+		return add_query_arg(
+			array(
+				'action'    => self::ACTION,
+				'parent_id' => $parent_id,
+				'_wpnonce'  => wp_create_nonce( self::NONCE ),
+			),
+			admin_url( 'admin-post.php' )
+		);
 	}
 
 	// endregion

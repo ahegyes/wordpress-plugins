@@ -1,6 +1,7 @@
 <?php declare( strict_types=1 );
 
 use DeepWebSolutions\LinkedOrders\Capabilities;
+use DeepWebSolutions\LinkedOrders\ChildCreation;
 use DeepWebSolutions\LinkedOrders\Linking;
 use DeepWebSolutions\LinkedOrders\OrderTypes;
 
@@ -307,6 +308,18 @@ final class DWS_Order_Node {
 		 * @param   DWS_Order_Node $node The order's node.
 		 */
 		return apply_filters( 'linked_orders_for_woocommerce/node/formatted_name', $name, $this );
+	}
+
+	/**
+	 * Returns the unescaped URL, with the current user's nonce, of the plugin's admin-post action that creates a linked child of the order.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  string
+	 */
+	public function get_create_child_url(): string {
+		return ChildCreation::get_url( $this->order->get_id() );
 	}
 
 	// endregion
