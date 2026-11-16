@@ -142,9 +142,9 @@ final class Permissions implements ComponentInterface {
 	}
 
 	/**
-	 * Refuses core's reply action an internal comment from a user without the capability to post one, and any reply that would join an internal thread other than as an internal reply the user may post there, as the action takes the comment's type and parent from the request and checks only access to the post.
+	 * Refuses core's reply action an internal comment, posted as one or as a reply to one, which the plugin's REST route alone posts.
 	 *
-	 * An internal reply joins only a thread the user can see, on its own post and on a selected post type.
+	 * Core takes the comment's type and parent from the request, and drops a parent stored under the internal status, so its reply would land at the top of the list and lose the privacy it takes from a private thread.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -152,36 +152,13 @@ final class Permissions implements ComponentInterface {
 	 * @return  void
 	 */
 	public function guard_core_replies(): void {
-		// Core casts both ids whatever their shape, an array included, so the guard reads the ids core acts on.
+		// Core casts the parent's id whatever its shape, an array included, so the guard reads the id core acts on.
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
 		$type      = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : '';
-		$post_id   = isset( $_POST['comment_post_ID'] ) && ( \is_scalar( $_POST['comment_post_ID'] ) || \is_array( $_POST['comment_post_ID'] ) ) ? absint( $_POST['comment_post_ID'] ) : 0;
 		$parent_id = isset( $_POST['comment_ID'] ) && ( \is_scalar( $_POST['comment_ID'] ) || \is_array( $_POST['comment_ID'] ) ) ? absint( $_POST['comment_ID'] ) : 0;
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		$is_internal = Comments::TYPE === $type;
-		$parent      = dws_ic_get_comment( $parent_id );
-		$refused     = $is_internal && ! current_user_can( Capabilities::INSERT );
-		if ( ! \is_null( $parent ) && ( $is_internal || Comments::TYPE === $parent->comment_type ) ) {
-			$refused = $refused || ! $is_internal || Comments::TYPE !== $parent->comment_type || (int) $parent->comment_post_ID !== $post_id || ! dws_ic_is_selected_post_type( $post_id ) || ! current_user_can( 'see_dws_internal_comment', $parent_id );
-		}
-
-		if ( $refused ) {
-			wp_die( -1, '', array( 'response' => 403 ) );
-		}
-	}
-
-	/**
-	 * Refuses WooCommerce's note deletion an internal comment, as the action deletes any comment it is given for good, whatever its type or post.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  void
-	 */
-	public function guard_woocommerce_note_deletion(): void {
-		$note_id = \filter_var( wp_unslash( $_POST['note_id'] ?? '' ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the nonce once this refusal has passed.
-		if ( ! \is_null( $note_id ) && true === dws_ic_is_internal_comment( $note_id ) ) {
+		if ( Comments::TYPE === $type || true === dws_ic_is_internal_comment( $parent_id ) ) {
 			wp_die( -1, '', array( 'response' => 403 ) );
 		}
 	}
