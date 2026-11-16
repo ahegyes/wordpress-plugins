@@ -10,7 +10,7 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Com
 /**
  * Keeps internal comments under their own status through every way WordPress changes a comment, and records each change to an internal comment's content.
  *
- * The status is what keeps them out of WordPress's queries, counts, feeds and REST API, so a comment stored, approved, held, marked spam or restored from the trash under another status is put back under it. Until the migration has moved the comments v1 stored approved, their type keeps them out of comment queries and feeds instead.
+ * The status is what keeps them out of WordPress's queries, counts, feeds and REST API, so a comment stored, approved, held, marked spam or restored from the trash under another status is put back under it. Their type keeps them out of every comment query and feed that names neither it nor the status as well, which holds the comments v1 stored approved until the migration moves them, and a comment whose move back failed.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -71,8 +71,8 @@ final class Comments implements ComponentInterface {
 		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
 		add_filter( 'delete_comment_metadata', array( $this, 'guard_privacy' ), 10, 3 );
 		add_action( 'delete_comment', array( $this, 'keep_replies_private' ) );
-		add_action( 'pre_get_comments', array( $this, 'hide_unmoved_comments' ) );
-		add_filter( 'comment_feed_where', array( $this, 'hide_unmoved_feed_comments' ) );
+		add_filter( 'comments_clauses', array( $this, 'leave_out_of_queries' ), 10, 2 );
+		add_filter( 'comment_feed_where', array( $this, 'leave_out_of_feeds' ) );
 	}
 
 	// endregion
@@ -360,38 +360,40 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
-	 * Leaves internal comments out of a comment query that names neither their type nor their status, while the migration has not yet moved the ones v1 stored approved.
+	 * Leaves internal comments out of a comment query that names neither their type nor their status.
+	 *
+	 * The condition goes in the query's WHERE clause, since WooCommerce leaves product reviews out of no query that names types to leave out.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_Comment_Query $query The comment query.
+	 * @param   array<string, string> $clauses The query's clauses.
+	 * @param   \WP_Comment_Query     $query   The comment query.
 	 *
-	 * @return  void
+	 * @return  array<string, string>
 	 */
-	public function hide_unmoved_comments( \WP_Comment_Query $query ): void {
-		if ( ! CommentStatusMove::is_pending() || self::query_names_internal_type( $query->query_vars ) || \in_array( self::STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
-			return;
+	public function leave_out_of_queries( array $clauses, \WP_Comment_Query $query ): array {
+		if ( self::query_names_internal_type( $query->query_vars ) || \in_array( self::STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+			return $clauses;
 		}
 
-		$query->query_vars['type__not_in'] = self::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
+		$where            = $clauses['where'] ?? '';
+		$clauses['where'] = ( '' === $where ? '' : "$where AND " ) . self::get_type_condition();
+		return $clauses;
 	}
 
 	/**
-	 * Leaves internal comments out of comment feeds while the migration has not yet moved the ones v1 stored approved.
+	 * Leaves internal comments out of comment feeds.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   string $where The feed query's WHERE clause.
 	 *
 	 * @return  string
 	 */
-	public function hide_unmoved_feed_comments( string $where ): string {
-		global $wpdb;
-		return CommentStatusMove::is_pending() ? $where . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, self::TYPE ) ?? '' ) : $where;
+	public function leave_out_of_feeds( string $where ): string {
+		return $where . ' AND ' . self::get_type_condition();
 	}
 
 	/**
@@ -431,7 +433,7 @@ final class Comments implements ComponentInterface {
 	// region HELPERS
 
 	/**
-	 * Puts an internal comment stored under a status that would show it back under the internal status, and returns the status it replaced, or null where it moved nothing.
+	 * Puts an internal comment stored under a status that would show it back under the internal status, and returns the status it replaced, or null where it moved nothing or its write failed.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -450,10 +452,31 @@ final class Comments implements ComponentInterface {
 			return null;
 		}
 
-		$wpdb->update( $wpdb->comments, array( 'comment_approved' => self::STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
+		$moved = $wpdb->update( $wpdb->comments, array( 'comment_approved' => self::STATUS ), array( 'comment_ID' => (int) $comment->comment_ID ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- wp_set_comment_status() refuses a status of its own, and the cache is cleaned below.
+		if ( false === $moved ) {
+			// WordPress has already approved the comment it is about to mail the post's author about.
+			remove_action( 'wp_set_comment_status', 'wp_new_comment_notify_postauthor' );
+			return null;
+		}
+
 		clean_comment_cache( (int) $comment->comment_ID );
 		wp_update_comment_count( (int) $comment->comment_post_ID );
 		return $comment->comment_approved;
+	}
+
+	/**
+	 * Returns the SQL condition that leaves internal comments out of a comment query.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @return  string
+	 */
+	protected static function get_type_condition(): string {
+		global $wpdb;
+		return $wpdb->prepare( '%i.comment_type <> %s', $wpdb->comments, self::TYPE ) ?? '';
 	}
 
 	// endregion

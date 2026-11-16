@@ -136,7 +136,7 @@ final class MigrationsTest extends TestCase {
 		}
 	}
 
-	// The type exclusion leaves internal comments out of the counts cached while the move is pending, so its end has them counted afresh.
+	// WooCommerce counts the moved comments under the status they left, so the move's end has them counted afresh.
 	public function test_the_end_of_the_move_has_the_comment_counts_counted_afresh(): void {
 		$post    = (int) wp_insert_post(
 			array(

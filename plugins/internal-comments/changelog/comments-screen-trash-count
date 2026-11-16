@@ -1,4 +1,4 @@
 Significance: patch
 Type: fixed
 
-The Comments screen's Trash count leaves out the internal comments its list hides from users who may not list them.
+The Comments screen's general views, Trash included, neither list nor count internal comments, which their own view lists.

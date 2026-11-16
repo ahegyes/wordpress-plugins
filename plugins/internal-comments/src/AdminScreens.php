@@ -312,7 +312,7 @@ final class AdminScreens implements ComponentInterface {
 	}
 
 	/**
-	 * Lists internal comments under their type's view of the Comments screen, which WordPress's All view leaves out by their status, and leaves them out of every view, trash included, for users who may not list them.
+	 * Lists internal comments under their type's view of the Comments screen, which WordPress's other views leave out, and leaves them out of that view, trash included, for users who may not list them.
 	 *
 	 * It marks the query, so the rows a user cannot see are left out of this query alone.
 	 *
@@ -326,7 +326,11 @@ final class AdminScreens implements ComponentInterface {
 	public function filter_list_table_args( array $args ): array {
 		$args['dws_ic_list_table'] = true;
 		if ( ! current_user_can( Capabilities::SEE_TABLE ) ) {
-			$args['type__not_in'] = Comments::exclude_internal_type( $args['type__not_in'] ?? array() );
+			// Every other view already leaves them out, and WooCommerce leaves product reviews out of no query that names types to leave out.
+			if ( Comments::query_names_internal_type( $args ) ) {
+				$args['type__not_in'] = Comments::exclude_internal_type( $args['type__not_in'] ?? array() );
+			}
+
 			return $args;
 		}
 
@@ -393,9 +397,9 @@ final class AdminScreens implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the Comments screen's counts with a Trash count that leaves out the trashed internal comments its list leaves out for a user who may not list them.
+	 * Returns the Comments screen's counts with a Trash count that leaves out the trashed internal comments its general views leave out.
 	 *
-	 * WordPress and WooCommerce cache the counts for every user, so the plugin answers with an adjusted copy and leaves their caches alone.
+	 * WooCommerce answers with counts of its own, which include them, and it and WordPress cache the counts for every user, so the plugin answers with an adjusted copy and leaves their caches alone.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -407,8 +411,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function count_listed_comments( mixed $count, int $post_id ): mixed {
 		$screen = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		// While v1's comments are being moved, every count already leaves the internal type out.
-		if ( 'edit-comments' !== $screen?->id || current_user_can( Capabilities::SEE_TABLE ) || CommentStatusMove::is_pending() ) {
+		if ( 'edit-comments' !== $screen?->id ) {
 			return $count;
 		}
 
@@ -421,42 +424,16 @@ final class AdminScreens implements ComponentInterface {
 			}
 		}
 
-		// The count names no type, so the exclusions other plugins apply to such queries, as WooCommerce's of comments on products, apply to it as they did to the count it replaces.
-		add_filter( 'comments_clauses', array( $this, 'leave_out_internal_type' ) );
-		try {
-			$listed = get_comments(
-				array(
-					'post_id' => $post_id,
-					'status'  => 'trash',
-					'count'   => true,
-				)
-			);
-		} finally {
-			remove_filter( 'comments_clauses', array( $this, 'leave_out_internal_type' ) );
-		}
-
+		$listed          = get_comments(
+			array(
+				'post_id' => $post_id,
+				'status'  => 'trash',
+				'count'   => true,
+			)
+		);
 		$counts          = \get_object_vars( $count );
 		$counts['trash'] = \is_int( $listed ) ? $listed : 0;
 		return (object) $counts;
-	}
-
-	/**
-	 * Returns a comment query's clauses with the internal type left out of its WHERE clause, for a count that must name no type.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @global  \wpdb $wpdb The WordPress database connection.
-	 *
-	 * @param   array<string, string> $clauses The query's clauses.
-	 *
-	 * @return  array<string, string>
-	 */
-	public function leave_out_internal_type( array $clauses ): array {
-		global $wpdb;
-
-		$clauses['where'] = ( $clauses['where'] ?? '' ) . ( $wpdb->prepare( ' AND %i.comment_type <> %s', $wpdb->comments, Comments::TYPE ) ?? '' );
-		return $clauses;
 	}
 
 	/**
