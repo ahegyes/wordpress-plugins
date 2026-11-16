@@ -159,6 +159,22 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
+	 * Returns an order's title as WooCommerce's screens name it, such as "Order #14", or null for a post that is not an order.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $post_id The post's or order's id.
+	 *
+	 * @return  string|null
+	 */
+	public static function get_order_title( int $post_id ): ?string {
+		$order = self::is_order( $post_id ) ? wc_get_order( $post_id ) : null;
+		/* translators: %s: The order's number. */
+		return $order instanceof \WC_Order ? \sprintf( __( 'Order #%s', 'internal-comments' ), $order->get_order_number() ) : null;
+	}
+
+	/**
 	 * Returns the ids of the users who wrote the comments that make an internal comment private, being the comment and those of its ancestors marked private, or null for a comment that is not internal.
 	 *
 	 * @since   2.0.0

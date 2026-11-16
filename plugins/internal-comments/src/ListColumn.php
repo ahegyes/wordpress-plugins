@@ -169,6 +169,11 @@ final class ListColumn implements ComponentInterface {
 			),
 			admin_url( 'edit-comments.php' )
 		);
+		$opener  = \sprintf(
+			/* translators: %s: The title of the post or order. */
+			__( 'Quick view of the internal comments on &#8220;%s&#8221;', 'internal-comments' ),
+			Comments::get_order_title( $post_id ) ?? get_the_title( $post_id )
+		);
 		?>
 		<div class="post-com-count-wrapper dws-ic-column">
 			<?php if ( ! $is_trashed && current_user_can( Capabilities::SEE_TABLE ) ) : ?>
@@ -176,7 +181,7 @@ final class ListColumn implements ComponentInterface {
 			<?php else : ?>
 				<span class="post-com-count"><?php echo $number; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></span>
 			<?php endif; ?>
-			<button type="button" class="button-link" popovertarget="<?php echo esc_attr( $popover ); ?>"><?php esc_html_e( 'Quick view', 'internal-comments' ); ?></button>
+			<button type="button" class="button-link" popovertarget="<?php echo esc_attr( $popover ); ?>" aria-label="<?php echo esc_attr( $opener ); ?>"><?php esc_html_e( 'Quick view', 'internal-comments' ); ?></button>
 			<div id="<?php echo esc_attr( $popover ); ?>" class="dws-ic-quick-view no-link" popover role="dialog" aria-label="<?php echo esc_attr( $label ); ?>" data-post-id="<?php echo esc_attr( (string) $post_id ); ?>">
 				<button type="button" class="button-link dws-ic-quick-view__close" popovertarget="<?php echo esc_attr( $popover ); ?>" popovertargetaction="hide"><?php esc_html_e( 'Close', 'internal-comments' ); ?></button>
 				<div class="dws-ic-quick-view__comments" aria-live="polite"><?php esc_html_e( 'Loading…', 'internal-comments' ); ?></div>

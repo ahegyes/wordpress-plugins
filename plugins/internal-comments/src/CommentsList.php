@@ -66,23 +66,12 @@ final class CommentsList {
 	 * @return  void
 	 */
 	public static function render( int $post_id ): void {
-		$post_type = get_post_type_object( (string) Comments::get_post_type( $post_id ) );
-		$singular  = \is_null( $post_type ) ? null : $post_type->labels->singular_name;
-		$empty     = \sprintf(
-			/* translators: %s: The post type's singular name. */
-			__( 'There are no internal comments on this %s yet.', 'internal-comments' ),
-			\is_string( $singular ) ? $singular : __( 'item', 'internal-comments' )
-		);
-		if ( current_user_can( Capabilities::INSERT ) ) {
-			$empty .= ' ' . __( 'Be the first to post one!', 'internal-comments' );
-		}
-
 		load_template(
 			plugin_dir_path( DWS_IC_FILE ) . self::TEMPLATES . 'html-comments-list.php',
 			false,
 			array(
 				'comments' => 'trash' === get_post_status( $post_id ) ? dws_ic_get_internal_comments_from_trash_meta( $post_id ) : dws_ic_get_internal_comments( $post_id ),
-				'empty'    => $empty,
+				'empty'    => __( 'No internal comments yet.', 'internal-comments' ),
 			)
 		);
 	}

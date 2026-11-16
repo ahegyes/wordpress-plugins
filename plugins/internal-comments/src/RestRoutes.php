@@ -450,7 +450,7 @@ final class RestRoutes implements ComponentInterface {
 	 */
 	protected function check_content( string $content ): ?\WP_Error {
 		if ( '' === \trim( $content ) ) {
-			return new \WP_Error( 'dws_ic_empty_content', __( 'You cannot post an empty internal comment.', 'internal-comments' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'dws_ic_empty_content', __( 'An internal comment cannot be empty.', 'internal-comments' ), array( 'status' => 400 ) );
 		}
 
 		return is_wp_error( wp_check_comment_data_max_lengths( array( 'comment_content' => $content ) ) ) ? new \WP_Error( 'dws_ic_too_long', __( 'This internal comment is too long to store. Shorten it and try again.', 'internal-comments' ), array( 'status' => 400 ) ) : null;

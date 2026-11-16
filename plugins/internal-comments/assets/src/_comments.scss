@@ -1,0 +1,50 @@
+// The comment list's look, which the meta box and the quick view share
+// inside their own containers.
+@mixin list {
+
+	.dws-internal-comments__list,
+	.dws-internal-comments-replies__list {
+		margin: 0;
+	}
+
+	.dws-internal-comment-replies {
+		padding-left: 15px;
+	}
+
+	.dws-internal-comment {
+
+		&__content {
+			background-color: #f0f0f1;
+
+			p {
+				margin: 0 0 0.5em;
+				overflow-wrap: break-word;
+
+				&:last-child {
+					margin-bottom: 0;
+				}
+			}
+		}
+
+		&__meta {
+			color: #646970;
+
+			a {
+				text-decoration: underline;
+			}
+		}
+
+		&__private {
+			margin-right: 5px;
+			padding: 0 5px;
+			border-radius: 2px;
+			background-color: #fcf0f1;
+			color: #8a2424;
+			font-weight: 600;
+		}
+
+		&.is-private > .dws-internal-comment__content {
+			background-color: #fcf0f1;
+		}
+	}
+}

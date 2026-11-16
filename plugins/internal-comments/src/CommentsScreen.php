@@ -277,13 +277,7 @@ final class CommentsScreen implements ComponentInterface {
 	 * @return  mixed
 	 */
 	public function name_order( mixed $title, mixed $post_id = 0 ): mixed {
-		if ( ! \is_numeric( $post_id ) || ! self::is_comments_screen() || ! Comments::is_order( (int) $post_id ) ) {
-			return $title;
-		}
-
-		$order = wc_get_order( (int) $post_id );
-		/* translators: %s: The order's number. */
-		return $order instanceof \WC_Order ? \sprintf( __( 'Order #%s', 'internal-comments' ), $order->get_order_number() ) : $title;
+		return \is_numeric( $post_id ) && self::is_comments_screen() ? Comments::get_order_title( (int) $post_id ) ?? $title : $title;
 	}
 
 	/**

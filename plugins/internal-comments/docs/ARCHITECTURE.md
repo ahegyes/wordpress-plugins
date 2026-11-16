@@ -31,7 +31,7 @@ WooCommerce is optional: without it, every feature but the order screens and the
 - `models/DWS_Internal_Comment.php` keeps v1's global class on Composer's classmap: it wraps an internal comment, passes reads and calls to it, and answers whether a user may see, edit or trash it.
 - `templates/admin/` holds v1-style views: `html-comments-list.php`, `html-comment.php`, which loads itself for each reply, and `html-comment-form.php`, with the meta box's hooks. Each reads only its `$args` and assigns no WordPress global, since `load_template()` declares several in its scope; the meta box's shell, the list column, the revisions box and the privacy field print from their classes.
 - `includes/` extends `functions.php` with v1's `@api` functions and constants, grouped by topic: v1's settings and comment APIs (`settings.php`, `comments.php`), v1's deprecated root functions and constants (`deprecated.php`) and the slug, name and version getters a peer plugin reads (`metadata.php`). With the entry's `DWS_IC_FILE` and `DWS_Internal_Comment`, these are the plugin's only globals, each tagged `@api`, so other plugins integrate through them, its hooks and WordPress's APIs on the names it documents, and never through `src/`.
-- `assets/src/` holds the meta box's and quick view's TypeScript and SCSS, which `npm run build` compiles into `assets/build/`; the framework's `Assets` reads the `*.asset.php` file wp-scripts writes beside each build.
+- `assets/src/` holds the meta box's and quick view's TypeScript and SCSS, whose shared comment-list rules live in the `_comments.scss` partial, which `npm run build` compiles into `assets/build/`; the framework's `Assets` reads the `*.asset.php` file wp-scripts writes beside each build.
 
 ## Data
 

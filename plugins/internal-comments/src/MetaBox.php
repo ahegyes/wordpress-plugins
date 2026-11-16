@@ -126,7 +126,7 @@ final class MetaBox implements ComponentInterface {
 			<div class="dws-internal-comments__comments">
 				<?php CommentsList::render( $object_id ); ?>
 			</div>
-			<p class="dws-internal-comments__status" role="status"></p>
+			<p class="dws-internal-comments__status"></p>
 			<?php if ( $can_post ) : ?>
 				<?php CommentsList::render_form( 'new', $can_private ); ?>
 				<template id="dws-ic-reply-form">

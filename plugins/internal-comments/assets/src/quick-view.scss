@@ -1,3 +1,5 @@
+@use "comments";
+
 .dws-ic-column .button-link {
 	display: block;
 	margin-top: 4px;
@@ -25,36 +27,15 @@
 		float: right;
 	}
 
-	.dws-internal-comments__list,
-	.dws-internal-comments-replies__list {
-		margin: 0;
-	}
-
-	.dws-internal-comment-replies {
-		padding-left: 15px;
-	}
+	@include comments.list;
 
 	.dws-internal-comment__content {
 		padding: 8px 10px;
-		background-color: #f0f0f1;
-
-		p {
-			margin: 0 0 0.5em;
-
-			&:last-child {
-				margin-bottom: 0;
-			}
-		}
 	}
 
 	.dws-internal-comment__meta {
 		margin: 4px 0 12px;
-		color: #646970;
 		font-size: 12px;
-
-		a {
-			text-decoration: underline;
-		}
 	}
 
 	.dws-internal-comment__actions {

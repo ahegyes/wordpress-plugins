@@ -34,7 +34,7 @@ includes/                    v1's @api functions and constants, grouped by topic
 ├── comments.php             v1's comment API: create, read, thread, trash meta, privacy
 ├── deprecated.php           v1's root getters, hook-tag builders and constants, deprecated
 └── metadata.php             the slug, name and version getters, the plugin's surface for a peer plugin
-assets/src/                  the meta box's and quick view's TypeScript and SCSS, built into assets/build/ (untracked)
+assets/src/                  the meta box's and quick view's TypeScript and SCSS, sharing the comment list's look through _comments.scss, built into assets/build/ (untracked)
 changelog/                   the pending entries changelog:write turns into CHANGELOG.md and readme.txt's changelog
 ```
 

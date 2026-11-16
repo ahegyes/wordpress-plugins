@@ -109,7 +109,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 			'enable-private-comments' => array(
 				'type'    => 'checkbox',
 				'title'   => __( 'Private comments', 'internal-comments' ),
-				'desc'    => __( 'Allow internal comments that only their author and administrators can see', 'internal-comments' ),
+				'desc'    => __( 'Allow internal comments that only their author and the users allowed to read private comments can see', 'internal-comments' ),
 				'default' => Options::DEFAULTS[ Options::PRIVATE_COMMENTS ],
 			),
 		) : array(
