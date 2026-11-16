@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Options;
@@ -99,6 +100,23 @@ final class MetaBoxTest extends TestCase {
 		self::assertTrue( $this->registers( 'administrator', $this->post ) );
 		self::assertFalse( $this->registers( 'subscriber', $this->post ) );
 		self::assertFalse( $this->registers( 'administrator', $this->page ) );
+	}
+
+	// v1 showed the meta box only to users who may see internal comments.
+	public function test_the_meta_box_needs_the_capability_to_see_internal_comments(): void {
+		get_role( 'editor' )?->remove_cap( Capabilities::SEE );
+		wp_set_current_user( self::$users['editor'] );
+		wp_get_current_user()->get_role_caps();
+
+		try {
+			$without = $this->registers( 'editor', $this->post );
+		} finally {
+			get_role( 'editor' )?->add_cap( Capabilities::SEE );
+			wp_get_current_user()->get_role_caps();
+		}
+
+		self::assertFalse( $without );
+		self::assertTrue( $this->registers( 'editor', $this->post ) );
 	}
 
 	public function test_the_meta_box_lists_the_comments_and_the_forms_the_user_may_use(): void {

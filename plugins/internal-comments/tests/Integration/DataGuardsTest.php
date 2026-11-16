@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -367,9 +369,42 @@ final class DataGuardsTest extends TestCase {
 			self::assertFalse( dws_ic_is_private_comment( $replied ) );
 		}
 		wp_set_current_user( $this->admin );
-		self::assertTrue( update_comment_meta( $private, Comments::META_PRIVATE, 'no' ) );
-		self::assertNotFalse( update_comment_meta( $alone, Comments::META_PRIVATE, 'yes' ) );
+		$stored = get_option( Options::PRIVATE_COMMENTS );
+		update_option( Options::PRIVATE_COMMENTS, 'yes' );
+		try {
+			self::assertTrue( update_comment_meta( $private, Comments::META_PRIVATE, 'no' ) );
+			self::assertNotFalse( update_comment_meta( $alone, Comments::META_PRIVATE, 'yes' ) );
+		} finally {
+			update_option( Options::PRIVATE_COMMENTS, $stored );
+		}
 		self::assertTrue( dws_ic_is_private_comment( $alone ) );
+	}
+
+	// The meta box and the edit screen offer privacy only where the site allows it and to users who may post private comments.
+	public function test_a_signed_in_author_makes_a_comment_private_only_while_they_may_post_private_comments(): void {
+		$comment = $this->comment( 'Open' );
+		$stored  = get_option( Options::PRIVATE_COMMENTS );
+
+		try {
+			update_option( Options::PRIVATE_COMMENTS, 'no' );
+			$disabled = update_comment_meta( $comment, Comments::META_PRIVATE, 'yes' );
+			update_option( Options::PRIVATE_COMMENTS, 'yes' );
+			get_role( 'administrator' )?->remove_cap( Capabilities::INSERT_PRIVATE );
+			wp_get_current_user()->get_role_caps();
+			$without = update_comment_meta( $comment, Comments::META_PRIVATE, 'yes' );
+			get_role( 'administrator' )?->add_cap( Capabilities::INSERT_PRIVATE );
+			wp_get_current_user()->get_role_caps();
+			$allowed = update_comment_meta( $comment, Comments::META_PRIVATE, 'yes' );
+		} finally {
+			get_role( 'administrator' )?->add_cap( Capabilities::INSERT_PRIVATE );
+			wp_get_current_user()->get_role_caps();
+			update_option( Options::PRIVATE_COMMENTS, $stored );
+		}
+
+		self::assertFalse( $disabled );
+		self::assertFalse( $without );
+		self::assertNotFalse( $allowed );
+		self::assertTrue( dws_ic_is_private_comment( $comment ) );
 	}
 
 	public function test_only_a_comments_author_changes_whether_it_is_private(): void {

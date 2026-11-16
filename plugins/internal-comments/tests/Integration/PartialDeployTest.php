@@ -48,6 +48,29 @@ final class PartialDeployTest extends TestCase {
 		self::assertSame( wp_json_encode( array( 0, array( self::NOTICE, '' ) ) ), $request['last'] );
 	}
 
+	// The safeguard loads before the autoloader, so core still asks the plugin before it lets anyone change an internal comment.
+	public function test_a_build_that_cannot_boot_leaves_internal_comments_unchangeable_through_core(): void {
+		$post     = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Safeguarded',
+				'post_status' => 'publish',
+			)
+		);
+		$internal = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ), get_user_by( 'id', 1 ) ?: null );
+		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
+		$path     = \dirname( DWS_IC_FILE ) . '/vendor/autoload.php';
+		\rename( $path, "$path.hidden" );
+		try {
+			$request = self::request_provoking( 'Failed to open stream', "wp_set_current_user( 1 ); echo wp_json_encode( array( did_action( 'internal_comments/boot/succeeded' ), current_user_can( 'edit_comment', $internal ), current_user_can( 'edit_comment', $public ) ) );" );
+		} finally {
+			\rename( "$path.hidden", $path );
+			wp_delete_post( $post, true );
+		}
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( wp_json_encode( array( 0, false, true ) ), $request['last'] );
+	}
+
 	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing_without_a_log_line(): void {
 		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php';
 		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );

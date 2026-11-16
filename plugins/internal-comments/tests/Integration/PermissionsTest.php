@@ -4,6 +4,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
+use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Permissions;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -116,6 +117,45 @@ final class PermissionsTest extends TestCase {
 
 		self::assertSame( array( true, false, false ), $edit_only );
 		self::assertTrue( $both );
+	}
+
+	// The plugin's safeguard refuses core's actions on an internal comment unless the booted plugin relaxes it with an explicit false.
+	public function test_core_actions_on_an_internal_comment_follow_the_plugin_only_while_it_relaxes_its_safeguard(): void {
+		$post     = $this->post( 'administrator' );
+		$internal = $this->comment( $post, 'administrator' );
+		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
+		$relaxed  = user_can( self::$users['administrator'], 'edit_comment', $internal );
+		add_filter( 'internal_comments/core_comment_actions/should_restrict', '__return_true', 20 );
+
+		try {
+			$restricted = user_can( self::$users['administrator'], 'edit_comment', $internal );
+			$other      = user_can( self::$users['administrator'], 'edit_comment', $public );
+		} finally {
+			remove_filter( 'internal_comments/core_comment_actions/should_restrict', '__return_true', 20 );
+		}
+
+		self::assertTrue( $relaxed );
+		self::assertFalse( $restricted );
+		self::assertTrue( $other );
+	}
+
+	// The edit form starts from the comment's stored text, so editing someone else's comment needs seeing it.
+	public function test_editing_another_users_comment_needs_seeing_it(): void {
+		$comment = $this->comment( $this->post( 'administrator' ), 'administrator' );
+		get_role( 'editor' )?->add_cap( Capabilities::EDIT_OTHERS );
+		get_role( 'editor' )?->remove_cap( Capabilities::SEE );
+
+		try {
+			$without = user_can( self::$users['editor'], 'edit_dws_internal_comment', $comment );
+			get_role( 'editor' )?->add_cap( Capabilities::SEE );
+			$with = user_can( self::$users['editor'], 'edit_dws_internal_comment', $comment );
+		} finally {
+			get_role( 'editor' )?->add_cap( Capabilities::SEE );
+			get_role( 'editor' )?->remove_cap( Capabilities::EDIT_OTHERS );
+		}
+
+		self::assertFalse( $without );
+		self::assertTrue( $with );
 	}
 
 	public function test_the_meta_capabilities_refuse_a_comment_that_is_not_internal(): void {
@@ -258,17 +298,19 @@ final class PermissionsTest extends TestCase {
 	}
 
 
-	// Core's reply action takes the comment's type from the request and checks only access to the post.
+	// Core's reply action takes the comment's type and parent from the request and checks only access to the post.
 	public function test_core_replies_post_an_internal_comment_only_for_users_who_may(): void {
-		$post   = $this->post( 'administrator' );
-		$stop   = static function (): callable {
+		$post    = $this->post( 'administrator' );
+		$other   = $this->post( 'administrator' );
+		$stop    = static function (): callable {
 			return static function ( mixed $message ): void {
 				throw new \RuntimeException( 'Refused: ' . \print_r( $message, true ) );
 			};
 		};
-		$refuse = function ( string $type ) use ( $post ): bool {
+		$refuse  = function ( string $type, int $parent_id = 0, int $post_id = 0 ) use ( $post ): bool {
 			$_POST = array(
-				'comment_post_ID' => (string) $post,
+				'comment_post_ID' => (string) ( 0 === $post_id ? $post : $post_id ),
+				'comment_ID'      => (string) $parent_id,
 				'comment_type'    => $type,
 				'content'         => 'Reply',
 			);
@@ -282,10 +324,16 @@ final class PermissionsTest extends TestCase {
 
 			return false;
 		};
-		$hooked = $GLOBALS['wp_filter']['wp_ajax_replyto-comment'] ?? null;
+		$parent  = $this->comment( $post, 'administrator' );
+		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) );
+		$away    = $this->comment( $other, 'administrator' );
+		$plain   = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
+		$types   = get_option( Options::POST_TYPES );
+		$hooked  = $GLOBALS['wp_filter']['wp_ajax_replyto-comment'] ?? null;
 		remove_all_actions( 'wp_ajax_replyto-comment', -1 ); // WooCommerce's handler for product reviews refuses a request without its nonce.
 		add_filter( 'wp_doing_ajax', '__return_true' );
 		add_filter( 'wp_die_ajax_handler', $stop );
+		update_option( Options::POST_TYPES, array( 'post' ) );
 		get_role( 'editor' )?->remove_cap( Capabilities::INSERT );
 		wp_set_current_user( self::$users['editor'] );
 
@@ -295,9 +343,19 @@ final class PermissionsTest extends TestCase {
 			$public  = $refuse( 'comment' );
 			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
 			wp_get_current_user()->get_role_caps(); // The user's capabilities were read before the role changed.
-			$with = $refuse( Comments::TYPE );
+			$with    = $refuse( Comments::TYPE );
+			$replies = array(
+				'visible-parent'          => $refuse( Comments::TYPE, $parent ),
+				'private-parent'          => $refuse( Comments::TYPE, $private ),
+				'parent-on-another-post'  => $refuse( Comments::TYPE, $away ),
+				'public-reply'            => $refuse( 'comment', $parent ),
+				'internal-reply-to-plain' => $refuse( Comments::TYPE, $plain ),
+			);
+			update_option( Options::POST_TYPES, array( 'page' ) );
+			$unselected = $refuse( Comments::TYPE, $parent );
 		} finally {
 			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
+			update_option( Options::POST_TYPES, $types );
 			$GLOBALS['wp_filter']['wp_ajax_replyto-comment'] = $hooked;
 			remove_filter( 'wp_doing_ajax', '__return_true' );
 			remove_filter( 'wp_die_ajax_handler', $stop );
@@ -307,6 +365,17 @@ final class PermissionsTest extends TestCase {
 		self::assertTrue( $cased );
 		self::assertFalse( $public );
 		self::assertFalse( $with );
+		self::assertSame(
+			array(
+				'visible-parent'          => false,
+				'private-parent'          => true,
+				'parent-on-another-post'  => true,
+				'public-reply'            => true,
+				'internal-reply-to-plain' => true,
+			),
+			$replies
+		);
+		self::assertTrue( $unselected );
 	}
 
 	protected function comment( int $post, string $role, array $args = array() ): int {

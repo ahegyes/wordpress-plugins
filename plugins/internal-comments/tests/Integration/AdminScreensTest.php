@@ -388,6 +388,29 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( $administrator, $editor );
 	}
 
+	// v1 showed the column and loaded its quick view only for users who may see internal comments.
+	public function test_the_column_and_its_assets_need_the_capability_to_see_internal_comments(): void {
+		$screens = new AdminScreens( self::make_assets() );
+		get_role( 'editor' )?->remove_cap( Capabilities::SEE );
+		wp_set_current_user( self::$users['editor'] );
+		wp_get_current_user()->get_role_caps();
+
+		try {
+			$column = $screens->add_column( array( 'title' => 'Title' ), 'post' );
+			$screens->enqueue_list_assets( 'edit.php' );
+			$loaded = wp_script_is( 'internal-comments-quick-view' );
+		} finally {
+			get_role( 'editor' )?->add_cap( Capabilities::SEE );
+			wp_get_current_user()->get_role_caps();
+			wp_dequeue_script( 'internal-comments-quick-view' );
+			wp_dequeue_style( 'internal-comments-quick-view' );
+		}
+
+		self::assertArrayNotHasKey( 'dws-internal-comments', $column );
+		self::assertFalse( $loaded );
+		self::assertArrayHasKey( 'dws-internal-comments', $screens->add_column( array( 'title' => 'Title' ), 'post' ) );
+	}
+
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
 		new AdminScreens( self::make_assets() )->enqueue_list_assets( 'edit.php' );
 
