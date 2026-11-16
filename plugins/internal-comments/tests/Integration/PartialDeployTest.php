@@ -23,8 +23,8 @@ final class PartialDeployTest extends TestCase {
 	// As an administrator, who moderates comments and edits orders: core's edit check by id and by each empty value, which names the loop's comment, a REST update that approves and a deletion, WooCommerce's note route and its note deletion, then what is left of both comments.
 	protected const string CORE_ACTIONS = 'wp_set_current_user( 1 ); $update = new WP_REST_Request( "PUT", "/wp/v2/comments/%1$d" ); $update->set_body_params( array( "status" => "approve" ) ); $delete = new WP_REST_Request( "DELETE", "/wp/v2/comments/%1$d" ); $delete->set_query_params( array( "force" => true ) ); $note = rest_do_request( new WP_REST_Request( "GET", "/wc/v3/orders/%3$d/notes/%4$d" ) )->get_status(); $_POST = array( "note_id" => "%4$dabc", "security" => wp_create_nonce( "delete-order-note" ) ); $_REQUEST = $_POST; add_filter( "wp_doing_ajax", "__return_true" ); add_filter( "wp_die_ajax_handler", static fn () => static function ( $message, $title = "", $args = array() ) { throw new RuntimeException( (string) ( $args["response"] ?? "" ) ); } ); try { do_action( "wp_ajax_woocommerce_delete_order_note" ); $deletion = "not stopped"; } catch ( RuntimeException $stopped ) { $deletion = $stopped->getMessage(); } $GLOBALS["comment"] = get_comment( %1$d ); $looped = current_user_can( "edit_comment", 0 ) || current_user_can( "edit_comment", "" ) || current_user_can( "edit_comment", false ) || current_user_can( "edit_comment", array() ); unset( $GLOBALS["comment"] ); echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), current_user_can( "edit_comment", %1$d ), $looped, current_user_can( "edit_comment", %2$d ), rest_do_request( $update )->get_status(), rest_do_request( $delete )->get_status(), $note, $deletion, get_comment( %1$d )?->comment_approved, get_comment( %4$d ) instanceof WP_Comment ) );';
 
-	// As the tests site's administrator, who moderates comments: core's REST listing of the internal type and status, whose type defaults to plain comments, with an internal comment's id that the listing ignores, then XML-RPC's, which reads the request type from a constant.
-	protected const string LISTINGS = '$list = new WP_REST_Request( "GET", "/wp/v2/comments" ); $list->set_query_params( array( "id" => %1$d, "status" => "dws_internal", "type" => "dws_internal", "post" => %2$d, "context" => "edit" ) ); wp_set_current_user( 1 ); $listed = rest_do_request( $list ); $rest = array( $listed->get_status(), wp_list_pluck( (array) $listed->get_data(), "id" ) ); require_once ABSPATH . WPINC . "/class-IXR.php"; require_once ABSPATH . WPINC . "/class-wp-xmlrpc-server.php"; define( "XMLRPC_REQUEST", true ); add_filter( "xmlrpc_enabled", "__return_true" ); $xml = new wp_xmlrpc_server()->wp_getComments( array( 1, "admin", "password", array( "status" => "dws_internal", "post_id" => %2$d ) ) ); echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), $rest, is_array( $xml ) ? wp_list_pluck( $xml, "comment_id" ) : $xml, get_comment( %1$d )?->comment_approved ) );';
+	// As the tests site's administrator, who moderates comments: core's REST listing of the internal type and status, whose type defaults to plain comments, with an internal comment's id that the listing ignores, a query of the internal type's Trash, as the Comments screen builds one from its URL, XML-RPC's listing, which reads the request type from a constant, then the Trash query again once the boot's event has fired, which must not answer from the first query's cache.
+	protected const string LISTINGS = '$list = new WP_REST_Request( "GET", "/wp/v2/comments" ); $list->set_query_params( array( "id" => %1$d, "status" => "dws_internal", "type" => "dws_internal", "post" => %2$d, "context" => "edit" ) ); wp_set_current_user( 1 ); $listed = rest_do_request( $list ); $rest = array( $listed->get_status(), wp_list_pluck( (array) $listed->get_data(), "id" ) ); $table = get_comments( array( "type" => "dws_internal", "status" => "trash", "post_id" => %2$d, "fields" => "ids" ) ); require_once ABSPATH . WPINC . "/class-IXR.php"; require_once ABSPATH . WPINC . "/class-wp-xmlrpc-server.php"; define( "XMLRPC_REQUEST", true ); add_filter( "xmlrpc_enabled", "__return_true" ); $xml = new wp_xmlrpc_server()->wp_getComments( array( 1, "admin", "password", array( "status" => "dws_internal", "post_id" => %2$d ) ) ); $booted = did_action( "internal_comments/boot/succeeded" ); do_action( "internal_comments/boot/succeeded" ); echo wp_json_encode( array( $booted, $rest, $table, is_array( $xml ) ? wp_list_pluck( $xml, "comment_id" ) : $xml, get_comment( %1$d )?->comment_approved, get_comments( array( "type" => "dws_internal", "status" => "trash", "post_id" => %2$d, "fields" => "ids" ) ) ) );';
 
 	// A comment query and a feed's comment query of the post, neither naming the internal type or status, then whether the comment is still approved.
 	protected const string V1_LISTINGS = 'global $wpdb; $where = apply_filters( "comment_feed_where", "WHERE comment_post_ID = %2$d AND comment_approved = \'1\'", null ); echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), get_comments( array( "post_id" => %2$d, "fields" => "ids" ) ), $wpdb->get_col( "SELECT comment_ID FROM $wpdb->comments $where" ), get_comment( %1$d )?->comment_approved ) );';
@@ -86,7 +86,7 @@ final class PartialDeployTest extends TestCase {
 		self::assertSame( wp_json_encode( array( 0, false, false, true, 403, 403, 404, '403', Comments::STATUS, true ) ), $request['last'] );
 	}
 
-	// Core's REST listing and XML-RPC's list comments of any status a user who moderates comments names.
+	// Core's REST listing and XML-RPC's list comments of any status a user who moderates comments names, and the Comments screen queries the type its URL names.
 	public function test_a_build_that_cannot_boot_lists_no_internal_comments_through_core(): void {
 		$post     = (int) wp_insert_post(
 			array(
@@ -101,7 +101,21 @@ final class PartialDeployTest extends TestCase {
 			),
 			get_user_by( 'id', 1 ) ?: null
 		);
-		$path     = \dirname( DWS_IC_FILE ) . '/vendor/autoload.php';
+		$trashed  = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ), get_user_by( 'id', 1 ) ?: null );
+		self::assertTrue( 0 < $internal && 0 < $trashed && wp_trash_comment( $trashed ) );
+		// The booted plugin answers the same query the failed boot must not.
+		self::assertSame(
+			array( $trashed ),
+			get_comments(
+				array(
+					'type'    => Comments::TYPE,
+					'status'  => 'trash',
+					'post_id' => $post,
+					'fields'  => 'ids',
+				)
+			)
+		);
+		$path = \dirname( DWS_IC_FILE ) . '/vendor/autoload.php';
 		\rename( $path, "$path.hidden" );
 		try {
 			$request = self::request_provoking( 'Failed to open stream', \sprintf( self::LISTINGS, $internal, $post ) );
@@ -111,7 +125,7 @@ final class PartialDeployTest extends TestCase {
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( wp_json_encode( array( 0, array( 200, array() ), array(), Comments::STATUS ) ), $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, array( 200, array() ), array(), array(), Comments::STATUS, array( $trashed ) ) ), $request['last'] );
 	}
 
 	// 1.2.4 stored internal comments approved, so until the migration moves them only their type keeps them out of the post's comments and feeds.
