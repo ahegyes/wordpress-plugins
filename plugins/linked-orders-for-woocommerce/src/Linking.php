@@ -183,7 +183,7 @@ final class Linking {
 	/**
 	 * Returns the deepest level a linked order can be created at.
 	 *
-	 * It reads the validated setting, at least 1 as stored, through v1's and v2's filters.
+	 * It reads the setting through v1's validation, which holds it at least 1, and v1's filter.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -191,7 +191,7 @@ final class Linking {
 	 * @return  int
 	 */
 	public static function get_max_depth(): int {
-		return \filter_var( dws_lowc_get_validated_setting( 'max-depth', 'general' ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? (int) Options::DEFAULTS[ Options::MAX_DEPTH ];
+		return Options::get_int( Options::MAX_DEPTH );
 	}
 
 	// endregion

@@ -59,7 +59,7 @@ final class Autocompletion implements ComponentInterface {
 	 * @return  void
 	 */
 	public function complete_descendants( int $order_id ): void {
-		if ( isset( $this->covered[ $order_id ] ) || true !== dws_lowc_get_validated_setting( 'autocomplete-descendants', 'general' ) ) {
+		if ( isset( $this->covered[ $order_id ] ) || ! Options::get_bool( Options::AUTOCOMPLETE ) ) {
 			return;
 		}
 

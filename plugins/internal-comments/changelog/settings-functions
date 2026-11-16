@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+dws_ic_get_raw_setting() and dws_ic_get_validated_setting(); use get_option() on each setting's row, such as dws_ic_post_types.

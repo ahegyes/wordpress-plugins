@@ -52,7 +52,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		foreach ( dws_ic_get_selected_post_types() as $post_type ) {
+		foreach ( Options::get_list( Options::POST_TYPES ) as $post_type ) {
 			// WooCommerce rebuilds its orders' and coupons' columns on this hook at the default priority.
 			add_filter( "manage_{$post_type}_posts_columns", array( $this, 'add_posts_column' ), 20 );
 			add_action( "manage_{$post_type}_posts_custom_column", array( $this, 'render_cell' ), 10, 2 );
@@ -92,7 +92,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function add_column( array $columns, string $post_type ): array {
-		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return $columns;
 		}
 
@@ -269,7 +269,7 @@ final class AdminScreens implements ComponentInterface {
 			return;
 		}
 
-		if ( ! \in_array( $post_type, dws_ic_get_selected_post_types(), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return;
 		}
 
@@ -558,7 +558,7 @@ final class AdminScreens implements ComponentInterface {
 	 */
 	public function add_privacy_field( string $html, \WP_Comment $comment ): string {
 		$is_private = dws_ic_is_private_comment( $comment );
-		if ( \is_null( $is_private ) || ( ! $is_private && ! dws_ic_are_enabled_private_comments() ) ) {
+		if ( \is_null( $is_private ) || ( ! $is_private && ! Options::get_bool( Options::PRIVATE_COMMENTS ) ) ) {
 			return $html;
 		}
 
