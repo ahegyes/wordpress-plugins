@@ -13,6 +13,7 @@ use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( AdminScreens::class )]
@@ -175,8 +176,16 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( 'trash', $screens->filter_list_table_args( array( 'status' => 'trash', 'type' => Comments::TYPE ) )['status'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The list table's two arguments.
 
 		wp_set_current_user( self::$users['editor'] );
+		$named = $screens->filter_list_table_args(
+			array(
+				'status' => 'all',
+				'type'   => Comments::TYPE,
+			)
+		);
+		self::assertContains( Comments::TYPE, $named['type__not_in'] ?? array() );
+		// WooCommerce stops leaving product reviews out of a query that names types to leave out.
 		foreach ( array( 'all', 'trash' ) as $status ) {
-			self::assertContains( Comments::TYPE, $screens->filter_list_table_args( array( 'status' => $status ) )['type__not_in'] ?? array() );
+			self::assertArrayNotHasKey( 'type__not_in', $screens->filter_list_table_args( array( 'status' => $status ) ) );
 		}
 		self::assertArrayNotHasKey( Comments::TYPE, $screens->add_comment_type( array() ) );
 		wp_set_current_user( self::$users['administrator'] );
@@ -280,12 +289,24 @@ final class AdminScreensTest extends TestCase {
 		self::assertSame( '', $styles( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) ) );
 	}
 
+	public static function move_states(): array {
+		return array(
+			'move-pending' => array( true ),
+			'move-done'    => array( false ),
+		);
+	}
+
 	// WordPress counts the Comments screen's views apart from its list, and it and WooCommerce cache the counts for every user.
-	public function test_the_comments_screen_counts_only_the_trashed_comments_the_user_may_list(): void {
+	#[DataProvider( 'move_states' )]
+	public function test_the_comments_screens_views_leave_trashed_internal_comments_out_of_their_lists_and_counts( bool $pending ): void {
 		$internal = $this->comment( 'Trashed' );
 		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
 		wp_trash_comment( $internal );
 		wp_trash_comment( $public );
+		$revision = get_option( 'dws_ic_revision' );
+		if ( $pending ) {
+			update_option( 'dws_ic_revision', 1 );
+		}
 		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 
 		$counts      = static function (): array {
@@ -295,11 +316,23 @@ final class AdminScreensTest extends TestCase {
 			wp_set_current_user( self::$users['administrator'] );
 			return array( $editor, (int) wp_count_comments()->trash );
 		};
+		$listed      = fn (): array => wp_list_pluck(
+			new \WP_Comment_Query(
+				new AdminScreens( self::make_assets() )->filter_list_table_args(
+					array(
+						'status'  => 'trash',
+						'post_id' => $this->post,
+					)
+				)
+			)->comments,
+			'comment_ID'
+		);
 		$woocommerce = has_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ) );
 		\WC_Comments::delete_comments_count_cache(); // Earlier tests leave WooCommerce's incremental counts behind.
 
 		try {
 			list( $editor, $administrator ) = $counts();
+			$rows                           = $listed();
 			remove_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ) );
 			wp_cache_delete( 'comments-0', 'counts' );
 			list( $core_editor, $core_administrator ) = $counts();
@@ -308,12 +341,17 @@ final class AdminScreensTest extends TestCase {
 			if ( \is_int( $woocommerce ) ) {
 				add_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ), $woocommerce, 2 );
 			}
+			update_option( 'dws_ic_revision', $revision );
 			unset( $GLOBALS['current_screen'] );
+			\WC_Comments::delete_comments_count_cache();
+			wp_cache_delete( 'comments-0', 'counts' );
 		}
 
 		self::assertIsInt( $woocommerce );
-		self::assertSame( $administrator - 1, $editor );
-		self::assertSame( $core_administrator - 1, $core_editor );
+		self::assertSame( array( (string) $public ), $rows );
+		self::assertSame( $administrator, $editor );
+		self::assertSame( $core_administrator, $core_editor );
+		self::assertSame( $core_administrator, $administrator );
 		self::assertIsObject( $cached );
 		self::assertSame( $core_administrator, (int) $cached->trash );
 	}
@@ -342,33 +380,6 @@ final class AdminScreensTest extends TestCase {
 		} finally {
 			unset( $GLOBALS['current_screen'] );
 			wp_delete_post( $product, true );
-			\WC_Comments::delete_comments_count_cache();
-			wp_cache_delete( 'comments-0', 'counts' );
-		}
-
-		self::assertGreaterThan( 0, $administrator );
-		self::assertSame( $administrator, $editor );
-	}
-
-	// While v1's comments are being moved, the type exclusion already leaves internal comments out of every count.
-	public function test_the_comments_screen_counts_trashed_comments_once_while_v1s_are_moved(): void {
-		wp_trash_comment( $this->comment( 'Trashed' ) );
-		wp_trash_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) );
-		$revision = get_option( 'dws_ic_revision' );
-		update_option( 'dws_ic_revision', 1 );
-		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
-		\WC_Comments::delete_comments_count_cache();
-		wp_cache_delete( 'comments-0', 'counts' );
-
-		try {
-			wp_set_current_user( self::$users['administrator'] );
-			$administrator = (int) wp_count_comments()->trash;
-			wp_set_current_user( self::$users['editor'] );
-			wp_get_current_user()->get_role_caps(); // An earlier row can leave the editor current with capabilities its role has since lost.
-			$editor = (int) wp_count_comments()->trash;
-		} finally {
-			update_option( 'dws_ic_revision', $revision );
-			unset( $GLOBALS['current_screen'] );
 			\WC_Comments::delete_comments_count_cache();
 			wp_cache_delete( 'comments-0', 'counts' );
 		}

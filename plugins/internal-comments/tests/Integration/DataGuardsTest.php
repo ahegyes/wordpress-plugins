@@ -36,10 +36,12 @@ final class DataGuardsTest extends TestCase {
 			);
 		}
 		wp_set_current_user( $this->admin );
+		// WordPress mails no post author about their own comment, so the post is another user's.
 		$this->post = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Guards',
 				'post_status' => 'publish',
+				'post_author' => $this->other,
 			)
 		);
 	}
@@ -74,14 +76,160 @@ final class DataGuardsTest extends TestCase {
 
 		try {
 			wp_set_comment_status( $comment, $status );
+			$internal = $mailed;
+			$held     = (int) wp_insert_comment(
+				array(
+					'comment_post_ID'  => $this->post,
+					'comment_approved' => '0',
+				)
+			);
+			wp_set_comment_status( $held, 'approve' );
 		} finally {
 			remove_filter( 'pre_wp_mail', $record );
 			update_option( 'comments_notify', $notify );
 		}
 
 		self::assertSame( Comments::STATUS, get_comment( $comment )?->comment_approved );
+		self::assertSame( array(), $internal );
+		self::assertCount( 1, $mailed, 'An ordinary comment approved the same way mails the post author.' );
+		self::assertSame( '1', get_post( $this->post )?->comment_count );
+	}
+
+	// WordPress has already approved the comment when the plugin's write puts it back, so a failed write leaves it approved.
+	public function test_a_failed_move_back_leaves_an_approved_internal_comment_unannounced_and_out_of_every_list(): void {
+		$comment = $this->comment();
+		$public  = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		$mailed  = array();
+		$record  = static function ( mixed $result, array $mail ) use ( &$mailed ): bool {
+			$mailed[] = $mail['subject'];
+			return true;
+		};
+		$refuse  = static fn ( string $query ): string => \str_contains( $query, "SET `comment_approved` = 'dws_internal'" ) ? '' : $query;
+		$notify  = get_option( 'comments_notify' );
+		update_option( 'comments_notify', '1' );
+		add_filter( 'pre_wp_mail', $record, 10, 2 );
+		add_filter( 'query', $refuse );
+
+		try {
+			wp_set_comment_status( $comment, 'approve' );
+		} finally {
+			remove_filter( 'query', $refuse );
+			remove_filter( 'pre_wp_mail', $record );
+			update_option( 'comments_notify', $notify );
+		}
+
+		clean_comment_cache( $comment );
+		self::assertSame( '1', get_comment( $comment )?->comment_approved );
 		self::assertSame( array(), $mailed );
-		self::assertSame( '0', get_post( $this->post )?->comment_count );
+		self::assertSame(
+			array( $public ),
+			get_comments(
+				array(
+					'post_id' => $this->post,
+					'status'  => 'approve',
+					'fields'  => 'ids',
+				)
+			)
+		);
+	}
+
+	public static function move_states(): array {
+		return array(
+			'move-pending' => array( true ),
+			'move-done'    => array( false ),
+		);
+	}
+
+	// A comment v1 stored approved, or one whose move back failed, is approved, so only its type keeps it out of the queries that name neither it nor the internal status.
+	#[DataProvider( 'move_states' )]
+	public function test_comment_queries_and_feeds_that_name_neither_type_nor_status_leave_internal_comments_out( bool $pending ): void {
+		global $wpdb;
+		$revision = get_option( 'dws_ic_revision' );
+		if ( $pending ) {
+			update_option( 'dws_ic_revision', 1 );
+		}
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
+			$wpdb->comments,
+			array(
+				'comment_post_ID'  => $this->post,
+				'comment_type'     => Comments::TYPE,
+				'comment_approved' => '1',
+				'comment_content'  => 'v1',
+				'comment_date'     => current_time( 'mysql' ),
+				'comment_date_gmt' => current_time( 'mysql', true ),
+			)
+		);
+		$v1       = (int) $wpdb->insert_id;
+		$internal = $this->comment();
+		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		$ids      = fn ( array $args ): mixed => get_comments(
+			$args + array(
+				'post_id' => $this->post,
+				'fields'  => 'ids',
+				'orderby' => 'comment_ID',
+				'order'   => 'ASC',
+			)
+		);
+
+		try {
+			$listed = $ids( array() );
+			$any    = $ids( array( 'status' => 'any' ) );
+			$typed  = $ids(
+				array(
+					'type'   => Comments::TYPE,
+					'status' => 'any',
+				)
+			);
+			$status = $ids( array( 'status' => Comments::STATUS ) );
+			$feed   = (string) apply_filters( 'comment_feed_where', '', new \WP_Query() );
+		} finally {
+			update_option( 'dws_ic_revision', $revision );
+		}
+
+		self::assertSame( array( $public ), $listed );
+		self::assertSame( array( $public ), $any );
+		self::assertSame( array( $v1, $internal ), $typed );
+		self::assertSame( array( $internal ), $status );
+		self::assertStringContainsString( Comments::TYPE, $feed );
+	}
+
+	// WooCommerce leaves product reviews out of every general comment query, but not of one that names types to leave out.
+	#[DataProvider( 'move_states' )]
+	public function test_the_queries_that_leave_internal_comments_out_still_leave_product_reviews_out( bool $pending ): void {
+		$revision = get_option( 'dws_ic_revision' );
+		$product  = (int) wp_insert_post(
+			array(
+				'post_type'   => 'product',
+				'post_title'  => 'Reviewed',
+				'post_status' => 'publish',
+			)
+		);
+		$review   = (int) wp_insert_comment(
+			array(
+				'comment_post_ID' => $product,
+				'comment_type'    => 'review',
+			)
+		);
+		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		if ( $pending ) {
+			update_option( 'dws_ic_revision', 1 );
+		}
+
+		try {
+			$listed = get_comments(
+				array(
+					'fields' => 'ids',
+					'number' => 0,
+				)
+			);
+		} finally {
+			update_option( 'dws_ic_revision', $revision );
+			wp_delete_post( $product, true );
+		}
+
+		self::assertIsArray( $listed );
+		self::assertContains( $public, $listed );
+		self::assertNotContains( $review, $listed );
 	}
 
 	public function test_an_update_changes_only_the_content_of_an_internal_comment_and_records_the_previous_one(): void {
@@ -263,41 +411,5 @@ final class DataGuardsTest extends TestCase {
 				'comment_meta'    => $meta,
 			)
 		);
-	}
-
-	// Until the batched step has moved them, the comments v1 stored approved are left out of every comment query and feed by their type.
-	public function test_v1s_approved_comments_stay_hidden_until_the_move_finishes(): void {
-		global $wpdb;
-		$revision = get_option( 'dws_ic_revision' );
-		update_option( 'dws_ic_revision', 1 );
-		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
-			$wpdb->comments,
-			array(
-				'comment_post_ID'  => $this->post,
-				'comment_type'     => Comments::TYPE,
-				'comment_approved' => '1',
-				'comment_content'  => 'v1',
-				'comment_date'     => current_time( 'mysql' ),
-				'comment_date_gmt' => current_time( 'mysql', true ),
-			)
-		);
-		$v1     = (int) $wpdb->insert_id;
-		$public = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
-
-		try {
-			$listed = get_comments(
-				array(
-					'post_id' => $this->post,
-					'fields'  => 'ids',
-				)
-			);
-			$feed   = (string) apply_filters( 'comment_feed_where', '', new \WP_Query() );
-		} finally {
-			update_option( 'dws_ic_revision', $revision );
-		}
-
-		self::assertSame( array( $public ), $listed );
-		self::assertStringContainsString( Comments::TYPE, $feed );
-		self::assertSame( array( $v1, $public ), get_comments( array( 'post_id' => $this->post, 'fields' => 'ids', 'orderby' => 'comment_ID', 'order' => 'ASC' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's four arguments.
 	}
 }
