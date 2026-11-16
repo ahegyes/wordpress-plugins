@@ -87,6 +87,8 @@ final class SettingsTest extends TestCase {
 		self::assertNull( $form->querySelector( 'input[name="dws_ic_post_types[]"][checked]' ) );
 		self::assertNotNull( $form->querySelector( 'input[type="checkbox"][name="dws_ic_private_comments_enabled"]:not([checked])' ) );
 		self::assertNull( $form->querySelector( 'input[name="dws_ic_delete_data"]' ) );
+		// The meta box and the readme describe who reads a private comment in these words.
+		self::assertStringContainsString( 'only their author and the users allowed to read private comments can see', (string) $form->body?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
 
 	public function test_the_plugin_tab_holds_the_uninstall_consent(): void {

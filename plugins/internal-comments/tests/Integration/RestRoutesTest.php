@@ -190,7 +190,9 @@ final class RestRoutesTest extends TestCase {
 		self::assertSame( array( 'deprecated:internal_comments/ajax/update_internal_comment_data', 'deprecated:internal_comments/ajax/before_update_comment', 'before:Changed' ), $this->seen );
 		self::assertSame( 403, $this->request( 'editor', 'GET', "/internal-comments/v1/comments/$comment" )->get_status() );
 		self::assertSame( 403, $this->request( 'editor', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => 'Denied' ) )->get_status() );
-		self::assertSame( 400, $this->request( 'administrator', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => '' ) )->get_status() );
+		$empty = $this->request( 'administrator', 'PUT', "/internal-comments/v1/comments/$comment", array( 'content' => '' ) );
+		self::assertSame( 400, $empty->get_status() );
+		self::assertSame( 'An internal comment cannot be empty.', $empty->as_error()?->get_error_message() );
 	}
 
 	// WordPress stores no comment text longer than its column, so the routes refuse it before they write anything.

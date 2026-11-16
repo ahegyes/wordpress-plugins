@@ -141,6 +141,7 @@ final class ListColumnTest extends TestCase {
 		$button  = $admin->querySelector( 'button[popovertarget]' );
 		$popover = $admin->querySelector( '[popover]' );
 		self::assertNotNull( $button );
+		self::assertSame( 'Quick view of the internal comments on “Screens”', $button?->getAttribute( 'aria-label' ) );
 		self::assertSame( $popover?->getAttribute( 'id' ), $button?->getAttribute( 'popovertarget' ) );
 		self::assertSame( (string) $this->post, $popover?->getAttribute( 'data-post-id' ) );
 		self::assertStringContainsString( 'no-link', (string) $popover?->getAttribute( 'class' ) ); // WooCommerce opens the order on a click anywhere in its row but inside this class.

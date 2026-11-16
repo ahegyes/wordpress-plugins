@@ -130,7 +130,7 @@ final class MetaBoxTest extends TestCase {
 		self::assertNotNull( $admin->querySelector( 'input[type="checkbox"]#dws-ic-new-comment-private' ) );
 		self::assertNotNull( $admin->querySelector( 'template#dws-ic-edit-form' ) );
 		self::assertNotNull( $admin->querySelector( 'template#dws-ic-reply-form' ) );
-		self::assertNotNull( $admin->querySelector( '[role="status"]' ) );
+		self::assertNotNull( $admin->querySelector( '.dws-internal-comments__status' ) );
 		// The edit screen submits every named field inside the post's form, and WordPress saves `content` as the post's body.
 		self::assertNull( $admin->querySelector( '.dws-internal-comments [name]' ) );
 		self::assertSame( '-1', $admin->querySelector( '.dws-internal-comments' )?->getAttribute( 'tabindex' ) );
@@ -138,6 +138,46 @@ final class MetaBoxTest extends TestCase {
 		self::assertSame( array( 'reply' ), $this->actions( $editor, $comment ) );
 		update_option( Options::PRIVATE_COMMENTS, 'no' );
 		self::assertNull( $this->render( 'administrator' )->querySelector( '#dws-ic-new-comment-private' ) );
+	}
+
+	// The byline reads as one sentence in every language, and each action names its comment, since a list holds many of each.
+	public function test_a_comment_reads_as_one_byline_and_its_actions_name_it(): void {
+		$comment = $this->comment( 'Named' );
+		$author  = get_comment_author( $comment );
+		$when    = get_comment_date( '', $comment ) . ' at ' . get_comment_time( '', false, true, $comment );
+
+		$document = $this->render( 'administrator' );
+		$labels   = array();
+		foreach ( $document->querySelectorAll( "#comment-$comment button[data-action]" ) as $button ) {
+			$labels[ $button->getAttribute( 'data-action' ) ] = $button->getAttribute( 'aria-label' );
+		}
+
+		self::assertSame( "Added on $when by $author", \trim( (string) \preg_replace( '/\s+/', ' ', (string) $document->querySelector( "#comment-$comment .dws-internal-comment__meta" )?->textContent ) ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertNotNull( $document->querySelector( "#comment-$comment .dws-internal-comment__meta a[href]" ) );
+		self::assertSame(
+			array(
+				'edit'  => "Edit internal comment by $author from $when",
+				'reply' => "Reply to internal comment by $author from $when",
+				'trash' => "Move to Trash: internal comment by $author from $when",
+			),
+			$labels
+		);
+	}
+
+	// A reply belongs to its parent's list item, so assistive technology reads the thread as nested.
+	public function test_replies_nest_inside_their_parents_item(): void {
+		$parent = $this->comment( 'Parent' );
+		$reply  = $this->comment( 'Reply', array(), $parent );
+		$nested = $this->comment( 'Nested', array(), $reply );
+
+		$document = $this->render( 'administrator' );
+
+		self::assertNotNull( $document->querySelector( "#comment-$parent > ul#replies-comment-$parent > #reply-$reply > ul#replies-comment-$reply > #reply-$nested" ) );
+		self::assertCount( 1, $document->querySelectorAll( '.dws-internal-comments__list > li' ) );
+	}
+
+	public function test_a_post_without_comments_says_so_in_one_sentence(): void {
+		self::assertSame( 'No internal comments yet.', \trim( (string) $this->render( 'administrator' )->querySelector( '.dws-internal-comments__empty' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
 
 	public function test_a_reply_the_user_cannot_see_is_left_out_of_its_thread(): void {

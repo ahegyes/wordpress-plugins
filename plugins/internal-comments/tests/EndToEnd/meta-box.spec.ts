@@ -44,11 +44,14 @@ test.describe( 'Meta box', () => {
 		await admin.editPost( post );
 		await openMetaBoxes( page );
 		const box = page.locator( '#dws-internal-comments' );
-		const status = box.getByRole( 'status' );
+		const status = box.locator( '.dws-internal-comments__status' );
 
 		await box.getByLabel( 'New internal comment' ).fill( 'First note' );
 		await box.getByRole( 'button', { name: 'Post comment' } ).click();
 		await expect( status ).toHaveText( 'Internal comment posted.' );
+		await expect( page.locator( '#a11y-speak-polite' ) ).toContainText(
+			'Internal comment posted.'
+		);
 		const first = box
 			.locator( '.dws-internal-comments__list > li' )
 			.first();
@@ -62,14 +65,13 @@ test.describe( 'Meta box', () => {
 		const reply = box.locator( '.internal-comment-reply' );
 		await expect( reply ).toContainText( 'A reply' );
 
-		await box
-			.locator( '.dws-internal-comments__list > li' )
-			.first()
+		// The reply sits inside its parent's item, so the parent's own actions and form are its direct children's.
+		await first
+			.locator( ':scope > .dws-internal-comment__other' )
 			.getByRole( 'button', { name: 'Edit' } )
 			.click();
-		const editor = box
-			.locator( '.dws-internal-comments__list > li' )
-			.first()
+		const editor = first
+			.locator( ':scope > [data-form="edit"]' )
 			.getByRole( 'textbox' );
 		await expect( editor ).toHaveValue( 'First note' );
 		await editor.fill( 'Edited note' );
@@ -101,10 +103,120 @@ test.describe( 'Meta box', () => {
 
 		await box.getByRole( 'button', { name: 'Post comment' } ).click();
 
-		await expect( box.getByRole( 'status' ) ).toHaveText(
-			'You cannot post an empty internal comment.'
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toHaveText( 'An internal comment cannot be empty.' );
+		await expect( page.locator( '#a11y-speak-assertive' ) ).toContainText(
+			'An internal comment cannot be empty.'
 		);
 		await expect( box.getByLabel( 'New internal comment' ) ).toBeFocused();
+	} );
+
+	test( 'a reply’s error shows in its form and Cancel clears it', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.editPost( post );
+		await openMetaBoxes( page );
+		const box = page.locator( '#dws-internal-comments' );
+		await box.getByLabel( 'New internal comment' ).fill( 'Replied to' );
+		await box.getByRole( 'button', { name: 'Post comment' } ).click();
+		const item = box.locator( '.dws-internal-comments__list > li', {
+			hasText: 'Replied to',
+		} );
+
+		await item.getByRole( 'button', { name: 'Reply' } ).click();
+		const form = item.locator( ':scope > [data-form="reply"]' );
+		await form.getByRole( 'button', { name: 'Post reply' } ).click();
+
+		const field = form.getByRole( 'textbox' );
+		await expect( field ).toHaveAttribute( 'aria-invalid', 'true' );
+		const error = form.locator(
+			`#${ ( await field.getAttribute( 'aria-describedby' ) ) ?? '' }`
+		);
+		await expect( error ).toHaveText(
+			'An internal comment cannot be empty.'
+		);
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toBeEmpty();
+
+		await form.getByRole( 'button', { name: 'Cancel' } ).click();
+		await expect( form ).toHaveCount( 0 );
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toBeEmpty();
+	} );
+
+	test( 'a request runs alone, so a repeated shortcut or Escape waits for it', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.editPost( post );
+		await openMetaBoxes( page );
+		const box = page.locator( '#dws-internal-comments' );
+		const field = box.getByLabel( 'New internal comment' );
+		let posts = 0;
+		let answer = (): void => {};
+		const answered = new Promise< void >( ( resolve ) => {
+			answer = resolve;
+		} );
+		await page.route(
+			( url ) => url.href.includes( 'internal-comments' ),
+			async ( route ) => {
+				if ( route.request().method() === 'POST' ) {
+					posts++;
+					await answered;
+				}
+				await route.continue();
+			}
+		);
+
+		await field.fill( 'Sent once' );
+		await field.press( 'ControlOrMeta+Enter' );
+		await field.press( 'ControlOrMeta+Enter' );
+		answer();
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toHaveText( 'Internal comment posted.' );
+		await expect(
+			box.locator( '.dws-internal-comment__content', {
+				hasText: 'Sent once',
+			} )
+		).toHaveCount( 1 );
+		expect( posts ).toBe( 1 );
+
+		let release = (): void => {};
+		const released = new Promise< void >( ( resolve ) => {
+			release = resolve;
+		} );
+		await page.unrouteAll();
+		await page.route(
+			( url ) => url.href.includes( 'internal-comments' ),
+			async ( route ) => {
+				if ( route.request().method() === 'POST' ) {
+					await released;
+				}
+				await route.continue();
+			}
+		);
+		const item = box.locator( '.dws-internal-comments__list > li', {
+			hasText: 'Sent once',
+		} );
+		await item.getByRole( 'button', { name: 'Reply' } ).click();
+		const reply = item.locator( ':scope > [data-form="reply"]' );
+		await reply.getByRole( 'textbox' ).fill( 'Pending reply' );
+		await reply.getByRole( 'textbox' ).press( 'ControlOrMeta+Enter' );
+		await reply.getByRole( 'textbox' ).press( 'Escape' );
+		await expect( reply ).toHaveCount( 1 );
+		release();
+
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toHaveText( 'Reply posted.' );
+		await expect( box.locator( '.internal-comment-reply' ) ).toContainText(
+			'Pending reply'
+		);
 	} );
 
 	test( 'a comment being sent stays as sent until the server answers', async ( {
@@ -132,9 +244,9 @@ test.describe( 'Meta box', () => {
 		await expect( field ).not.toBeEditable();
 		answer();
 
-		await expect( box.getByRole( 'status' ) ).toHaveText(
-			'Internal comment posted.'
-		);
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toHaveText( 'Internal comment posted.' );
 		await expect( field ).toBeEditable();
 	} );
 
@@ -145,7 +257,7 @@ test.describe( 'Meta box', () => {
 		await admin.editPost( post );
 		await openMetaBoxes( page );
 		const box = page.locator( '#dws-internal-comments' );
-		const status = box.getByRole( 'status' );
+		const status = box.locator( '.dws-internal-comments__status' );
 		const item = ( text: string ) =>
 			box.locator( '.dws-internal-comments__list > li', {
 				hasText: text,
@@ -193,9 +305,9 @@ test.describe( 'Meta box', () => {
 				.fill( 'About the order' );
 			await box.getByRole( 'button', { name: 'Post comment' } ).click();
 
-			await expect( box.getByRole( 'status' ) ).toHaveText(
-				'Internal comment posted.'
-			);
+			await expect(
+				box.locator( '.dws-internal-comments__status' )
+			).toHaveText( 'Internal comment posted.' );
 			await expect( box ).toContainText( 'About the order' );
 		} finally {
 			await requestUtils.rest( {
