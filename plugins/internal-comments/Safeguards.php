@@ -5,7 +5,7 @@ namespace DeepWebSolutions\InternalComments;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Keeps WordPress's own actions on internal comments refused unless the booted plugin relaxes them, and WooCommerce's note routes, comment queries and feeds that do not name them, and core's REST and XML-RPC listings off them, so a failed boot never leaves them to whoever can edit their post, moderate comments or edit orders.
+ * Keeps WordPress's own actions on internal comments refused unless the booted plugin relaxes them, and WooCommerce's note routes, comment queries and feeds, and core's REST and XML-RPC listings off them, so a failed boot never leaves them to whoever can edit their post, moderate comments or edit orders.
  *
  * The entry requires it by path before the floor gate, so it parses on PHP 7.4 and calls only what the oldest WordPress the bootstrap package runs on provides.
  *
@@ -85,11 +85,11 @@ final class Safeguards {
 			-10
 		);
 
-		// 1.2.4 stored internal comments approved, and a move back under the status can fail, so only the type keeps such a comment out of a query that names neither, through the WHERE clause, since WooCommerce leaves product reviews out of no query that names types to leave out; WordPress reads a query's statuses as a list or a comma-separated string.
+		// 1.2.4 stored internal comments approved and a move back under the status can fail, so only the type keeps such a comment out of a query, through the WHERE clause, since WooCommerce leaves product reviews out of no query that names types to leave out, and only the booted plugin answers a query that names internal comments, which before the boot comes from input it does not judge, such as the Comments screen's type from its URL.
 		add_filter(
 			'comments_clauses',
 			static function ( array $clauses, \WP_Comment_Query $query ): array {
-				if ( self::names_internal_type( $query->query_vars ) || \in_array( 'dws_internal', wp_parse_list( $query->query_vars['status'] ?? array() ), true ) ) { // @phpstan-ignore argument.type (WP_Comment_Query parses the query's statuses as given.)
+				if ( self::has_booted() && self::names_internal_comments( $query->query_vars ) ) {
 					return $clauses;
 				}
 
@@ -104,6 +104,17 @@ final class Safeguards {
 			'comment_feed_where',
 			static function ( string $where ): string {
 				return $where . ' AND ' . self::get_type_condition();
+			}
+		);
+
+		// WordPress caches a query's results under its arguments, so before the boot a query that names internal comments, which then returns none, takes a cache domain of its own, apart from the booted plugin's answers.
+		add_action(
+			'pre_get_comments',
+			static function ( \WP_Comment_Query $query ): void {
+				if ( ! self::has_booted() && self::names_internal_comments( $query->query_vars ) ) {
+					$domain                            = $query->query_vars['cache_domain'] ?? 'core';
+					$query->query_vars['cache_domain'] = ( \is_string( $domain ) ? $domain : 'core' ) . ':dws_internal_unbooted';
+				}
 			}
 		);
 
@@ -161,6 +172,20 @@ final class Safeguards {
 	// endregion
 
 	// region HELPERS
+
+	/**
+	 * Returns whether a comment query's arguments name the internal type or the internal status, reading the status argument as WordPress does, from a list or a comma-separated string.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<mixed> $query_vars The query's arguments.
+	 *
+	 * @return  bool
+	 */
+	protected static function names_internal_comments( array $query_vars ): bool {
+		return self::names_internal_type( $query_vars ) || \in_array( 'dws_internal', wp_parse_list( $query_vars['status'] ?? array() ), true ); // @phpstan-ignore argument.type (WP_Comment_Query parses the query's statuses as given.)
+	}
 
 	/**
 	 * Returns the SQL condition that leaves internal comments out of a query on the comments table.
@@ -229,7 +254,19 @@ final class Safeguards {
 	 * @return  bool
 	 */
 	protected static function is_relaxed( $filtered ): bool {
-		return 0 < did_action( 'internal_comments/boot/succeeded' ) && false === $filtered;
+		return self::has_booted() && false === $filtered;
+	}
+
+	/**
+	 * Returns whether the plugin has finished booting in this request.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  bool
+	 */
+	protected static function has_booted(): bool {
+		return 0 < did_action( 'internal_comments/boot/succeeded' );
 	}
 
 	// endregion
