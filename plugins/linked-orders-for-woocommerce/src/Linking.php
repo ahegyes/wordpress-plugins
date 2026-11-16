@@ -309,6 +309,26 @@ final class Linking {
 		return Options::get_int( Options::MAX_DEPTH );
 	}
 
+	/**
+	 * Stores an order's depth, parent and children in its meta, as v1 stored them, and saves the order.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   \WC_Order             $order       The order.
+	 * @param   int                   $depth       The order's depth, 0 for a root.
+	 * @param   \DWS_Order_Node|null  $parent_node The parent's node, or null for a root.
+	 * @param   list<\DWS_Order_Node> $children    The children's nodes.
+	 *
+	 * @return  void
+	 */
+	public static function store_links( \WC_Order $order, int $depth, ?\DWS_Order_Node $parent_node, array $children ): void {
+		$order->update_meta_data( self::META_DEPTH, (string) $depth );
+		$order->update_meta_data( self::META_PARENT, (string) $parent_node?->get_order()->get_id() );
+		$order->update_meta_data( self::META_CHILDREN, \array_map( static fn ( \DWS_Order_Node $child ): int => $child->get_order()->get_id(), $children ) );
+		$order->save();
+	}
+
 	// endregion
 
 	// region HELPERS
@@ -362,26 +382,6 @@ final class Linking {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Stores an order's depth, parent and children in its meta, as v1 stored them, and saves the order.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   \WC_Order             $order       The order.
-	 * @param   int                   $depth       The order's depth, 0 for a root.
-	 * @param   \DWS_Order_Node|null  $parent_node The parent's node, or null for a root.
-	 * @param   list<\DWS_Order_Node> $children    The children's nodes.
-	 *
-	 * @return  void
-	 */
-	protected static function store_links( \WC_Order $order, int $depth, ?\DWS_Order_Node $parent_node, array $children ): void {
-		$order->update_meta_data( self::META_DEPTH, (string) $depth );
-		$order->update_meta_data( self::META_PARENT, (string) $parent_node?->get_order()->get_id() );
-		$order->update_meta_data( self::META_CHILDREN, \array_map( static fn ( \DWS_Order_Node $child ): int => $child->get_order()->get_id(), $children ) );
-		$order->save();
 	}
 
 	/**
