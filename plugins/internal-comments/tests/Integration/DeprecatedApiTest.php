@@ -17,14 +17,17 @@ final class DeprecatedApiTest extends TestCase {
 			'plugin'                => array( 'dws_ic_get_hook_tag', array( 'create_comment_data' ), 'internal_comments/create_comment_data' ),
 			'plugin-extra'          => array( 'dws_ic_get_hook_tag', array( 'comments', array( 'before_get_query' ) ), 'internal_comments/comments/before_get_query' ),
 			'plugin-unsafe'         => array( 'dws_ic_get_hook_tag', array( 'Some Name', array( 'A\\B', '' ) ), 'internal_comments/some_name/a_b' ),
+			'plugin-non-ascii'      => array( 'dws_ic_get_hook_tag', array( "Caf\u{e9}" ), 'internal_comments/caf' ),
+			'plugin-bytes'          => array( 'dws_ic_get_hook_tag', array( 'name', array( "ex\x01tra\u{e9}" ) ), 'internal_comments/name/extra' ),
 			'component'             => array( 'dws_ic_get_component_hook_tag', array( 'metabox-output', 'inline_actions', 'insert' ), 'internal_comments/metabox_output/inline_actions/insert' ),
 			'component-nested'      => array( 'dws_ic_get_component_hook_tag', array( 'metabox-output', 'single_comment', array( 'actions', 'start' ) ), 'internal_comments/metabox_output/single_comment/actions/start' ),
 			'component-group'       => array( 'dws_ic_get_component_hook_tag', array( 'general-settings', 'get_group_fields' ), 'internal_comments/general_settings/get_group_fields' ),
+			'component-bytes'       => array( 'dws_ic_get_component_hook_tag', array( 'general-settings', "get_group\x01_fields\u{e9}" ), 'internal_comments/general_settings/get_group_fields' ),
 			'component-table'       => array( 'dws_ic_get_component_hook_tag', array( 'wp-table-output', 'insert_after' ), 'internal_comments/wp_table_output/insert_after' ),
 			'component-list-table'  => array( 'dws_ic_get_component_hook_tag', array( 'comments-list-table', 'name' ), 'internal_comments/internal_comments_list_table/name' ),
 			'component-permissions' => array( 'dws_ic_get_component_hook_tag', array( 'comment-permissions', 'name' ), 'internal_comments/comments_permissions/name' ),
 			'component-ajax'        => array( 'dws_ic_get_component_hook_tag', array( 'ajax', 'before_insert_comment' ), 'internal_comments/ajax/before_insert_comment' ),
-			'component-absent'      => array( 'dws_ic_get_component_hook_tag', array( 'freemius', 'name' ), null ),
+			'component-unmapped'    => array( 'dws_ic_get_component_hook_tag', array( 'some-component', 'name' ), 'internal_comments/some_component/name' ),
 		);
 	}
 
@@ -73,7 +76,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	#[DataProvider( 'hook_tags' )]
-	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, ?string $expected ): void {
+	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, string $expected ): void {
 		self::assertSame( $expected, $shim( ...$arguments ) );
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
 	}

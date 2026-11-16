@@ -26,12 +26,16 @@ final class DeprecatedApiTest extends TestCase {
 		return array(
 			'plugin'              => array( 'dws_lpmwc_get_hook_tag', array( 'check_payment_method_access_for_user' ), 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user' ),
 			'plugin-unsafe'       => array( 'dws_lpmwc_get_hook_tag', array( 'Some Name', array( 'A\\B', '' ) ), 'locked_payment_methods_for_woocommerce/some_name/a_b' ),
+			'plugin-non-ascii'    => array( 'dws_lpmwc_get_hook_tag', array( "Caf\u{e9}" ), 'locked_payment_methods_for_woocommerce/caf' ),
+			'plugin-bytes'        => array( 'dws_lpmwc_get_hook_tag', array( 'name', array( "ex\x01tra\u{e9}" ) ), 'locked_payment_methods_for_woocommerce/name/extra' ),
 			'component'           => array( 'dws_lpmwc_get_component_hook_tag', array( 'lock-manager', 'is_locked_payment_method', array( 'cod' ) ), 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/cod' ),
+			'component-gateway'   => array( 'dws_lpmwc_get_component_hook_tag', array( 'lock-manager', 'is_locked_payment_method', 'My_Gateway' ), 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/my_gateway' ),
 			'component-group'     => array( 'dws_lpmwc_get_component_hook_tag', array( 'general-settings', 'get_group_fields' ), 'locked_payment_methods_for_woocommerce/general_settings/get_group_fields' ),
+			'component-bytes'     => array( 'dws_lpmwc_get_component_hook_tag', array( 'general-settings', "get_group\x01_fields\u{e9}" ), 'locked_payment_methods_for_woocommerce/general_settings/get_group_fields' ),
 			'component-strategy'  => array( 'dws_lpmwc_get_component_hook_tag', array( 'user-meta-strategy', 'name' ), 'locked_payment_methods_for_woocommerce/user_meta_unlock_strategy/name' ),
 			'component-premium'   => array( 'dws_lpmwc_get_component_hook_tag', array( 'wc-memberships-strategy', 'name' ), 'locked_payment_methods_for_woocommerce/wc_memberships_unlock_strategy/name' ),
 			'component-integrate' => array( 'dws_lpmwc_get_component_hook_tag', array( 'integrations-settings', 'get_group_fields' ), 'locked_payment_methods_for_woocommerce/integrations_settings/get_group_fields' ),
-			'component-absent'    => array( 'dws_lpmwc_get_component_hook_tag', array( 'freemius', 'name' ), null ),
+			'component-unmapped'  => array( 'dws_lpmwc_get_component_hook_tag', array( 'some-component', 'name' ), 'locked_payment_methods_for_woocommerce/some_component/name' ),
 		);
 	}
 
@@ -108,7 +112,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	#[DataProvider( 'hook_tags' )]
-	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, ?string $expected ): void {
+	public function test_a_v1_hook_tag_builds_as_v1_built_it( string $shim, array $arguments, string $expected ): void {
 		self::assertSame( $expected, $shim( ...$arguments ) );
 		self::assertSame( array( array( $shim, '' ) ), $this->deprecated );
 	}
@@ -278,7 +282,12 @@ final class DeprecatedApiTest extends TestCase {
 		}
 
 		self::assertContains( array( $group, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
+		self::assertContains( array( $group, 'locked_payment_methods_for_woocommerce/payment_method/locked_ids' ), $this->deprecated );
 		self::assertNotContains( array( $page, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated ); // No callback hooks the page's filter, so it reports no deprecation.
-		self::assertContains( array( 'dws_lpmwc_get_validated_general_setting', 'get_option()' ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_general_setting', 'dws_lpmwc_get_locked_payment_method_ids(), the locked_payment_methods_for_woocommerce/payment_method/locked_ids filter or dws_lpmwc_is_payment_method_locked()' ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option() on ' . Options::UNLOCK_VIA_USER_ROLES ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option() on ' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_raw_setting', 'get_option() on ' . Options::UNLOCK_VIA_USER_ROLES ), $this->deprecated );
+		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option()' ), $this->deprecated );
 	}
 }

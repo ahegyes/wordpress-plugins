@@ -50,6 +50,15 @@ final class SafeguardsTest extends TestCase {
 		);
 	}
 
+	public static function v1_gateway_ids(): array {
+		return array(
+			'space'     => array( 'My Gateway', 'my_gateway' ),
+			'backslash' => array( 'My\\Gateway', 'my_gateway' ),
+			'non-ascii' => array( "paiement_\u{e9}", 'paiement_' ),
+			'control'   => array( "My\x01Gateway", 'mygateway' ),
+		);
+	}
+
 	public static function order_keys(): array {
 		return array(
 			'missing' => array( null ),
@@ -186,6 +195,24 @@ final class SafeguardsTest extends TestCase {
 		self::assertArrayNotHasKey( 'bacs', $available );
 	}
 
+	public function test_the_global_locked_list_is_the_one_the_lock_check_reads(): void {
+		delete_option( Options::LOCKED_METHODS );
+		update_option( self::V1_KEY, array( 'bacs' ) );
+		$add = static fn ( array $ids ): array => array( ...$ids, 'cheque' );
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
+
+		try {
+			self::assertSame( array( 'bacs', 'cheque' ), dws_lpmwc_get_locked_payment_method_ids() );
+			self::assertTrue( dws_lpmwc_is_payment_method_locked( 'bacs', 0 ) );
+			self::assertTrue( dws_lpmwc_is_payment_method_locked( 'cheque', 0 ) );
+			self::assertFalse( dws_lpmwc_is_payment_method_locked( 'cod', 0 ) );
+		} finally {
+			remove_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
+		}
+
+		self::assertSame( array(), $this->deprecated );
+	}
+
 	public function test_the_lock_check_counts_the_methods_the_locked_ids_filter_adds(): void {
 		$add = static fn ( array $ids ): array => array( ...$ids, 'bacs' );
 		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/locked_ids', $add );
@@ -264,6 +291,28 @@ final class SafeguardsTest extends TestCase {
 		self::assertSame( array( array( true, "WooCommerce_Pay\x01ments" ), array( true ), array( true, "WooCommerce_Pay\x01ments", 0, 0 ) ), $seen );
 		self::assertArrayNotHasKey( "WooCommerce_Pay\x01ments", $available );
 		self::assertSame( array( array( $v1, self::FILTER ), array( $v1_safe, self::FILTER ) ), $this->deprecated );
+	}
+
+	// v1 built the per-gateway name with its hook-tag builder, so a v1 add-on that hooks the builder's answer still runs.
+	#[DataProvider( 'v1_gateway_ids' )]
+	public function test_v1s_per_gateway_filter_fires_under_the_name_v1s_builder_gives( string $id, string $safe ): void {
+		update_option( Options::LOCKED_METHODS, array( $id ) );
+		$hook  = dws_lpmwc_get_component_hook_tag( 'lock-manager', 'is_locked_payment_method', $id );
+		$seen  = 0;
+		$count = static function ( mixed $lock ) use ( &$seen ): mixed {
+			++$seen;
+			return $lock;
+		};
+		add_filter( $hook, $count );
+
+		try {
+			self::available( array( $id => new \stdClass() ) );
+		} finally {
+			remove_filter( $hook, $count );
+		}
+
+		self::assertSame( "locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/$safe", $hook );
+		self::assertSame( 1, $seen );
 	}
 
 	public function test_a_v1_callback_that_returns_false_still_unlocks_once_the_plugin_booted(): void {
