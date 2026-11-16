@@ -57,62 +57,11 @@ final class ListColumn implements ComponentInterface {
 			add_filter( "manage_{$post_type}_posts_columns", array( $this, 'add_posts_column' ), 20 );
 			add_action( "manage_{$post_type}_posts_custom_column", array( $this, 'render_cell' ), 10, 2 );
 
-			// WooCommerce's order tables list an order type on a screen of its own, which other post types never reach.
-			$orders_screen = 'woocommerce_page_wc-orders' . ( 'shop_order' === $post_type ? '' : "--$post_type" );
-			add_filter( "manage_{$orders_screen}_columns", array( $this, 'add_orders_column' ) );
-			add_action( "manage_{$orders_screen}_custom_column", array( $this, 'render_order_cell' ), 10, 2 );
+			// WooCommerce's order tables list each order type through hooks of its own, which other post types never reach.
+			add_filter( "woocommerce_{$post_type}_list_table_columns", array( $this, 'add_orders_column' ) );
+			add_action( "woocommerce_{$post_type}_list_table_custom_column", array( $this, 'render_order_cell' ), 10, 2 );
 		}
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_list_assets' ) );
-	}
-
-	// endregion
-
-	// region METHODS
-
-	/**
-	 * Returns a list's columns with the internal comments column after the comments column, or after the title where the list has none, for a selected post type and a user who may see the column.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   array<string, string> $columns   The list's columns.
-	 * @param   string                $post_type The list's post type.
-	 *
-	 * @return  array<string, string>
-	 */
-	public function add_column( array $columns, string $post_type ): array {
-		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
-			return $columns;
-		}
-
-		$preceding = isset( $columns['comments'] ) ? 'comments' : 'title';
-
-		/**
-		 * Filters the column the internal comments column follows in a posts list.
-		 *
-		 * @since       1.0.0
-		 * @version     2.0.0
-		 * @deprecated  2.0.0 Use internal_comments/list_table/preceding_column.
-		 *
-		 * @param       string      $preceding The id of the column it follows.
-		 * @param       string|null $post_type The list's post type.
-		 */
-		$preceding = apply_filters_deprecated( 'internal_comments/wp_table_output/insert_after', array( $preceding, $post_type ), '2.0.0', 'internal_comments/list_table/preceding_column' );
-
-		/**
-		 * Filters the column the internal comments column follows in a posts list, which it ends where that column is missing.
-		 *
-		 * @since   2.0.0
-		 * @version 2.0.0
-		 *
-		 * @param   string $preceding The id of the column it follows.
-		 * @param   string $post_type The list's post type.
-		 */
-		$preceding = apply_filters( 'internal_comments/list_table/preceding_column', $preceding, $post_type );
-
-		$position = \array_search( $preceding, \array_keys( $columns ), true );
-		$position = false === $position ? \count( $columns ) : $position + 1;
-		return \array_slice( $columns, 0, $position, true ) + array( self::COLUMN => __( 'Internal Comments', 'internal-comments' ) ) + \array_slice( $columns, $position, null, true );
 	}
 
 	// endregion
@@ -145,11 +94,8 @@ final class ListColumn implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function add_orders_column( array $columns ): array {
-		if ( 1 !== \preg_match( '/^manage_woocommerce_page_wc-orders(?:--(.+))?_columns$/', (string) current_filter(), $matches ) ) {
-			return $columns;
-		}
-
-		return $this->add_column( $columns, $matches[1] ?? 'shop_order' );
+		// One callback serves every selected order type, so the running hook names the list's.
+		return 1 === \preg_match( '/^woocommerce_(.+)_list_table_columns$/', (string) current_filter(), $matches ) ? $this->add_column( $columns, $matches[1] ) : $columns;
 	}
 
 	/**
@@ -251,14 +197,14 @@ final class ListColumn implements ComponentInterface {
 	 */
 	public function enqueue_list_assets( string $hook_suffix ): void {
 		$screen    = \function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		$post_type = \is_null( $screen ) || '' === $screen->post_type ? 'post' : $screen->post_type;
-		if ( 1 === \preg_match( '/^woocommerce_page_wc-orders(?:--(.+))?$/', $hook_suffix, $matches ) && ! isset( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tells the list from the edit screen.
-			$post_type = $matches[1] ?? 'shop_order';
-		} elseif ( 'edit.php' !== $hook_suffix ) {
-			return;
+		$post_type = null;
+		if ( 'edit.php' === $hook_suffix ) {
+			$post_type = \is_null( $screen ) || '' === $screen->post_type ? 'post' : $screen->post_type;
+		} elseif ( \function_exists( 'wc_get_page_screen_id' ) && ! isset( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tells the order tables' list from their edit screen, which shares its hook suffix.
+			$post_type = \array_find( Options::get_list( Options::POST_TYPES ), static fn ( string $type ): bool => wc_get_page_screen_id( $type ) === $hook_suffix );
 		}
 
-		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
+		if ( \is_null( $post_type ) || ! $this->is_shown_for( $post_type ) ) {
 			return;
 		}
 
@@ -268,6 +214,70 @@ final class ListColumn implements ComponentInterface {
 		if ( $this->assets->register_style( Plugin::SLUG . '-quick-view', 'assets/build/quick-view.css' ) ) {
 			wp_enqueue_style( Plugin::SLUG . '-quick-view' );
 		}
+	}
+
+	// endregion
+
+	// region HELPERS
+
+	/**
+	 * Returns a list's columns with the internal comments column after the comments column, or after the title where the list has none, where the column shows.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<string, string> $columns   The list's columns.
+	 * @param   string                $post_type The list's post type.
+	 *
+	 * @return  array<string, string>
+	 */
+	protected function add_column( array $columns, string $post_type ): array {
+		if ( ! $this->is_shown_for( $post_type ) ) {
+			return $columns;
+		}
+
+		$preceding = isset( $columns['comments'] ) ? 'comments' : 'title';
+
+		/**
+		 * Filters the column the internal comments column follows in a posts list.
+		 *
+		 * @since       1.0.0
+		 * @version     2.0.0
+		 * @deprecated  2.0.0 Use internal_comments/list_table/preceding_column.
+		 *
+		 * @param       string      $preceding The id of the column it follows.
+		 * @param       string|null $post_type The list's post type.
+		 */
+		$preceding = apply_filters_deprecated( 'internal_comments/wp_table_output/insert_after', array( $preceding, $post_type ), '2.0.0', 'internal_comments/list_table/preceding_column' );
+
+		/**
+		 * Filters the column the internal comments column follows in a posts list, which it ends where that column is missing.
+		 *
+		 * @since   2.0.0
+		 * @version 2.0.0
+		 *
+		 * @param   string $preceding The id of the column it follows.
+		 * @param   string $post_type The list's post type.
+		 */
+		$preceding = apply_filters( 'internal_comments/list_table/preceding_column', $preceding, $post_type );
+
+		$position = \array_search( $preceding, \array_keys( $columns ), true );
+		$position = false === $position ? \count( $columns ) : $position + 1;
+		return \array_slice( $columns, 0, $position, true ) + array( self::COLUMN => __( 'Internal Comments', 'internal-comments' ) ) + \array_slice( $columns, $position, null, true );
+	}
+
+	/**
+	 * Returns whether the column shows in the list of a post or order type, which takes a selected type and a user who may see internal comments and the column.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $post_type The list's post or order type.
+	 *
+	 * @return  bool
+	 */
+	protected function is_shown_for( string $post_type ): bool {
+		return \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) && current_user_can( Capabilities::SEE ) && current_user_can( Capabilities::SEE_COLUMN );
 	}
 
 	// endregion
