@@ -26,6 +26,9 @@ final class PartialDeployTest extends TestCase {
 	// As the tests site's administrator, who moderates comments: core's REST listing of the internal type and status, whose type defaults to plain comments, with an internal comment's id that the listing ignores, then XML-RPC's, which reads the request type from a constant.
 	protected const string LISTINGS = '$list = new WP_REST_Request( "GET", "/wp/v2/comments" ); $list->set_query_params( array( "id" => %1$d, "status" => "dws_internal", "type" => "dws_internal", "post" => %2$d, "context" => "edit" ) ); wp_set_current_user( 1 ); $listed = rest_do_request( $list ); $rest = array( $listed->get_status(), wp_list_pluck( (array) $listed->get_data(), "id" ) ); require_once ABSPATH . WPINC . "/class-IXR.php"; require_once ABSPATH . WPINC . "/class-wp-xmlrpc-server.php"; define( "XMLRPC_REQUEST", true ); add_filter( "xmlrpc_enabled", "__return_true" ); $xml = new wp_xmlrpc_server()->wp_getComments( array( 1, "admin", "password", array( "status" => "dws_internal", "post_id" => %2$d ) ) ); echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), $rest, is_array( $xml ) ? wp_list_pluck( $xml, "comment_id" ) : $xml, get_comment( %1$d )?->comment_approved ) );';
 
+	// A comment query and a feed's comment query of the post, neither naming the internal type or status, then whether the comment is still approved.
+	protected const string V1_LISTINGS = 'global $wpdb; $where = apply_filters( "comment_feed_where", "WHERE comment_post_ID = %2$d AND comment_approved = \'1\'", null ); echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), get_comments( array( "post_id" => %2$d, "fields" => "ids" ) ), $wpdb->get_col( "SELECT comment_ID FROM $wpdb->comments $where" ), get_comment( %1$d )?->comment_approved ) );';
+
 	public static function missing_build_files(): array {
 		return array(
 			'bootstrap-package' => array( 'vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php', '' ),
@@ -109,6 +112,40 @@ final class PartialDeployTest extends TestCase {
 
 		self::assertSame( 0, $request['status'], $request['output'] );
 		self::assertSame( wp_json_encode( array( 0, array( 200, array() ), array(), Comments::STATUS ) ), $request['last'] );
+	}
+
+	// 1.2.4 stored internal comments approved, so until the migration moves them only their type keeps them out of the post's comments and feeds.
+	public function test_a_build_that_cannot_boot_shows_no_comment_1_2_4_stored_approved(): void {
+		global $wpdb;
+		$post = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Stored approved',
+				'post_status' => 'publish',
+			)
+		);
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for 1.2.4, which ran without the plugin's guards.
+			$wpdb->comments,
+			array(
+				'comment_post_ID'  => $post,
+				'comment_type'     => Comments::TYPE,
+				'comment_approved' => '1',
+				'comment_content'  => 'Stored approved',
+				'comment_date'     => current_time( 'mysql' ),
+				'comment_date_gmt' => current_time( 'mysql', true ),
+			)
+		);
+		$internal = (int) $wpdb->insert_id;
+		$path     = \dirname( DWS_IC_FILE ) . '/vendor/autoload.php';
+		\rename( $path, "$path.hidden" );
+		try {
+			$request = self::request_provoking( 'Failed to open stream', \sprintf( self::V1_LISTINGS, $internal, $post ) );
+		} finally {
+			\rename( "$path.hidden", $path );
+			wp_delete_post( $post, true );
+		}
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( wp_json_encode( array( 0, array(), array(), '1' ) ), $request['last'] );
 	}
 
 	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing_without_a_log_line(): void {
