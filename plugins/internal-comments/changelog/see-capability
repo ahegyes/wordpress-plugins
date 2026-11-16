@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+The meta box, the posts list's column and its quick view show only to users who may see internal comments, as in 1.x.

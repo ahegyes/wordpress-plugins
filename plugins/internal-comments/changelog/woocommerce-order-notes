@@ -1,0 +1,4 @@
+Significance: patch
+Type: security
+
+WooCommerce's order-note REST routes answer an internal comment as a missing note, and its note deletion refuses one, so neither reads nor deletes internal comments.

@@ -1,4 +1,4 @@
 Significance: patch
 Type: fixed
 
-WordPress's reply action on the Comments screen no longer posts an internal comment for a user without the capability to post one.
+WordPress's reply action refuses internal comments, posted as one or as a reply to one, since it drops a reply's parent stored under the internal status; the meta box posts them through the plugin's REST route.

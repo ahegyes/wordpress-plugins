@@ -5,12 +5,15 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Permissions;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( Permissions::class )]
 final class PermissionsTest extends TestCase {
+	use InsertsUsersTrait;
+
 	protected static array $users = array();
 
 	protected array $posts = array();
@@ -19,7 +22,7 @@ final class PermissionsTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		foreach ( array( 'administrator', 'editor', 'author', 'subscriber' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "ic-permissions-$role",
 					'user_pass'  => 'password',
@@ -118,6 +121,63 @@ final class PermissionsTest extends TestCase {
 		self::assertTrue( $both );
 	}
 
+	// The plugin's safeguard refuses core's actions on an internal comment unless the booted plugin relaxes it with an explicit false.
+	public function test_core_actions_on_an_internal_comment_follow_the_plugin_only_while_it_relaxes_its_safeguard(): void {
+		$post     = $this->post( 'administrator' );
+		$internal = $this->comment( $post, 'administrator' );
+		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
+		$relaxed  = user_can( self::$users['administrator'], 'edit_comment', $internal );
+		add_filter( 'internal_comments/core_comment_actions/should_restrict', '__return_true', 20 );
+
+		try {
+			$restricted = user_can( self::$users['administrator'], 'edit_comment', $internal );
+			$other      = user_can( self::$users['administrator'], 'edit_comment', $public );
+		} finally {
+			remove_filter( 'internal_comments/core_comment_actions/should_restrict', '__return_true', 20 );
+		}
+
+		self::assertTrue( $relaxed );
+		self::assertFalse( $restricted );
+		self::assertTrue( $other );
+	}
+
+	// Core reads an empty id as the comment of the current loop, so the plugin maps that comment too.
+	public function test_an_empty_id_maps_the_internal_comment_of_the_current_loop(): void {
+		$comment  = $this->comment( $this->post( 'administrator' ), 'administrator' );
+		$previous = $GLOBALS['comment'] ?? null;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Stands in for the comment loop.
+		$GLOBALS['comment'] = get_comment( $comment );
+
+		try {
+			$editor        = \array_map( static fn ( mixed $id ): bool => user_can( self::$users['editor'], 'edit_comment', $id ), array( 0, '', false, array() ) );
+			$administrator = user_can( self::$users['administrator'], 'edit_comment', 0 );
+		} finally {
+			$GLOBALS['comment'] = $previous; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the loop.
+		}
+
+		self::assertSame( array( false, false, false, false ), $editor );
+		self::assertTrue( $administrator );
+	}
+
+	// The edit form starts from the comment's stored text, so editing someone else's comment needs seeing it.
+	public function test_editing_another_users_comment_needs_seeing_it(): void {
+		$comment = $this->comment( $this->post( 'administrator' ), 'administrator' );
+		get_role( 'editor' )?->add_cap( Capabilities::EDIT_OTHERS );
+		get_role( 'editor' )?->remove_cap( Capabilities::SEE );
+
+		try {
+			$without = user_can( self::$users['editor'], 'edit_dws_internal_comment', $comment );
+			get_role( 'editor' )?->add_cap( Capabilities::SEE );
+			$with = user_can( self::$users['editor'], 'edit_dws_internal_comment', $comment );
+		} finally {
+			get_role( 'editor' )?->add_cap( Capabilities::SEE );
+			get_role( 'editor' )?->remove_cap( Capabilities::EDIT_OTHERS );
+		}
+
+		self::assertFalse( $without );
+		self::assertTrue( $with );
+	}
+
 	public function test_the_meta_capabilities_refuse_a_comment_that_is_not_internal(): void {
 		$public = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post( 'administrator' ) ) );
 
@@ -162,22 +222,16 @@ final class PermissionsTest extends TestCase {
 		self::assertSame( 200, rest_do_request( new \WP_REST_Request( 'GET', "/wp/v2/comments/$comment" ) )->get_status() );
 	}
 
-	protected function post( string $role ): int {
-		$post          = (int) wp_insert_post(
-			array(
-				'post_title'  => 'Permissions',
-				'post_status' => 'publish',
-				'post_author' => self::$users[ $role ],
-			)
-		);
-		$this->posts[] = $post;
-		return $post;
-	}
-
-
 	// Core's REST API lets any user who moderates comments update or delete one, without asking about the comment itself.
 	public function test_core_rest_writes_to_an_internal_comment_need_the_plugins_capabilities(): void {
-		$private = $this->comment( $this->post( 'administrator' ), 'administrator', array( 'comment_content' => 'Secret', 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
+		$private = $this->comment(
+			$this->post( 'administrator' ),
+			'administrator',
+			array(
+				'comment_content' => 'Secret',
+				'comment_meta'    => array( Comments::META_PRIVATE => 'yes' ),
+			)
+		);
 		wp_set_current_user( self::$users['editor'] );
 
 		$update = new \WP_REST_Request( 'PUT', "/wp/v2/comments/$private" );
@@ -207,7 +261,6 @@ final class PermissionsTest extends TestCase {
 		self::assertTrue( dws_ic_is_private_comment( $reply ) );
 		self::assertFalse( user_can( self::$users['editor'], 'see_dws_internal_comment', $reply ) );
 	}
-
 
 	// The REST server takes a query's id over the route's and matches routes regardless of letter case.
 	public function test_core_rest_writes_are_checked_on_the_comment_core_acts_on(): void {
@@ -257,18 +310,18 @@ final class PermissionsTest extends TestCase {
 		self::assertSame( array(), wp_list_pluck( (array) rest_do_request( $listed )->get_data(), 'id' ) );
 	}
 
-
-	// Core's reply action takes the comment's type from the request and checks only access to the post.
-	public function test_core_replies_post_an_internal_comment_only_for_users_who_may(): void {
-		$post   = $this->post( 'administrator' );
-		$stop   = static function (): callable {
+	// Core's reply action takes the comment's type and parent from the request, and drops a parent under the internal status, so a reply would land top-level and not private.
+	public function test_core_replies_post_no_internal_comment_whoever_asks(): void {
+		$post    = $this->post( 'administrator' );
+		$stop    = static function (): callable {
 			return static function ( mixed $message ): void {
 				throw new \RuntimeException( 'Refused: ' . \print_r( $message, true ) );
 			};
 		};
-		$refuse = function ( string $type ) use ( $post ): bool {
+		$refuse  = function ( string $type, int $parent_id = 0 ) use ( $post ): bool {
 			$_POST = array(
 				'comment_post_ID' => (string) $post,
+				'comment_ID'      => (string) $parent_id,
 				'comment_type'    => $type,
 				'content'         => 'Reply',
 			);
@@ -282,31 +335,60 @@ final class PermissionsTest extends TestCase {
 
 			return false;
 		};
-		$hooked = $GLOBALS['wp_filter']['wp_ajax_replyto-comment'] ?? null;
-		remove_all_actions( 'wp_ajax_replyto-comment', -1 ); // WooCommerce's handler for product reviews refuses a request without its nonce.
+		$parent  = $this->comment( $post, 'administrator' );
+		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) );
+		$plain   = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
+		// WooCommerce's handler for product reviews refuses a request without its nonce, and the hook object is shared, so its callbacks are kept to add back.
+		$woocommerce = $GLOBALS['wp_filter']['wp_ajax_replyto-comment']->callbacks[-1] ?? array();
+		remove_all_actions( 'wp_ajax_replyto-comment', -1 );
 		add_filter( 'wp_doing_ajax', '__return_true' );
 		add_filter( 'wp_die_ajax_handler', $stop );
-		get_role( 'editor' )?->remove_cap( Capabilities::INSERT );
-		wp_set_current_user( self::$users['editor'] );
+		wp_set_current_user( self::$users['administrator'] );
 
 		try {
-			$without = $refuse( Comments::TYPE );
-			$cased   = $refuse( ' DWS_Internal ' );
-			$public  = $refuse( 'comment' );
-			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
-			wp_get_current_user()->get_role_caps(); // The user's capabilities were read before the role changed.
-			$with = $refuse( Comments::TYPE );
+			$refused = array(
+				'internal'                 => $refuse( Comments::TYPE ),
+				'internal-cased'           => $refuse( ' DWS_Internal ' ),
+				'internal-reply'           => $refuse( Comments::TYPE, $parent ),
+				'internal-reply-private'   => $refuse( Comments::TYPE, $private ),
+				'public-reply-to-internal' => $refuse( 'comment', $parent ),
+				'internal-reply-to-plain'  => $refuse( Comments::TYPE, $plain ),
+				'public'                   => $refuse( 'comment' ),
+				'public-reply'             => $refuse( 'comment', $plain ),
+			);
 		} finally {
-			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
-			$GLOBALS['wp_filter']['wp_ajax_replyto-comment'] = $hooked;
+			foreach ( $woocommerce as $callback ) {
+				add_action( 'wp_ajax_replyto-comment', $callback['function'], -1, $callback['accepted_args'] );
+			}
 			remove_filter( 'wp_doing_ajax', '__return_true' );
 			remove_filter( 'wp_die_ajax_handler', $stop );
 		}
 
-		self::assertTrue( $without );
-		self::assertTrue( $cased );
-		self::assertFalse( $public );
-		self::assertFalse( $with );
+		self::assertSame(
+			array(
+				'internal'                 => true,
+				'internal-cased'           => true,
+				'internal-reply'           => true,
+				'internal-reply-private'   => true,
+				'public-reply-to-internal' => true,
+				'internal-reply-to-plain'  => true,
+				'public'                   => false,
+				'public-reply'             => false,
+			),
+			$refused
+		);
+	}
+
+	protected function post( string $role ): int {
+		$post          = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Permissions',
+				'post_status' => 'publish',
+				'post_author' => self::$users[ $role ],
+			)
+		);
+		$this->posts[] = $post;
+		return $post;
 	}
 
 	protected function comment( int $post, string $role, array $args = array() ): int {

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Posting or editing an internal comment longer than WordPress stores is refused with a message, instead of storing it cut short or recording a revision of an edit that then fails.

@@ -51,6 +51,20 @@ test.describe( 'Posts list and Comments screen', () => {
 		await expect( popover ).toBeHidden();
 	} );
 
+	test( 'a phone shows the column’s count once', async ( {
+		admin,
+		page,
+	} ) => {
+		await page.setViewportSize( { width: 375, height: 800 } );
+		await admin.visitAdminPage( 'edit.php' );
+		const row = page.locator( `#post-${ post }` );
+		await row.getByRole( 'button', { name: 'Show more details' } ).click();
+
+		const cell = row.locator( '.column-dws-internal-comments' );
+		await expect( cell ).toContainText( '1 internal comment' );
+		await expect( cell.locator( '[aria-hidden="true"]' ) ).toBeHidden();
+	} );
+
 	test( 'the Comments screen lists internal comments under their own view', async ( {
 		admin,
 		page,
@@ -97,6 +111,7 @@ test.describe( 'Posts list and Comments screen', () => {
 			'#namediv',
 			'#comment-status',
 			'.misc-pub-curtime',
+			'.misc-pub-reply-to',
 		] ) {
 			await expect( page.locator( selector ) ).toBeHidden();
 		}

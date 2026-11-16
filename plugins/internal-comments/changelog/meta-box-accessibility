@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+The meta box runs one request at a time, so a repeated Ctrl+Enter never posts twice and Escape keeps a form whose request is pending. It speaks its outcomes through WordPress's announcer, says when a comment was deleted permanently, shows a reply's or an edit's error inside its form, tied to its field, and clears it on Cancel. Each comment's actions name its author and time, the posts list's Quick view names its post, the byline reads as one translatable sentence, and replies sit inside their parent's list item, the dws-internal-comment-replies class moving to the replies' list. The quick view marks private comments as the meta box does.

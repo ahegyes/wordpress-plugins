@@ -1,6 +1,6 @@
 {
 	"name": "ahegyes/wp-internal-comments",
-	"description": "WordPress plugins on the wp-framework packages start here, from one tested anatomy, so all are built alike and a fix found in one applies to all.",
+	"description": "Lets the people who run a site leave comments on its posts, pages, products and orders that only they can read.",
 	"type": "wordpress-plugin",
 	"license": "GPL-3.0-or-later",
 	"homepage": "https://github.com/ahegyes/wp-internal-comments",

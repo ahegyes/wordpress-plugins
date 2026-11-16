@@ -27,7 +27,7 @@ Here is a short overview of the features this plugin offers:
 
 == Installation ==
 
-There are no prerequisites other than the minimum WordPress and PHP versions. Internal comments on WooCommerce orders need WooCommerce 11.3 or newer.
+There are no prerequisites other than the minimum WordPress and PHP versions. Internal comments on WooCommerce orders are tested with WooCommerce 11.3 or newer.
 
 ### INSTALL FROM WITHIN WORDPRESS
 
@@ -53,7 +53,7 @@ If the minimum WordPress and PHP requirements are met, you will find a submenu c
 
 = Do internal comments show up on the front-end of the site? =
 
-No. Internal comments are stored under a status of their own, which WordPress leaves out of every comment list, comment count, feed and REST API response, even while the plugin is inactive.
+No. Internal comments are stored under a status of their own, which keeps them out of the front end, comment feeds and public REST API reads, even while the plugin is inactive. While the plugin is deactivated, though, users who can edit a post can still reach its internal comments through WordPress's own comment screens, since deactivation also unloads the safeguard that holds WordPress off them.
 
 = Can I post sensitive information in internal comments? =
 
@@ -81,7 +81,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5 and WordPress 7.1. Internal comments get a status 1.2.4 does not show, and any 1.2.4 posts stay public after an update. Reading one needs edit access to its post. Settings get a row each. Hooks are renamed, v1's firing deprecated; its AJAX actions, accessors and framework hooks go.
+Requires PHP 8.5 and WordPress 7.1. Internal comments move to a status 1.2.4 does not show and comment queries must name. Reading one needs edit access to its post. Settings get a row each. Hooks are renamed, v1 names deprecated; v1 AJAX actions, accessors and framework hooks go.
 
 == Changelog ==
 

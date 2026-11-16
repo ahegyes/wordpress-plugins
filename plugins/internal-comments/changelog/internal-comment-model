@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+DWS_Internal_Comment is final, and its constructor throws InvalidArgumentException, in place of the framework's NotSupportedException, for a comment that does not exist or is not internal.

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+An author can make an internal comment private only while the site allows private comments and they may post them, as the meta box already required.

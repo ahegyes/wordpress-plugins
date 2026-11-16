@@ -136,7 +136,7 @@ final class MigrationsTest extends TestCase {
 		}
 	}
 
-	// The type exclusion leaves internal comments out of the counts cached while the move is pending, so its end has them counted afresh.
+	// WooCommerce counts the moved comments under the status they left, so the move's end has them counted afresh.
 	public function test_the_end_of_the_move_has_the_comment_counts_counted_afresh(): void {
 		$post    = (int) wp_insert_post(
 			array(
@@ -146,8 +146,8 @@ final class MigrationsTest extends TestCase {
 		);
 		$trashed = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ) );
 		wp_trash_comment( $trashed );
-		$revision = get_option( 'dws_ic_revision' );
-		update_option( 'dws_ic_revision', 1 );
+		$revision = get_option( Plugin::PREFIX . '_revision' );
+		update_option( Plugin::PREFIX . '_revision', 1 );
 		delete_option( 'dws_ic_v1_comments_cursor' );
 		\WC_Comments::delete_comments_count_cache();
 		wp_cache_delete( 'comments-0', 'counts' );
@@ -158,7 +158,7 @@ final class MigrationsTest extends TestCase {
 				continue;
 			}
 		} finally {
-			update_option( 'dws_ic_revision', $revision );
+			update_option( Plugin::PREFIX . '_revision', $revision );
 		}
 		$cached = (array) wp_count_comments();
 		\WC_Comments::delete_comments_count_cache();
@@ -221,5 +221,56 @@ final class MigrationsTest extends TestCase {
 		self::assertSame( (array) wp_count_comments(), $cached );
 
 		wp_delete_post( $post, true );
+	}
+
+	// Each call moves one window of ids from the stored cursor, so ids far apart take a call each, and a later call resumes from the cursor.
+	public function test_the_move_walks_one_window_of_ids_per_call_and_resumes_from_its_cursor(): void {
+		global $wpdb;
+		$post   = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Windowed',
+				'post_status' => 'publish',
+			)
+		);
+		$base   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(comment_ID) FROM %i', $wpdb->comments ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Finds where the seeded ids start.
+		$insert = static function ( int $id ) use ( $wpdb, $post ): int {
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
+				$wpdb->comments,
+				array(
+					'comment_ID'       => $id,
+					'comment_post_ID'  => $post,
+					'comment_type'     => Comments::TYPE,
+					'comment_approved' => '1',
+					'comment_date'     => current_time( 'mysql' ),
+					'comment_date_gmt' => current_time( 'mysql', true ),
+				)
+			);
+			return (int) $wpdb->insert_id;
+		};
+		$near   = $insert( $base + 1 );
+		$far    = $insert( $base + 25000 );
+		update_option( 'dws_ic_v1_comments_cursor', $base, false );
+
+		try {
+			$first  = new CommentStatusMove()->process_batch();
+			$cursor = get_option( 'dws_ic_v1_comments_cursor' );
+			clean_comment_cache( array( $near, $far ) );
+			$moved = array( get_comment( $near )?->comment_approved, get_comment( $far )?->comment_approved );
+			$calls = 1;
+			do {
+				++$calls;
+			} while ( new CommentStatusMove()->process_batch() );
+			clean_comment_cache( $far );
+			$done = get_comment( $far )?->comment_approved;
+		} finally {
+			delete_option( 'dws_ic_v1_comments_cursor' );
+			wp_delete_post( $post, true );
+		}
+
+		self::assertTrue( $first );
+		self::assertSame( $base + 10000, (int) $cursor );
+		self::assertSame( array( Comments::STATUS, '1' ), $moved );
+		self::assertSame( 3, $calls );
+		self::assertSame( Comments::STATUS, $done );
 	}
 }

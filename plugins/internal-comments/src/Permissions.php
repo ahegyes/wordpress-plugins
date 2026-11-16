@@ -26,9 +26,8 @@ final class Permissions implements ComponentInterface {
 	#[\Override]
 	public function register_hooks(): void {
 		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
+		add_filter( 'internal_comments/core_comment_actions/should_restrict', array( $this, 'relax_core_comment_actions' ) );
 		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_comment' ), 10, 3 );
-		add_filter( 'rest_comment_query', array( $this, 'exclude_from_core_rest_collections' ) );
-		add_action( 'pre_get_comments', array( $this, 'exclude_from_xml_rpc' ) );
 		// Before WooCommerce's handler for product reviews at -1 and core's at 1.
 		add_action( 'wp_ajax_replyto-comment', array( $this, 'guard_core_replies' ), -10 );
 	}
@@ -53,7 +52,12 @@ final class Permissions implements ComponentInterface {
 	public function map_meta_cap( array $caps, string $cap, int $user_id, array $args ): array {
 		// Core trashes, deletes, restores and moderates a comment on edit_comment alone, so it asks for both capabilities.
 		if ( 'edit_comment' === $cap ) {
-			return true === dws_ic_is_internal_comment( $args[0] ?? null ) ? \array_values( \array_unique( \array_merge( map_meta_cap( 'edit_dws_internal_comment', $user_id, ...$args ), map_meta_cap( 'trash_dws_internal_comment', $user_id, ...$args ) ) ) ) : $caps;
+			$comment = isset( $args[0] ) ? get_comment( $args[0] ) : null; // @phpstan-ignore argument.type (Core's own mapping resolves the argument as given, an empty one naming the loop's comment.)
+			if ( ! $comment instanceof \WP_Comment || Comments::TYPE !== $comment->comment_type ) {
+				return $caps;
+			}
+
+			return self::get_unique( \array_merge( map_meta_cap( 'edit_dws_internal_comment', $user_id, (int) $comment->comment_ID ), map_meta_cap( 'trash_dws_internal_comment', $user_id, (int) $comment->comment_ID ) ) );
 		}
 
 		if ( ! \in_array( $cap, array( 'see_dws_internal_comment', 'edit_dws_internal_comment', 'trash_dws_internal_comment' ), true ) ) {
@@ -69,20 +73,32 @@ final class Permissions implements ComponentInterface {
 		$is_author = 0 !== $user_id && (int) $comment->user_id === $user_id;
 		$caps      = match ( $cap ) {
 			'see_dws_internal_comment'  => $is_author ? array() : array( Capabilities::SEE ),
-			'edit_dws_internal_comment' => array( $is_author ? Capabilities::EDIT : Capabilities::EDIT_OTHERS ),
+			'edit_dws_internal_comment' => $is_author ? array( Capabilities::EDIT ) : array( Capabilities::EDIT_OTHERS, Capabilities::SEE ),
 			default                     => array( $is_author ? Capabilities::TRASH : Capabilities::TRASH_OTHERS ),
 		};
 		if ( array() !== $owners && ! $is_author && ! \in_array( $user_id, $owners, true ) ) {
 			$caps[] = Capabilities::SEE_PRIVATE;
 		}
 
-		return \array_values( \array_unique( \array_merge( $caps, map_meta_cap( 'edit_post', $user_id, (int) $comment->comment_post_ID ) ) ) );
+		return self::get_unique( \array_merge( $caps, map_meta_cap( 'edit_post', $user_id, (int) $comment->comment_post_ID ) ) );
+	}
+
+	/**
+	 * Relaxes the safeguard that refuses WordPress's own actions on internal comments, which the plugin's capabilities decide once it has booted.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  bool
+	 */
+	public function relax_core_comment_actions(): bool {
+		return false;
 	}
 
 	/**
 	 * Refuses core's REST API a read, update or deletion of an internal comment the current user may not see, edit or trash.
 	 *
-	 * Core lets a comment's author read it, and any user who moderates comments update or delete one, before it asks about the comment itself. The check names the comment core acts on, the request's id, which a query or body parameter can set apart from the route's.
+	 * Core lets a comment's author read it, and any user who moderates comments update or delete one, before it asks about the comment itself. The check names the comment the route acts on, the request's id, which a query or body parameter can set apart from the route's.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -110,22 +126,9 @@ final class Permissions implements ComponentInterface {
 	}
 
 	/**
-	 * Leaves internal comments out of core's REST comment collections, which they reach only through the plugin's own routes.
+	 * Refuses core's reply action an internal comment, posted as one or as a reply to one, which the plugin's REST route alone posts.
 	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   array<string, mixed> $args The collection's comment query arguments.
-	 *
-	 * @return  array<string, mixed>
-	 */
-	public function exclude_from_core_rest_collections( array $args ): array {
-		$args['type__not_in'] = Comments::exclude_internal_type( $args['type__not_in'] ?? array() );
-		return $args;
-	}
-
-	/**
-	 * Refuses core's reply action an internal comment from a user without the capability to post one, as the action takes the comment's type from the request and checks only access to the post.
+	 * Core takes the comment's type and parent from the request, and drops a parent stored under the internal status, so its reply would land at the top of the list and lose the privacy it takes from a private thread.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -133,27 +136,33 @@ final class Permissions implements ComponentInterface {
 	 * @return  void
 	 */
 	public function guard_core_replies(): void {
-		$type = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
-		if ( Comments::TYPE === $type && ! current_user_can( Capabilities::INSERT ) ) {
+		// Core casts the parent's id whatever its shape, an array included, so the guard reads the id core acts on.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
+		$type      = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : '';
+		$parent_id = isset( $_POST['comment_ID'] ) && ( \is_scalar( $_POST['comment_ID'] ) || \is_array( $_POST['comment_ID'] ) ) ? absint( $_POST['comment_ID'] ) : 0;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		if ( Comments::TYPE === $type || true === dws_ic_is_internal_comment( $parent_id ) ) {
 			wp_die( -1, '', array( 'response' => 403 ) );
 		}
 	}
 
+	// endregion
+
+	// region HELPERS
+
 	/**
-	 * Leaves internal comments out of the comment queries of an XML-RPC request that do not name their type, as XML-RPC's wp.getComments lists the comments of any status a user who moderates comments names.
+	 * Returns a list of primitive capabilities without its repeats.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   \WP_Comment_Query $query The comment query.
+	 * @param   array<string> $caps The capabilities.
 	 *
-	 * @return  void
+	 * @return  list<string>
 	 */
-	public function exclude_from_xml_rpc( \WP_Comment_Query $query ): void {
-		// XML-RPC's wp.getComments takes no type from its caller, so a query naming the type is one of the plugin's own.
-		if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! Comments::query_names_internal_type( $query->query_vars ) ) {
-			$query->query_vars['type__not_in'] = Comments::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
-		}
+	protected static function get_unique( array $caps ): array {
+		return \array_values( \array_unique( $caps ) );
 	}
 
 	// endregion

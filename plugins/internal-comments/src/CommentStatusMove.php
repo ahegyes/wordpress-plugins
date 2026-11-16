@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\InternalComments;
 
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
-use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -16,20 +15,6 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Mig
  * @version 2.0.0
  */
 final class CommentStatusMove implements BatchedMigrationStepInterface {
-	// region FIELDS AND CONSTANTS
-
-	/**
-	 * The data revision the step brings the site to, from which the comments v1 stored approved are under the internal status.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     int
-	 */
-	protected const int REVISION = 3;
-
-	// endregion
-
 	// region INHERITED METHODS
 
 	/**
@@ -67,12 +52,9 @@ final class CommentStatusMove implements BatchedMigrationStepInterface {
 			}
 		}
 
-		// Counts cached while the move is pending leave internal comments out, and WooCommerce adjusts its own only on announced status changes.
-		if ( array() !== $ids || $end >= $last ) {
-			wp_cache_delete( 'comments-0', 'counts' );
-			if ( \class_exists( 'WC_Comments' ) ) {
-				\WC_Comments::delete_comments_count_cache();
-			}
+		// WooCommerce counts the moved comments under the status they left, since it adjusts its counts only on announced status changes.
+		if ( ( array() !== $ids || $end >= $last ) && \class_exists( 'WC_Comments' ) ) {
+			\WC_Comments::delete_comments_count_cache();
 		}
 
 		if ( $end >= $last ) {
@@ -85,22 +67,6 @@ final class CommentStatusMove implements BatchedMigrationStepInterface {
 		}
 
 		return true;
-	}
-
-	// endregion
-
-	// region METHODS
-
-	/**
-	 * Returns whether the migration has yet to move the comments v1 stored approved under the internal status.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  bool
-	 */
-	public static function is_pending(): bool {
-		return MigrationRunner::get_revision( 'dws_ic_revision' ) < self::REVISION;
 	}
 
 	// endregion

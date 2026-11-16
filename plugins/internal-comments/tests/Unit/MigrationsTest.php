@@ -2,7 +2,6 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Unit;
 
-use DeepWebSolutions\InternalComments\CommentStatusMove;
 use DeepWebSolutions\InternalComments\Migrations;
 use DeepWebSolutions\InternalComments\Options;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -22,13 +21,5 @@ final class MigrationsTest extends TestCase {
 
 		self::assertCount( \count( self::SEEDED_KEY_SETS ), $seeding, 'Each seeding step needs its fingerprint in SEEDED_KEY_SETS.' );
 		self::assertSame( \array_last( self::SEEDED_KEY_SETS ), $fingerprint, "Options::DEFAULTS' keys changed: append self::add_settings( ... ) to Migrations::get_steps() and '$fingerprint' to SEEDED_KEY_SETS." );
-	}
-
-	// The move's pending check reads the revision its step reaches, which its place in the list sets.
-	public function test_the_comment_move_names_the_revision_its_step_reaches(): void {
-		$index = \array_find_key( Migrations::get_steps(), static fn ( mixed $step ): bool => $step instanceof CommentStatusMove );
-
-		self::assertIsInt( $index );
-		self::assertSame( $index + 1, new \ReflectionClassConstant( CommentStatusMove::class, 'REVISION' )->getValue() );
 	}
 }

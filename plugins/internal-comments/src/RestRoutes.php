@@ -7,7 +7,7 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Com
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers the internal-comments/v1 REST routes, through which the meta box lists, posts, edits and trashes internal comments, each answering with the post's comments rendered for the current user.
+ * Registers the internal-comments/v1 REST routes, through which the meta box lists, posts, edits and trashes internal comments and the posts list's quick view lists them, each answering with the post's comments rendered for the current user.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -58,11 +58,11 @@ final class RestRoutes implements ComponentInterface {
 			'required'          => true,
 			'sanitize_callback' => 'sanitize_textarea_field',
 		);
-		$post    = array(
-			'type'              => 'integer',
-			'sanitize_callback' => 'absint',
+		// The REST server validates and casts an integer argument to its schema, as core's controllers declare their ids.
+		$integer = array(
+			'type'    => 'integer',
+			'minimum' => 0,
 		);
-		$id      = $post;
 
 		register_rest_route(
 			self::NAMESPACE,
@@ -72,20 +72,16 @@ final class RestRoutes implements ComponentInterface {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_post_comments' ),
 					'permission_callback' => array( $this, 'can_read_post_comments' ),
-					'args'                => array( 'post' => $post ),
+					'args'                => array( 'post' => $integer ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_comment' ),
 					'permission_callback' => array( $this, 'can_create_comment' ),
 					'args'                => array(
-						'post'    => $post,
+						'post'    => $integer,
 						'content' => $content,
-						'parent'  => array(
-							'type'    => 'integer',
-							'minimum' => 0,
-							'default' => 0,
-						),
+						'parent'  => $integer + array( 'default' => 0 ),
 						'private' => array(
 							'type'    => 'boolean',
 							'default' => false,
@@ -102,14 +98,14 @@ final class RestRoutes implements ComponentInterface {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_comment' ),
 					'permission_callback' => array( $this, 'can_edit_comment' ),
-					'args'                => array( 'id' => $id ),
+					'args'                => array( 'id' => $integer ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::EDITABLE,
 					'callback'            => array( $this, 'update_comment' ),
 					'permission_callback' => array( $this, 'can_edit_comment' ),
 					'args'                => array(
-						'id'      => $id,
+						'id'      => $integer,
 						'content' => $content,
 					),
 				),
@@ -117,7 +113,7 @@ final class RestRoutes implements ComponentInterface {
 					'methods'             => \WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'trash_comment' ),
 					'permission_callback' => array( $this, 'can_trash_comment' ),
-					'args'                => array( 'id' => $id ),
+					'args'                => array( 'id' => $integer ),
 				),
 			)
 		);
@@ -134,7 +130,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  bool
 	 */
 	public function can_read_post_comments( \WP_REST_Request $request ): bool {
-		$post_id = absint( $request['post'] );
+		$post_id = (int) $request['post'];
 		return $this->can_use_post( $post_id ) && ( current_user_can( Capabilities::SEE_METABOX ) || current_user_can( Capabilities::SEE_COLUMN ) );
 	}
 
@@ -149,7 +145,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  bool
 	 */
 	public function can_create_comment( \WP_REST_Request $request ): bool {
-		return $this->can_use_post( absint( $request['post'] ) ) && current_user_can( Capabilities::INSERT );
+		return $this->can_use_post( (int) $request['post'] ) && current_user_can( Capabilities::INSERT );
 	}
 
 	/**
@@ -163,7 +159,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  bool
 	 */
 	public function can_edit_comment( \WP_REST_Request $request ): bool {
-		return current_user_can( 'edit_dws_internal_comment', absint( $request['id'] ) );
+		return current_user_can( 'edit_dws_internal_comment', (int) $request['id'] );
 	}
 
 	/**
@@ -177,7 +173,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  bool
 	 */
 	public function can_trash_comment( \WP_REST_Request $request ): bool {
-		return current_user_can( 'trash_dws_internal_comment', absint( $request['id'] ) );
+		return current_user_can( 'trash_dws_internal_comment', (int) $request['id'] );
 	}
 
 	/**
@@ -191,7 +187,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  \WP_REST_Response
 	 */
 	public function get_post_comments( \WP_REST_Request $request ): \WP_REST_Response {
-		return $this->respond( absint( $request['post'] ) );
+		return $this->respond( (int) $request['post'] );
 	}
 
 	/**
@@ -205,11 +201,12 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  \WP_REST_Response|\WP_Error
 	 */
 	public function create_comment( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-		$post_id   = absint( $request['post'] );
-		$parent_id = absint( $request['parent'] );
+		$post_id   = (int) $request['post'];
+		$parent_id = (int) $request['parent'];
 		$content   = \is_string( $request['content'] ) ? $request['content'] : '';
-		if ( '' === \trim( $content ) ) {
-			return $this->empty_content();
+		$refused   = $this->check_content( $content );
+		if ( ! \is_null( $refused ) ) {
+			return $refused;
 		}
 
 		$parent = 0 === $parent_id ? null : dws_ic_get_comment( $parent_id );
@@ -219,7 +216,7 @@ final class RestRoutes implements ComponentInterface {
 
 		// A comment its author meant to keep private is never stored for every reader instead.
 		$private = true === $request['private'];
-		if ( $private && ! ( Options::get_bool( Options::PRIVATE_COMMENTS ) && current_user_can( Capabilities::INSERT_PRIVATE ) ) ) {
+		if ( $private && ! Comments::can_mark_private() ) {
 			return new \WP_Error( 'dws_ic_cannot_be_private', __( 'This comment was not posted, because the site\'s settings no longer let you post private internal comments. Clear the private option to post it for everyone who can see internal comments.', 'internal-comments' ), array( 'status' => 403 ) );
 		}
 
@@ -270,10 +267,11 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  \WP_REST_Response
 	 */
 	public function get_comment( \WP_REST_Request $request ): \WP_REST_Response {
-		$comment = dws_ic_get_comment( absint( $request['id'] ) );
+		$comment_id = (int) $request['id'];
+		$comment    = dws_ic_get_comment( $comment_id );
 		return new \WP_REST_Response(
 			array(
-				'id'      => absint( $request['id'] ),
+				'id'      => $comment_id,
 				'content' => \is_null( $comment ) ? '' : $comment->comment_content,
 			)
 		);
@@ -290,10 +288,11 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  \WP_REST_Response|\WP_Error
 	 */
 	public function update_comment( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-		$comment_id = absint( $request['id'] );
+		$comment_id = (int) $request['id'];
 		$content    = \is_string( $request['content'] ) ? $request['content'] : '';
-		if ( '' === \trim( $content ) ) {
-			return $this->empty_content();
+		$refused    = $this->check_content( $content );
+		if ( ! \is_null( $refused ) ) {
+			return $refused;
 		}
 
 		$stored  = dws_ic_get_comment( $comment_id );
@@ -369,7 +368,7 @@ final class RestRoutes implements ComponentInterface {
 	 * @return  \WP_REST_Response|\WP_Error
 	 */
 	public function trash_comment( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-		$comment_id = absint( $request['id'] );
+		$comment_id = (int) $request['id'];
 		$stored     = dws_ic_get_comment( $comment_id );
 		$comment    = \is_null( $stored ) ? array() : $stored->to_array();
 
@@ -435,15 +434,23 @@ final class RestRoutes implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the error that refuses an empty comment.
+	 * Returns the error that refuses a comment's text, empty or longer than WordPress stores, or null for a text the routes accept.
+	 *
+	 * The comments table would truncate or refuse a longer text, after the revision of an edit has been recorded.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @return  \WP_Error
+	 * @param   string $content The comment's text.
+	 *
+	 * @return  \WP_Error|null
 	 */
-	protected function empty_content(): \WP_Error {
-		return new \WP_Error( 'dws_ic_empty_content', __( 'You cannot post an empty internal comment.', 'internal-comments' ), array( 'status' => 400 ) );
+	protected function check_content( string $content ): ?\WP_Error {
+		if ( '' === \trim( $content ) ) {
+			return new \WP_Error( 'dws_ic_empty_content', __( 'An internal comment cannot be empty.', 'internal-comments' ), array( 'status' => 400 ) );
+		}
+
+		return is_wp_error( wp_check_comment_data_max_lengths( array( 'comment_content' => $content ) ) ) ? new \WP_Error( 'dws_ic_too_long', __( 'This internal comment is too long to store. Shorten it and try again.', 'internal-comments' ), array( 'status' => 400 ) ) : null;
 	}
 
 	// endregion

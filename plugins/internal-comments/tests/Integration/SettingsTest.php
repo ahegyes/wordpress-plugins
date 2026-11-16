@@ -87,6 +87,8 @@ final class SettingsTest extends TestCase {
 		self::assertNull( $form->querySelector( 'input[name="dws_ic_post_types[]"][checked]' ) );
 		self::assertNotNull( $form->querySelector( 'input[type="checkbox"][name="dws_ic_private_comments_enabled"]:not([checked])' ) );
 		self::assertNull( $form->querySelector( 'input[name="dws_ic_delete_data"]' ) );
+		// The meta box and the readme describe who reads a private comment in these words.
+		self::assertStringContainsString( 'only their author and the users allowed to read private comments can see', (string) $form->body?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
 
 	public function test_the_plugin_tab_holds_the_uninstall_consent(): void {
@@ -186,10 +188,31 @@ final class SettingsTest extends TestCase {
 		self::assertSame( 'saved', dws_ic_get_raw_setting( 'extra', 'general' ) );
 	}
 
+	// v1 passed a list of fields, each naming its own id, so a v1 callback may append one under a numeric key, which v1's getters read by that id.
+	public function test_a_field_a_v1_callback_appends_with_its_own_id_takes_that_ids_row(): void {
+		$v1_extra = static function ( array $fields ): array {
+			$fields[] = array(
+				'id'    => 'listed',
+				'type'  => 'text',
+				'title' => 'Listed',
+			);
+			return $fields;
+		};
+		add_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
+
+		try {
+			$fields = new Settings( self::$identity )->get_tab_fields( 'dws-internal-comments', 'general' );
+		} finally {
+			remove_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
+		}
+
+		self::assertSame( 'dws_ic_general_listed', \array_last( \array_column( $fields, 'id' ) ) );
+	}
+
 	public function test_the_plugin_row_links_to_the_page_and_to_the_support_forum(): void {
 		$basename = plugin_basename( DWS_IC_FILE );
 
-		$links = apply_filters( "plugin_action_links_{$basename}", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
+		$links = apply_filters( "plugin_action_links_$basename", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
 		$meta  = apply_filters( 'plugin_row_meta', array(), $basename, array(), 'all' );
 
 		self::assertStringContainsString( esc_url( admin_url( 'options-general.php?page=dws-internal-comments' ) ), (string) \reset( $links ) );
@@ -209,6 +232,7 @@ final class SettingsTest extends TestCase {
 	// options.php registers the posted tab's settings, then saves each of its fields through update_option(), with null for one the form did not post; the page's filters go afterwards, so a later row saves without them.
 	protected function save( OptionsPage $page, string $tab, array $posted ): void {
 		$group                   = "dws-internal-comments_$tab";
+		$pagenow                 = $GLOBALS['pagenow'] ?? null;
 		$GLOBALS['pagenow']      = 'options.php';
 		$_REQUEST['option_page'] = $group;
 
@@ -223,7 +247,8 @@ final class SettingsTest extends TestCase {
 				unregister_setting( $group, $option );
 			}
 			remove_filter( "option_page_capability_$group", array( $page, 'get_capability' ) );
-			unset( $GLOBALS['pagenow'], $_REQUEST['option_page'] );
+			$GLOBALS['pagenow'] = $pagenow;
+			unset( $_REQUEST['option_page'] );
 		}
 	}
 }

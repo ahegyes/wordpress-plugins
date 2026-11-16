@@ -30,7 +30,11 @@ function dws_ic_get_comment( $comment ): ?WP_Comment {
 	}
 
 	// get_comment() reads an empty id as the comment of the current loop.
-	$comment = $comment instanceof WP_Comment || ( is_numeric( $comment ) && (int) $comment > 0 ) ? get_comment( $comment instanceof WP_Comment ? $comment : (int) $comment ) : null;
+	if ( ! $comment instanceof WP_Comment && ( ! is_numeric( $comment ) || (int) $comment <= 0 ) ) {
+		return null;
+	}
+
+	$comment = get_comment( $comment instanceof WP_Comment ? $comment : (int) $comment );
 	return $comment instanceof WP_Comment ? $comment : null;
 }
 
@@ -118,11 +122,22 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 	$data = apply_filters( 'internal_comments/internal_comment/creation_data', $data );
 
 	$comment_id = wp_insert_comment( wp_slash( $data ) ); // @phpstan-ignore argument.type (The fields pass through public filters, which wp_insert_comment() accepts in any shape.)
-	return false === $comment_id ? null : $comment_id;
+	if ( false === $comment_id ) {
+		return null;
+	}
+
+	// WordPress stores a comment's meta after the comment and reports no failure of it.
+	$meta = $data['comment_meta'] ?? array();
+	if ( is_array( $meta ) && true === filter_var( $meta[ Comments::META_PRIVATE ] ?? null, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) && true !== filter_var( get_comment_meta( $comment_id, Comments::META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ) {
+		wp_delete_comment( $comment_id, true );
+		return null;
+	}
+
+	return $comment_id;
 }
 
 /**
- * Returns a post's internal comments the current user can see, threaded by default, each wrapped in the plugin's model.
+ * Returns a post's internal comments the current user can see, threaded by default, each wrapped in the plugin's model, a threaded comment's replies being only those the user can see too.
  *
  * @api
  *
@@ -147,10 +162,11 @@ function dws_ic_get_internal_comments( int $post_id, array $args = array(), bool
 
 	$comments = array();
 	foreach ( (array) get_comments( $args ) as $comment ) { // @phpstan-ignore argument.type (The caller's arguments are WP_Comment_Query's own.)
-		$comment = new DWS_Internal_Comment( $comment );
-		if ( $include_hidden || $comment->can_see() ) {
-			$comments[] = $comment;
+		if ( ! $comment instanceof WP_Comment || ( ! $include_hidden && ! current_user_can( 'see_dws_internal_comment', (int) $comment->comment_ID ) ) ) {
+			continue;
 		}
+
+		$comments[] = new DWS_Internal_Comment( ! $include_hidden && 'threaded' === $args['hierarchical'] ? Comments::keep_visible_replies( $comment ) : $comment );
 	}
 
 	return $comments;
@@ -165,12 +181,12 @@ function dws_ic_get_internal_comments( int $post_id, array $args = array(), bool
  * @version 2.0.0
  *
  * @param   int    $post_id        The trashed post's id.
- * @param   string $status         Optional. The status the comments had, or 'any'. Default is the internal status.
+ * @param   string $status         Optional. The status the comments had, or 'any'. Default 'dws_internal', the internal status.
  * @param   bool   $include_hidden Optional. Whether to include the comments the current user cannot see. Default false.
  *
  * @return  list<DWS_Internal_Comment>
  */
-function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $status = Comments::STATUS, bool $include_hidden = false ): array {
+function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $status = 'dws_internal', bool $include_hidden = false ): array {
 	$statuses = get_post_meta( $post_id, '_wp_trash_meta_comments_status', true );
 	// v1 recorded the internal comments of a post it trashed as approved.
 	$accepted = Comments::STATUS === $status ? array( Comments::STATUS, '1' ) : array( $status );

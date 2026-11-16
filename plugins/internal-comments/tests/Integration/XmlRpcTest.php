@@ -3,19 +3,22 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Comments;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class XmlRpcTest extends TestCase {
+	use InsertsUsersTrait;
+
 	// XML-RPC's wp.getComments returns the comments of any status a user who moderates comments names, so a request defines a constant this process keeps.
 	#[RunInSeparateProcess]
 	public function test_xml_rpc_lists_no_internal_comments(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		require_once ABSPATH . WPINC . '/class-IXR.php';
 		require_once ABSPATH . WPINC . '/class-wp-xmlrpc-server.php';
-		$admin  = (int) wp_insert_user(
+		$admin  = self::insert_user(
 			array(
 				'user_login' => 'ic-xmlrpc-admin',
 				'user_pass'  => 'password',
@@ -23,7 +26,7 @@ final class XmlRpcTest extends TestCase {
 				'role'       => 'administrator',
 			)
 		);
-		$editor = (int) wp_insert_user(
+		$editor = self::insert_user(
 			array(
 				'user_login' => 'ic-xmlrpc-editor',
 				'user_pass'  => 'password',

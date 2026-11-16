@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+Export Personal Data and Erase Personal Data cover internal comments: the export lists each one a person wrote, the trash included, and the erasure anonymizes its author, as WordPress does for public comments, and the person in each revision they made, and keeps the text.

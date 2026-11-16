@@ -11,7 +11,6 @@ use PHPUnit\Framework\TestCase;
 final class DeprecatedApiTest extends TestCase {
 	use RecordsDeprecationsTrait;
 
-
 	public static function hook_tags(): array {
 		return array(
 			'plugin'                => array( 'dws_ic_get_hook_tag', array( 'create_comment_data' ), 'internal_comments/create_comment_data' ),
@@ -32,14 +31,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
-		$header = get_file_data(
-			DWS_IC_FILE,
-			array(
-				'Version'     => 'Version',
-				'RequiresWP'  => 'Requires at least',
-				'RequiresPHP' => 'Requires PHP',
-			)
-		);
+		$header = self::read_header();
 
 		self::assertSame( dws_ic_get_plugin_name(), dws_ic_name() );
 		self::assertSame( $header['Version'], dws_ic_version() );
@@ -59,14 +51,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_the_v1_constants_hold_the_plugin_header(): void {
-		$header = get_file_data(
-			DWS_IC_FILE,
-			array(
-				'Version'     => 'Version',
-				'RequiresWP'  => 'Requires at least',
-				'RequiresPHP' => 'Requires PHP',
-			)
-		);
+		$header = self::read_header();
 
 		self::assertSame( 'Internal Comments', DWS_IC_NAME );
 		self::assertSame( $header['Version'], DWS_IC_VERSION );
@@ -123,5 +108,16 @@ final class DeprecatedApiTest extends TestCase {
 			$relays = \array_filter( $GLOBALS['wp_filter'][ $hook ]->callbacks[ PHP_INT_MIN ] ?? array(), static fn ( array $callback ): bool => $callback['function'] instanceof \Closure && \dirname( DWS_IC_FILE ) . '/functions.php' === new \ReflectionFunction( $callback['function'] )->getFileName() );
 			self::assertCount( 1, $relays, $hook );
 		}
+	}
+
+	protected static function read_header(): array {
+		return get_file_data(
+			DWS_IC_FILE,
+			array(
+				'Version'     => 'Version',
+				'RequiresWP'  => 'Requires at least',
+				'RequiresPHP' => 'Requires PHP',
+			)
+		);
 	}
 }

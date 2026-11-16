@@ -1,4 +1,5 @@
-import apiFetch from '@wordpress/api-fetch';
+import { speak } from '@wordpress/a11y';
+import apiFetch, { type APIFetchOptions } from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
 import './meta-box.scss';
@@ -25,11 +26,47 @@ if ( root ) {
 		'.dws-internal-comments__status'
 	);
 
+	// The status line shows the outcome, and wp.a11y speaks it, which a live region repeating the same text may not.
 	const announce = ( message: string, isError = false ): void => {
 		if ( status ) {
 			status.textContent = message;
 			status.classList.toggle( 'is-error', isError );
 		}
+		if ( message !== '' ) {
+			speak( message, isError ? 'assertive' : 'polite' );
+		}
+	};
+
+	// A reply's or an edit's error shows inside its form, tied to its field; any other shows on the status line.
+	let errors = 0;
+	const fail = ( group: HTMLElement, message: string ): void => {
+		const field = group.querySelector< HTMLTextAreaElement >( 'textarea' );
+		if (
+			! field ||
+			! [ 'reply', 'edit' ].includes( group.dataset.form ?? '' )
+		) {
+			announce( message, true );
+			return;
+		}
+		let error = group.querySelector< HTMLElement >( '.dws-ic-form__error' );
+		if ( ! error ) {
+			error = document.createElement( 'p' );
+			error.className = 'dws-ic-form__error';
+			error.id = `dws-ic-form-error-${ ++errors }`;
+			field.closest( 'p' )?.after( error );
+		}
+		error.textContent = message;
+		field.setAttribute( 'aria-invalid', 'true' );
+		field.setAttribute( 'aria-describedby', error.id );
+		announce( '' );
+		speak( message, 'assertive' );
+	};
+
+	const clearError = ( group: HTMLElement ): void => {
+		group.querySelector( '.dws-ic-form__error' )?.remove();
+		const field = group.querySelector< HTMLTextAreaElement >( 'textarea' );
+		field?.removeAttribute( 'aria-invalid' );
+		field?.removeAttribute( 'aria-describedby' );
 	};
 
 	const errorMessage = ( error: unknown ): string =>
@@ -42,12 +79,33 @@ if ( root ) {
 					'internal-comments'
 				);
 
-	// Every request answers with the post's comments rendered by the server, which replace the list.
+	// A form's place in its comment's item: before the list of the comment's replies.
+	const place = ( item: Element, form: HTMLElement ): void => {
+		const replies = item.querySelector(
+			':scope > .dws-internal-comments-replies__list'
+		);
+		if ( replies ) {
+			replies.before( form );
+		} else {
+			item.append( form );
+		}
+	};
+
+	// Every request answers with the post's comments rendered by the server, which replace the list, so one runs at a time.
 	const send = async (
 		group: HTMLElement,
-		request: () => Promise< ListResponse >,
+		options: APIFetchOptions< true >,
 		done: string
 	): Promise< boolean > => {
+		if ( root.hasAttribute( 'aria-busy' ) ) {
+			announce(
+				__(
+					'Wait for the previous change to finish, then try again.',
+					'internal-comments'
+				)
+			);
+			return false;
+		}
 		// The fields stay as sent until the answer clears or replaces them; read-only keeps the focus that disabling would drop.
 		const controls = group.querySelectorAll<
 			HTMLButtonElement | HTMLInputElement
@@ -58,7 +116,7 @@ if ( root ) {
 		fields.forEach( ( field ) => ( field.readOnly = true ) );
 		root.setAttribute( 'aria-busy', 'true' );
 		try {
-			const response = await request();
+			const response = await apiFetch< ListResponse >( options );
 			if ( list ) {
 				// The edit and reply forms open on other comments carry their drafts over to the new list.
 				const drafts = Array.from(
@@ -72,16 +130,20 @@ if ( root ) {
 						id: form.parentElement?.dataset.commentId ?? '',
 					} ) );
 				list.innerHTML = response.html;
-				drafts.forEach( ( { form, id } ) =>
-					list
-						.querySelector( `li[data-comment-id="${ id }"]` )
-						?.append( form )
-				);
+				drafts.forEach( ( { form, id } ) => {
+					const item = list.querySelector(
+						`li[data-comment-id="${ id }"]`
+					);
+					if ( item ) {
+						place( item, form );
+					}
+				} );
 			}
+			clearError( group );
 			announce( done );
 			return true;
 		} catch ( error ) {
-			announce( errorMessage( error ), true );
+			fail( group, errorMessage( error ) );
 			return false;
 		} finally {
 			controls.forEach( ( control ) => ( control.disabled = false ) );
@@ -95,12 +157,12 @@ if ( root ) {
 			group.querySelector< HTMLTextAreaElement >( 'textarea' )?.value ??
 			'';
 		if ( content.trim() === '' ) {
-			announce(
+			fail(
+				group,
 				__(
-					'You cannot post an empty internal comment.',
+					'An internal comment cannot be empty.',
 					'internal-comments'
-				),
-				true
+				)
 			);
 			group.querySelector< HTMLTextAreaElement >( 'textarea' )?.focus();
 			return null;
@@ -124,7 +186,7 @@ if ( root ) {
 		action: string,
 		save: ( group: HTMLElement, content: string ) => Promise< boolean >
 	): HTMLTextAreaElement | null => {
-		item.querySelector( '[data-form]' )?.remove();
+		item.querySelector( ':scope > [data-form]' )?.remove();
 		const fragment = document
 			.querySelector< HTMLTemplateElement >( template )
 			?.content.cloneNode( true );
@@ -140,6 +202,7 @@ if ( root ) {
 
 		const close = (): void => {
 			group.remove();
+			announce( '' );
 			focusAction( commentId, action );
 		};
 		const submit = async (): Promise< void > => {
@@ -157,7 +220,10 @@ if ( root ) {
 		group.addEventListener( 'keydown', ( event ) => {
 			if ( event.key === 'Escape' ) {
 				event.preventDefault();
-				close();
+				// A pending request answers into this form, so it stays until then.
+				if ( ! root.hasAttribute( 'aria-busy' ) ) {
+					close();
+				}
 			} else if (
 				event.key === 'Enter' &&
 				( event.ctrlKey || event.metaKey )
@@ -167,7 +233,7 @@ if ( root ) {
 			}
 		} );
 
-		item.append( group );
+		place( item, group );
 		textarea.focus();
 		return textarea;
 	};
@@ -186,12 +252,11 @@ if ( root ) {
 			content !== null &&
 			( await send(
 				newForm,
-				() =>
-					apiFetch< ListResponse >( {
-						path: `/internal-comments/v1/posts/${ postId }/comments`,
-						method: 'POST',
-						data: { content, private: isPrivate },
-					} ),
+				{
+					path: `/internal-comments/v1/posts/${ postId }/comments`,
+					method: 'POST',
+					data: { content, private: isPrivate },
+				},
 				__( 'Internal comment posted.', 'internal-comments' )
 			) )
 		) {
@@ -246,12 +311,11 @@ if ( root ) {
 						( group, content ) =>
 							send(
 								group,
-								() =>
-									apiFetch< ListResponse >( {
-										path,
-										method: 'PUT',
-										data: { content },
-									} ),
+								{
+									path,
+									method: 'PUT',
+									data: { content },
+								},
 								__(
 									'Internal comment saved.',
 									'internal-comments'
@@ -275,12 +339,11 @@ if ( root ) {
 				( group, content ) =>
 					send(
 						group,
-						() =>
-							apiFetch< ListResponse >( {
-								path: `/internal-comments/v1/posts/${ postId }/comments`,
-								method: 'POST',
-								data: { content, parent: Number( commentId ) },
-							} ),
+						{
+							path: `/internal-comments/v1/posts/${ postId }/comments`,
+							method: 'POST',
+							data: { content, parent: Number( commentId ) },
+						},
 						__( 'Reply posted.', 'internal-comments' )
 					)
 			);
@@ -292,11 +355,16 @@ if ( root ) {
 			}
 			void send(
 				item,
-				() => apiFetch< ListResponse >( { path, method: 'DELETE' } ),
-				__(
-					'Internal comment moved to the Trash.',
-					'internal-comments'
-				)
+				{ path, method: 'DELETE' },
+				confirmation
+					? __(
+							'Internal comment deleted permanently.',
+							'internal-comments'
+						)
+					: __(
+							'Internal comment moved to the Trash.',
+							'internal-comments'
+						)
 			).then( ( done ) => done && root.focus() );
 		}
 	} );

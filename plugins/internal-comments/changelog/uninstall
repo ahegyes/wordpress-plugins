@@ -1,4 +1,4 @@
 Significance: patch
 Type: fixed
 
-Uninstall, where the site consents, removes the internal comments, the settings, v1's version and notice rows and the plugin's capabilities, which v1 left to Freemius. A site that never runs 2.0.0 while the plugin is active, such as one updated while deactivated and then deleted, keeps its data, since its consent moves with its other settings when 2.0.0 first runs there.
+Uninstall, where the site consents, removes the internal comments, the revisions v1's premium edition recorded on other comments, the settings, v1's version and notice rows and the plugin's capabilities, which v1 left to Freemius. A site that never runs 2.0.0 while the plugin is active, such as one updated while deactivated and then deleted, keeps its data, since its consent moves with its other settings when 2.0.0 first runs there.

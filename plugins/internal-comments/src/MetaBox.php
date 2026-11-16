@@ -24,7 +24,7 @@ final class MetaBox implements ComponentInterface {
 	 *
 	 * @var     string
 	 */
-	protected const string ID = 'dws-internal-comments';
+	public const string ID = 'dws-internal-comments';
 
 	// endregion
 
@@ -120,50 +120,21 @@ final class MetaBox implements ComponentInterface {
 	public function render_meta_box( mixed $edited ): void {
 		$object_id   = $this->get_object_id( $edited );
 		$can_post    = current_user_can( Capabilities::INSERT );
-		$can_private = $can_post && Options::get_bool( Options::PRIVATE_COMMENTS ) && current_user_can( Capabilities::INSERT_PRIVATE );
+		$can_private = $can_post && Comments::can_mark_private();
 		?>
 		<div class="dws-internal-comments" tabindex="-1" data-post-id="<?php echo esc_attr( (string) $object_id ); ?>">
 			<div class="dws-internal-comments__comments">
 				<?php CommentsList::render( $object_id ); ?>
 			</div>
-			<p class="dws-internal-comments__status" role="status"></p>
+			<p class="dws-internal-comments__status"></p>
 			<?php if ( $can_post ) : ?>
-				<div class="dws-add-internal-comment dws-internal-comments-inline-action" data-form="new">
-					<p class="dws-internal-comments-inline-action__textarea">
-						<label for="dws-ic-new-comment"><?php esc_html_e( 'New internal comment', 'internal-comments' ); ?></label>
-						<textarea id="dws-ic-new-comment" rows="4"></textarea>
-					</p>
-					<?php if ( $can_private ) : ?>
-						<p>
-							<input type="checkbox" id="dws-ic-new-comment-private" aria-describedby="dws-ic-new-comment-private-description" />
-							<label for="dws-ic-new-comment-private"><?php esc_html_e( 'Mark as private', 'internal-comments' ); ?></label>
-							<span id="dws-ic-new-comment-private-description" class="description"><?php esc_html_e( 'Only you and the users allowed to read private comments will see it.', 'internal-comments' ); ?></span>
-						</p>
-					<?php endif; ?>
-					<p class="dws-internal-comments-inline-action__actions">
-						<?php CommentsList::render_form_buttons( 'new' ); ?>
-					</p>
-				</div>
+				<?php CommentsList::render_form( 'new', $can_private ); ?>
 				<template id="dws-ic-reply-form">
-					<div class="dws-internal-comments-inline-action" data-form="reply">
-						<p class="dws-internal-comments-inline-action__textarea">
-							<label><?php esc_html_e( 'Reply', 'internal-comments' ); ?> <textarea rows="3"></textarea></label>
-						</p>
-						<p class="dws-internal-comments-inline-action__actions">
-							<?php CommentsList::render_form_buttons( 'reply' ); ?>
-						</p>
-					</div>
+					<?php CommentsList::render_form( 'reply' ); ?>
 				</template>
 			<?php endif; ?>
 			<template id="dws-ic-edit-form">
-				<div class="dws-internal-comments-inline-action" data-form="edit">
-					<p class="dws-internal-comments-inline-action__textarea">
-						<label><?php esc_html_e( 'Edit internal comment', 'internal-comments' ); ?> <textarea rows="4"></textarea></label>
-					</p>
-					<p class="dws-internal-comments-inline-action__actions">
-						<?php CommentsList::render_form_buttons( 'edit' ); ?>
-					</p>
-				</div>
+				<?php CommentsList::render_form( 'edit' ); ?>
 			</template>
 		</div>
 		<?php
@@ -202,7 +173,7 @@ final class MetaBox implements ComponentInterface {
 	 * @return  bool
 	 */
 	protected function is_shown_for( int $post_id ): bool {
-		return dws_ic_is_selected_post_type( $post_id ) && current_user_can( Capabilities::SEE_METABOX ) && current_user_can( 'edit_post', $post_id );
+		return dws_ic_is_selected_post_type( $post_id ) && current_user_can( Capabilities::SEE ) && current_user_can( Capabilities::SEE_METABOX ) && current_user_can( 'edit_post', $post_id );
 	}
 
 	// endregion
