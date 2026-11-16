@@ -1,16 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
-import type { Page } from '@playwright/test';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
+import { cli } from './cli';
+import { openMetaBoxes } from './editor';
 import { storeSettings } from './settings';
-
-// The block editor folds the classic meta boxes into a pane below the content, whose resize handle covers the middle of its toggle.
-const openMetaBoxes = async ( page: Page ): Promise< void > => {
-	const toggle = page.getByRole( 'button', { name: 'Meta Boxes' } );
-	if ( ( await toggle.getAttribute( 'aria-expanded' ) ) === 'false' ) {
-		await toggle.press( 'Enter' );
-	}
-};
 
 test.describe( 'Meta box', () => {
 	let post = 0;
@@ -217,6 +210,84 @@ test.describe( 'Meta box', () => {
 		await expect( box.locator( '.internal-comment-reply' ) ).toContainText(
 			'Pending reply'
 		);
+	} );
+
+	test( 'a comment marked private is stored private', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.editPost( post );
+		await openMetaBoxes( page );
+		const box = page.locator( '#dws-internal-comments' );
+
+		await box.getByLabel( 'New internal comment' ).fill( 'Kept private' );
+		await box.getByLabel( 'Mark as private' ).check();
+		await box.getByRole( 'button', { name: 'Post comment' } ).click();
+
+		const item = box.locator( '.dws-internal-comment', {
+			hasText: 'Kept private',
+		} );
+		await expect( item ).toHaveClass( /is-private/ );
+		const id = ( await item.getAttribute( 'data-comment-id' ) ) ?? '';
+		expect(
+			cli(
+				'eval',
+				`echo wp_json_encode( dws_ic_is_private_comment( ${ id } ) );`
+			)
+		).toBe( 'true' );
+	} );
+
+	test( 'a failed send keeps the comment and its privacy for a retry', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.editPost( post );
+		await openMetaBoxes( page );
+		const box = page.locator( '#dws-internal-comments' );
+		const field = box.getByLabel( 'New internal comment' );
+		const privacy = box.getByLabel( 'Mark as private' );
+		const button = box.getByRole( 'button', { name: 'Post comment' } );
+		await page.route(
+			( url ) =>
+				url.href.includes( 'internal-comments' ) &&
+				url.href.includes( 'comments' ),
+			async ( route ) => {
+				if ( route.request().method() !== 'POST' ) {
+					return route.continue();
+				}
+				return route.fulfill( {
+					status: 500,
+					contentType: 'application/json',
+					body: JSON.stringify( {
+						code: 'dws_ic_not_stored',
+						message: 'The internal comment could not be stored.',
+					} ),
+				} );
+			}
+		);
+
+		await field.fill( 'Retried note' );
+		await privacy.check();
+		await button.click();
+
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toHaveText( 'The internal comment could not be stored.' );
+		await expect( field ).toHaveValue( 'Retried note' );
+		await expect( field ).toBeEditable();
+		await expect( privacy ).toBeChecked();
+		await expect( button ).toBeEnabled();
+
+		await page.unrouteAll();
+		await button.click();
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toHaveText( 'Internal comment posted.' );
+		await expect(
+			box.locator( '.dws-internal-comment.is-private', {
+				hasText: 'Retried note',
+			} )
+		).toHaveCount( 1 );
 	} );
 
 	test( 'a comment being sent stays as sent until the server answers', async ( {
