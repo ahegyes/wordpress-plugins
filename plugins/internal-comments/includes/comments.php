@@ -177,12 +177,12 @@ function dws_ic_get_internal_comments( int $post_id, array $args = array(), bool
  * @version 2.0.0
  *
  * @param   int    $post_id        The trashed post's id.
- * @param   string $status         Optional. The status the comments had, or 'any'. Default is the internal status.
+ * @param   string $status         Optional. The status the comments had, or 'any'. Default 'dws_internal', the internal status.
  * @param   bool   $include_hidden Optional. Whether to include the comments the current user cannot see. Default false.
  *
  * @return  list<DWS_Internal_Comment>
  */
-function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $status = Comments::STATUS, bool $include_hidden = false ): array {
+function dws_ic_get_internal_comments_from_trash_meta( int $post_id, string $status = 'dws_internal', bool $include_hidden = false ): array {
 	$statuses = get_post_meta( $post_id, '_wp_trash_meta_comments_status', true );
 	// v1 recorded the internal comments of a post it trashed as approved.
 	$accepted = Comments::STATUS === $status ? array( Comments::STATUS, '1' ) : array( $status );
