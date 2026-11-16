@@ -1,4 +1,4 @@
 Significance: minor
 Type: added
 
-Each change to an internal comment's text is recorded and listed on its edit screen, which also lets its author change whether it is private.
+Each change to an internal comment's text is recorded and listed on its edit screen, which also lets its author change whether it is private, and DWS_Internal_Comment::get_revisions() lists the earlier texts.

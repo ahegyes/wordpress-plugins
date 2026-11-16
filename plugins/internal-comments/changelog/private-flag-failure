@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+dws_ic_create_internal_comment() deletes a comment marked private whose private flag WordPress failed to store and returns null, instead of keeping it for everyone who can see internal comments.

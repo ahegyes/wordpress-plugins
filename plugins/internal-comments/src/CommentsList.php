@@ -224,10 +224,7 @@ final class CommentsList {
 
 			$replies = array();
 			foreach ( (array) $comment->get_children() as $child ) {
-				$child = new \DWS_Internal_Comment( $child );
-				if ( $child->can_see() ) {
-					$replies[] = $child;
-				}
+				$replies[] = new \DWS_Internal_Comment( $child );
 			}
 			?>
 			<li id="<?php echo esc_attr( ( 0 === $level ? 'comment-' : 'reply-' ) . $comment->comment_ID ); ?>" class="<?php echo esc_attr( implode( ' ', array_filter( (array) $classes, 'is_string' ) ) ); ?>" data-comment-id="<?php echo esc_attr( (string) $comment->comment_ID ); ?>">

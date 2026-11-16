@@ -118,11 +118,22 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 	$data = apply_filters( 'internal_comments/internal_comment/creation_data', $data );
 
 	$comment_id = wp_insert_comment( wp_slash( $data ) ); // @phpstan-ignore argument.type (The fields pass through public filters, which wp_insert_comment() accepts in any shape.)
-	return false === $comment_id ? null : $comment_id;
+	if ( false === $comment_id ) {
+		return null;
+	}
+
+	// WordPress stores a comment's meta after the comment and reports no failure of it.
+	$meta = $data['comment_meta'] ?? array();
+	if ( is_array( $meta ) && true === filter_var( $meta[ Comments::META_PRIVATE ] ?? null, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) && true !== filter_var( get_comment_meta( $comment_id, Comments::META_PRIVATE, true ), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE ) ) {
+		wp_delete_comment( $comment_id, true );
+		return null;
+	}
+
+	return $comment_id;
 }
 
 /**
- * Returns a post's internal comments the current user can see, threaded by default, each wrapped in the plugin's model.
+ * Returns a post's internal comments the current user can see, threaded by default, each wrapped in the plugin's model, a threaded comment's replies being only those the user can see too.
  *
  * @api
  *
@@ -147,10 +158,11 @@ function dws_ic_get_internal_comments( int $post_id, array $args = array(), bool
 
 	$comments = array();
 	foreach ( (array) get_comments( $args ) as $comment ) { // @phpstan-ignore argument.type (The caller's arguments are WP_Comment_Query's own.)
-		$comment = new DWS_Internal_Comment( $comment );
-		if ( $include_hidden || $comment->can_see() ) {
-			$comments[] = $comment;
+		if ( ! $comment instanceof WP_Comment || ( ! $include_hidden && ! current_user_can( 'see_dws_internal_comment', (int) $comment->comment_ID ) ) ) {
+			continue;
 		}
+
+		$comments[] = new DWS_Internal_Comment( ! $include_hidden && 'threaded' === $args['hierarchical'] ? Comments::keep_visible_replies( $comment ) : $comment );
 	}
 
 	return $comments;

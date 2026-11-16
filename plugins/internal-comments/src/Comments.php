@@ -48,6 +48,46 @@ final class Comments implements ComponentInterface {
 	 */
 	public const string META_PRIVATE = 'dws_ic_is_private';
 
+	/**
+	 * The comment meta key that holds the id of each change to an internal comment's text, one row per change, oldest first.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string META_CHANGE_ID = '_dws_ic_change_id';
+
+	/**
+	 * The start of the comment meta key that holds the text a change replaced, which the change's id ends.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string META_PREVIOUS_CONTENT = '_dws_ic_previous_content_';
+
+	/**
+	 * The start of the comment meta key that holds the id of the user who made a change, which the change's id ends.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string META_CHANGED_BY = '_dws_ic_changed_by_';
+
+	/**
+	 * The start of the comment meta key that holds the time of a change, which the change's id ends.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string META_CHANGED_TIME = '_dws_ic_changed_time_';
+
 	// endregion
 
 	// region INHERITED METHODS
@@ -66,6 +106,8 @@ final class Comments implements ComponentInterface {
 		// After every listener of WordPress's own announcement of the change the plugin undoes, such as WooCommerce's comment counts.
 		add_action( 'transition_comment_status', array( $this, 'announce_kept_internal' ), \PHP_INT_MAX, 3 );
 		add_action( 'untrash_comment', array( $this, 'prepare_restore' ) );
+		add_action( 'trashed_comment', array( $this, 'trash_replies' ) );
+		add_action( 'untrashed_comment', array( $this, 'restore_replies' ) );
 		add_action( 'untrashed_post_comments', array( $this, 'keep_post_comments_internal' ) );
 		add_filter( 'wp_update_comment_data', array( $this, 'filter_update_data' ), \PHP_INT_MAX, 2 );
 		add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
@@ -164,6 +206,31 @@ final class Comments implements ComponentInterface {
 	 */
 	public static function query_names_internal_type( array $query_vars ): bool {
 		return \in_array( self::TYPE, \array_merge( (array) ( $query_vars['type'] ?? array() ), (array) ( $query_vars['type__in'] ?? array() ) ), true );
+	}
+
+	/**
+	 * Returns a copy of a comment read in a thread whose replies, at every depth, are only those the current user can see.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   \WP_Comment $comment The comment, its replies filled by a threaded query.
+	 *
+	 * @return  \WP_Comment
+	 */
+	public static function keep_visible_replies( \WP_Comment $comment ): \WP_Comment {
+		$fields = $comment->to_array();
+		unset( $fields['children'], $fields['populated_children'], $fields['post_fields'] );
+
+		$thread = new \WP_Comment( (object) $fields );
+		$thread->populated_children( true );
+		foreach ( $comment->get_children() as $reply ) {
+			if ( $reply instanceof \WP_Comment && current_user_can( 'see_dws_internal_comment', (int) $reply->comment_ID ) ) {
+				$thread->add_child( self::keep_visible_replies( $reply ) );
+			}
+		}
+
+		return $thread;
 	}
 
 	/**
@@ -268,6 +335,42 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
+	 * Trashes the internal replies of an internal comment moved to the trash, each of which trashes its own replies in turn.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|string $comment_id The trashed comment's id.
+	 *
+	 * @return  void
+	 */
+	public function trash_replies( int|string $comment_id ): void {
+		if ( true === dws_ic_is_internal_comment( $comment_id ) ) {
+			foreach ( $this->get_reply_ids( (int) $comment_id, self::STATUS ) as $reply ) {
+				wp_trash_comment( $reply );
+			}
+		}
+	}
+
+	/**
+	 * Restores the trashed internal replies of an internal comment restored from the trash, each of which restores its own replies in turn.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|string $comment_id The restored comment's id.
+	 *
+	 * @return  void
+	 */
+	public function restore_replies( int|string $comment_id ): void {
+		if ( true === dws_ic_is_internal_comment( $comment_id ) ) {
+			foreach ( $this->get_reply_ids( (int) $comment_id, 'trash' ) as $reply ) {
+				wp_untrash_comment( $reply );
+			}
+		}
+	}
+
+	/**
 	 * Puts a restored post's internal comments back under the internal status, which WordPress restores from what it recorded at trashing, approved for a post v1 trashed.
 	 *
 	 * @since   2.0.0
@@ -311,10 +414,10 @@ final class Comments implements ComponentInterface {
 		$previous   = wp_unslash( $comment['comment_content'] ?? '' );
 		if ( ( $data['comment_content'] ?? '' ) !== $previous ) {
 			$change_id = \uniqid( (string) get_current_user_id(), true );
-			add_comment_meta( $comment_id, '_dws_ic_change_id', wp_slash( $change_id ) );
-			add_comment_meta( $comment_id, "_dws_ic_previous_content_$change_id", wp_slash( $previous ) );
-			add_comment_meta( $comment_id, "_dws_ic_changed_by_$change_id", get_current_user_id() );
-			add_comment_meta( $comment_id, "_dws_ic_changed_time_$change_id", \time() );
+			add_comment_meta( $comment_id, self::META_CHANGE_ID, wp_slash( $change_id ) );
+			add_comment_meta( $comment_id, self::META_PREVIOUS_CONTENT . $change_id, wp_slash( $previous ) );
+			add_comment_meta( $comment_id, self::META_CHANGED_BY . $change_id, get_current_user_id() );
+			add_comment_meta( $comment_id, self::META_CHANGED_TIME . $change_id, \time() );
 		}
 
 		foreach ( array( 'comment_post_ID', 'comment_author', 'comment_author_email', 'comment_author_url', 'comment_author_IP', 'comment_date', 'comment_date_gmt', 'comment_karma', 'comment_approved', 'comment_agent', 'comment_type', 'comment_parent', 'user_id' ) as $field ) {
@@ -339,20 +442,13 @@ final class Comments implements ComponentInterface {
 			return;
 		}
 
-		$replies = get_comments(
-			array(
-				'parent' => (int) $comment_id,
-				'type'   => self::TYPE,
-				'status' => 'any',
-				'fields' => 'ids',
-			)
-		);
+		$replies = $this->get_reply_ids( (int) $comment_id, 'any' );
 
 		// The plugin carries the privacy over, whoever deletes the comment.
 		remove_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ) );
 		try {
-			foreach ( \is_array( $replies ) ? $replies : array() as $reply ) {
-				update_comment_meta( (int) $reply, self::META_PRIVATE, 'yes' );
+			foreach ( $replies as $reply ) {
+				update_comment_meta( $reply, self::META_PRIVATE, 'yes' );
 			}
 		} finally {
 			add_filter( 'update_comment_metadata', array( $this, 'guard_privacy' ), 10, 4 );
@@ -462,6 +558,29 @@ final class Comments implements ComponentInterface {
 		clean_comment_cache( (int) $comment->comment_ID );
 		wp_update_comment_count( (int) $comment->comment_post_ID );
 		return $comment->comment_approved;
+	}
+
+	/**
+	 * Returns the ids of the internal replies to a comment under a status, or under any status.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int    $comment_id The comment's id.
+	 * @param   string $status     The replies' status, or 'any'.
+	 *
+	 * @return  list<int>
+	 */
+	protected function get_reply_ids( int $comment_id, string $status ): array {
+		$replies = get_comments(
+			array(
+				'parent' => $comment_id,
+				'type'   => self::TYPE,
+				'status' => $status,
+				'fields' => 'ids',
+			)
+		);
+		return \is_array( $replies ) ? \array_map( 'intval', \array_values( $replies ) ) : array();
 	}
 
 	/**

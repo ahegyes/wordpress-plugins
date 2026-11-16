@@ -485,9 +485,8 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  void
 	 */
 	public function render_revisions( \WP_Comment $comment ): void {
-		$comment_id = (int) $comment->comment_ID;
-		$changes    = \array_reverse( \array_filter( (array) get_comment_meta( $comment_id, '_dws_ic_change_id', false ), 'is_string' ) );
-		if ( array() === $changes ) {
+		$revisions = new \DWS_Internal_Comment( $comment )->get_revisions();
+		if ( array() === $revisions ) {
 			echo '<p>' . esc_html__( 'No earlier versions of this comment are recorded.', 'internal-comments' ) . '</p>';
 			return;
 		}
@@ -495,22 +494,20 @@ final class AdminScreens implements ComponentInterface {
 		$date_format = get_option( 'date_format' );
 		$time_format = get_option( 'time_format' );
 		echo '<ul class="dws-internal-comments__revisions">';
-		foreach ( $changes as $change_id ) {
-			$content = get_comment_meta( $comment_id, "_dws_ic_previous_content_$change_id", true );
-			$user    = get_userdata( \filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_by_$change_id", true ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0 );
-			$time    = \filter_var( get_comment_meta( $comment_id, "_dws_ic_changed_time_$change_id", true ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0;
-			$name    = false === $user ? __( 'an unknown user', 'internal-comments' ) : $user->display_name;
+		foreach ( $revisions as $revision ) {
+			$user = get_userdata( $revision['user_id'] );
+			$name = false === $user ? __( 'an unknown user', 'internal-comments' ) : $user->display_name;
 			?>
 			<li>
-				<?php echo wp_kses_post( wpautop( wptexturize( \is_string( $content ) ? $content : '' ) ) ); ?>
+				<?php echo wp_kses_post( wpautop( wptexturize( $revision['content'] ) ) ); ?>
 				<p class="description">
 					<?php
 					echo esc_html(
 						\sprintf(
 							/* translators: 1: The date of the change. 2: Its time. 3: The name of the user who made it. */
 							__( 'Replaced on %1$s at %2$s by %3$s', 'internal-comments' ),
-							wp_date( \is_string( $date_format ) ? $date_format : 'Y-m-d', $time ),
-							wp_date( \is_string( $time_format ) ? $time_format : 'H:i', $time ),
+							wp_date( \is_string( $date_format ) ? $date_format : 'Y-m-d', $revision['time'] ),
+							wp_date( \is_string( $time_format ) ? $time_format : 'H:i', $revision['time'] ),
 							$name
 						)
 					);

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Trashing an internal comment trashes its replies again, as in 1.x, and restoring it restores them.
