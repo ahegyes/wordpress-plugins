@@ -26,6 +26,7 @@ final class OrderTypesTest extends TestCase {
 			self::assertNull( dws_lowc_get_order_node( $parent->get_id() ) );
 			self::assertNull( dws_lowc_is_root_order( $parent->get_id() ) );
 			self::assertNull( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+			self::assertNull( dws_lowc_unlink_order( $child->get_id() ) );
 			self::assertNull( dws_lowc_get_root_order( $parent->get_id() ) );
 			self::assertNull( dws_lowc_get_orders_tree( $parent->get_id() ) );
 			self::assertNull( dws_lowc_is_supported_order( $parent->get_id() ) );
@@ -37,9 +38,9 @@ final class OrderTypesTest extends TestCase {
 	}
 
 	public function test_with_woocommerce_inactive_the_order_functions_answer_nothing(): void {
-		$request = self::request( 'echo wp_json_encode( array( dws_lowc_get_order_node( 1 ), dws_lowc_is_root_order( 1 ), dws_lowc_link_orders( 1, 2 ), dws_lowc_get_root_order( 1 ), dws_lowc_get_orders_tree( 1 ), dws_lowc_is_supported_order( 1 ), dws_lowc_get_valid_statuses_for_new_child(), dws_lowc_create_linked_child( 1 ) ) );', '--skip-plugins=woocommerce' );
+		$request = self::request( 'echo wp_json_encode( array( dws_lowc_get_order_node( 1 ), dws_lowc_is_root_order( 1 ), dws_lowc_link_orders( 1, 2 ), dws_lowc_unlink_order( 2 ), dws_lowc_get_root_order( 1 ), dws_lowc_get_orders_tree( 1 ), dws_lowc_is_supported_order( 1 ), dws_lowc_get_valid_statuses_for_new_child(), dws_lowc_create_linked_child( 1 ) ) );', '--skip-plugins=woocommerce' );
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( '[null,null,null,null,null,null,[],null]', $request['last'], $request['output'] );
+		self::assertSame( '[null,null,null,null,null,null,null,[],null]', $request['last'], $request['output'] );
 	}
 }
