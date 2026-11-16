@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
+use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\CommentsList;
@@ -197,6 +198,16 @@ final class OrdersTest extends TestCase {
 		self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
 		self::assertNotSame( '403', $deleted );
 		self::assertNull( get_comment( $note ) );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_an_internal_comments_link_leads_to_its_orders_edit_screen( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order   = $this->create_order();
+		$comment = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
+		wp_set_current_user( self::$users['shop_manager'] );
+
+		self::assertSame( OrderUtil::get_order_admin_edit_url( $order->get_id() ) . "#comment-$comment", get_comment_link( $comment ) );
 	}
 
 	public function test_the_plugin_declares_itself_compatible_with_the_order_tables(): void {

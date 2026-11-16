@@ -308,6 +308,18 @@ final class CommentsTest extends TestCase {
 		}
 	}
 
+	// v1 led an internal comment's link to the meta box on its post's edit screen, where the comment shows.
+	public function test_an_internal_comments_link_leads_to_its_posts_edit_screen(): void {
+		$comment = $this->comment();
+		$reply   = $this->comment( array( 'comment_parent' => $comment ) );
+		$public  = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		$edit    = (string) get_edit_post_link( $this->post, 'url' );
+
+		self::assertSame( "$edit#comment-$comment", get_comment_link( $comment ) );
+		self::assertSame( "$edit#reply-$reply", get_comment_link( $reply ) );
+		self::assertStringStartsWith( (string) get_permalink( $this->post ), get_comment_link( $public ) );
+	}
+
 	protected function comment( array $args = array() ): int {
 		return (int) dws_ic_create_internal_comment( $args + array( 'comment_post_ID' => $this->post ) );
 	}

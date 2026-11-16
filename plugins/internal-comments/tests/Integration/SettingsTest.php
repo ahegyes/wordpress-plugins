@@ -186,6 +186,27 @@ final class SettingsTest extends TestCase {
 		self::assertSame( 'saved', dws_ic_get_raw_setting( 'extra', 'general' ) );
 	}
 
+	// v1 passed a list of fields, each naming its own id, so a v1 callback may append one under a numeric key, which v1's getters read by that id.
+	public function test_a_field_a_v1_callback_appends_with_its_own_id_takes_that_ids_row(): void {
+		$v1_extra = static function ( array $fields ): array {
+			$fields[] = array(
+				'id'    => 'listed',
+				'type'  => 'text',
+				'title' => 'Listed',
+			);
+			return $fields;
+		};
+		add_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
+
+		try {
+			$fields = new Settings( self::$identity )->get_tab_fields( 'dws-internal-comments', 'general' );
+		} finally {
+			remove_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
+		}
+
+		self::assertSame( 'dws_ic_general_listed', \array_last( \array_column( $fields, 'id' ) ) );
+	}
+
 	public function test_the_plugin_row_links_to_the_page_and_to_the_support_forum(): void {
 		$basename = plugin_basename( DWS_IC_FILE );
 
