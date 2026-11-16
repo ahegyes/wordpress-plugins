@@ -4,6 +4,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\InternalComments\AdminScreens;
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\CommentsList;
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Options;
@@ -119,6 +120,83 @@ final class OrdersTest extends TestCase {
 		\ob_start();
 		$screens->render_order_cell( 'dws-internal-comments', $order );
 		self::assertStringContainsString( '1 internal comment', (string) \ob_get_clean() );
+	}
+
+	// WooCommerce's v1 to v3 note routes check only that a comment sits on the order, never its type.
+	#[DataProvider( 'storages' )]
+	public function test_woocommerces_order_note_routes_answer_an_internal_comment_as_missing( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order    = $this->create_order();
+		$internal = (int) dws_ic_create_internal_comment(
+			array(
+				'comment_post_ID' => $order->get_id(),
+				'comment_content' => 'Secret',
+				'comment_meta'    => array( Comments::META_PRIVATE => 'yes' ),
+			),
+			get_user_by( 'id', self::$users['administrator'] ) ?: null
+		);
+		$note     = $order->add_order_note( 'Ordinary note' );
+		wp_set_current_user( self::$users['shop_manager'] );
+
+		foreach ( array( 'wc/v1', 'wc/v2', 'wc/v3' ) as $namespace ) {
+			$route  = "/$namespace/orders/{$order->get_id()}/notes";
+			$read   = rest_do_request( new \WP_REST_Request( 'GET', "$route/$internal" ) );
+			$delete = new \WP_REST_Request( 'DELETE', "$route/$internal" );
+			$delete->set_query_params( array( 'force' => true ) );
+			$deleted = rest_do_request( $delete );
+
+			self::assertSame( 404, $read->get_status(), $namespace );
+			self::assertSame( 'woocommerce_rest_invalid_id', $read->as_error()?->get_error_code(), $namespace );
+			self::assertStringNotContainsString( 'Secret', (string) wp_json_encode( $read->get_data() ) );
+			self::assertSame( 404, $deleted->get_status(), $namespace );
+			self::assertSame( 200, rest_do_request( new \WP_REST_Request( 'GET', "$route/$note" ) )->get_status(), $namespace );
+		}
+		self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
+	}
+
+	// WooCommerce's note deletion checks its nonce and edit_shop_orders, then deletes any comment it is given for good.
+	public function test_woocommerces_note_deletion_refuses_an_internal_comment(): void {
+		$order    = $this->create_order();
+		$internal = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
+		$note     = $order->add_order_note( 'Ordinary note' );
+		$stop     = static function (): callable {
+			return static function ( mixed $message, mixed $title = '', mixed $args = array() ): void {
+				throw new \RuntimeException( (string) ( \is_array( $args ) ? ( $args['response'] ?? '' ) : '' ) );
+			};
+		};
+		$delete   = static function ( int $note_id ): string {
+			$_POST    = array(
+				'note_id'  => (string) $note_id,
+				'security' => wp_create_nonce( 'delete-order-note' ),
+			);
+			$_REQUEST = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Stands in for the request, whose nonce WooCommerce verifies.
+			try {
+				do_action( 'wp_ajax_woocommerce_delete_order_note' );
+			} catch ( \RuntimeException $stopped ) {
+				return $stopped->getMessage();
+			} finally {
+				$_POST    = array();
+				$_REQUEST = array();
+			}
+
+			return 'not stopped';
+		};
+		add_filter( 'wp_doing_ajax', '__return_true' );
+		add_filter( 'wp_die_ajax_handler', $stop );
+		wp_set_current_user( self::$users['shop_manager'] );
+
+		try {
+			$refused = $delete( $internal );
+			$deleted = $delete( $note );
+		} finally {
+			remove_filter( 'wp_doing_ajax', '__return_true' );
+			remove_filter( 'wp_die_ajax_handler', $stop );
+		}
+
+		self::assertSame( '403', $refused );
+		self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
+		self::assertNotSame( '403', $deleted );
+		self::assertNull( get_comment( $note ) );
 	}
 
 	public function test_the_plugin_declares_itself_compatible_with_the_order_tables(): void {
