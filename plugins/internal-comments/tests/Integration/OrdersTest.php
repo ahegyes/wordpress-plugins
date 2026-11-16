@@ -4,9 +4,9 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use Automattic\WooCommerce\Utilities\OrderUtil;
-use DeepWebSolutions\InternalComments\AdminScreens;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\CommentsList;
+use DeepWebSolutions\InternalComments\ListColumn;
 use DeepWebSolutions\InternalComments\MetaBox;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
@@ -115,7 +115,7 @@ final class OrdersTest extends TestCase {
 		$order = $this->create_order();
 		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
 		wp_set_current_user( self::$users['shop_manager'] );
-		$screens = new AdminScreens( self::make_assets() );
+		$screens = new ListColumn( self::make_assets() );
 
 		self::assertArrayHasKey( 'dws-internal-comments', $screens->add_column( array( 'order_number' => 'Order' ), 'shop_order' ) );
 		\ob_start();
