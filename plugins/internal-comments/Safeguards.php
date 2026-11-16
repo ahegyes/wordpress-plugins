@@ -5,7 +5,7 @@ namespace DeepWebSolutions\InternalComments;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Keeps WordPress's own actions on internal comments refused unless the booted plugin relaxes them, and WooCommerce's note routes off them, so a failed boot never leaves them to whoever can edit their post, moderate comments or edit orders.
+ * Keeps WordPress's own actions on internal comments refused unless the booted plugin relaxes them, and WooCommerce's note routes and core's REST and XML-RPC listings off them, so a failed boot never leaves them to whoever can edit their post, moderate comments or edit orders.
  *
  * The entry requires it by path before the floor gate, so it parses on PHP 7.4 and calls only what the oldest WordPress the bootstrap package runs on provides.
  *
@@ -86,11 +86,48 @@ final class Safeguards {
 			},
 			-10
 		);
+
+		// Core's REST listing lets a user who moderates comments name any type and status, so internal comments reach REST only through the plugin's own routes.
+		add_filter(
+			'rest_comment_query',
+			static function ( array $args ): array {
+				$args['type__not_in'] = self::exclude_internal_type( $args['type__not_in'] ?? array() );
+				return $args;
+			}
+		);
+
+		// XML-RPC's wp.getComments lists the comments of any status a user who moderates comments names and takes no type, so a query that names the type is the plugin's own.
+		add_action(
+			'pre_get_comments',
+			static function ( \WP_Comment_Query $query ): void {
+				$named = \array_merge( (array) ( $query->query_vars['type'] ?? array() ), (array) ( $query->query_vars['type__in'] ?? array() ) );
+				if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! \in_array( 'dws_internal', $named, true ) ) {
+					$query->query_vars['type__not_in'] = self::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
+				}
+			}
+		);
 	}
 
 	// endregion
 
 	// region HELPERS
+
+	/**
+	 * Returns a comment query's excluded types with the internal type among them.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $excluded The types the query excludes, as a list or a single type.
+	 *
+	 * @return  list<mixed>
+	 */
+	protected static function exclude_internal_type( $excluded ): array {
+		// WordPress casts an unset exclusion's empty string to a type of its own.
+		$types   = \array_values( \array_filter( (array) $excluded, static fn ( $type ): bool => '' !== $type ) );
+		$types[] = 'dws_internal';
+		return $types;
+	}
 
 	/**
 	 * Returns whether a value is an internal comment.

@@ -28,8 +28,6 @@ final class Permissions implements ComponentInterface {
 		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
 		add_filter( 'internal_comments/core_comment_actions/should_restrict', array( $this, 'relax_core_comment_actions' ) );
 		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_comment' ), 10, 3 );
-		add_filter( 'rest_comment_query', array( $this, 'exclude_from_core_rest_collections' ) );
-		add_action( 'pre_get_comments', array( $this, 'exclude_from_xml_rpc' ) );
 		// Before WooCommerce's handler for product reviews at -1 and core's at 1.
 		add_action( 'wp_ajax_replyto-comment', array( $this, 'guard_core_replies' ), -10 );
 	}
@@ -127,21 +125,6 @@ final class Permissions implements ComponentInterface {
 	}
 
 	/**
-	 * Leaves internal comments out of core's REST comment collections, which they reach only through the plugin's own routes.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   array<string, mixed> $args The collection's comment query arguments.
-	 *
-	 * @return  array<string, mixed>
-	 */
-	public function exclude_from_core_rest_collections( array $args ): array {
-		$args['type__not_in'] = Comments::exclude_internal_type( $args['type__not_in'] ?? array() );
-		return $args;
-	}
-
-	/**
 	 * Refuses core's reply action an internal comment, posted as one or as a reply to one, which the plugin's REST route alone posts.
 	 *
 	 * Core takes the comment's type and parent from the request, and drops a parent stored under the internal status, so its reply would land at the top of the list and lose the privacy it takes from a private thread.
@@ -160,23 +143,6 @@ final class Permissions implements ComponentInterface {
 
 		if ( Comments::TYPE === $type || true === dws_ic_is_internal_comment( $parent_id ) ) {
 			wp_die( -1, '', array( 'response' => 403 ) );
-		}
-	}
-
-	/**
-	 * Leaves internal comments out of the comment queries of an XML-RPC request that do not name their type, as XML-RPC's wp.getComments lists the comments of any status a user who moderates comments names.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   \WP_Comment_Query $query The comment query.
-	 *
-	 * @return  void
-	 */
-	public function exclude_from_xml_rpc( \WP_Comment_Query $query ): void {
-		// XML-RPC's wp.getComments takes no type from its caller, so a query naming the type is one of the plugin's own.
-		if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! Comments::query_names_internal_type( $query->query_vars ) ) {
-			$query->query_vars['type__not_in'] = Comments::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 		}
 	}
 
