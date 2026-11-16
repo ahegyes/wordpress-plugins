@@ -98,8 +98,7 @@ final class Safeguards {
 		add_action(
 			'pre_get_comments',
 			static function ( \WP_Comment_Query $query ): void {
-				$named = \array_merge( (array) ( $query->query_vars['type'] ?? array() ), (array) ( $query->query_vars['type__in'] ?? array() ) );
-				if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! \in_array( 'dws_internal', $named, true ) ) {
+				if ( \defined( 'XMLRPC_REQUEST' ) && true === XMLRPC_REQUEST && ! self::names_internal_type( $query->query_vars ) ) {
 					$query->query_vars['type__not_in'] = self::exclude_internal_type( $query->query_vars['type__not_in'] ?? array() );
 				}
 			}
@@ -108,7 +107,19 @@ final class Safeguards {
 
 	// endregion
 
-	// region HELPERS
+	/**
+	 * Returns whether a comment query's arguments name the internal type among the types it lists.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<mixed> $query_vars The query's arguments.
+	 *
+	 * @return  bool
+	 */
+	public static function names_internal_type( array $query_vars ): bool {
+		return \in_array( 'dws_internal', \array_merge( (array) ( $query_vars['type'] ?? array() ), (array) ( $query_vars['type__in'] ?? array() ) ), true );
+	}
 
 	/**
 	 * Returns a comment query's excluded types with the internal type among them.
@@ -120,12 +131,16 @@ final class Safeguards {
 	 *
 	 * @return  list<mixed>
 	 */
-	protected static function exclude_internal_type( $excluded ): array {
+	public static function exclude_internal_type( $excluded ): array {
 		// WordPress casts an unset exclusion's empty string to a type of its own.
 		$types   = \array_values( \array_filter( (array) $excluded, static fn ( $type ): bool => '' !== $type ) );
 		$types[] = 'dws_internal';
 		return $types;
 	}
+
+	// endregion
+
+	// region HELPERS
 
 	/**
 	 * Returns whether a value is an internal comment.

@@ -89,8 +89,8 @@ final class CommentsScreen implements ComponentInterface {
 		$args['dws_ic_list_table'] = true;
 		if ( ! current_user_can( Capabilities::SEE_TABLE ) ) {
 			// Every other view already leaves them out, and WooCommerce leaves product reviews out of no query that names types to leave out.
-			if ( Comments::query_names_internal_type( $args ) ) {
-				$args['type__not_in'] = Comments::exclude_internal_type( $args['type__not_in'] ?? array() );
+			if ( Safeguards::names_internal_type( $args ) ) {
+				$args['type__not_in'] = Safeguards::exclude_internal_type( $args['type__not_in'] ?? array() );
 			}
 
 			return $args;

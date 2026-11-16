@@ -204,42 +204,6 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the types a comment query leaves out with internal comments added, keeping every type it already leaves out but the empty one, since that names the comments older WordPress stored without a type.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed $excluded The query's type__not_in argument.
-	 *
-	 * @return  list<mixed>
-	 */
-	public static function exclude_internal_type( $excluded ): array {
-		$types = array();
-		foreach ( (array) $excluded as $type ) {
-			if ( '' !== $type ) {
-				$types[] = $type;
-			}
-		}
-
-		$types[] = self::TYPE;
-		return $types;
-	}
-
-	/**
-	 * Returns whether a comment query names internal comments by their type, as the plugin's own queries do.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   array<mixed> $query_vars The comment query's arguments.
-	 *
-	 * @return  bool
-	 */
-	public static function query_names_internal_type( array $query_vars ): bool {
-		return \in_array( self::TYPE, \array_merge( (array) ( $query_vars['type'] ?? array() ), (array) ( $query_vars['type__in'] ?? array() ) ), true );
-	}
-
-	/**
 	 * Returns a copy of a comment read in a thread whose replies, at every depth, are only those the current user can see.
 	 *
 	 * @since   2.0.0
@@ -533,7 +497,7 @@ final class Comments implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function leave_out_of_queries( array $clauses, \WP_Comment_Query $query ): array {
-		if ( self::query_names_internal_type( $query->query_vars ) || \in_array( self::STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+		if ( Safeguards::names_internal_type( $query->query_vars ) || \in_array( self::STATUS, (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
 			return $clauses;
 		}
 
