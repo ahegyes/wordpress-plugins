@@ -1,0 +1,4 @@
+Significance: major
+Type: removed
+
+The dws-internal-comment and dws-can-trash body classes on an internal comment's edit screen, and the redirect that returned that screen to the Internal Comments view after a save it was not opened from; such a save returns to the Comments screen's All view, as for any comment.

@@ -111,7 +111,8 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 
 		$fields = array();
 		foreach ( $group_fields as $id => $field ) {
-			$setting = Options::find_v1_setting( (string) $id, $tab_slug );
+			// v1 passed a list of fields, each naming its own id, so a field a v1 callback appends names the row v1's getters read.
+			$setting = Options::find_v1_setting( \is_string( $field['id'] ?? null ) ? $field['id'] : (string) $id, $tab_slug );
 			if ( ! \is_null( $setting ) ) {
 				$fields[] = array( 'id' => $setting[2] ) + $field; // A field a v1 callback adds stores in a row of its own, which v1's getters read.
 			}

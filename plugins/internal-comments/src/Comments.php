@@ -106,6 +106,7 @@ final class Comments implements ComponentInterface {
 		// After every listener of WordPress's own announcement of the change the plugin undoes, such as WooCommerce's comment counts.
 		add_action( 'transition_comment_status', array( $this, 'announce_kept_internal' ), \PHP_INT_MAX, 3 );
 		add_action( 'untrash_comment', array( $this, 'prepare_restore' ) );
+		add_filter( 'get_comment_link', array( $this, 'link_to_edit_screen' ), \PHP_INT_MAX, 2 );
 		add_action( 'trashed_comment', array( $this, 'trash_replies' ) );
 		add_action( 'untrashed_comment', array( $this, 'restore_replies' ) );
 		add_action( 'untrashed_post_comments', array( $this, 'keep_post_comments_internal' ) );
@@ -344,6 +345,27 @@ final class Comments implements ComponentInterface {
 		if ( true === dws_ic_is_internal_comment( $comment_id ) ) {
 			update_comment_meta( (int) $comment_id, '_wp_trash_meta_status', '0' );
 		}
+	}
+
+	/**
+	 * Returns an internal comment's link to its place in the meta box on its post's or order's edit screen, since the front end never shows it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string      $link    The comment's link.
+	 * @param   \WP_Comment $comment The comment.
+	 *
+	 * @return  string
+	 */
+	public function link_to_edit_screen( string $link, \WP_Comment $comment ): string {
+		if ( self::TYPE !== $comment->comment_type ) {
+			return $link;
+		}
+
+		$post_id = (int) $comment->comment_post_ID;
+		$edit    = \class_exists( OrderUtil::class ) && \in_array( self::get_post_type( $post_id ), wc_get_order_types(), true ) ? OrderUtil::get_order_admin_edit_url( $post_id ) : get_edit_post_link( $post_id, 'url' );
+		return \is_string( $edit ) && '' !== $edit ? $edit . '#' . ( 0 === (int) $comment->comment_parent ? 'comment-' : 'reply-' ) . $comment->comment_ID : $link;
 	}
 
 	/**

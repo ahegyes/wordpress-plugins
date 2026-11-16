@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+An internal comment's link, such as on the Comments screen, leads to the comment in the meta box on its post's or order's edit screen again, as in 1.x.
