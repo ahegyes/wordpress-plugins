@@ -140,6 +140,36 @@ final class PersonalDataTest extends TestCase {
 		}
 	}
 
+	// A write that fails leaves a 1.2.4 revision whole under its old id, so a later erasure rekeys it rather than strand the id in its record.
+	public function test_a_failed_rekey_leaves_the_revision_whole_for_the_next_erasure(): void {
+		$own    = $this->comment( 'Own' );
+		$legacy = \uniqid( (string) $this->staff, true );
+		add_comment_meta( $own, Comments::META_CHANGE_ID, $legacy );
+		add_comment_meta( $own, Comments::META_PREVIOUS_CONTENT . $legacy, 'Legacy' );
+		add_comment_meta( $own, Comments::META_CHANGED_BY . $legacy, $this->staff );
+		add_comment_meta( $own, Comments::META_CHANGED_TIME . $legacy, \time() );
+		$erase = $this->registered( 'wp_privacy_personal_data_erasers' );
+		$fail  = static fn ( string $query ): string => \str_starts_with( $query, 'UPDATE' ) && \str_contains( $query, "'" . Comments::META_CHANGE_ID . "'" ) ? '' : $query;
+		$state = static fn (): array => array( get_comment_meta( $own, Comments::META_CHANGE_ID, false ), new \DWS_Internal_Comment( $own )->get_revisions()[0]['content'] ?? null );
+		add_filter( 'query', $fail );
+
+		try {
+			$failed = \call_user_func( $erase, self::EMAIL, 1 );
+		} finally {
+			remove_filter( 'query', $fail );
+		}
+		$kept    = $state();
+		$retried = \call_user_func( $erase, self::EMAIL, 1 );
+		$after   = $state();
+
+		self::assertTrue( $failed['items_retained'] );
+		self::assertSame( array( array( $legacy ), 'Legacy' ), $kept );
+		self::assertFalse( $retried['items_retained'] );
+		self::assertCount( 1, $after[0] );
+		self::assertTrue( wp_is_uuid( (string) $after[0][0], 4 ) );
+		self::assertSame( 'Legacy', $after[1] );
+	}
+
 	// The eraser anonymizes a page of revisions at a time, as it does comments, so a user who made many edits is erased over several calls.
 	public function test_the_eraser_anonymizes_revisions_a_page_at_a_time(): void {
 		global $wpdb;

@@ -185,6 +185,7 @@ final class DataGuardsTest extends TestCase {
 				)
 			);
 			$status = $ids( array( 'status' => Comments::STATUS ) );
+			$comma  = $ids( array( 'status' => 'approve,' . Comments::STATUS ) );
 			$feed   = (string) apply_filters( 'comment_feed_where', '', new \WP_Query() );
 		} finally {
 			update_option( Plugin::PREFIX . '_revision', $revision );
@@ -194,6 +195,7 @@ final class DataGuardsTest extends TestCase {
 		self::assertSame( array( $public ), $any );
 		self::assertSame( array( $v1, $internal ), $typed );
 		self::assertSame( array( $internal ), $status );
+		self::assertSame( array( $v1, $internal, $public ), $comma );
 		self::assertStringContainsString( Comments::TYPE, $feed );
 	}
 

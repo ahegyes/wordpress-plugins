@@ -141,7 +141,6 @@ final class PermissionsTest extends TestCase {
 		self::assertTrue( $other );
 	}
 
-	// The edit form starts from the comment's stored text, so editing someone else's comment needs seeing it.
 	// Core reads an empty id as the comment of the current loop, so the plugin maps that comment too.
 	public function test_an_empty_id_maps_the_internal_comment_of_the_current_loop(): void {
 		$comment  = $this->comment( $this->post( 'administrator' ), 'administrator' );
@@ -160,6 +159,7 @@ final class PermissionsTest extends TestCase {
 		self::assertTrue( $administrator );
 	}
 
+	// The edit form starts from the comment's stored text, so editing someone else's comment needs seeing it.
 	public function test_editing_another_users_comment_needs_seeing_it(): void {
 		$comment = $this->comment( $this->post( 'administrator' ), 'administrator' );
 		get_role( 'editor' )?->add_cap( Capabilities::EDIT_OTHERS );
