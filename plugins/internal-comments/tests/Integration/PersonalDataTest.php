@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -81,6 +82,62 @@ final class PersonalDataTest extends TestCase {
 		self::assertSame( 'Kept', get_comment( $kept )?->comment_content );
 		self::assertSame( 'trash', get_comment( $trashed )?->comment_approved );
 		self::assertSame( self::EMAIL, get_comment( $public )?->comment_author_email, "WordPress's own eraser handles public comments." );
+	}
+
+	// A revision names the user who made it, on any author's comment, and 1.2.4 began its change id with that user's id, so erasing a user anonymizes every revision they made and leaves no key that holds their id.
+	public function test_the_eraser_anonymizes_the_revisions_its_user_made_on_any_comment(): void {
+		$own    = $this->comment( 'Own' );
+		$other  = (int) dws_ic_create_internal_comment(
+			array(
+				'comment_post_ID' => $this->post,
+				'comment_content' => 'Other',
+			),
+			get_user_by( 'id', 1 ) ?: null
+		);
+		$erase  = $this->registered( 'wp_privacy_personal_data_erasers' );
+		$pluck  = static fn ( int $comment, string $field ): array => wp_list_pluck( new \DWS_Internal_Comment( $comment )->get_revisions(), $field );
+		$keys   = static fn ( int $comment ): array => \array_keys( (array) get_comment_meta( $comment ) );
+		$legacy = \uniqid( (string) $this->staff, true );
+		add_comment_meta( $own, Comments::META_CHANGE_ID, $legacy );
+		add_comment_meta( $own, Comments::META_PREVIOUS_CONTENT . $legacy, 'Legacy' );
+		add_comment_meta( $own, Comments::META_CHANGED_BY . $legacy, $this->staff );
+		add_comment_meta( $own, Comments::META_CHANGED_TIME . $legacy, \time() );
+		wp_set_current_user( $this->staff );
+		wp_update_comment(
+			array(
+				'comment_ID'      => $own,
+				'comment_content' => 'Own, changed',
+			)
+		);
+		wp_update_comment(
+			array(
+				'comment_ID'      => $other,
+				'comment_content' => 'Other, changed',
+			)
+		);
+		wp_set_current_user( 1 );
+		wp_update_comment(
+			array(
+				'comment_ID'      => $other,
+				'comment_content' => 'Other, changed again',
+			)
+		);
+
+		$erased = \call_user_func( $erase, self::EMAIL, 1 );
+
+		self::assertTrue( $erased['items_removed'] );
+		self::assertSame( array( 0, 0 ), $pluck( $own, 'user_id' ) );
+		self::assertSame( array( 1, 0 ), $pluck( $other, 'user_id' ) );
+		self::assertSame( array( 'Own', 'Legacy' ), $pluck( $own, 'content' ) );
+		self::assertSame( array( 'Other, changed', 'Other' ), $pluck( $other, 'content' ) );
+		foreach ( array( $own, $other ) as $comment ) {
+			foreach ( (array) get_comment_meta( $comment, Comments::META_CHANGE_ID, false ) as $change_id ) {
+				self::assertTrue( wp_is_uuid( (string) $change_id, 4 ), (string) $change_id );
+			}
+			foreach ( $keys( $comment ) as $key ) {
+				self::assertStringNotContainsString( $legacy, $key );
+			}
+		}
 	}
 
 	protected function registered( string $hook ): callable {

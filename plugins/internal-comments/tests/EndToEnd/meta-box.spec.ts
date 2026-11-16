@@ -168,6 +168,11 @@ test.describe( 'Meta box', () => {
 		await field.fill( 'Sent once' );
 		await field.press( 'ControlOrMeta+Enter' );
 		await field.press( 'ControlOrMeta+Enter' );
+		await expect(
+			box.locator( '.dws-internal-comments__status' )
+		).toHaveText(
+			'Wait for the previous change to finish, then try again.'
+		);
 		answer();
 		await expect(
 			box.locator( '.dws-internal-comments__status' )

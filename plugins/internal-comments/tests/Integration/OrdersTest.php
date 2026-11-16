@@ -185,7 +185,7 @@ final class OrdersTest extends TestCase {
 		self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
 	}
 
-	// WooCommerce's note deletion checks its nonce and edit_shop_orders, then deletes any comment it is given for good.
+	// WooCommerce's note deletion checks its nonce and edit_shop_orders, then casts the note id and deletes any comment it names for good.
 	public function test_woocommerces_note_deletion_refuses_an_internal_comment(): void {
 		$order    = $this->create_order();
 		$internal = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
@@ -195,9 +195,9 @@ final class OrdersTest extends TestCase {
 				throw new \RuntimeException( (string) ( \is_array( $args ) ? ( $args['response'] ?? '' ) : '' ) );
 			};
 		};
-		$delete   = static function ( int $note_id ): string {
+		$delete   = static function ( string $note_id ): string {
 			$_POST    = array(
-				'note_id'  => (string) $note_id,
+				'note_id'  => $note_id,
 				'security' => wp_create_nonce( 'delete-order-note' ),
 			);
 			$_REQUEST = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Stands in for the request, whose nonce WooCommerce verifies.
@@ -217,14 +217,16 @@ final class OrdersTest extends TestCase {
 		wp_set_current_user( self::$users['shop_manager'] );
 
 		try {
-			$refused = $delete( $internal );
-			$deleted = $delete( $note );
+			$refused   = $delete( (string) $internal );
+			$malformed = $delete( "{$internal}abc" );
+			$deleted   = $delete( (string) $note );
 		} finally {
 			remove_filter( 'wp_doing_ajax', '__return_true' );
 			remove_filter( 'wp_die_ajax_handler', $stop );
 		}
 
 		self::assertSame( '403', $refused );
+		self::assertSame( '403', $malformed );
 		self::assertInstanceOf( \WP_Comment::class, get_comment( $internal ) );
 		self::assertNotSame( '403', $deleted );
 		self::assertNull( get_comment( $note ) );

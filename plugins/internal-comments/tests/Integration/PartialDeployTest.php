@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
@@ -18,6 +19,9 @@ final class PartialDeployTest extends TestCase {
 
 	// Finds the notice the entry hooks for an incomplete build, and prints whether the plugin booted and what an administrator and a visitor see of the notice.
 	protected const string PROBE = '$notice = null; foreach ( isset( $GLOBALS["wp_filter"]["all_admin_notices"] ) ? $GLOBALS["wp_filter"]["all_admin_notices"]->callbacks : array() as $callbacks ) { foreach ( $callbacks as $callback ) { if ( $callback["function"] instanceof Closure && DWS_IC_FILE === new ReflectionFunction( $callback["function"] )->getFileName() ) { $notice = $callback["function"]; } } } $seen = array(); foreach ( array( 1, 0 ) as $user ) { wp_set_current_user( $user ); ob_start(); if ( $notice instanceof Closure ) { $notice(); } $seen[] = trim( wp_strip_all_tags( (string) ob_get_clean() ) ); } echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), $seen ) );';
+
+	// As an administrator, who moderates comments and edits orders: core's edit check by id and by an empty id, which names the loop's comment, a REST update that approves and a deletion, WooCommerce's note route and its note deletion, then what is left of both comments.
+	protected const string CORE_ACTIONS = 'wp_set_current_user( 1 ); $update = new WP_REST_Request( "PUT", "/wp/v2/comments/%1$d" ); $update->set_body_params( array( "status" => "approve" ) ); $delete = new WP_REST_Request( "DELETE", "/wp/v2/comments/%1$d" ); $delete->set_query_params( array( "force" => true ) ); $note = rest_do_request( new WP_REST_Request( "GET", "/wc/v3/orders/%3$d/notes/%4$d" ) )->get_status(); $_POST = array( "note_id" => "%4$dabc", "security" => wp_create_nonce( "delete-order-note" ) ); $_REQUEST = $_POST; add_filter( "wp_doing_ajax", "__return_true" ); add_filter( "wp_die_ajax_handler", static fn () => static function ( $message, $title = "", $args = array() ) { throw new RuntimeException( (string) ( $args["response"] ?? "" ) ); } ); try { do_action( "wp_ajax_woocommerce_delete_order_note" ); $deletion = "not stopped"; } catch ( RuntimeException $stopped ) { $deletion = $stopped->getMessage(); } $GLOBALS["comment"] = get_comment( %1$d ); $looped = current_user_can( "edit_comment", 0 ); unset( $GLOBALS["comment"] ); echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), current_user_can( "edit_comment", %1$d ), $looped, current_user_can( "edit_comment", %2$d ), rest_do_request( $update )->get_status(), rest_do_request( $delete )->get_status(), $note, $deletion, get_comment( %1$d )?->comment_approved, get_comment( %4$d ) instanceof WP_Comment ) );';
 
 	public static function missing_build_files(): array {
 		return array(
@@ -48,7 +52,7 @@ final class PartialDeployTest extends TestCase {
 		self::assertSame( wp_json_encode( array( 0, array( self::NOTICE, '' ) ) ), $request['last'] );
 	}
 
-	// The safeguard loads before the autoloader, so core still asks the plugin before it lets anyone change an internal comment.
+	// The safeguard loads before the autoloader, so core and WooCommerce still ask the plugin before they let anyone change or read an internal comment, whatever capability lets them past their own checks.
 	public function test_a_build_that_cannot_boot_leaves_internal_comments_unchangeable_through_core(): void {
 		$post     = (int) wp_insert_post(
 			array(
@@ -56,19 +60,24 @@ final class PartialDeployTest extends TestCase {
 				'post_status' => 'publish',
 			)
 		);
-		$internal = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ), get_user_by( 'id', 1 ) ?: null );
+		$order    = wc_create_order();
+		$author   = get_user_by( 'id', 1 ) ?: null;
+		$internal = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ), $author );
+		$noted    = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), $author );
 		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
 		$path     = \dirname( DWS_IC_FILE ) . '/vendor/autoload.php';
 		\rename( $path, "$path.hidden" );
 		try {
-			$request = self::request_provoking( 'Failed to open stream', "wp_set_current_user( 1 ); echo wp_json_encode( array( did_action( 'internal_comments/boot/succeeded' ), current_user_can( 'edit_comment', $internal ), current_user_can( 'edit_comment', $public ) ) );" );
+			$request = self::request_provoking( 'Failed to open stream', \sprintf( self::CORE_ACTIONS, $internal, $public, $order->get_id(), $noted ) );
 		} finally {
 			\rename( "$path.hidden", $path );
 			wp_delete_post( $post, true );
+			wp_delete_comment( $noted, true );
+			$order->delete( true );
 		}
 
 		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( wp_json_encode( array( 0, false, true ) ), $request['last'] );
+		self::assertSame( wp_json_encode( array( 0, false, false, true, 403, 403, 404, '403', Comments::STATUS, true ) ), $request['last'] );
 	}
 
 	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing_without_a_log_line(): void {

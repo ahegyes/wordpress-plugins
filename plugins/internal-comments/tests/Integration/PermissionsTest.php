@@ -4,7 +4,6 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
-use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Permissions;
 use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -293,18 +292,17 @@ final class PermissionsTest extends TestCase {
 		self::assertSame( array(), wp_list_pluck( (array) rest_do_request( $listed )->get_data(), 'id' ) );
 	}
 
-	// Core's reply action takes the comment's type and parent from the request and checks only access to the post.
-	public function test_core_replies_post_an_internal_comment_only_for_users_who_may(): void {
+	// Core's reply action takes the comment's type and parent from the request, and drops a parent under the internal status, so a reply would land top-level and not private.
+	public function test_core_replies_post_no_internal_comment_whoever_asks(): void {
 		$post    = $this->post( 'administrator' );
-		$other   = $this->post( 'administrator' );
 		$stop    = static function (): callable {
 			return static function ( mixed $message ): void {
 				throw new \RuntimeException( 'Refused: ' . \print_r( $message, true ) );
 			};
 		};
-		$refuse  = function ( string $type, int $parent_id = 0, int $post_id = 0 ) use ( $post ): bool {
+		$refuse  = function ( string $type, int $parent_id = 0 ) use ( $post ): bool {
 			$_POST = array(
-				'comment_post_ID' => (string) ( 0 === $post_id ? $post : $post_id ),
+				'comment_post_ID' => (string) $post,
 				'comment_ID'      => (string) $parent_id,
 				'comment_type'    => $type,
 				'content'         => 'Reply',
@@ -321,37 +319,26 @@ final class PermissionsTest extends TestCase {
 		};
 		$parent  = $this->comment( $post, 'administrator' );
 		$private = $this->comment( $post, 'administrator', array( 'comment_meta' => array( Comments::META_PRIVATE => 'yes' ) ) );
-		$away    = $this->comment( $other, 'administrator' );
 		$plain   = (int) wp_insert_comment( array( 'comment_post_ID' => $post ) );
-		$types   = get_option( Options::POST_TYPES );
 		// WooCommerce's handler for product reviews refuses a request without its nonce, and the hook object is shared, so its callbacks are kept to add back.
 		$woocommerce = $GLOBALS['wp_filter']['wp_ajax_replyto-comment']->callbacks[-1] ?? array();
 		remove_all_actions( 'wp_ajax_replyto-comment', -1 );
 		add_filter( 'wp_doing_ajax', '__return_true' );
 		add_filter( 'wp_die_ajax_handler', $stop );
-		update_option( Options::POST_TYPES, array( 'post' ) );
-		get_role( 'editor' )?->remove_cap( Capabilities::INSERT );
-		wp_set_current_user( self::$users['editor'] );
+		wp_set_current_user( self::$users['administrator'] );
 
 		try {
-			$without = $refuse( Comments::TYPE );
-			$cased   = $refuse( ' DWS_Internal ' );
-			$public  = $refuse( 'comment' );
-			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
-			wp_get_current_user()->get_role_caps(); // The user's capabilities were read before the role changed.
-			$with    = $refuse( Comments::TYPE );
-			$replies = array(
-				'visible-parent'          => $refuse( Comments::TYPE, $parent ),
-				'private-parent'          => $refuse( Comments::TYPE, $private ),
-				'parent-on-another-post'  => $refuse( Comments::TYPE, $away ),
-				'public-reply'            => $refuse( 'comment', $parent ),
-				'internal-reply-to-plain' => $refuse( Comments::TYPE, $plain ),
+			$refused = array(
+				'internal'                 => $refuse( Comments::TYPE ),
+				'internal-cased'           => $refuse( ' DWS_Internal ' ),
+				'internal-reply'           => $refuse( Comments::TYPE, $parent ),
+				'internal-reply-private'   => $refuse( Comments::TYPE, $private ),
+				'public-reply-to-internal' => $refuse( 'comment', $parent ),
+				'internal-reply-to-plain'  => $refuse( Comments::TYPE, $plain ),
+				'public'                   => $refuse( 'comment' ),
+				'public-reply'             => $refuse( 'comment', $plain ),
 			);
-			update_option( Options::POST_TYPES, array( 'page' ) );
-			$unselected = $refuse( Comments::TYPE, $parent );
 		} finally {
-			get_role( 'editor' )?->add_cap( Capabilities::INSERT );
-			update_option( Options::POST_TYPES, $types );
 			foreach ( $woocommerce as $callback ) {
 				add_action( 'wp_ajax_replyto-comment', $callback['function'], -1, $callback['accepted_args'] );
 			}
@@ -359,21 +346,19 @@ final class PermissionsTest extends TestCase {
 			remove_filter( 'wp_die_ajax_handler', $stop );
 		}
 
-		self::assertTrue( $without );
-		self::assertTrue( $cased );
-		self::assertFalse( $public );
-		self::assertFalse( $with );
 		self::assertSame(
 			array(
-				'visible-parent'          => false,
-				'private-parent'          => true,
-				'parent-on-another-post'  => true,
-				'public-reply'            => true,
-				'internal-reply-to-plain' => true,
+				'internal'                 => true,
+				'internal-cased'           => true,
+				'internal-reply'           => true,
+				'internal-reply-private'   => true,
+				'public-reply-to-internal' => true,
+				'internal-reply-to-plain'  => true,
+				'public'                   => false,
+				'public-reply'             => false,
 			),
-			$replies
+			$refused
 		);
-		self::assertTrue( $unselected );
 	}
 
 	protected function post( string $role ): int {

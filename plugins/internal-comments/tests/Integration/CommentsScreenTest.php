@@ -258,6 +258,9 @@ final class CommentsScreenTest extends TestCase {
 	public function test_the_comments_screens_views_leave_trashed_internal_comments_out_of_their_lists_and_counts( bool $pending ): void {
 		$internal = $this->comment( 'Trashed' );
 		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		// WooCommerce counts each trashed comment into the counts it cached before, an internal one included.
+		\WC_Comments::delete_comments_count_cache();
+		wp_count_comments();
 		wp_trash_comment( $internal );
 		wp_trash_comment( $public );
 		$revision = get_option( Plugin::PREFIX . '_revision' );
@@ -285,7 +288,6 @@ final class CommentsScreenTest extends TestCase {
 			'comment_ID'
 		);
 		$woocommerce = has_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ) );
-		\WC_Comments::delete_comments_count_cache(); // Earlier tests leave WooCommerce's incremental counts behind.
 
 		try {
 			list( $editor, $administrator ) = $counts();
