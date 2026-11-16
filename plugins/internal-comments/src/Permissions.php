@@ -26,6 +26,7 @@ final class Permissions implements ComponentInterface {
 	#[\Override]
 	public function register_hooks(): void {
 		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
+		add_filter( 'internal_comments/core_comment_actions/should_restrict', array( $this, 'relax_core_comment_actions' ) );
 		add_filter( 'rest_request_before_callbacks', array( $this, 'guard_core_rest_comment' ), 10, 3 );
 		add_filter( 'rest_comment_query', array( $this, 'exclude_from_core_rest_collections' ) );
 		add_action( 'pre_get_comments', array( $this, 'exclude_from_xml_rpc' ) );
@@ -70,7 +71,7 @@ final class Permissions implements ComponentInterface {
 		$is_author = 0 !== $user_id && (int) $comment->user_id === $user_id;
 		$caps      = match ( $cap ) {
 			'see_dws_internal_comment'  => $is_author ? array() : array( Capabilities::SEE ),
-			'edit_dws_internal_comment' => array( $is_author ? Capabilities::EDIT : Capabilities::EDIT_OTHERS ),
+			'edit_dws_internal_comment' => $is_author ? array( Capabilities::EDIT ) : array( Capabilities::EDIT_OTHERS, Capabilities::SEE ),
 			default                     => array( $is_author ? Capabilities::TRASH : Capabilities::TRASH_OTHERS ),
 		};
 		if ( array() !== $owners && ! $is_author && ! \in_array( $user_id, $owners, true ) ) {
@@ -78,6 +79,18 @@ final class Permissions implements ComponentInterface {
 		}
 
 		return \array_values( \array_unique( \array_merge( $caps, map_meta_cap( 'edit_post', $user_id, (int) $comment->comment_post_ID ) ) ) );
+	}
+
+	/**
+	 * Relaxes the safeguard that refuses WordPress's own actions on internal comments, which the plugin's capabilities decide once it has booted.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  bool
+	 */
+	public function relax_core_comment_actions(): bool {
+		return false;
 	}
 
 	/**
@@ -136,7 +149,9 @@ final class Permissions implements ComponentInterface {
 	}
 
 	/**
-	 * Refuses core's reply action an internal comment from a user without the capability to post one, as the action takes the comment's type from the request and checks only access to the post.
+	 * Refuses core's reply action an internal comment from a user without the capability to post one, and any reply that would join an internal thread other than as an internal reply the user may post there, as the action takes the comment's type and parent from the request and checks only access to the post.
+	 *
+	 * An internal reply joins only a thread the user can see, on its own post and on a selected post type.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -144,8 +159,21 @@ final class Permissions implements ComponentInterface {
 	 * @return  void
 	 */
 	public function guard_core_replies(): void {
-		$type = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
-		if ( Comments::TYPE === $type && ! current_user_can( Capabilities::INSERT ) ) {
+		// Core casts both ids whatever their shape, an array included, so the guard reads the ids core acts on.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Core verifies the nonce once this refusal has passed.
+		$type      = isset( $_POST['comment_type'] ) && \is_string( $_POST['comment_type'] ) ? sanitize_key( wp_unslash( $_POST['comment_type'] ) ) : '';
+		$post_id   = isset( $_POST['comment_post_ID'] ) && ( \is_scalar( $_POST['comment_post_ID'] ) || \is_array( $_POST['comment_post_ID'] ) ) ? absint( $_POST['comment_post_ID'] ) : 0;
+		$parent_id = isset( $_POST['comment_ID'] ) && ( \is_scalar( $_POST['comment_ID'] ) || \is_array( $_POST['comment_ID'] ) ) ? absint( $_POST['comment_ID'] ) : 0;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$is_internal = Comments::TYPE === $type;
+		$parent      = dws_ic_get_comment( $parent_id );
+		$refused     = $is_internal && ! current_user_can( Capabilities::INSERT );
+		if ( ! \is_null( $parent ) && ( $is_internal || Comments::TYPE === $parent->comment_type ) ) {
+			$refused = $refused || ! $is_internal || Comments::TYPE !== $parent->comment_type || (int) $parent->comment_post_ID !== $post_id || ! dws_ic_is_selected_post_type( $post_id ) || ! current_user_can( 'see_dws_internal_comment', $parent_id );
+		}
+
+		if ( $refused ) {
 			wp_die( -1, '', array( 'response' => 403 ) );
 		}
 	}

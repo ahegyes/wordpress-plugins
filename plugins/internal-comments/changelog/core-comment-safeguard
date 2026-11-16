@@ -1,0 +1,4 @@
+Significance: patch
+Type: security
+
+While the plugin is active but cannot boot, WordPress refuses every edit, moderation, trashing and deletion of an internal comment, which the plugin's capabilities decide once it has booted and relaxed the internal_comments/core_comment_actions/should_restrict filter.

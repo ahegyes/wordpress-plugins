@@ -2,7 +2,7 @@
 
 Lets the people who run a site leave comments on its posts, pages, products and orders that only they can read.
 
-After the post types that support internal comments are selected in the plugin's settings, a meta box on their edit screens lists a post's internal comments and lets users with the right capabilities post, reply to, edit and trash them in place. A comment can be marked private, a column in the posts list counts a post's comments and opens a quick view of them, the Comments screen lists every internal comment under its own view, and each comment's edit screen keeps its earlier texts. Internal comments are stored under a status of their own, which WordPress leaves out of every comment list, count, feed and REST response, even while the plugin is inactive.
+After the post types that support internal comments are selected in the plugin's settings, a meta box on their edit screens lists a post's internal comments and lets users with the right capabilities post, reply to, edit and trash them in place. A comment can be marked private, a column in the posts list counts a post's comments and opens a quick view of them, the Comments screen lists every internal comment under its own view, and each comment's edit screen keeps its earlier texts. Internal comments are stored under a status of their own, which keeps them out of the comment lists, counts, feeds and REST responses WordPress shows visitors, even while the plugin is inactive, and while the plugin is active but cannot boot, WordPress refuses every change to them.
 
 ## Requirements
 

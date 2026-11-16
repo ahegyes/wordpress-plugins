@@ -234,6 +234,18 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
+	 * Returns whether the current user may mark an internal comment private, which the site's setting and the private capability both allow.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  bool
+	 */
+	public static function can_mark_private(): bool {
+		return Options::get_bool( Options::PRIVATE_COMMENTS ) && current_user_can( Capabilities::INSERT_PRIVATE );
+	}
+
+	/**
 	 * Returns whether any internal comment replies to a comment, whatever its status.
 	 *
 	 * @since   2.0.0
@@ -493,7 +505,7 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
-	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author, and turning one private once anyone has replied to it.
+	 * Refuses a change to whether an internal comment is private by a signed-in user other than its author, turning one private by a signed-in user who may not mark comments private, and turning one private once anyone has replied to it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -521,7 +533,7 @@ final class Comments implements ComponentInterface {
 		}
 
 		$comment = dws_ic_get_comment( $comment_id );
-		return ! \is_null( $comment ) && get_current_user_id() !== (int) $comment->user_id ? false : $check;
+		return ( ! \is_null( $comment ) && get_current_user_id() !== (int) $comment->user_id ) || ( $turns_private && ! self::can_mark_private() ) ? false : $check;
 	}
 
 	// endregion

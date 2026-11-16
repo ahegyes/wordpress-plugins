@@ -92,7 +92,7 @@ final class AdminScreens implements ComponentInterface {
 	 * @return  array<string, string>
 	 */
 	public function add_column( array $columns, string $post_type ): array {
-		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return $columns;
 		}
 
@@ -269,7 +269,7 @@ final class AdminScreens implements ComponentInterface {
 			return;
 		}
 
-		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
+		if ( ! \in_array( $post_type, Options::get_list( Options::POST_TYPES ), true ) || ! current_user_can( Capabilities::SEE ) || ! current_user_can( Capabilities::SEE_COLUMN ) ) {
 			return;
 		}
 

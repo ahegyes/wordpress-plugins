@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+Editing another user's internal comment also needs the capability to see internal comments, since the edit form starts from its text.
