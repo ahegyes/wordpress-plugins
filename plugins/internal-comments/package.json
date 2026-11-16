@@ -22,7 +22,7 @@
 		"@wordpress/env": "^12.1.0",
 		"@wordpress/i18n": "^7.1.0",
 		"@wordpress/scripts": "^37.1.0",
-		"typescript": "^6.0.3"
+		"typescript": "^7.0.2"
 	},
 	"scripts": {
 		"setup": "npm run packages-install:all && npm run build && npm run wp-env:start",
