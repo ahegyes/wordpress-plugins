@@ -13,11 +13,10 @@ functions.php                the @api dws_lpmwc_plugin(), the includes/ loader, 
 uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with Options::DELETE_DATA's consent
 src/                         the plugin's classes, each named for its concept
 ├── Plugin.php               SLUG, PREFIX (dws_lpmwc), COMPONENTS, FOOTPRINT, the identity, the logger, the scheduler, the migration runner and the kernel
-├── Options.php              the settings' keys, defaults in stored form and typed readers, v1's settings map and its lookup
+├── Options.php              the settings' keys, defaults in stored form and typed readers, v1's settings map and its lookup, and v1's setting reader, which only v1's deprecated API calls
 ├── Capabilities.php         v1's four capabilities and the roles CapabilityGrants gives them
 ├── Migrations.php           get_steps() over the protected steps, append-only: v1's settings, the defaults, then each kind of v1 grant
 ├── Settings.php             the dws-locked-payment-methods section on WooCommerce's Advanced tab, v1's three groups from Options' map, and the plugin row's links
-├── Deprecated.php           v1's hook-tag roots and joiner and its setting reader, which only v1's deprecated API calls
 ├── UnlockStrategies/        one component per way of unlocking, each gated on its switch, answering should_lock and owning its screen and its grants' key
 │   ├── UserRoleStrategy.php           every locked method for the full-access roles
 │   ├── UserProfileStrategy.php        per-site user grants on the profile, the Users column and filter
@@ -28,7 +27,7 @@ src/                         the plugin's classes, each named for its concept
 │   └── UnlockStrategySettings.php     the strategies' settings fields
 └── EditScreen/Hosts/MembershipPlanTab.php   an ObjectForm host for Memberships' plan data box
 includes/                    v1's @api functions and constants, grouped by topic, loaded in name order, _-prefixed files skipped
-├── grants.php               dws_lpmwc_is_payment_method_locked()
+├── grants.php               dws_lpmwc_get_locked_payment_method_ids() and dws_lpmwc_is_payment_method_locked()
 ├── deprecated.php           v1's root getters, hook-tag builders, constants, access checks and setting readers, deprecated
 └── metadata.php             the slug, name and version getters, the plugin's surface for a peer plugin
 changelog/                   the pending entries changelog:write turns into CHANGELOG.md and readme.txt's changelog

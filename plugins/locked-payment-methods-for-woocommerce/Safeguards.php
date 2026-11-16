@@ -87,7 +87,7 @@ final class Safeguards {
 						$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method', array( true, $id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
 
 						/**
-						 * Filters whether a payment method stays locked, under its id lowercased and stripped of control and non-ASCII bytes, as v1 named it.
+						 * Filters whether a payment method stays locked, under its id with spaces and backslashes as underscores, stripped of control and non-ASCII bytes and lowercased, as v1 named it.
 						 *
 						 * @since       1.0.0
 						 * @version     2.0.0
@@ -95,7 +95,7 @@ final class Safeguards {
 						 *
 						 * @param       bool $is_locked Whether the payment method stays locked.
 						 */
-						$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/' . \strtolower( (string) \filter_var( $id, \FILTER_UNSAFE_RAW, \FILTER_FLAG_STRIP_LOW | \FILTER_FLAG_STRIP_HIGH ) ), array( $lock ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
+						$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/' . \strtolower( (string) \filter_var( \str_replace( array( ' ', '\\' ), '_', $id ), \FILTER_UNSAFE_RAW, \FILTER_FLAG_STRIP_LOW | \FILTER_FLAG_STRIP_HIGH ) ), array( $lock ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
 
 						if ( self::should_lock( false !== $lock, $id, $user_id, $order_id ) ) {
 							unset( $gateways[ $id ] );

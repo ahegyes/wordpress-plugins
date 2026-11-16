@@ -8,8 +8,6 @@
  * @package DeepWebSolutions\InternalComments
  */
 
-use DeepWebSolutions\InternalComments\Deprecated;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -168,7 +166,7 @@ function dws_ic_min_wp(): string {
 }
 
 /**
- * Returns a hook name as v1 built it for the plugin.
+ * Returns a hook name under the plugin's v1 root, its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it.
  *
  * @api
  *
@@ -183,11 +181,11 @@ function dws_ic_min_wp(): string {
  */
 function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return Deprecated::join_hook_tag( 'internal_comments', $name, $extra );
+	return strtolower( (string) filter_var( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( 'internal_comments', $name ), (array) $extra ), 'boolval' ) ) ), FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) );
 }
 
 /**
- * Returns a hook name as v1 built it for one of its components, or null for an id v1 had no component for.
+ * Returns a hook name under one of v1's components, its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it: the root v1 named the component's hooks under, which is its id with dashes as underscores but for two components v1 renamed.
  *
  * @api
  *
@@ -199,9 +197,15 @@ function dws_ic_get_hook_tag( string $name, $extra = array() ): string {
  * @param       string               $name         The hook's name.
  * @param       string|array<string> $extra        The name's further parts.
  *
- * @return      string|null
+ * @return      string
  */
-function dws_ic_get_component_hook_tag( string $component_id, string $name, $extra = array() ): ?string {
+function dws_ic_get_component_hook_tag( string $component_id, string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return isset( Deprecated::COMPONENTS[ $component_id ] ) ? Deprecated::join_hook_tag( 'internal_comments/' . Deprecated::COMPONENTS[ $component_id ], $name, $extra ) : null;
+	$root = match ( $component_id ) {
+		'comments-list-table' => 'internal_comments_list_table',
+		'comment-permissions' => 'comments_permissions',
+		default               => str_replace( '-', '_', $component_id ),
+	};
+
+	return strtolower( (string) filter_var( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( 'internal_comments', $root, $name ), (array) $extra ), 'boolval' ) ) ), FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) );
 }

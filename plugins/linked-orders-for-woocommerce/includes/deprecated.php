@@ -166,7 +166,7 @@ function dws_lowc_min_wp(): string {
 }
 
 /**
- * Returns a hook name under the plugin's v1 root, its non-empty parts joined with slashes.
+ * Returns a hook name under the plugin's v1 root, its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it.
  *
  * @api
  *
@@ -181,11 +181,11 @@ function dws_lowc_min_wp(): string {
  */
 function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return implode( '/', array_filter( array_merge( array( 'linked_orders_for_woocommerce', $name ), (array) $extra ), 'boolval' ) );
+	return strtolower( (string) filter_var( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( 'linked_orders_for_woocommerce', $name ), (array) $extra ), 'boolval' ) ) ), FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) );
 }
 
 /**
- * Returns a hook name under one of v1's components, its id's dashes as underscores and its non-empty parts joined with slashes.
+ * Returns a hook name under one of v1's components, its id's dashes as underscores and its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it.
  *
  * @api
  *
@@ -201,5 +201,5 @@ function dws_lowc_get_hook_tag( string $name, $extra = array() ): string {
  */
 function dws_lowc_get_component_hook_tag( string $component_id, string $name, $extra = array() ): string {
 	_deprecated_function( __FUNCTION__, '2.0.0' );
-	return implode( '/', array_filter( array_merge( array( 'linked_orders_for_woocommerce', str_replace( '-', '_', $component_id ), $name ), (array) $extra ), 'boolval' ) );
+	return strtolower( (string) filter_var( str_replace( array( ' ', '\\' ), '_', implode( '/', array_filter( array_merge( array( 'linked_orders_for_woocommerce', str_replace( '-', '_', $component_id ), $name ), (array) $extra ), 'boolval' ) ) ), FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH ) );
 }

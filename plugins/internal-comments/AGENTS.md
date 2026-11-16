@@ -23,8 +23,7 @@ src/                         the plugin's classes, each named for its concept
 ├── CommentsList.php         the comment list, comment and form markup the meta box prints and the REST routes answer with
 ├── MetaBox.php              the meta box on the edit screens of posts and orders of the selected types
 ├── RestRoutes.php           the internal-comments/v1 routes the meta box and the quick view use
-├── AdminScreens.php         the posts and orders list column with its quick view, the Comments screen view, the comment edit screen
-└── Deprecated.php           v1's hook-tag roots and joiner, which only v1's deprecated API calls
+└── AdminScreens.php         the posts and orders list column with its quick view, the Comments screen view, the comment edit screen
 models/DWS_Internal_Comment.php  v1's global model class on the classmap, wrapping an internal comment with the user's permissions on it
 includes/                    v1's @api functions and constants, grouped by topic, loaded in name order, _-prefixed files skipped
 ├── settings.php             v1's deprecated settings API, the raw and validated reads by v1 field id and group, and the readers of the selected post types and of private comments
