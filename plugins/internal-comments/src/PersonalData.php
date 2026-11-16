@@ -184,7 +184,7 @@ final class PersonalData implements ComponentInterface {
 			// 1.2.4 began each change id with its user's id, so such a revision takes a new id, in its record and in each of its keys.
 			if ( ! wp_is_uuid( $change_id, 4 ) ) {
 				$uuid = wp_generate_uuid4();
-				// One statement renames the three keys and rewrites the record, so a failed write leaves the revision whole; MySQL assigns meta_key first, which only the record's row keeps.
+				// One statement renames the three keys and rewrites the record, so a failed write leaves the revision whole.
 				$rekeyed = false !== $wpdb->query( $wpdb->prepare( 'UPDATE %i SET meta_key = REPLACE( meta_key, %s, %s ), meta_value = IF( meta_key = %s, %s, meta_value ) WHERE comment_id = %d AND ( meta_key IN ( %s, %s, %s ) OR ( meta_key = %s AND meta_value = %s ) )', $wpdb->commentmeta, $change_id, $uuid, Comments::META_CHANGE_ID, $uuid, $comment_id, Comments::META_PREVIOUS_CONTENT . $change_id, Comments::META_CHANGED_BY . $change_id, Comments::META_CHANGED_TIME . $change_id, Comments::META_CHANGE_ID, $change_id ) ?? '' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The meta API renames no key, and the cache is cleaned below.
 				wp_cache_delete( $comment_id, 'comment_meta' );
 			}

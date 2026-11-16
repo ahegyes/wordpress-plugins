@@ -127,8 +127,6 @@ final class Safeguards {
 		);
 	}
 
-	// endregion
-
 	/**
 	 * Returns whether a comment query's arguments name the internal type among the types it lists.
 	 *
