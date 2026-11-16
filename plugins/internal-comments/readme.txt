@@ -53,7 +53,7 @@ If the minimum WordPress and PHP requirements are met, you will find a submenu c
 
 = Do internal comments show up on the front-end of the site? =
 
-No. Internal comments are stored under a status of their own, which WordPress leaves out of every comment list, comment count, feed and REST API response, even while the plugin is inactive.
+No. Internal comments are stored under a status of their own, which keeps them out of the front end, comment feeds and public REST API reads, even while the plugin is inactive. While the plugin is deactivated, though, users who can edit a post can still reach its internal comments through WordPress's own comment screens, since deactivation also unloads the safeguard that holds WordPress off them.
 
 = Can I post sensitive information in internal comments? =
 

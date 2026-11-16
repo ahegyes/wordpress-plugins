@@ -27,7 +27,7 @@ if ( true === dws_ic_is_private_comment( $dws_ic_comment_id ) ) {
 }
 
 /**
- * Filters the classes of an internal comment's list item in the meta box.
+ * Filters the classes of an internal comment's list item in the meta box and the quick view.
  *
  * @since       1.0.0
  * @version     2.0.0
@@ -39,7 +39,7 @@ if ( true === dws_ic_is_private_comment( $dws_ic_comment_id ) ) {
 $dws_ic_extra = apply_filters_deprecated( 'internal_comments/metabox_output/comment_classes', array( array(), $dws_ic_comment ), '2.0.0', 'internal_comments/meta_box/comment_classes' );
 
 /**
- * Filters the classes of an internal comment's list item in the meta box.
+ * Filters the classes of an internal comment's list item in the meta box and the quick view.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -98,7 +98,7 @@ $dws_ic_labels = array_map( static fn ( string $label ): string => sprintf( $lab
 		<div class="dws-internal-comment__actions">
 			<?php
 			/**
-			 * Fires before the actions of an internal comment in the meta box.
+			 * Fires before the actions of an internal comment in the meta box and the quick view.
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
@@ -109,7 +109,7 @@ $dws_ic_labels = array_map( static fn ( string $label ): string => sprintf( $lab
 			do_action_deprecated( 'internal_comments/metabox_output/single_comment/actions/start', array( $dws_ic_comment ), '2.0.0', 'internal_comments/meta_box/before_comment_actions' );
 
 			/**
-			 * Fires before the actions of an internal comment in the meta box.
+			 * Fires before the actions of an internal comment in the meta box and the quick view.
 			 *
 			 * @since   2.0.0
 			 * @version 2.0.0
@@ -129,7 +129,7 @@ $dws_ic_labels = array_map( static fn ( string $label ): string => sprintf( $lab
 			<?php endif; ?>
 			<?php
 			/**
-			 * Fires after the actions of an internal comment in the meta box.
+			 * Fires after the actions of an internal comment in the meta box and the quick view.
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
@@ -140,7 +140,7 @@ $dws_ic_labels = array_map( static fn ( string $label ): string => sprintf( $lab
 			do_action_deprecated( 'internal_comments/metabox_output/single_comment/actions/end', array( $dws_ic_comment ), '2.0.0', 'internal_comments/meta_box/after_comment_actions' );
 
 			/**
-			 * Fires after the actions of an internal comment in the meta box.
+			 * Fires after the actions of an internal comment in the meta box and the quick view.
 			 *
 			 * @since   2.0.0
 			 * @version 2.0.0

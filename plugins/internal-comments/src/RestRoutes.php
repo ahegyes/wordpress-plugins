@@ -7,7 +7,7 @@ use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Com
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers the internal-comments/v1 REST routes, through which the meta box lists, posts, edits and trashes internal comments, each answering with the post's comments rendered for the current user.
+ * Registers the internal-comments/v1 REST routes, through which the meta box lists, posts, edits and trashes internal comments and the posts list's quick view lists them, each answering with the post's comments rendered for the current user.
  *
  * @since   2.0.0
  * @version 2.0.0

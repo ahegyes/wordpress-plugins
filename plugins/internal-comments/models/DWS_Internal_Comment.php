@@ -97,6 +97,52 @@ final class DWS_Internal_Comment {
 
 	// endregion
 
+	// region GETTERS
+
+	/**
+	 * Returns the comment's earlier texts, newest first, each with the id of the user who replaced it and when, checking no capability.
+	 *
+	 * The caller checks whether the user may read them, through can_see() or can_edit().
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  list<array{content: string, user_id: int, time: int}>
+	 */
+	public function get_revisions(): array {
+		$comment_id = (int) $this->comment->comment_ID;
+		$revisions  = array();
+		foreach ( array_reverse( (array) get_comment_meta( $comment_id, Comments::META_CHANGE_ID, false ) ) as $change_id ) {
+			if ( ! is_string( $change_id ) || ! metadata_exists( 'comment', $comment_id, Comments::META_PREVIOUS_CONTENT . $change_id ) ) {
+				continue;
+			}
+
+			$content     = get_comment_meta( $comment_id, Comments::META_PREVIOUS_CONTENT . $change_id, true );
+			$revisions[] = array(
+				'content' => is_string( $content ) ? $content : '',
+				'user_id' => filter_var( get_comment_meta( $comment_id, Comments::META_CHANGED_BY . $change_id, true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0,
+				'time'    => filter_var( get_comment_meta( $comment_id, Comments::META_CHANGED_TIME . $change_id, true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0,
+			);
+		}
+
+		return $revisions;
+	}
+
+	/**
+	 * Returns the link to the comment's edit screen, or null when the current user cannot edit it.
+	 *
+	 * @since   1.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  string|null
+	 */
+	public function get_edit_comment_link(): ?string {
+		$link = get_edit_comment_link( (int) $this->comment->comment_ID );
+		return is_string( $link ) ? $link : null;
+	}
+
+	// endregion
+
 	// region METHODS
 
 	/**
@@ -168,48 +214,6 @@ final class DWS_Internal_Comment {
 	 */
 	public function can_trash( ?int $user_id = null ): bool {
 		return user_can( $user_id ?? get_current_user_id(), 'trash_dws_internal_comment', (int) $this->comment->comment_ID );
-	}
-
-	/**
-	 * Returns the comment's earlier texts, newest first, each with the id of the user who replaced it and when, checking no capability.
-	 *
-	 * The caller checks whether the user may read them, through can_see() or can_edit().
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  list<array{content: string, user_id: int, time: int}>
-	 */
-	public function get_revisions(): array {
-		$comment_id = (int) $this->comment->comment_ID;
-		$revisions  = array();
-		foreach ( array_reverse( (array) get_comment_meta( $comment_id, Comments::META_CHANGE_ID, false ) ) as $change_id ) {
-			if ( ! is_string( $change_id ) || ! metadata_exists( 'comment', $comment_id, Comments::META_PREVIOUS_CONTENT . $change_id ) ) {
-				continue;
-			}
-
-			$content     = get_comment_meta( $comment_id, Comments::META_PREVIOUS_CONTENT . $change_id, true );
-			$revisions[] = array(
-				'content' => is_string( $content ) ? $content : '',
-				'user_id' => filter_var( get_comment_meta( $comment_id, Comments::META_CHANGED_BY . $change_id, true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0,
-				'time'    => filter_var( get_comment_meta( $comment_id, Comments::META_CHANGED_TIME . $change_id, true ), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) ?? 0,
-			);
-		}
-
-		return $revisions;
-	}
-
-	/**
-	 * Returns the link to the comment's edit screen, or null when the current user cannot edit it.
-	 *
-	 * @since   1.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  string|null
-	 */
-	public function get_edit_comment_link(): ?string {
-		$link = get_edit_comment_link( (int) $this->comment->comment_ID );
-		return is_string( $link ) ? $link : null;
 	}
 
 	// endregion
