@@ -140,6 +140,30 @@ final class PersonalDataTest extends TestCase {
 		}
 	}
 
+	// The eraser anonymizes a page of revisions at a time, as it does comments, so a user who made many edits is erased over several calls.
+	public function test_the_eraser_anonymizes_revisions_a_page_at_a_time(): void {
+		global $wpdb;
+		$comment = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $this->post ), get_user_by( 'id', 1 ) ?: null );
+		$rows    = array();
+		for ( $revision = 0; $revision <= 500; $revision++ ) {
+			$rows[] = $wpdb->prepare( '( %d, %s, %s )', $comment, Comments::META_CHANGED_BY . wp_generate_uuid4(), (string) $this->staff );
+		}
+		$wpdb->query( "INSERT INTO $wpdb->commentmeta ( comment_id, meta_key, meta_value ) VALUES " . \implode( ', ', $rows ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared -- Each row is prepared above, and 501 revisions through the meta API would take thousands of queries.
+		wp_cache_delete( $comment, 'comment_meta' );
+		$erase  = $this->registered( 'wp_privacy_personal_data_erasers' );
+		$staff  = array( (string) $this->staff );
+		$staffs = static fn (): int => \count( \array_filter( (array) get_comment_meta( $comment ), static fn ( array $values ): bool => $staff === $values ) );
+
+		$first = \call_user_func( $erase, self::EMAIL, 1 );
+		$left  = $staffs();
+		$last  = \call_user_func( $erase, self::EMAIL, 2 );
+
+		self::assertSame( array( true, false ), array( $first['items_removed'], $first['done'] ) );
+		self::assertSame( 1, $left );
+		self::assertSame( array( true, true ), array( $last['items_removed'], $last['done'] ) );
+		self::assertSame( 0, $staffs() );
+	}
+
 	protected function registered( string $hook ): callable {
 		$registered = apply_filters( $hook, array() );
 		self::assertIsArray( $registered );
