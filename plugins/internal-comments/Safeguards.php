@@ -85,11 +85,11 @@ final class Safeguards {
 			-10
 		);
 
-		// 1.2.4 stored internal comments approved, so until the migration moves them under their status only their type keeps them out of a query that names neither, through the WHERE clause, since WooCommerce leaves product reviews out of no query that names types to leave out.
+		// 1.2.4 stored internal comments approved, and a move back under the status can fail, so only the type keeps such a comment out of a query that names neither, through the WHERE clause, since WooCommerce leaves product reviews out of no query that names types to leave out; WordPress reads a query's statuses as a list or a comma-separated string.
 		add_filter(
 			'comments_clauses',
 			static function ( array $clauses, \WP_Comment_Query $query ): array {
-				if ( self::names_internal_type( $query->query_vars ) || \in_array( 'dws_internal', (array) ( $query->query_vars['status'] ?? array() ), true ) ) {
+				if ( self::names_internal_type( $query->query_vars ) || \in_array( 'dws_internal', wp_parse_list( $query->query_vars['status'] ?? array() ), true ) ) { // @phpstan-ignore argument.type (WP_Comment_Query parses the query's statuses as given.)
 					return $clauses;
 				}
 
