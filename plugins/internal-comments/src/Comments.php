@@ -145,6 +145,20 @@ final class Comments implements ComponentInterface {
 	}
 
 	/**
+	 * Returns whether a post id names a WooCommerce order of any type, on either order storage.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $post_id The post's or order's id.
+	 *
+	 * @return  bool
+	 */
+	public static function is_order( int $post_id ): bool {
+		return \class_exists( OrderUtil::class ) && \in_array( self::get_post_type( $post_id ), wc_get_order_types(), true );
+	}
+
+	/**
 	 * Returns the ids of the users who wrote the comments that make an internal comment private, being the comment and those of its ancestors marked private, or null for a comment that is not internal.
 	 *
 	 * @since   2.0.0
@@ -364,7 +378,7 @@ final class Comments implements ComponentInterface {
 		}
 
 		$post_id = (int) $comment->comment_post_ID;
-		$edit    = \class_exists( OrderUtil::class ) && \in_array( self::get_post_type( $post_id ), wc_get_order_types(), true ) ? OrderUtil::get_order_admin_edit_url( $post_id ) : get_edit_post_link( $post_id, 'url' );
+		$edit    = self::is_order( $post_id ) ? OrderUtil::get_order_admin_edit_url( $post_id ) : get_edit_post_link( $post_id, 'url' );
 		return \is_string( $edit ) && '' !== $edit ? $edit . '#' . ( 0 === (int) $comment->comment_parent ? 'comment-' : 'reply-' ) . $comment->comment_ID : $link;
 	}
 

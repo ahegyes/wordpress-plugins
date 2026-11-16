@@ -3,6 +3,15 @@
 	margin-top: 4px;
 }
 
+// On phones WordPress shows a list's count label, and hides the bare
+// number only in its own comments column.
+@media screen and (max-width: 782px) {
+
+	.dws-ic-column .post-com-count [aria-hidden="true"] {
+		display: none;
+	}
+}
+
 .dws-ic-quick-view {
 	width: min(40em, 90vw);
 	max-height: 70vh;

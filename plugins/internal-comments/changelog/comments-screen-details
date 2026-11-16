@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+On the Comments screen the type dropdown offers Internal Comments, the menu marks the Internal Comments view as current, and an order's row names it by its number, without a View link to a front end orders lack. The comment edit screen hides WordPress's parent control for an internal comment, whose every choice saving refuses, and on phones the posts list's column shows its count once.

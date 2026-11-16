@@ -33,7 +33,7 @@ final class CommentEditScreen implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Hides the author, status and date of an internal comment on WordPress's comment edit screen, since saving keeps them as stored.
+	 * Hides the author, status, date and parent of an internal comment on WordPress's comment edit screen, since saving keeps them as stored.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -51,7 +51,7 @@ final class CommentEditScreen implements ComponentInterface {
 
 		wp_register_style( Plugin::SLUG . '-comment-screen', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- A style without a file has no version to bust.
 		wp_enqueue_style( Plugin::SLUG . '-comment-screen' );
-		wp_add_inline_style( Plugin::SLUG . '-comment-screen', '#namediv, #comment-status, .misc-pub-curtime { display: none; }' );
+		wp_add_inline_style( Plugin::SLUG . '-comment-screen', '#namediv, #comment-status, .misc-pub-curtime, .misc-pub-reply-to { display: none; }' );
 	}
 
 	/**

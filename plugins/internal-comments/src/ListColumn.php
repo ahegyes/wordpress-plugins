@@ -177,7 +177,7 @@ final class ListColumn implements ComponentInterface {
 				<span class="post-com-count"><?php echo $number; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></span>
 			<?php endif; ?>
 			<button type="button" class="button-link" popovertarget="<?php echo esc_attr( $popover ); ?>"><?php esc_html_e( 'Quick view', 'internal-comments' ); ?></button>
-			<div id="<?php echo esc_attr( $popover ); ?>" class="dws-ic-quick-view" popover role="dialog" aria-label="<?php echo esc_attr( $label ); ?>" data-post-id="<?php echo esc_attr( (string) $post_id ); ?>">
+			<div id="<?php echo esc_attr( $popover ); ?>" class="dws-ic-quick-view no-link" popover role="dialog" aria-label="<?php echo esc_attr( $label ); ?>" data-post-id="<?php echo esc_attr( (string) $post_id ); ?>">
 				<button type="button" class="button-link dws-ic-quick-view__close" popovertarget="<?php echo esc_attr( $popover ); ?>" popovertargetaction="hide"><?php esc_html_e( 'Close', 'internal-comments' ); ?></button>
 				<div class="dws-ic-quick-view__comments" aria-live="polite"><?php esc_html_e( 'Loading…', 'internal-comments' ); ?></div>
 			</div>
