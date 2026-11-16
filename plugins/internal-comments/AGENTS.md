@@ -7,7 +7,7 @@ v1 sites upgrade in place, so the port keeps v1's comment type, capabilities, co
 ## Layout
 
 ```
-internal-comments.php        the entry: the safeguards, then, in one try, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader and functions.php, whose catch shows the build notice
+internal-comments.php        the entry: the @api DWS_IC_FILE, the safeguards, then, in one try, bootstrap load.php, the inert updater, the floor check, the build gate, the autoloader and functions.php, whose catch shows the build notice
 Safeguards.php               an empty slot for restrictions that hold whenever the plugin cannot boot, which the entry requires before the floor check
 functions.php                the @api dws_ic_plugin(), the includes/ loader, then the boot on plugins_loaded 15, the order-tables declaration, v1's boot hooks and deactivation, as static closures
 uninstall.php                the framework's uninstall engine over Plugin::FOOTPRINT, with Options::DELETE_DATA's consent

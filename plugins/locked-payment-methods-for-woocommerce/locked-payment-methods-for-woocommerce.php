@@ -30,6 +30,14 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Boot
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * The path of the plugin's main file.
+ *
+ * @api
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ */
 define( 'DWS_LPMWC_FILE', __FILE__ );
 
 require_once __DIR__ . '/Safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
