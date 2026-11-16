@@ -42,7 +42,7 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 *
 	 * @var     string
 	 */
-	public const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
+	protected const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
 
 	// endregion
 

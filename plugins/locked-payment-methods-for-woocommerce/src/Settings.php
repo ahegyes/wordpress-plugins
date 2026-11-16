@@ -30,7 +30,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 *
 	 * @var     string
 	 */
-	public const string SECTION = 'dws-locked-payment-methods';
+	protected const string SECTION = 'dws-locked-payment-methods';
 
 	// endregion
 

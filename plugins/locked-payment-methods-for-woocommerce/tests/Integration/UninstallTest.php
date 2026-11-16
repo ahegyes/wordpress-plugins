@@ -6,10 +6,6 @@ use DeepWebSolutions\LockedPaymentMethods\Capabilities;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 use PHPUnit\Framework\Attributes\AfterClass;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -85,11 +81,11 @@ final class UninstallTest extends TestCase {
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_in_a_request_that_never_loaded_the_plugin_removes_its_data(): void {
 		update_option( Options::DELETE_DATA, 'yes' );
-		update_option( GroupsStrategy::OPTION, array( 7 => array( 'cod' ) ) );
+		update_option( 'dws_lpmwc_groups_unlocked_payment_methods', array( 7 => array( 'cod' ) ) );
 
 		try {
 			// WordPress uninstalls a plugin in a request that never included it, as WP-CLI's --skip-plugins does here.
-			$request = self::request( 'require_once ABSPATH . "wp-admin/includes/plugin.php"; echo wp_json_encode( array( uninstall_plugin( "' . plugin_basename( DWS_LPMWC_FILE ) . '" ), get_option( "' . GroupsStrategy::OPTION . '" ) ) );', '--skip-plugins=' . Plugin::SLUG );
+			$request = self::request( 'require_once ABSPATH . "wp-admin/includes/plugin.php"; echo wp_json_encode( array( uninstall_plugin( "' . plugin_basename( DWS_LPMWC_FILE ) . '" ), get_option( "dws_lpmwc_groups_unlocked_payment_methods" ) ) );', '--skip-plugins=' . Plugin::SLUG );
 
 			self::assertSame( '[true,false]', $request['last'], $request['output'] );
 		} finally {
@@ -135,15 +131,15 @@ final class UninstallTest extends TestCase {
 		global $wpdb;
 
 		update_option( Options::DELETE_DATA, 'yes' );
-		update_option( GroupsStrategy::OPTION, array( 7 => array( 'cod' ) ) );
+		update_option( 'dws_lpmwc_groups_unlocked_payment_methods', array( 7 => array( 'cod' ) ) );
 		foreach ( array( 'dws-wc-lpm_general_locked-payment-methods', 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ) as $v1_option ) {
 			update_option( $v1_option, 'seeded' );
 		}
-		update_user_meta( self::USER, $wpdb->get_blog_prefix() . UserProfileStrategy::USER_OPTION, array( 'cod' ) );
+		update_user_meta( self::USER, $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		update_user_meta( self::USER, 'dws_wc_lpm_grant_access_cod', 'yes' );
 		update_user_meta( self::USER, '_locked_payment_methods_for_woocommerce_admin_notices', array( 'seeded' ) );
 		$order = wc_create_order();
-		$order->update_meta_data( OrderStrategy::META_KEY, array( 'cod' ) );
+		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->update_meta_data( '_dws_wc_lpm_grant_access_cod', 'yes' );
 		$order->save();
 		$plan = (int) wp_insert_post(
@@ -153,7 +149,7 @@ final class UninstallTest extends TestCase {
 				'post_status' => 'draft',
 			)
 		);
-		update_post_meta( $plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cod' ) );
+		update_post_meta( $plan, '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		update_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod' ) );
 
 		try {
@@ -162,16 +158,16 @@ final class UninstallTest extends TestCase {
 			wp_cache_flush();
 			wp_roles()->for_site();
 
-			self::assertFalse( get_option( GroupsStrategy::OPTION ) );
+			self::assertFalse( get_option( 'dws_lpmwc_groups_unlocked_payment_methods' ) );
 			foreach ( array( 'dws-wc-lpm_general_locked-payment-methods', 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ) as $v1_option ) {
 				self::assertFalse( get_option( $v1_option ), $v1_option );
 			}
-			self::assertSame( '', get_user_meta( self::USER, $wpdb->get_blog_prefix() . UserProfileStrategy::USER_OPTION, true ) );
+			self::assertSame( '', get_user_meta( self::USER, $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods', true ) );
 			self::assertSame( '', get_user_meta( self::USER, 'dws_wc_lpm_grant_access_cod', true ) );
 			self::assertSame( '', get_user_meta( self::USER, '_locked_payment_methods_for_woocommerce_admin_notices', true ) );
-			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( OrderStrategy::META_KEY ) );
+			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( '_dws_lpmwc_unlocked_payment_methods' ) );
 			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
-			self::assertSame( '', get_post_meta( $plan, WooCommerceMembershipsStrategy::META_KEY, true ) );
+			self::assertSame( '', get_post_meta( $plan, '_dws_lpmwc_unlocked_payment_methods', true ) );
 			self::assertSame( '', get_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
 			self::assertFalse( get_role( 'administrator' )?->has_cap( Capabilities::UNLOCK_VIA_GROUPS ) );
 		} finally {
@@ -188,18 +184,18 @@ final class UninstallTest extends TestCase {
 	public function test_an_uninstall_on_a_site_that_never_ran_the_update_keeps_its_data_whatever_v1s_row_holds(): void {
 		delete_option( Options::DELETE_DATA );
 		update_option( 'dws-wc-lpm_plugin_remove-data-uninstall', 'yes' );
-		update_option( GroupsStrategy::OPTION, array( 7 => array( 'cod' ) ) );
+		update_option( 'dws_lpmwc_groups_unlocked_payment_methods', array( 7 => array( 'cod' ) ) );
 
 		try {
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
 			wp_cache_flush();
 
-			self::assertSame( array( 7 => array( 'cod' ) ), get_option( GroupsStrategy::OPTION ) );
+			self::assertSame( array( 7 => array( 'cod' ) ), get_option( 'dws_lpmwc_groups_unlocked_payment_methods' ) );
 			self::assertSame( 'yes', get_option( 'dws-wc-lpm_plugin_remove-data-uninstall' ) );
 		} finally {
 			// The other tests share the database, so v1's consent and the group's unlocked methods go, the runner stores again what a new site starts with, from the first step, and the capability grants act again where a pass removed them.
 			delete_option( 'dws-wc-lpm_plugin_remove-data-uninstall' );
-			delete_option( GroupsStrategy::OPTION );
+			delete_option( 'dws_lpmwc_groups_unlocked_payment_methods' );
 			delete_option( Plugin::PREFIX . '_revision' );
 			wp_roles()->for_site();
 			dws_lpmwc_plugin()->migrations?->run();
@@ -211,17 +207,17 @@ final class UninstallTest extends TestCase {
 	public function test_an_uninstall_keeps_the_grants_where_the_stored_setting_refuses_whatever_v1s_row_holds(): void {
 		update_option( Options::DELETE_DATA, 'no' );
 		update_option( 'dws-wc-lpm_plugin_remove-data-uninstall', 'yes' );
-		update_option( GroupsStrategy::OPTION, array( 7 => array( 'cod' ) ) );
+		update_option( 'dws_lpmwc_groups_unlocked_payment_methods', array( 7 => array( 'cod' ) ) );
 
 		try {
 			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
 			wp_cache_flush();
 
-			self::assertSame( array( 7 => array( 'cod' ) ), get_option( GroupsStrategy::OPTION ) );
+			self::assertSame( array( 7 => array( 'cod' ) ), get_option( 'dws_lpmwc_groups_unlocked_payment_methods' ) );
 			self::assertSame( 'no', get_option( Options::DELETE_DATA ) );
 		} finally {
 			delete_option( 'dws-wc-lpm_plugin_remove-data-uninstall' );
-			delete_option( GroupsStrategy::OPTION );
+			delete_option( 'dws_lpmwc_groups_unlocked_payment_methods' );
 		}
 	}
 }

@@ -53,7 +53,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 *
 	 * @var     string
 	 */
-	public const string USER_OPTION = 'dws_lpmwc_unlocked_payment_methods';
+	protected const string USER_OPTION = 'dws_lpmwc_unlocked_payment_methods';
 
 	// endregion
 

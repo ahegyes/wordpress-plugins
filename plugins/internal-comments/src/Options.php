@@ -65,7 +65,7 @@ final class Options {
 	 *
 	 * @var     array<string, array<string, string>>
 	 */
-	public const array V1_SETTINGS = array(
+	protected const array V1_SETTINGS = array(
 		'general' => array(
 			'post-types'              => self::POST_TYPES,
 			'enable-private-comments' => self::PRIVATE_COMMENTS,

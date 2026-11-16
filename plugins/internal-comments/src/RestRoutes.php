@@ -23,7 +23,7 @@ final class RestRoutes implements ComponentInterface {
 	 *
 	 * @var     string
 	 */
-	public const string NAMESPACE = 'internal-comments/v1';
+	protected const string NAMESPACE = 'internal-comments/v1';
 
 	// endregion
 

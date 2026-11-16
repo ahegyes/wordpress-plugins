@@ -29,7 +29,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 	 *
 	 * @var     string
 	 */
-	public const string PAGE = 'dws-internal-comments';
+	protected const string PAGE = 'dws-internal-comments';
 
 	// endregion
 

@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
 final class GroupsStrategyTest extends TestCase {
 	use RestoresOptionsTrait;
 
-	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_GROUPS, GroupsStrategy::OPTION );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_GROUPS, 'dws_lpmwc_groups_unlocked_payment_methods' );
 
 	protected static GroupsStrategy $strategy;
 
@@ -61,7 +61,7 @@ final class GroupsStrategyTest extends TestCase {
 	#[Before]
 	protected function lock_the_methods(): void {
 		update_option( Options::LOCKED_METHODS, array( 'cod', 'bacs' ) );
-		delete_option( GroupsStrategy::OPTION );
+		delete_option( 'dws_lpmwc_groups_unlocked_payment_methods' );
 	}
 
 	#[After]
@@ -101,7 +101,7 @@ final class GroupsStrategyTest extends TestCase {
 				'group_id' => $child,
 			)
 		);
-		update_option( GroupsStrategy::OPTION, array( $parent => array( 'cod' ) ) );
+		update_option( 'dws_lpmwc_groups_unlocked_payment_methods', array( $parent => array( 'cod' ) ) );
 
 		self::assertSame( array( $parent => array( 'cod' ) ), GroupsStrategy::get_unlocked_ids() );
 		self::assertFalse( self::should_lock( 'cod', self::$users['customer'] ) );
@@ -112,7 +112,7 @@ final class GroupsStrategyTest extends TestCase {
 
 	public function test_the_group_forms_offer_the_locked_methods_to_a_user_with_both_capabilities(): void {
 		$group = $this->create_group( 'LPM shown' );
-		update_option( GroupsStrategy::OPTION, array( $group => array( 'cod' ) ) );
+		update_option( 'dws_lpmwc_groups_unlocked_payment_methods', array( $group => array( 'cod' ) ) );
 		wp_set_current_user( self::$users['administrator'] );
 
 		$edit = self::parse( apply_filters( 'groups_admin_groups_edit_form_after_fields', '', $group ) );
@@ -170,7 +170,7 @@ final class GroupsStrategyTest extends TestCase {
 		$kept    = $this->create_group( 'LPM kept' );
 		$deleted = $this->create_group( 'LPM deleted' );
 		update_option(
-			GroupsStrategy::OPTION,
+			'dws_lpmwc_groups_unlocked_payment_methods',
 			array(
 				$kept    => array( 'cod' ),
 				$deleted => array( 'bacs' ),
@@ -187,7 +187,7 @@ final class GroupsStrategyTest extends TestCase {
 		$merged = $this->create_group( 'LPM merged' );
 		update_option( "dws-wc-lpm_groups-settings_$moved", array( 'cod' ) );
 		update_option( "dws-wc-lpm_groups-settings_$merged", array( 'cod', 7 ) );
-		update_option( GroupsStrategy::OPTION, array( $merged => array( 'cheque' ) ) );
+		update_option( 'dws_lpmwc_groups_unlocked_payment_methods', array( $merged => array( 'cheque' ) ) );
 
 		Migrations::get_steps()[4]();
 		Migrations::get_steps()[4]();

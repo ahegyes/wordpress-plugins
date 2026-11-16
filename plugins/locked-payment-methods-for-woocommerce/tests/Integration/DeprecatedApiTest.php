@@ -6,7 +6,6 @@ use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
-use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -216,7 +215,7 @@ final class DeprecatedApiTest extends TestCase {
 
 		update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
 		$order = wc_create_order( array( 'customer_id' => self::$users['shop_manager'] ) );
-		$order->update_meta_data( OrderStrategy::META_KEY, array( 'cod' ) );
+		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->save();
 		self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
 		self::assertGreaterThan( 0, did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) );
@@ -241,7 +240,7 @@ final class DeprecatedApiTest extends TestCase {
 
 	public function test_v1s_per_strategy_checks_answer_from_their_strategy_alone_and_true_while_it_is_off(): void {
 		$order = wc_create_order();
-		$order->update_meta_data( OrderStrategy::META_KEY, array( 'cod' ) );
+		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->save();
 
 		try {

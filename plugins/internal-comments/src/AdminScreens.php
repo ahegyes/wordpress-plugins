@@ -24,7 +24,7 @@ final class AdminScreens implements ComponentInterface {
 	 *
 	 * @var     string
 	 */
-	public const string COLUMN = 'dws-internal-comments';
+	protected const string COLUMN = 'dws-internal-comments';
 
 	// endregion
 

@@ -97,7 +97,7 @@ final class OrdersTest extends TestCase {
 		wp_set_current_user( self::$users['shop_manager'] );
 
 		new MetaBox( self::make_assets() )->add_meta_box( $screen, $object );
-		$box = $wp_meta_boxes[ $screen ]['normal']['core'][ MetaBox::ID ] ?? null;
+		$box = $wp_meta_boxes[ $screen ]['normal']['core']['dws-internal-comments'] ?? null;
 		self::assertIsArray( $box );
 		\ob_start();
 		\call_user_func( $box['callback'], $object, $box );
@@ -115,9 +115,9 @@ final class OrdersTest extends TestCase {
 		wp_set_current_user( self::$users['shop_manager'] );
 		$screens = new AdminScreens( self::make_assets() );
 
-		self::assertArrayHasKey( AdminScreens::COLUMN, $screens->add_column( array( 'order_number' => 'Order' ), 'shop_order' ) );
+		self::assertArrayHasKey( 'dws-internal-comments', $screens->add_column( array( 'order_number' => 'Order' ), 'shop_order' ) );
 		\ob_start();
-		$screens->render_order_cell( AdminScreens::COLUMN, $order );
+		$screens->render_order_cell( 'dws-internal-comments', $order );
 		self::assertStringContainsString( '1 internal comment', (string) \ob_get_clean() );
 	}
 

@@ -24,7 +24,7 @@ final class MetaBox implements ComponentInterface {
 	 *
 	 * @var     string
 	 */
-	public const string ID = 'dws-internal-comments';
+	protected const string ID = 'dws-internal-comments';
 
 	// endregion
 

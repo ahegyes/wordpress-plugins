@@ -31,7 +31,7 @@ final class SettingsTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/template.php';
 		self::$identity = new PluginIdentity( DWS_IC_FILE, Plugin::SLUG, Plugin::PREFIX );
-		self::$page     = new OptionsPage( self::$identity, Settings::PAGE, new Settings( self::$identity ) );
+		self::$page     = new OptionsPage( self::$identity, 'dws-internal-comments', new Settings( self::$identity ) );
 	}
 
 	public static function setting_groups(): array {
@@ -57,10 +57,9 @@ final class SettingsTest extends TestCase {
 		unset( $_GET['tab'] );
 	}
 
-	public function test_the_page_keeps_v1s_slug_parent_capability_and_tabs(): void {
-		$page = new Settings( self::$identity )->get_options_page( Settings::PAGE );
+	public function test_the_page_keeps_v1s_parent_capability_and_tabs(): void {
+		$page = new Settings( self::$identity )->get_options_page( 'dws-internal-comments' );
 
-		self::assertSame( 'dws-internal-comments', Settings::PAGE );
 		self::assertSame( 'options-general.php', $page['parent'] );
 		self::assertSame( Capabilities::MANAGE_OPTIONS, $page['capability'] );
 		self::assertSame( 'Internal Comments', $page['menu_title'] );
@@ -69,7 +68,7 @@ final class SettingsTest extends TestCase {
 
 	public function test_each_field_defaults_to_the_value_the_migrations_seed(): void {
 		$settings = new Settings( self::$identity );
-		$fields   = \array_merge( ...\array_map( static fn ( string $tab ): array => $settings->get_tab_fields( Settings::PAGE, $tab ), \array_keys( Options::V1_SETTINGS ) ) );
+		$fields   = \array_merge( ...\array_map( static fn ( string $tab ): array => $settings->get_tab_fields( 'dws-internal-comments', $tab ), array( 'general', 'plugin' ) ) );
 
 		self::assertEqualsCanonicalizing( \array_keys( Options::DEFAULTS ), \array_column( $fields, 'id' ) );
 		foreach ( $fields as $field ) {
@@ -158,7 +157,7 @@ final class SettingsTest extends TestCase {
 		add_filter( $v1_hook, $v1_extra );
 
 		try {
-			$fields = new Settings( self::$identity )->get_tab_fields( Settings::PAGE, $group );
+			$fields = new Settings( self::$identity )->get_tab_fields( 'dws-internal-comments', $group );
 		} finally {
 			remove_filter( $v1_hook, $v1_extra );
 		}
@@ -178,7 +177,7 @@ final class SettingsTest extends TestCase {
 		add_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
 
 		try {
-			$this->save( new OptionsPage( self::$identity, Settings::PAGE, new Settings( self::$identity ) ), 'general', array( 'dws_ic_general_extra' => 'saved' ) );
+			$this->save( new OptionsPage( self::$identity, 'dws-internal-comments', new Settings( self::$identity ) ), 'general', array( 'dws_ic_general_extra' => 'saved' ) );
 		} finally {
 			remove_filter( 'internal_comments/general_settings/get_group_fields', $v1_extra );
 		}
@@ -209,7 +208,7 @@ final class SettingsTest extends TestCase {
 
 	// options.php registers the posted tab's settings, then saves each of its fields through update_option(), with null for one the form did not post; the page's filters go afterwards, so a later row saves without them.
 	protected function save( OptionsPage $page, string $tab, array $posted ): void {
-		$group                   = Settings::PAGE . "_$tab";
+		$group                   = "dws-internal-comments_$tab";
 		$GLOBALS['pagenow']      = 'options.php';
 		$_REQUEST['option_page'] = $group;
 
@@ -219,7 +218,7 @@ final class SettingsTest extends TestCase {
 				update_option( $option, $value );
 			}
 		} finally {
-			foreach ( \array_unique( array( ...\array_values( Options::V1_SETTINGS[ $tab ] ), ...\array_keys( $posted ) ) ) as $option ) {
+			foreach ( \array_unique( array( ...( 'general' === $tab ? array( Options::POST_TYPES, Options::PRIVATE_COMMENTS ) : array( Options::DELETE_DATA ) ), ...\array_keys( $posted ) ) ) as $option ) {
 				remove_filter( "pre_update_option_$option", array( $page, 'sanitize_submission' ) );
 				unregister_setting( $group, $option );
 			}

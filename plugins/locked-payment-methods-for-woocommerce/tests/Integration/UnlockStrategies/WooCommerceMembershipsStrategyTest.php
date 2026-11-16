@@ -103,7 +103,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	}
 
 	public function test_an_active_member_of_a_plan_is_unlocked_for_the_plans_methods(): void {
-		update_post_meta( $this->plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cod' ) );
+		update_post_meta( $this->plan, '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		MembershipsDouble::add( self::$users['customer'], $this->plan );
 		MembershipsDouble::add( self::$users['subscriber'], $this->plan, false );
 
@@ -116,7 +116,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	public function test_the_plan_data_offers_a_tab_and_its_panel_to_a_user_with_the_capability(): void {
 		$GLOBALS['post'] = get_post( $this->plan );
-		update_post_meta( $this->plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cod' ) );
+		update_post_meta( $this->plan, '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 
 		wp_set_current_user( self::$users['customer'] );
 		self::assertSame( array(), apply_filters( 'wc_membership_plan_data_tabs', array() ) );
@@ -143,7 +143,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	public function test_saving_the_plan_stores_the_checked_methods_under_its_own_nonce(): void {
 		wp_set_current_user( self::$users['administrator'] );
-		$_POST[ self::FORM ] = array( WooCommerceMembershipsStrategy::META_KEY => array( 'bacs' ) );
+		$_POST[ self::FORM ] = array( '_dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
 
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . '_nonce_' . ( $this->plan + 1 ) );
 		do_action( 'wc_memberships_save_meta_box', array(), 'wc-memberships-membership-plan-data', $this->plan, get_post( $this->plan ) );
@@ -156,7 +156,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	public function test_the_grants_step_moves_v1s_plan_meta_to_the_plugins_key(): void {
 		update_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod', 7 ) );
-		update_post_meta( $this->plan, WooCommerceMembershipsStrategy::META_KEY, array( 'cheque' ) );
+		update_post_meta( $this->plan, '_dws_lpmwc_unlocked_payment_methods', array( 'cheque' ) );
 
 		Migrations::get_steps()[5]();
 		Migrations::get_steps()[5]();
