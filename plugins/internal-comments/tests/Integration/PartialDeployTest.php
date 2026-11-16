@@ -72,26 +72,15 @@ final class PartialDeployTest extends TestCase {
 	}
 
 	public function test_an_include_that_throws_shows_the_build_notice_and_boots_nothing_without_a_log_line(): void {
-		$include = \dirname( DWS_IC_FILE ) . '/includes/zz-throws.php';
-		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
-		try {
-			$request = self::request( self::PROBE );
-		} finally {
-			\unlink( $include );
-		}
+		$request = self::request_with_throwing_include( 'zz-throws.php', self::PROBE );
 
 		self::assertSame( 0, $request['status'], $request['output'] );
 		self::assertSame( wp_json_encode( array( 0, array( self::NOTICE, '' ) ) ), $request['last'] );
 	}
 
 	public function test_the_peer_getters_a_partial_deploy_defines_still_answer(): void {
-		$include = \dirname( DWS_IC_FILE ) . '/includes/metadata_zz-throws.php'; // Sorts right after metadata.php, so no later include loads.
-		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
-		try {
-			$request = self::request( 'echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) );' );
-		} finally {
-			\unlink( $include );
-		}
+		// The include sorts right after metadata.php, so no later include loads.
+		$request = self::request_with_throwing_include( 'metadata_zz-throws.php', 'echo wp_json_encode( array( did_action( "internal_comments/boot/succeeded" ), dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) );' );
 
 		self::assertSame( 0, $request['status'], $request['output'] );
 		self::assertSame( wp_json_encode( array( 0, dws_ic_get_plugin_slug(), dws_ic_get_plugin_name(), dws_ic_get_plugin_version() ) ), $request['last'] );
@@ -99,8 +88,9 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
+		$stored = get_option( Options::DELETE_DATA );
 		update_option( Options::DELETE_DATA, 'yes' );
-		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
+		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-ic-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
 			static function ( string $class_name ): void {
@@ -112,11 +102,23 @@ final class PartialDeployTest extends TestCase {
 			true
 		);
 
-		self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
-		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
-		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_IC_FILE ) ) );
+			self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
+			self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
+		} finally {
+			\unlink( $log );
+			update_option( Options::DELETE_DATA, $stored );
+		}
+	}
 
-		\unlink( $log );
-		update_option( Options::DELETE_DATA, Options::DEFAULTS[ Options::DELETE_DATA ] );
+	protected static function request_with_throwing_include( string $name, string $php ): array {
+		$include = \dirname( DWS_IC_FILE ) . "/includes/$name";
+		\file_put_contents( $include, "<?php\nthrow new RuntimeException( 'A partial deploy.' );\n" );
+		try {
+			return self::request( $php );
+		} finally {
+			\unlink( $include );
+		}
 	}
 }

@@ -24,7 +24,7 @@ final class ListColumn implements ComponentInterface {
 	 *
 	 * @var     string
 	 */
-	protected const string COLUMN = 'dws-internal-comments';
+	public const string COLUMN = 'dws-internal-comments';
 
 	// endregion
 

@@ -5,6 +5,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use DeepWebSolutions\InternalComments\CommentEditScreen;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( CommentEditScreen::class )]
 final class CommentEditScreenTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 
 	protected static array $users = array();
@@ -28,7 +30,7 @@ final class CommentEditScreenTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		foreach ( array( 'administrator', 'editor' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "ic-screens-$role",
 					'user_pass'  => 'password',

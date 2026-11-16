@@ -4,6 +4,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class CommentsTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 
 	protected int $post;
@@ -21,7 +23,7 @@ final class CommentsTest extends TestCase {
 	#[Before]
 	protected function create_post(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		$this->admin = (int) wp_insert_user(
+		$this->admin = self::insert_user(
 			array(
 				'user_login'   => 'ic-comments-admin',
 				'user_pass'    => 'password',
@@ -202,7 +204,7 @@ final class CommentsTest extends TestCase {
 		);
 		$this->comment( array( 'comment_parent' => $hidden ) );
 		$shown  = $this->comment( array( 'comment_parent' => $open ) );
-		$editor = (int) wp_insert_user(
+		$editor = self::insert_user(
 			array(
 				'user_login' => 'ic-comments-editor',
 				'user_pass'  => 'password',

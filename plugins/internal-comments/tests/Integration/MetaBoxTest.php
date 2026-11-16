@@ -9,6 +9,7 @@ use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -17,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( MetaBox::class )]
 final class MetaBoxTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 
 	protected static array $users = array();
@@ -45,7 +47,7 @@ final class MetaBoxTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		foreach ( array( 'administrator', 'editor', 'subscriber' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "ic-meta-box-$role",
 					'user_pass'  => 'password',
@@ -242,14 +244,14 @@ final class MetaBoxTest extends TestCase {
 		wp_set_current_user( self::$users[ $role ] );
 		$type = (string) get_post_type( $post );
 		do_action( 'add_meta_boxes', $type, get_post( $post ) );
-		return isset( $wp_meta_boxes[ $type ]['normal']['core']['dws-internal-comments'] );
+		return isset( $wp_meta_boxes[ $type ]['normal']['core'][ MetaBox::ID ] );
 	}
 
 	protected function render( string $role ): \Dom\HTMLDocument {
 		global $wp_meta_boxes;
 		$this->registers( 'administrator', $this->post );
 		wp_set_current_user( self::$users[ $role ] );
-		$box = $wp_meta_boxes['post']['normal']['core']['dws-internal-comments'];
+		$box = $wp_meta_boxes['post']['normal']['core'][ MetaBox::ID ];
 		\ob_start();
 		\call_user_func( $box['callback'], get_post( $this->post ), $box );
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );

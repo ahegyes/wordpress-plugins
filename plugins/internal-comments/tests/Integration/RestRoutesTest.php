@@ -5,6 +5,7 @@ namespace DeepWebSolutions\InternalComments\Tests\Integration;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\RestRoutes;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( RestRoutes::class )]
 final class RestRoutesTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 
 	protected static array $users = array();
@@ -37,7 +39,7 @@ final class RestRoutesTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		foreach ( array( 'administrator', 'editor', 'author', 'subscriber' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "ic-rest-$role",
 					'user_pass'  => 'password',
@@ -105,7 +107,7 @@ final class RestRoutesTest extends TestCase {
 		self::assertSame( 201, $response->get_status() );
 		self::assertSame( array( "Bold line\nnext" ), \array_column( $comments, 'comment_content' ) );
 		self::assertStringContainsString( 'Bold line', $response->get_data()['html'] ?? '' );
-		self::assertSame( array( 'deprecated:internal_comments/ajax/before_insert_comment', "before:{$this->post}" ), $this->seen );
+		self::assertSame( array( 'deprecated:internal_comments/ajax/before_insert_comment', "before:$this->post" ), $this->seen );
 	}
 
 	public function test_a_reply_names_an_internal_comment_of_the_same_post(): void {
@@ -122,10 +124,10 @@ final class RestRoutesTest extends TestCase {
 
 	// A request for a private comment the site no longer allows is refused rather than stored for every reader.
 	public function test_a_comment_is_private_only_where_the_site_allows_it(): void {
-		$allowed = $this->create( 'administrator', $this->post, array( 'content' => 'Private', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
+		$allowed = $this->create( 'administrator', $this->post, $this->private_request( 'Private', true ) );
 		update_option( Options::PRIVATE_COMMENTS, 'no' );
-		$refused = $this->create( 'administrator', $this->post, array( 'content' => 'Disabled', 'private' => true ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
-		$public  = $this->create( 'administrator', $this->post, array( 'content' => 'Public', 'private' => false ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A request's two parameters.
+		$refused = $this->create( 'administrator', $this->post, $this->private_request( 'Disabled', true ) );
+		$public  = $this->create( 'administrator', $this->post, $this->private_request( 'Public', false ) );
 
 		$private = array();
 		foreach ( $this->stored_comments() as $comment ) {
@@ -136,7 +138,13 @@ final class RestRoutesTest extends TestCase {
 		self::assertSame( 'dws_ic_cannot_be_private', $refused->get_data()['code'] ?? null );
 		self::assertStringContainsString( 'was not posted', $refused->get_data()['message'] ?? '' );
 		self::assertSame( 201, $public->get_status() );
-		self::assertSame( array( 'Private' => true, 'Public' => false ), $private ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Two expected values.
+		self::assertSame(
+			array(
+				'Private' => true,
+				'Public'  => false,
+			),
+			$private
+		);
 	}
 
 	public function test_posting_needs_the_capability_access_to_the_post_and_a_selected_post_type(): void {
@@ -155,13 +163,13 @@ final class RestRoutesTest extends TestCase {
 		$open    = $this->comment( 'Open' );
 		$private = $this->comment( 'Hidden', array( Comments::META_PRIVATE => 'yes' ) );
 
-		$response = $this->request( 'editor', 'GET', "/internal-comments/v1/posts/{$this->post}/comments" );
+		$response = $this->request( 'editor', 'GET', "/internal-comments/v1/posts/$this->post/comments" );
 
 		self::assertSame( 200, $response->get_status() );
 		self::assertStringContainsString( "comment-$open", $response->get_data()['html'] ?? '' );
 		self::assertStringNotContainsString( 'Hidden', $response->get_data()['html'] ?? '' );
 		self::assertStringNotContainsString( "comment-$private", $response->get_data()['html'] ?? '' );
-		self::assertSame( 403, $this->request( 'subscriber', 'GET', "/internal-comments/v1/posts/{$this->post}/comments" )->get_status() );
+		self::assertSame( 403, $this->request( 'subscriber', 'GET', "/internal-comments/v1/posts/$this->post/comments" )->get_status() );
 	}
 
 	public function test_editing_reads_and_replaces_the_text_of_a_comment_the_user_can_edit(): void {
@@ -184,7 +192,13 @@ final class RestRoutesTest extends TestCase {
 			remove_action( 'internal_comments/internal_comment/before_update', $before );
 		}
 
-		self::assertSame( array( 'id' => $comment, 'content' => "Raw\ntext" ), $read->get_data() ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The response's two fields.
+		self::assertSame(
+			array(
+				'id'      => $comment,
+				'content' => "Raw\ntext",
+			),
+			$read->get_data()
+		);
 		self::assertSame( 200, $update->get_status() );
 		self::assertSame( 'Changed', get_comment( $comment )?->comment_content );
 		self::assertSame( array( 'deprecated:internal_comments/ajax/update_internal_comment_data', 'deprecated:internal_comments/ajax/before_update_comment', 'before:Changed' ), $this->seen );
@@ -234,6 +248,13 @@ final class RestRoutesTest extends TestCase {
 				'comment_meta'    => $meta,
 			),
 			get_user_by( 'id', self::$users['administrator'] ) ?: null
+		);
+	}
+
+	protected function private_request( string $content, bool $is_private ): array {
+		return array(
+			'content' => $content,
+			'private' => $is_private,
 		);
 	}
 

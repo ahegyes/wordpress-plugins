@@ -146,8 +146,8 @@ final class MigrationsTest extends TestCase {
 		);
 		$trashed = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $post ) );
 		wp_trash_comment( $trashed );
-		$revision = get_option( 'dws_ic_revision' );
-		update_option( 'dws_ic_revision', 1 );
+		$revision = get_option( Plugin::PREFIX . '_revision' );
+		update_option( Plugin::PREFIX . '_revision', 1 );
 		delete_option( 'dws_ic_v1_comments_cursor' );
 		\WC_Comments::delete_comments_count_cache();
 		wp_cache_delete( 'comments-0', 'counts' );
@@ -158,7 +158,7 @@ final class MigrationsTest extends TestCase {
 				continue;
 			}
 		} finally {
-			update_option( 'dws_ic_revision', $revision );
+			update_option( Plugin::PREFIX . '_revision', $revision );
 		}
 		$cached = (array) wp_count_comments();
 		\WC_Comments::delete_comments_count_cache();

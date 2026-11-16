@@ -9,6 +9,7 @@ use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RegistersHooksTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -18,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( ListColumn::class )]
 final class ListColumnTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 	use RegistersHooksTrait;
 
@@ -37,7 +39,7 @@ final class ListColumnTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		foreach ( array( 'administrator', 'editor' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "ic-screens-$role",
 					'user_pass'  => 'password',
@@ -109,11 +111,11 @@ final class ListColumnTest extends TestCase {
 			remove_filter( 'internal_comments/list_table/preceding_column', $v2 );
 		}
 
-		self::assertSame( array( 'cb', 'title', 'dws-internal-comments', 'comments', 'date' ), \array_keys( $columns ) );
+		self::assertSame( array( 'cb', 'title', ListColumn::COLUMN, 'comments', 'date' ), \array_keys( $columns ) );
 		self::assertSame( array( array( 'v1', 'comments', 'post' ), array( 'v2', 'comments', 'post' ) ), $seen );
 		self::assertSame( array( array( self::V1_PRECEDING_COLUMN, 'internal_comments/list_table/preceding_column' ) ), $this->deprecated );
 		wp_set_current_user( self::$users['editor'] );
-		self::assertArrayHasKey( 'dws-internal-comments', apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) ) );
+		self::assertArrayHasKey( ListColumn::COLUMN, apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) ) );
 		self::assertSame( array( 'title' => 'Title' ), apply_filters( 'manage_page_posts_columns', array( 'title' => 'Title' ) ) );
 	}
 
@@ -171,9 +173,9 @@ final class ListColumnTest extends TestCase {
 			wp_dequeue_style( 'internal-comments-quick-view' );
 		}
 
-		self::assertArrayNotHasKey( 'dws-internal-comments', $column );
+		self::assertArrayNotHasKey( ListColumn::COLUMN, $column );
 		self::assertFalse( $loaded );
-		self::assertArrayHasKey( 'dws-internal-comments', apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) ) );
+		self::assertArrayHasKey( ListColumn::COLUMN, apply_filters( 'manage_post_posts_columns', array( 'title' => 'Title' ) ) );
 	}
 
 	public function test_the_posts_list_loads_the_quick_views_assets(): void {
@@ -189,7 +191,7 @@ final class ListColumnTest extends TestCase {
 
 	protected function cell(): \Dom\HTMLDocument {
 		\ob_start();
-		do_action( 'manage_post_posts_custom_column', 'dws-internal-comments', $this->post );
+		do_action( 'manage_post_posts_custom_column', ListColumn::COLUMN, $this->post );
 		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 	}
 

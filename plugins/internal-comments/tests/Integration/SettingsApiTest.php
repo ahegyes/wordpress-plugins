@@ -36,7 +36,7 @@ final class SettingsApiTest extends TestCase {
 
 		self::assertSame( $stored, dws_ic_get_raw_setting( $field_id, $group ) );
 		self::assertSame( $expected, dws_ic_get_validated_setting( $field_id, $group ) );
-		self::assertSame( array( array( 'dws_ic_get_raw_setting', "get_option() on {$row}" ), array( 'dws_ic_get_validated_setting', "get_option() on {$row}" ) ), $this->deprecated );
+		self::assertSame( array( array( 'dws_ic_get_raw_setting', "get_option() on $row" ), array( 'dws_ic_get_validated_setting', "get_option() on $row" ) ), $this->deprecated );
 	}
 
 	public function test_missing_settings_read_as_v1_defaults(): void {

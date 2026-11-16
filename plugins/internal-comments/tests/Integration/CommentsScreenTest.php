@@ -6,6 +6,8 @@ use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\CommentsScreen;
 use DeepWebSolutions\InternalComments\Options;
+use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RecordsDeprecationsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -15,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( CommentsScreen::class )]
 final class CommentsScreenTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 
 	protected static array $users = array();
@@ -30,7 +33,7 @@ final class CommentsScreenTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		foreach ( array( 'administrator', 'editor' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "ic-screens-$role",
 					'user_pass'  => 'password',
@@ -155,7 +158,13 @@ final class CommentsScreenTest extends TestCase {
 			)
 		);
 		self::assertSame( Comments::STATUS, $args['status'] );
-		self::assertSame( 'trash', $screens->filter_list_table_args( array( 'status' => 'trash', 'type' => Comments::TYPE ) )['status'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- The list table's two arguments.
+		$trash = $screens->filter_list_table_args(
+			array(
+				'status' => 'trash',
+				'type'   => Comments::TYPE,
+			)
+		);
+		self::assertSame( 'trash', $trash['status'] );
 
 		wp_set_current_user( self::$users['editor'] );
 		$named = $screens->filter_list_table_args(
@@ -189,7 +198,13 @@ final class CommentsScreenTest extends TestCase {
 				)
 			);
 			$rows = new \WP_Comment_Query( $args )->comments;
-			$all  = get_comments( array( 'post_id' => $this->post, 'type' => Comments::TYPE, 'status' => Comments::STATUS ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A query's three arguments.
+			$all  = get_comments(
+				array(
+					'post_id' => $this->post,
+					'type'    => Comments::TYPE,
+					'status'  => Comments::STATUS,
+				)
+			);
 		} finally {
 			get_role( 'editor' )?->remove_cap( Capabilities::SEE_TABLE );
 		}
@@ -213,9 +228,9 @@ final class CommentsScreenTest extends TestCase {
 		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
 		wp_trash_comment( $internal );
 		wp_trash_comment( $public );
-		$revision = get_option( 'dws_ic_revision' );
+		$revision = get_option( Plugin::PREFIX . '_revision' );
 		if ( $pending ) {
-			update_option( 'dws_ic_revision', 1 );
+			update_option( Plugin::PREFIX . '_revision', 1 );
 		}
 		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
 
@@ -251,7 +266,7 @@ final class CommentsScreenTest extends TestCase {
 			if ( \is_int( $woocommerce ) ) {
 				add_filter( 'wp_count_comments', array( 'WC_Comments', 'wp_count_comments' ), $woocommerce, 2 );
 			}
-			update_option( 'dws_ic_revision', $revision );
+			update_option( Plugin::PREFIX . '_revision', $revision );
 			unset( $GLOBALS['current_screen'] );
 			\WC_Comments::delete_comments_count_cache();
 			wp_cache_delete( 'comments-0', 'counts' );

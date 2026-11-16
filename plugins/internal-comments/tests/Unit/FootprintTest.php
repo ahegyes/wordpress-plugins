@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class FootprintTest extends TestCase {
 	// Prefix families a port keeps from its v1 names, which uninstall must still remove.
-	protected const array LEGACY_FAMILIES = array( 'dws-internal-comments_', 'internal_comments_', '_internal_comments_', 'dws_internal', 'insert_dws_internal_comments', 'edit_dws_internal_comments', 'edit_others_dws_internal_comments', 'trash_dws_internal_comments', 'trash_others_dws_internal_comments', 'see_dws_internal_comments', 'see_dws_internal_comments_table', 'see_dws_internal_comments_metabox', 'see_dws_internal_comments_column', 'manage_dws_internal_comments_options', 'insert_private_dws_internal_comments', 'see_private_dws_internal_comments' );
+	protected const array LEGACY_FAMILIES = array( 'dws-internal-comments_', 'internal_comments_', '_internal_comments_', 'dws_internal', ...Capabilities::GRANTS['administrator'] );
 
 	public function test_the_prefix_has_one_segment_after_dws_so_no_prefix_in_its_family_starts_with_another(): void {
 		self::assertMatchesRegularExpression( '/^dws_[a-z0-9]+$/', Plugin::PREFIX );

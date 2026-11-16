@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\InternalComments\Tests\Integration;
 
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -10,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 // WordPress's own exporter and eraser query only the public statuses, which leave internal comments out.
 #[CoversNothing]
 final class PersonalDataTest extends TestCase {
+	use InsertsUsersTrait;
+
 	protected const string EMAIL = 'ic-privacy-staff@example.org';
 
 	protected int $staff;
@@ -19,7 +22,7 @@ final class PersonalDataTest extends TestCase {
 	#[Before]
 	protected function create_fixtures(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		$this->staff = (int) wp_insert_user(
+		$this->staff = self::insert_user(
 			array(
 				'user_login'   => 'ic-privacy-staff',
 				'user_pass'    => 'password',

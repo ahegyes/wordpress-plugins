@@ -12,6 +12,7 @@ use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\Asset\Assets;
 use DeepWebSolutions\InternalComments\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RegistersHooksTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 // Orders live in WooCommerce's order tables, in the posts table, or in both, so each row runs on every storage.
 #[CoversNothing]
 final class OrdersTest extends TestCase {
+	use InsertsUsersTrait;
 	use OrderStorageTrait;
 	use RegistersHooksTrait;
 
@@ -38,7 +40,7 @@ final class OrdersTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
 		foreach ( array( 'administrator', 'shop_manager', 'editor' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "ic-orders-$role",
 					'user_pass'  => 'password',
@@ -98,11 +100,17 @@ final class OrdersTest extends TestCase {
 		$order  = $this->create_order();
 		$object = $hpos ? $order : get_post( $order->get_id() );
 		$screen = $hpos ? 'woocommerce_page_wc-orders' : 'shop_order';
-		dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id(), 'comment_content' => 'On the order' ), get_user_by( 'id', self::$users['administrator'] ) ?: null ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- A comment's two fields.
+		dws_ic_create_internal_comment(
+			array(
+				'comment_post_ID' => $order->get_id(),
+				'comment_content' => 'On the order',
+			),
+			get_user_by( 'id', self::$users['administrator'] ) ?: null
+		);
 		wp_set_current_user( self::$users['shop_manager'] );
 
 		new MetaBox( self::make_assets() )->add_meta_box( $screen, $object );
-		$box = $wp_meta_boxes[ $screen ]['normal']['core']['dws-internal-comments'] ?? null;
+		$box = $wp_meta_boxes[ $screen ]['normal']['core'][ MetaBox::ID ] ?? null;
 		self::assertIsArray( $box );
 		\ob_start();
 		\call_user_func( $box['callback'], $object, $box );
@@ -127,7 +135,7 @@ final class OrdersTest extends TestCase {
 		try {
 			$columns = apply_filters( $hpos ? 'woocommerce_shop_order_list_table_columns' : 'manage_shop_order_posts_columns', array( 'order_number' => 'Order' ) );
 			\ob_start();
-			do_action( $hpos ? 'woocommerce_shop_order_list_table_custom_column' : 'manage_shop_order_posts_custom_column', 'dws-internal-comments', $hpos ? $order : $order->get_id() );
+			do_action( $hpos ? 'woocommerce_shop_order_list_table_custom_column' : 'manage_shop_order_posts_custom_column', ListColumn::COLUMN, $hpos ? $order : $order->get_id() );
 			$cell = (string) \ob_get_clean();
 			$column->enqueue_list_assets( $hpos ? wc_get_page_screen_id( 'shop_order' ) : 'edit.php' );
 			$loaded = wp_script_is( 'internal-comments-quick-view' );
@@ -140,7 +148,7 @@ final class OrdersTest extends TestCase {
 			wp_deregister_style( 'internal-comments-quick-view' );
 		}
 
-		self::assertSame( array( 'order_number', 'dws-internal-comments' ), \array_keys( $columns ) );
+		self::assertSame( array( 'order_number', ListColumn::COLUMN ), \array_keys( $columns ) );
 		self::assertStringContainsString( '1 internal comment', $cell );
 		self::assertTrue( $loaded );
 	}

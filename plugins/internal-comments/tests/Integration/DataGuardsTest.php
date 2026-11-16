@@ -6,6 +6,7 @@ use DeepWebSolutions\InternalComments\Capabilities;
 use DeepWebSolutions\InternalComments\Comments;
 use DeepWebSolutions\InternalComments\Options;
 use DeepWebSolutions\InternalComments\Plugin;
+use DeepWebSolutions\InternalComments\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\InternalComments\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 // Internal comments stay hidden by their status, which WordPress's queries, counts, feeds and REST API leave out without the plugin's help.
 #[CoversNothing]
 final class DataGuardsTest extends TestCase {
+	use InsertsUsersTrait;
 	use RunsRequestsTrait;
 
 	protected int $admin;
@@ -28,7 +30,7 @@ final class DataGuardsTest extends TestCase {
 	protected function create_post(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		foreach ( array( 'admin', 'other' ) as $user ) {
-			$this->$user = (int) wp_insert_user(
+			$this->$user = self::insert_user(
 				array(
 					'user_login' => "ic-guards-$user",
 					'user_pass'  => 'password',
@@ -146,9 +148,9 @@ final class DataGuardsTest extends TestCase {
 	#[DataProvider( 'move_states' )]
 	public function test_comment_queries_and_feeds_that_name_neither_type_nor_status_leave_internal_comments_out( bool $pending ): void {
 		global $wpdb;
-		$revision = get_option( 'dws_ic_revision' );
+		$revision = get_option( Plugin::PREFIX . '_revision' );
 		if ( $pending ) {
-			update_option( 'dws_ic_revision', 1 );
+			update_option( Plugin::PREFIX . '_revision', 1 );
 		}
 		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Stands in for v1, which ran without the plugin's guards.
 			$wpdb->comments,
@@ -185,7 +187,7 @@ final class DataGuardsTest extends TestCase {
 			$status = $ids( array( 'status' => Comments::STATUS ) );
 			$feed   = (string) apply_filters( 'comment_feed_where', '', new \WP_Query() );
 		} finally {
-			update_option( 'dws_ic_revision', $revision );
+			update_option( Plugin::PREFIX . '_revision', $revision );
 		}
 
 		self::assertSame( array( $public ), $listed );
@@ -198,7 +200,7 @@ final class DataGuardsTest extends TestCase {
 	// WooCommerce leaves product reviews out of every general comment query, but not of one that names types to leave out.
 	#[DataProvider( 'move_states' )]
 	public function test_the_queries_that_leave_internal_comments_out_still_leave_product_reviews_out( bool $pending ): void {
-		$revision = get_option( 'dws_ic_revision' );
+		$revision = get_option( Plugin::PREFIX . '_revision' );
 		$product  = (int) wp_insert_post(
 			array(
 				'post_type'   => 'product',
@@ -214,7 +216,7 @@ final class DataGuardsTest extends TestCase {
 		);
 		$public   = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
 		if ( $pending ) {
-			update_option( 'dws_ic_revision', 1 );
+			update_option( Plugin::PREFIX . '_revision', 1 );
 		}
 
 		try {
@@ -225,7 +227,7 @@ final class DataGuardsTest extends TestCase {
 				)
 			);
 		} finally {
-			update_option( 'dws_ic_revision', $revision );
+			update_option( Plugin::PREFIX . '_revision', $revision );
 			wp_delete_post( $product, true );
 		}
 

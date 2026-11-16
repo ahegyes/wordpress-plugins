@@ -212,7 +212,7 @@ final class SettingsTest extends TestCase {
 	public function test_the_plugin_row_links_to_the_page_and_to_the_support_forum(): void {
 		$basename = plugin_basename( DWS_IC_FILE );
 
-		$links = apply_filters( "plugin_action_links_{$basename}", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
+		$links = apply_filters( "plugin_action_links_$basename", array( 'deactivate' => '<a href="#">Deactivate</a>' ), $basename, array(), 'all' );
 		$meta  = apply_filters( 'plugin_row_meta', array(), $basename, array(), 'all' );
 
 		self::assertStringContainsString( esc_url( admin_url( 'options-general.php?page=dws-internal-comments' ) ), (string) \reset( $links ) );
@@ -232,6 +232,7 @@ final class SettingsTest extends TestCase {
 	// options.php registers the posted tab's settings, then saves each of its fields through update_option(), with null for one the form did not post; the page's filters go afterwards, so a later row saves without them.
 	protected function save( OptionsPage $page, string $tab, array $posted ): void {
 		$group                   = "dws-internal-comments_$tab";
+		$pagenow                 = $GLOBALS['pagenow'] ?? null;
 		$GLOBALS['pagenow']      = 'options.php';
 		$_REQUEST['option_page'] = $group;
 
@@ -246,7 +247,8 @@ final class SettingsTest extends TestCase {
 				unregister_setting( $group, $option );
 			}
 			remove_filter( "option_page_capability_$group", array( $page, 'get_capability' ) );
-			unset( $GLOBALS['pagenow'], $_REQUEST['option_page'] );
+			$GLOBALS['pagenow'] = $pagenow;
+			unset( $_REQUEST['option_page'] );
 		}
 	}
 }
