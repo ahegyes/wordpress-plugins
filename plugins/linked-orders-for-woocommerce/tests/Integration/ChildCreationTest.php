@@ -71,6 +71,35 @@ final class ChildCreationTest extends TestCase {
 		self::assertSame( array(), $this->notices->get_notices( NoticeScope::User, 1 ) );
 	}
 
+	// Other plugins link to the URL a node gives, so the URL alone carries the action, the parent and the nonce.
+	#[DataProvider( 'storages' )]
+	public function test_a_nodes_create_child_url_creates_a_child_of_its_order( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+
+		$url = (string) dws_lowc_get_order_node( $parent->get_id() )?->get_create_child_url();
+		\parse_str( (string) wp_parse_url( $url, \PHP_URL_QUERY ), $query );
+		self::assertSame( admin_url( 'admin-post.php' ), \strtok( $url, '?' ) );
+		self::assertSame( 'dws_lowc_create_linked_child', $query['action'] ?? null );
+		self::assertSame( (string) $parent->get_id(), $query['parent_id'] ?? null );
+		self::assertSame( 1, wp_verify_nonce( (string) ( $query['_wpnonce'] ?? '' ), 'dws_create_linked_child' ) );
+
+		$_GET['parent_id']     = $query['parent_id'];
+		$_REQUEST['parent_id'] = $query['parent_id'];
+		$_REQUEST['_wpnonce']  = $query['_wpnonce'];
+		try {
+			do_action( self::ACTION );
+			self::fail( 'The request did not redirect.' );
+		} catch ( \UnexpectedValueException $redirect ) {
+			$location = $redirect->getMessage();
+		}
+
+		$children = dws_lowc_get_order_node( $parent->get_id() )?->get_children() ?? array();
+		self::assertCount( 1, $children );
+		$this->orders[] = $children[0]->get_order()->get_id();
+		self::assertSame( $children[0]->get_order()->get_edit_order_url(), $location );
+	}
+
 	public function test_a_request_without_a_valid_nonce_dies_without_a_child(): void {
 		$parent                = $this->create_order();
 		$_GET['parent_id']     = (string) $parent->get_id();

@@ -1,0 +1,4 @@
+Significance: minor
+Type: deprecated
+
+DWS_Order_Node's set_depth(), set_parent(), set_children(), add_child() and save(), which store links outside the lock that keeps two links to one parent from losing one; use dws_lowc_link_orders() and dws_lowc_unlink_order().

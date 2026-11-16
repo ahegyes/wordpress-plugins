@@ -30,6 +30,8 @@ final class LinkingTest extends TestCase {
 
 	protected const array OPTIONS = array( Options::MAX_DEPTH );
 
+	protected array $events = array();
+
 	// WooCommerce's order-tables data caching, off by default, keeps each order's meta for the request.
 	public static function storages_and_data_caching(): array {
 		return self::storages() + array( 'hpos-with-data-caching' => array( true, false, true ) );
@@ -43,6 +45,30 @@ final class LinkingTest extends TestCase {
 	#[After]
 	protected function log_out(): void {
 		wp_set_current_user( 0 );
+	}
+
+	#[Before]
+	protected function listen_for_link_events(): void {
+		add_action( 'linked_orders_for_woocommerce/link/created', array( $this, 'record_link_event' ), 10, 2 );
+		add_action( 'linked_orders_for_woocommerce/link/removed', array( $this, 'record_link_event' ), 10, 2 );
+	}
+
+	#[After]
+	protected function stop_listening_for_link_events(): void {
+		remove_action( 'linked_orders_for_woocommerce/link/created', array( $this, 'record_link_event' ) );
+		remove_action( 'linked_orders_for_woocommerce/link/removed', array( $this, 'record_link_event' ) );
+		$this->events = array();
+	}
+
+	// A listener that links or unlinks in turn needs the linking lock, so the record notes whether it was free.
+	public function record_link_event( int $parent_id, int $child_id ): void {
+		$lock = new Lock( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), 'linking', 30 );
+		$free = LockClaim::Acquired === $lock->acquire( 'listener' );
+		if ( $free ) {
+			$lock->release( 'listener' );
+		}
+
+		$this->events[] = array( current_action(), $parent_id, $child_id, $free );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -225,6 +251,8 @@ final class LinkingTest extends TestCase {
 		self::assertNull( dws_lowc_get_root_order( \PHP_INT_MAX ) );
 		self::assertNull( dws_lowc_get_orders_tree( \PHP_INT_MAX ) );
 		self::assertNull( dws_lowc_link_orders( $order->get_id(), \PHP_INT_MAX ) );
+		self::assertNull( dws_lowc_unlink_order( \PHP_INT_MAX ) );
+		self::assertNull( dws_lowc_unlink_order( $refund->get_id() ) );
 		self::assertNull( dws_lowc_is_supported_order( 0 ) );
 		self::assertNull( dws_lowc_is_supported_order( $refund ) );
 		self::assertTrue( dws_lowc_is_supported_order( $order->get_id() ) );
@@ -280,6 +308,187 @@ final class LinkingTest extends TestCase {
 				wc_get_container()->get( OrdersTableDataStore::class )->delete_order_data_from_custom_order_tables( $parent->get_id() );
 			}
 		}
+	}
+
+	// An unlink takes an order out of its tree with its subtree, so the order can join another tree.
+	#[DataProvider( 'storages' )]
+	public function test_an_unlink_makes_the_order_the_root_of_its_subtree_and_drops_it_from_its_parent( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$root       = $this->create_order();
+		$child      = $this->create_order();
+		$grandchild = $this->create_order();
+		$sibling    = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $child->get_id(), $grandchild->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $sibling->get_id() ) );
+
+		self::assertTrue( dws_lowc_unlink_order( $child->get_id() ) );
+
+		$stored_child      = wc_get_order( $child->get_id() );
+		$stored_grandchild = wc_get_order( $grandchild->get_id() );
+		self::assertSame( '0', (string) $stored_child->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( '', (string) $stored_child->get_meta( '_dws_lo_parent' ) );
+		self::assertSame( array( $grandchild->get_id() ), $stored_child->get_meta( '_dws_lo_children' ) );
+		self::assertSame( '1', (string) $stored_grandchild->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( (string) $child->get_id(), (string) $stored_grandchild->get_meta( '_dws_lo_parent' ) );
+		self::assertSame( array( $sibling->get_id() ), wc_get_order( $root->get_id() )->get_meta( '_dws_lo_children' ) );
+		self::assertTrue( dws_lowc_is_root_order( $child->get_id() ) );
+		self::assertSame( array( $child->get_id(), $grandchild->get_id() ), dws_lowc_get_orders_tree( $child->get_id() ) );
+		self::assertSame( array( $root->get_id(), $sibling->get_id() ), dws_lowc_get_orders_tree( $root->get_id() ) );
+
+		self::assertTrue( dws_lowc_unlink_order( $grandchild->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $sibling->get_id(), $grandchild->get_id() ) );
+		self::assertSame( 2, dws_lowc_get_order_node( $grandchild->get_id() )?->get_depth() );
+		self::assertSame( array( $root->get_id(), $sibling->get_id(), $grandchild->get_id() ), dws_lowc_get_orders_tree( $root->get_id() ) );
+	}
+
+	// An order at the top of its tree already is what an unlink makes of it.
+	#[DataProvider( 'storages' )]
+	public function test_an_unlink_of_a_root_answers_true_and_changes_nothing( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$root  = $this->create_order();
+		$child = $this->create_order();
+		$lone  = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $root->get_id(), $child->get_id() ) );
+
+		self::assertTrue( dws_lowc_unlink_order( $root->get_id() ) );
+		self::assertTrue( dws_lowc_unlink_order( $lone->get_id() ) );
+
+		self::assertSame( array( $root->get_id(), $child->get_id() ), dws_lowc_get_orders_tree( $root->get_id() ) );
+		self::assertSame( '', wc_get_order( $lone->get_id() )->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( array( array( 'linked_orders_for_woocommerce/link/created', $root->get_id(), $child->get_id(), true ) ), $this->events );
+	}
+
+	// An unlink rewrites the parent's children too, so it must not write back a list another request changed after this one loaded the parent.
+	#[DataProvider( 'storages_and_data_caching' )]
+	public function test_an_unlink_keeps_a_child_another_request_linked_after_the_parent_was_loaded( bool $hpos, bool $sync, bool $caching = false ): void {
+		$this->use_storage_and_data_caching( $hpos, $sync, $caching );
+		$parent = $this->create_order();
+		$first  = $this->create_order();
+		$second = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $first->get_id() ) );
+		self::assertCount( 1, dws_lowc_get_order_node( $parent->get_id() )?->get_children() ?? array() );
+
+		$this->link_in_another_request( $hpos, $sync, $parent->get_id(), $second->get_id() );
+		self::assertTrue( dws_lowc_unlink_order( $first->get_id() ) );
+
+		wp_cache_flush();
+		self::assertSame( array( $second->get_id() ), wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
+		self::assertTrue( dws_lowc_is_root_order( $first->get_id() ) );
+	}
+
+	public function test_an_unlink_is_refused_once_another_request_has_held_the_lock_for_five_seconds(): void {
+		$parent = $this->create_order();
+		$child  = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		$lock = new Lock( new PluginIdentity( DWS_LOWC_FILE, Plugin::SLUG, Plugin::PREFIX ), 'linking', 30 );
+		self::assertSame( LockClaim::Acquired, $lock->acquire( 'another-request' ) );
+
+		$started = \microtime( true );
+		try {
+			self::assertFalse( dws_lowc_unlink_order( $child->get_id() ) );
+		} finally {
+			$lock->release( 'another-request' );
+		}
+
+		self::assertGreaterThanOrEqual( 5.0, \microtime( true ) - $started );
+
+		self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_order()->get_id() );
+		self::assertTrue( dws_lowc_unlink_order( $child->get_id() ) );
+	}
+
+	// WooCommerce catches what a save throws and logs it, as it does a failed database write, so an unlink reads the order back before it moves its descendants or drops it from its parent's children.
+	#[DataProvider( 'storages' )]
+	public function test_an_unlink_is_refused_and_the_tree_left_as_it_was_when_the_order_is_not_saved( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent     = $this->create_order();
+		$child      = $this->create_order();
+		$grandchild = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $child->get_id(), $grandchild->get_id() ) );
+		$fail = self::fail_saving( $child->get_id() );
+
+		try {
+			self::assertFalse( dws_lowc_unlink_order( $child->get_id() ) );
+		} finally {
+			remove_action( 'woocommerce_before_order_object_save', $fail );
+		}
+
+		self::assertSame( array( $child->get_id() ), wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
+		self::assertSame( $parent->get_id(), dws_lowc_get_order_node( $child->get_id() )?->get_parent()?->get_order()->get_id() );
+		self::assertSame( '1', (string) wc_get_order( $child->get_id() )->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( '2', (string) wc_get_order( $grandchild->get_id() )->get_meta( '_dws_lo_depth' ) );
+		self::assertCount( 2, $this->events );
+		self::assertTrue( dws_lowc_unlink_order( $child->get_id() ) );
+	}
+
+	// v1 left a child naming a parent that was deleted while the plugin did not run, and an unlink removes that link too.
+	#[DataProvider( 'storages' )]
+	public function test_an_unlink_of_an_order_whose_parent_is_gone_makes_it_a_root_and_names_the_parent_it_named( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$gone    = $this->create_order();
+		$child   = $this->create_order();
+		$gone_id = $gone->get_id();
+		$gone->delete( true );
+		self::store_links( $child, 1, $gone_id, array() );
+
+		self::assertTrue( dws_lowc_unlink_order( $child->get_id() ) );
+
+		$stored = wc_get_order( $child->get_id() );
+		self::assertSame( '0', (string) $stored->get_meta( '_dws_lo_depth' ) );
+		self::assertSame( '', (string) $stored->get_meta( '_dws_lo_parent' ) );
+		self::assertSame( array( array( 'linked_orders_for_woocommerce/link/removed', $gone_id, $child->get_id(), true ) ), $this->events );
+	}
+
+	// A child whose save fails keeps its parent, so the deletion announces only the children it rerooted.
+	#[DataProvider( 'storages' )]
+	public function test_a_deleted_parent_announces_only_the_children_it_rerooted( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent = $this->create_order();
+		$first  = $this->create_order();
+		$second = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $first->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $second->get_id() ) );
+		$this->events = array();
+		$fail         = self::fail_saving( $second->get_id() );
+
+		try {
+			wc_get_order( $parent->get_id() )->delete( true );
+		} finally {
+			remove_action( 'woocommerce_before_order_object_save', $fail );
+		}
+
+		self::assertSame( array( array( 'linked_orders_for_woocommerce/link/removed', $parent->get_id(), $first->get_id(), true ) ), $this->events );
+	}
+
+	// Each event fires once the lock is released, so a listener can link or unlink in turn.
+	#[DataProvider( 'storages' )]
+	public function test_each_link_and_unlink_fires_its_event_once_the_lock_is_released( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$parent  = $this->create_order();
+		$child   = $this->create_order();
+		$sibling = $this->create_order();
+		self::assertTrue( dws_lowc_link_orders( $parent->get_id(), $child->get_id() ) );
+		self::assertFalse( dws_lowc_link_orders( $sibling->get_id(), $child->get_id() ) );
+		$created = dws_lowc_create_linked_child( $parent->get_id() );
+		self::assertIsInt( $created );
+		$this->orders[] = $created;
+		self::assertTrue( dws_lowc_unlink_order( $child->get_id() ) );
+		self::assertTrue( dws_lowc_unlink_order( $child->get_id() ) );
+		self::assertTrue( dws_lowc_link_orders( $sibling->get_id(), $child->get_id() ) );
+
+		wc_get_order( $sibling->get_id() )->delete( true );
+
+		self::assertSame(
+			array(
+				array( 'linked_orders_for_woocommerce/link/created', $parent->get_id(), $child->get_id(), true ),
+				array( 'linked_orders_for_woocommerce/link/created', $parent->get_id(), $created, true ),
+				array( 'linked_orders_for_woocommerce/link/removed', $parent->get_id(), $child->get_id(), true ),
+				array( 'linked_orders_for_woocommerce/link/created', $sibling->get_id(), $child->get_id(), true ),
+				array( 'linked_orders_for_woocommerce/link/removed', $sibling->get_id(), $child->get_id(), true ),
+			),
+			$this->events
+		);
 	}
 
 	#[DataProvider( 'storages' )]

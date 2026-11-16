@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+dws_lowc_unlink_order() makes an order the root of its own tree, its descendants staying below it.

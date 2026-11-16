@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+DWS_Order_Node::get_create_child_url() returns the URL that creates a linked child of the order.

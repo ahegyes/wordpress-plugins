@@ -1,6 +1,7 @@
 <?php declare( strict_types=1 );
 
 use DeepWebSolutions\LinkedOrders\Capabilities;
+use DeepWebSolutions\LinkedOrders\ChildCreation;
 use DeepWebSolutions\LinkedOrders\Linking;
 use DeepWebSolutions\LinkedOrders\OrderTypes;
 
@@ -9,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Wraps an order of a supported type with its place in a tree of linked orders.
  *
- * It reads the place from the order's meta once and saves it back, and loads its parent's and children's orders only when asked for them.
+ * It reads the place from the order's meta once, and loads its parent's and children's orders only when asked for them.
  *
  * It keeps v1's global name, which other plugins type-hint, and calls to it that name no method of its own reach the order.
  *
@@ -309,6 +310,18 @@ final class DWS_Order_Node {
 		return apply_filters( 'linked_orders_for_woocommerce/node/formatted_name', $name, $this );
 	}
 
+	/**
+	 * Returns the unescaped URL, with the current user's nonce, of the plugin's admin-post action that creates a linked child of the order.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  string
+	 */
+	public function get_create_child_url(): string {
+		return ChildCreation::get_url( $this->order->get_id() );
+	}
+
 	// endregion
 
 	// region SETTERS
@@ -316,14 +329,16 @@ final class DWS_Order_Node {
 	/**
 	 * Sets the node's level in its tree, which is saved with the node.
 	 *
-	 * @since   1.0.0
-	 * @version 2.0.0
+	 * @since       1.0.0
+	 * @version     2.0.0
+	 * @deprecated  2.0.0 Use dws_lowc_link_orders() or dws_lowc_unlink_order().
 	 *
-	 * @param   int $depth The level, where a root is level 0.
+	 * @param       int $depth The level, where a root is level 0.
 	 *
-	 * @return  void
+	 * @return      void
 	 */
 	public function set_depth( int $depth ): void {
+		_deprecated_function( __METHOD__, '2.0.0', 'dws_lowc_link_orders() or dws_lowc_unlink_order()' );
 		$this->maybe_read();
 		$this->depth = $depth;
 	}
@@ -331,14 +346,16 @@ final class DWS_Order_Node {
 	/**
 	 * Sets the node's parent, and its level to the one below the parent's.
 	 *
-	 * @since   1.0.0
-	 * @version 2.0.0
+	 * @since       1.0.0
+	 * @version     2.0.0
+	 * @deprecated  2.0.0 Use dws_lowc_link_orders().
 	 *
-	 * @param   DWS_Order_Node $parent_node The parent's node.
+	 * @param       DWS_Order_Node $parent_node The parent's node.
 	 *
-	 * @return  void
+	 * @return      void
 	 */
 	public function set_parent( DWS_Order_Node $parent_node ): void {
+		_deprecated_function( __METHOD__, '2.0.0', 'dws_lowc_link_orders()' );
 		$this->maybe_read();
 		$this->parent = $parent_node;
 		$this->depth  = $parent_node->get_depth() + 1;
@@ -347,14 +364,16 @@ final class DWS_Order_Node {
 	/**
 	 * Sets the node's children, keeping only nodes.
 	 *
-	 * @since   1.0.0
-	 * @version 2.0.0
+	 * @since       1.0.0
+	 * @version     2.0.0
+	 * @deprecated  2.0.0 Use dws_lowc_link_orders() or dws_lowc_unlink_order().
 	 *
-	 * @param   array<mixed> $children The children's nodes.
+	 * @param       array<mixed> $children The children's nodes.
 	 *
-	 * @return  void
+	 * @return      void
 	 */
 	public function set_children( array $children ): void {
+		_deprecated_function( __METHOD__, '2.0.0', 'dws_lowc_link_orders() or dws_lowc_unlink_order()' );
 		$this->maybe_read();
 		$this->children = array_values( array_filter( $children, static fn ( mixed $child ): bool => $child instanceof self ) );
 	}
@@ -368,20 +387,23 @@ final class DWS_Order_Node {
 	 *
 	 * A lone root keeps every tree free of cycles, since an ancestor has children, and leaves no descendant with a stale depth.
 	 *
-	 * @since   1.0.0
-	 * @version 2.0.0
+	 * @since       1.0.0
+	 * @version     2.0.0
+	 * @deprecated  2.0.0 Use dws_lowc_link_orders().
 	 *
-	 * @param   DWS_Order_Node $child The child's node.
+	 * @param       DWS_Order_Node $child The child's node.
 	 *
-	 * @return  bool
+	 * @return      bool
 	 */
 	public function add_child( DWS_Order_Node $child ): bool {
+		_deprecated_function( __METHOD__, '2.0.0', 'dws_lowc_link_orders()' );
 		$this->maybe_read();
 		if ( $child->has_parent() || $child->has_children() || $child->get_order()->get_id() === $this->order->get_id() ) {
 			return false;
 		}
 
-		$child->set_parent( $this );
+		$child->parent  = $this;
+		$child->depth   = $this->get_depth() + 1;
 		$this->children = array( ...$this->get_children(), $child );
 		return true;
 	}
@@ -422,16 +444,15 @@ final class DWS_Order_Node {
 	/**
 	 * Saves the node's depth, parent and children to the order's meta, as v1 stored them, and saves the order.
 	 *
-	 * @since   1.0.0
-	 * @version 2.0.0
+	 * @since       1.0.0
+	 * @version     2.0.0
+	 * @deprecated  2.0.0 Use dws_lowc_link_orders() or dws_lowc_unlink_order().
 	 *
-	 * @return  void
+	 * @return      void
 	 */
 	public function save(): void {
-		$this->order->update_meta_data( Linking::META_DEPTH, (string) $this->get_depth() );
-		$this->order->update_meta_data( Linking::META_PARENT, (string) $this->get_parent()?->get_order()->get_id() );
-		$this->order->update_meta_data( Linking::META_CHILDREN, array_map( static fn ( DWS_Order_Node $child ): int => $child->get_order()->get_id(), $this->get_children() ) );
-		$this->order->save();
+		_deprecated_function( __METHOD__, '2.0.0', 'dws_lowc_link_orders() or dws_lowc_unlink_order()' );
+		Linking::store_links( $this->order, $this->get_depth(), $this->get_parent(), $this->get_children() );
 	}
 
 	// endregion
