@@ -64,6 +64,7 @@ final class Plugin {
 		MetaBox::class,
 		RestRoutes::class,
 		AdminScreens::class,
+		PersonalData::class,
 	);
 
 	/**
@@ -74,12 +75,13 @@ final class Plugin {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     array{option_prefixes: list<non-empty-string>, options: list<non-empty-string>, comment_types: list<non-empty-string>, user_meta_site_prefixes: list<non-empty-string>, user_meta_global_prefixes: list<non-empty-string>, user_meta_global: list<non-empty-string>, network_options: list<non-empty-string>, capabilities: list<non-empty-string>, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
+	 * @var     array{option_prefixes: list<non-empty-string>, options: list<non-empty-string>, comment_types: list<non-empty-string>, meta_prefixes: array<string, list<non-empty-string>>, user_meta_site_prefixes: list<non-empty-string>, user_meta_global_prefixes: list<non-empty-string>, user_meta_global: list<non-empty-string>, network_options: list<non-empty-string>, capabilities: list<non-empty-string>, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
 	 */
 	public const array FOOTPRINT = array(
 		'option_prefixes'           => array( self::PREFIX . '_', '_transient_' . self::PREFIX . '_', '_transient_timeout_' . self::PREFIX . '_', 'dws-internal-comments_' ),
 		'options'                   => array( 'internal_comments_version', 'internal_comments_original_version', '_internal_comments_admin_notices' ),
 		'comment_types'             => array( 'dws_internal' ),
+		'meta_prefixes'             => array( 'comment' => array( '_dws_ic_' ) ),
 		'user_meta_site_prefixes'   => array( self::PREFIX . '_' ),
 		'user_meta_global_prefixes' => array( self::PREFIX . '_' ),
 		'user_meta_global'          => array( '_internal_comments_admin_notices' ),

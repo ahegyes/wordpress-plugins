@@ -208,8 +208,9 @@ final class RestRoutes implements ComponentInterface {
 		$post_id   = absint( $request['post'] );
 		$parent_id = absint( $request['parent'] );
 		$content   = \is_string( $request['content'] ) ? $request['content'] : '';
-		if ( '' === \trim( $content ) ) {
-			return $this->empty_content();
+		$refused   = $this->check_content( $content );
+		if ( ! \is_null( $refused ) ) {
+			return $refused;
 		}
 
 		$parent = 0 === $parent_id ? null : dws_ic_get_comment( $parent_id );
@@ -292,8 +293,9 @@ final class RestRoutes implements ComponentInterface {
 	public function update_comment( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$comment_id = absint( $request['id'] );
 		$content    = \is_string( $request['content'] ) ? $request['content'] : '';
-		if ( '' === \trim( $content ) ) {
-			return $this->empty_content();
+		$refused    = $this->check_content( $content );
+		if ( ! \is_null( $refused ) ) {
+			return $refused;
 		}
 
 		$stored  = dws_ic_get_comment( $comment_id );
@@ -435,15 +437,23 @@ final class RestRoutes implements ComponentInterface {
 	}
 
 	/**
-	 * Returns the error that refuses an empty comment.
+	 * Returns the error that refuses a comment's text, empty or longer than WordPress stores, or null for a text the routes accept.
+	 *
+	 * The comments table would truncate or refuse a longer text, after the revision of an edit has been recorded.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @return  \WP_Error
+	 * @param   string $content The comment's text.
+	 *
+	 * @return  \WP_Error|null
 	 */
-	protected function empty_content(): \WP_Error {
-		return new \WP_Error( 'dws_ic_empty_content', __( 'You cannot post an empty internal comment.', 'internal-comments' ), array( 'status' => 400 ) );
+	protected function check_content( string $content ): ?\WP_Error {
+		if ( '' === \trim( $content ) ) {
+			return new \WP_Error( 'dws_ic_empty_content', __( 'You cannot post an empty internal comment.', 'internal-comments' ), array( 'status' => 400 ) );
+		}
+
+		return is_wp_error( wp_check_comment_data_max_lengths( array( 'comment_content' => $content ) ) ) ? new \WP_Error( 'dws_ic_too_long', __( 'This internal comment is too long to store. Shorten it and try again.', 'internal-comments' ), array( 'status' => 400 ) ) : null;
 	}
 
 	// endregion
