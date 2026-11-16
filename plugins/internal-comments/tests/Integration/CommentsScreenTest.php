@@ -73,6 +73,70 @@ final class CommentsScreenTest extends TestCase {
 		unset( $_GET['comment_type'] );
 	}
 
+	// WordPress counts its views for every comment, so on the internal view they count internal comments, under the status they never leave.
+	public function test_the_internal_views_status_links_count_internal_comments(): void {
+		$this->comment( 'Mine' );
+		$this->comment( 'Also mine' );
+		wp_trash_comment( $this->comment( 'Trashed' ) );
+		wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		$link   = static fn ( string $status, string $counter, int $count ): string => "<a href=\"edit-comments.php?comment_status=$status\">" . \ucfirst( $status ) . " <span class=\"count\">(<span class=\"$counter-count\">$count</span>)</span></a>";
+		$links  = array(
+			'all'       => $link( 'all', 'all', 9 ),
+			'mine'      => $link( 'mine', 'mine', 9 ),
+			'moderated' => $link( 'moderated', 'pending', 9 ),
+			'approved'  => $link( 'approved', 'approved', 9 ),
+			'spam'      => $link( 'spam', 'spam', 9 ),
+			'trash'     => $link( 'trash', 'trash', 9 ),
+		);
+		$counts = static fn ( array $filtered ): array => \array_map( static fn ( string $html ): string => (string) \preg_replace( '/^.*-count">([^<]*)<.*$/s', '$1', $html ), $filtered );
+
+		$general              = $counts( apply_filters( 'comment_status_links', $links ) );
+		$_GET['comment_type'] = Comments::TYPE;
+		$internal             = $counts( apply_filters( 'comment_status_links', $links ) );
+		wp_set_current_user( self::$users['editor'] );
+		$unlisted = $counts( apply_filters( 'comment_status_links', $links ) );
+
+		self::assertSame( \array_fill_keys( \array_keys( $links ), '9' ), $general );
+		self::assertSame(
+			array(
+				'all'   => '2',
+				'mine'  => '2',
+				'trash' => '1',
+			),
+			$internal
+		);
+		self::assertSame( \array_fill_keys( array( 'all', 'mine', 'trash' ), '0' ), $unlisted );
+	}
+
+	// The type dropdown offers a type only where a count query that names it finds comments, which an empty status would not.
+	public function test_the_type_dropdown_finds_internal_comments_on_the_comments_screen(): void {
+		$this->comment( 'Counted' );
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
+
+		try {
+			$count = get_comments(
+				array(
+					'count'   => true,
+					'orderby' => 'none',
+					'type'    => Comments::TYPE,
+				)
+			);
+		} finally {
+			unset( $GLOBALS['current_screen'] );
+		}
+
+		self::assertGreaterThan( 0, $count );
+	}
+
+	public function test_the_menu_marks_the_internal_comments_view_current_on_it(): void {
+		$general              = apply_filters( 'submenu_file', null, 'edit-comments.php' );
+		$_GET['comment_type'] = Comments::TYPE;
+
+		self::assertNull( $general );
+		self::assertSame( 'edit-comments.php?comment_type=' . Comments::TYPE, apply_filters( 'submenu_file', null, 'edit-comments.php' ) );
+		self::assertNull( apply_filters( 'submenu_file', null, 'edit.php' ) );
+	}
+
 	public static function move_states(): array {
 		return array(
 			'move-pending' => array( true ),

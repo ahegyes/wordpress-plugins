@@ -232,6 +232,36 @@ final class OrdersTest extends TestCase {
 		self::assertSame( OrderUtil::get_order_admin_edit_url( $order->get_id() ) . "#comment-$comment", get_comment_link( $comment ) );
 	}
 
+	// The Comments screen names a comment's post by its title, which an order's placeholder in the posts table lacks, and links to its front end, which an order lacks.
+	#[DataProvider( 'storages' )]
+	public function test_the_comments_screen_names_an_order_by_its_number_and_hides_its_view_link( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order   = $this->create_order();
+		$comment = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $order->get_id() ), get_user_by( 'id', self::$users['administrator'] ) ?: null );
+		$post    = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Plain',
+				'post_status' => 'publish',
+			)
+		);
+		wp_set_current_user( self::$users['shop_manager'] );
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'edit-comments' );
+
+		try {
+			$title   = get_the_title( $order->get_id() );
+			$plain   = get_the_title( $post );
+			$classes = get_comment_class( '', $comment, $order->get_id() );
+		} finally {
+			unset( $GLOBALS['current_screen'] );
+			wp_delete_post( $post, true );
+		}
+
+		self::assertSame( 'Order #' . $order->get_order_number(), $title );
+		self::assertSame( 'Plain', $plain );
+		self::assertContains( 'dws-ic-order-comment', $classes );
+		self::assertNotSame( 'Order #' . $order->get_order_number(), get_the_title( $order->get_id() ), 'Other screens keep the title.' );
+	}
+
 	public function test_the_plugin_declares_itself_compatible_with_the_order_tables(): void {
 		self::assertContains( plugin_basename( DWS_IC_FILE ), FeaturesUtil::get_compatible_plugins_for_feature( 'custom_order_tables' )['compatible'] ?? array() );
 	}

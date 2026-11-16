@@ -130,7 +130,8 @@ final class CommentEditScreenTest extends TestCase {
 		};
 
 		$internal = $styles( $this->comment( 'Internal' ) );
-		foreach ( array( '#namediv', '#comment-status', '.misc-pub-curtime' ) as $selector ) {
+		// WordPress 7.1's parent control offers only parents that saving an internal comment refuses.
+		foreach ( array( '#namediv', '#comment-status', '.misc-pub-curtime', '.misc-pub-reply-to' ) as $selector ) {
 			self::assertStringContainsString( $selector, $internal );
 		}
 		self::assertSame( '', $styles( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) ) );

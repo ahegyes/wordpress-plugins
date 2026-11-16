@@ -143,6 +143,7 @@ final class ListColumnTest extends TestCase {
 		self::assertNotNull( $button );
 		self::assertSame( $popover?->getAttribute( 'id' ), $button?->getAttribute( 'popovertarget' ) );
 		self::assertSame( (string) $this->post, $popover?->getAttribute( 'data-post-id' ) );
+		self::assertStringContainsString( 'no-link', (string) $popover?->getAttribute( 'class' ) ); // WooCommerce opens the order on a click anywhere in its row but inside this class.
 		self::assertSame( '1', \trim( (string) $editor->querySelector( '.comment-count' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNull( $editor->querySelector( 'a.post-com-count' ) );
 	}
