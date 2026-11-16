@@ -36,6 +36,7 @@ final class SettingsApiTest extends TestCase {
 
 		self::assertSame( $stored, dws_ic_get_raw_setting( $field_id, $group ) );
 		self::assertSame( $expected, dws_ic_get_validated_setting( $field_id, $group ) );
+		self::assertSame( array( array( 'dws_ic_get_raw_setting', "get_option() on {$row}" ), array( 'dws_ic_get_validated_setting', "get_option() on {$row}" ) ), $this->deprecated );
 	}
 
 	public function test_missing_settings_read_as_v1_defaults(): void {
@@ -56,6 +57,7 @@ final class SettingsApiTest extends TestCase {
 		self::assertNull( dws_ic_get_validated_setting( 'unknown', 'general' ) );
 		self::assertNull( dws_ic_get_validated_setting( 'post-types', 'unknown' ) );
 		self::assertNull( dws_ic_get_validated_setting( 'post-types' ) );
+		self::assertSame( array( 'dws_ic_get_validated_setting', 'get_option()' ), \end( $this->deprecated ) );
 	}
 
 	// v1 read any field of a known group, such as one an extension adds through the group's field filter, which now has a row of its own.
@@ -65,6 +67,7 @@ final class SettingsApiTest extends TestCase {
 		self::assertSame( 'kept', dws_ic_get_raw_setting( 'extra', 'general' ) );
 		self::assertSame( 'kept', dws_ic_get_validated_setting( 'extra', 'general-settings' ) );
 		self::assertSame( 'kept', dws_ic_get_validated_setting( 'general/extra' ) );
+		self::assertSame( array( 'dws_ic_get_validated_setting', 'get_option() on dws_ic_general_extra' ), \end( $this->deprecated ) );
 	}
 
 	// v1 read the selected post types raw, so a post type registered after plugins_loaded stays selected before it registers.
@@ -72,12 +75,32 @@ final class SettingsApiTest extends TestCase {
 		update_option( Options::POST_TYPES, array( 'post', 'dws_ic_later', 7 ) );
 
 		self::assertSame( array( 'post', 'dws_ic_later' ), dws_ic_get_selected_post_types() );
+		self::assertSame( array(), $this->deprecated );
 	}
 
 	public function test_private_comments_read_as_their_validated_setting(): void {
 		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 
 		self::assertTrue( dws_ic_are_enabled_private_comments() );
+		self::assertSame( array(), $this->deprecated );
+	}
+
+	// v1 read private comments through its group filter and the selected post types raw, and the plugin's own reads still do.
+	public function test_the_private_comments_read_passes_v1s_group_filter_and_the_post_types_read_none(): void {
+		$hook   = 'internal_comments/general_settings/get_validated_option_value';
+		$answer = static fn ( mixed $value, string $field_id ): mixed => 'post-types' === $field_id ? array( ...$value, 'page' ) : ! $value;
+		update_option( Options::POST_TYPES, array( 'post' ) );
+		update_option( Options::PRIVATE_COMMENTS, 'no' );
+		add_filter( $hook, $answer, 10, 2 );
+
+		try {
+			self::assertSame( array( 'post' ), dws_ic_get_selected_post_types() );
+			self::assertTrue( dws_ic_are_enabled_private_comments() );
+		} finally {
+			remove_filter( $hook, $answer );
+		}
+
+		self::assertSame( array( array( $hook, 'option_' . Options::PRIVATE_COMMENTS ) ), $this->deprecated );
 	}
 
 	public static function paths(): array {
@@ -85,10 +108,8 @@ final class SettingsApiTest extends TestCase {
 			'group'           => array(
 				'enable-private-comments',
 				'general',
-				array(
-					array( 'group', true, 'enable-private-comments' ),
-					array( 'v2', 'group', 'enable-private-comments', 'general' ),
-				),
+				array( array( 'group', true, 'enable-private-comments' ) ),
+				'group',
 				array( 'internal_comments/general_settings/get_validated_option_value' ),
 			),
 			'group-in-the-id' => array(
@@ -97,8 +118,8 @@ final class SettingsApiTest extends TestCase {
 				array(
 					array( 'group', true, 'enable-private-comments' ),
 					array( 'section', 'group', 'general/enable-private-comments' ),
-					array( 'v2', 'section', 'enable-private-comments', 'general' ),
 				),
+				'section',
 				array( 'internal_comments/general_settings/get_validated_option_value', 'internal_comments/settings/get_validated_option_value' ),
 			),
 		);
@@ -106,7 +127,7 @@ final class SettingsApiTest extends TestCase {
 
 	// v1 fired its section filter only for a read through the section, which names the group in the field id; each filter still receives v1's ids, though the value comes from its row.
 	#[DataProvider( 'paths' )]
-	public function test_a_validated_value_passes_the_v1_filters_of_its_path_then_the_v2_filter( string $field_id, ?string $group, array $expected, array $deprecated ): void {
+	public function test_a_validated_value_passes_the_v1_filters_of_its_path_alone( string $field_id, ?string $group, array $expected, string $filtered, array $deprecated ): void {
 		update_option( Options::PRIVATE_COMMENTS, 'yes' );
 		$seen    = array();
 		$filters = array(
@@ -137,8 +158,8 @@ final class SettingsApiTest extends TestCase {
 			remove_filter( 'internal_comments/settings/validated_value', $v2 );
 		}
 
-		self::assertSame( 'v2', $value );
+		self::assertSame( $filtered, $value );
 		self::assertSame( $expected, $seen );
-		self::assertSame( \array_map( static fn ( string $hook ): array => array( $hook, 'internal_comments/settings/validated_value' ), $deprecated ), $this->deprecated );
+		self::assertSame( array( array( 'dws_ic_get_validated_setting', 'get_option() on ' . Options::PRIVATE_COMMENTS ), ...\array_map( static fn ( string $hook ): array => array( $hook, 'option_' . Options::PRIVATE_COMMENTS ), $deprecated ) ), $this->deprecated );
 	}
 }
