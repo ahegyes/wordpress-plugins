@@ -5,6 +5,7 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategi
 use DeepWebSolutions\LockedPaymentMethods\Migrations;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\IsolatesStrategiesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( UserProfileStrategy::class )]
 final class UserProfileStrategyTest extends TestCase {
 	use InsertsUsersTrait;
+	use IsolatesStrategiesTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
 
@@ -174,6 +176,93 @@ final class UserProfileStrategyTest extends TestCase {
 		self::assertSame( array( array( 'user_profile', self::$users['customer'], array( 'bacs' ), array() ) ), $this->updates );
 	}
 
+	public function test_a_field_another_plugin_adds_to_the_form_is_stored_beside_the_grants(): void {
+		$add = static fn ( array $fields, int $object_id, string $form ): array => self::FORM === $form ? array(
+			...$fields,
+			array(
+				'id'    => 'acme_note',
+				'type'  => 'text',
+				'title' => 'Note',
+			),
+		) : $fields;
+		add_filter( 'locked_payment_methods_for_woocommerce/object_form/fields', $add, 10, 3 );
+		update_user_meta( self::$users['customer'], 'acme_note', 'Pending' );
+		wp_set_current_user( self::$users['administrator'] );
+
+		try {
+			self::assertSame( 'Pending', self::render( self::$users['customer'] )->querySelector( 'input[name="' . self::FORM . '[acme_note]"]' )?->getAttribute( 'value' ) );
+			$_POST[ self::FORM ]            = array(
+				'dws_lpmwc_unlocked_payment_methods' => array( 'cod' ),
+				'acme_note'                          => 'Approved',
+			);
+			$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . '_nonce_' . self::$users['customer'] );
+			do_action( 'edit_user_profile_update', self::$users['customer'] );
+			wp_cache_flush();
+
+			self::assertSame( array( 'cod' ), get_user_meta( self::$users['customer'], self::key(), true ) );
+			self::assertSame( 'Approved', get_user_meta( self::$users['customer'], 'acme_note', true ) );
+		} finally {
+			remove_filter( 'locked_payment_methods_for_woocommerce/object_form/fields', $add );
+			delete_user_meta( self::$users['customer'], 'acme_note' );
+		}
+	}
+
+	public function test_a_save_whose_added_field_the_host_store_refuses_leaves_the_grants_unchanged(): void {
+		$add = static fn ( array $fields, int $object_id, string $form ): array => self::FORM === $form ? array(
+			...$fields,
+			array(
+				'id'       => 'acme_note',
+				'type'     => 'text',
+				'title'    => 'Note',
+				'validate' => static fn (): object => new \stdClass(),
+			),
+		) : $fields;
+		add_filter( 'locked_payment_methods_for_woocommerce/object_form/fields', $add, 10, 3 );
+		update_user_meta( self::$users['customer'], self::key(), array( 'bacs' ) );
+		wp_set_current_user( self::$users['administrator'] );
+		// The exception leaves WordPress marking the action as running, so the row puts the hook and the current-filter stack back.
+		$current = $GLOBALS['wp_current_filter'];
+		$hook    = clone $GLOBALS['wp_filter']['edit_user_profile_update'];
+
+		try {
+			$_POST[ self::FORM ]            = array(
+				'dws_lpmwc_unlocked_payment_methods' => array( 'cod' ),
+				'acme_note'                          => 'Approved',
+			);
+			$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . '_nonce_' . self::$users['customer'] );
+			$this->expectException( \InvalidArgumentException::class );
+			do_action( 'edit_user_profile_update', self::$users['customer'] );
+		} finally {
+			$GLOBALS['wp_current_filter']                     = $current;
+			$GLOBALS['wp_filter']['edit_user_profile_update'] = $hook;
+			remove_filter( 'locked_payment_methods_for_woocommerce/object_form/fields', $add );
+			wp_cache_flush();
+			self::assertSame( array( 'bacs' ), get_user_meta( self::$users['customer'], self::key(), true ) );
+			self::assertSame( array(), $this->updates );
+		}
+	}
+
+	public function test_saving_the_profile_with_its_grants_in_another_order_changes_nothing(): void {
+		update_user_meta( self::$users['customer'], self::key(), array( 'bacs', 'cod' ) );
+		wp_set_current_user( self::$users['administrator'] );
+
+		self::save( self::$users['customer'], array( 'cod', 'bacs' ) );
+
+		self::assertSame( array( 'bacs', 'cod' ), get_user_meta( self::$users['customer'], self::key(), true ) );
+		self::assertSame( array(), $this->updates );
+	}
+
+	public function test_a_stored_duplicate_reads_once_and_saving_the_profile_over_it_changes_nothing(): void {
+		update_user_meta( self::$users['customer'], self::key(), array( 'cod', 'cod' ) );
+		wp_set_current_user( self::$users['administrator'] );
+
+		self::assertSame( array( 'cod' ), self::strategy()->get_granted_ids( self::$users['customer'] ) );
+		self::save( self::$users['customer'], array( 'cod' ) );
+
+		self::assertSame( array( 'cod', 'cod' ), get_user_meta( self::$users['customer'], self::key(), true ) );
+		self::assertSame( array(), $this->updates );
+	}
+
 	public function test_saving_the_profile_with_nothing_checked_stores_an_empty_list(): void {
 		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
 		wp_set_current_user( self::$users['administrator'] );
@@ -283,7 +372,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 		\ob_start();
 		do_action( 'restrict_manage_users', 'top' );
-		$select = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
+		$select = self::parse( (string) \ob_get_clean() );
 		self::assertSame( array( '', 'cod', 'bacs' ), \array_map( static fn ( \Dom\Element $option ): string => (string) $option->getAttribute( 'value' ), \iterator_to_array( $select->querySelectorAll( 'select[name="dws_lpmwc_unlocked_for_top"] option' ) ) ) );
 		self::assertNotNull( $select->querySelector( 'span > label[for="dws_lpmwc_unlocked_for_top"] + select + input[type="submit"]' ), 'The label, the select and the button share one span, so core\'s floats never split them.' );
 
@@ -384,14 +473,11 @@ final class UserProfileStrategyTest extends TestCase {
 		return $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods';
 	}
 
-	protected static function should_lock( string $gateway_id, int $user_id ): mixed {
-		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
-	}
 
 	protected static function render( int $user_id ): \Dom\HTMLDocument {
 		\ob_start();
 		do_action( 'edit_user_profile', get_userdata( $user_id ) );
-		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
+		return self::parse( (string) \ob_get_clean() );
 	}
 
 	protected static function choices( \Dom\HTMLDocument $form ): array {

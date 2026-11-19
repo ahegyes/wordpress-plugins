@@ -2,7 +2,6 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
-use DeepWebSolutions\LockedPaymentMethods\Capabilities;
 use DeepWebSolutions\LockedPaymentMethods\Migrations;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
@@ -10,6 +9,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\IsolatesStrategiesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
@@ -24,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( OrderStrategy::class )]
 final class OrderStrategyTest extends TestCase {
 	use InsertsUsersTrait;
+	use IsolatesStrategiesTrait;
 	use OrderStorageTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
@@ -34,20 +35,18 @@ final class OrderStrategyTest extends TestCase {
 
 	protected static OrderStrategy $strategy;
 
-	protected static array $hooks = array();
-
-	protected static array $registered = array();
-
 	protected static int $admin;
 
 	// Orders are off by default, so the booted plugin runs no order strategy; the class hooks one of its own, as the plugin does with the switch on.
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		$identity         = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
-		self::$strategy   = new OrderStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
-		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
-		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
+		require_once ABSPATH . 'wp-admin/includes/template.php'; // WordPress and WooCommerce load their meta box and screen APIs only in admin requests.
+		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
+		require_once ABSPATH . 'wp-admin/includes/screen.php';
+		require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
+		$identity       = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
+		self::$strategy = new OrderStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
 		self::$strategy->register_hooks();
 		self::$admin = self::insert_user(
 			array(
@@ -62,8 +61,6 @@ final class OrderStrategyTest extends TestCase {
 	#[\Override]
 	public static function tearDownAfterClass(): void {
 		wp_delete_user( self::$admin );
-		$GLOBALS['wp_filter'] = self::$hooks;
-		new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->setValue( null, self::$registered );
 	}
 
 	#[Before]
@@ -74,6 +71,7 @@ final class OrderStrategyTest extends TestCase {
 	#[After]
 	protected function clean_up(): void {
 		unset( $_POST[ self::FORM ], $_POST[ self::FORM . '_nonce' ] );
+		$GLOBALS['wp_meta_boxes'] = array();
 		wp_set_current_user( 0 );
 	}
 
@@ -93,29 +91,50 @@ final class OrderStrategyTest extends TestCase {
 		$order->save();
 
 		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $order->get_id() ) );
-		self::assertFalse( self::should_lock( 'cod', $order->get_id() ) );
-		self::assertTrue( self::should_lock( 'bacs', $order->get_id() ) );
+		self::assertFalse( self::should_lock( 'cod', 0, $order->get_id() ) );
+		self::assertTrue( self::should_lock( 'bacs', 0, $order->get_id() ) );
 		self::assertTrue( self::should_lock( 'cod', 0 ) );
 	}
 
-	public function test_the_box_offers_the_locked_methods_and_the_orders_other_grants_and_marks_each_one(): void {
+	// The posts editor passes its post to the box and the order-tables editor its order, so the row passes what its storage's editor does.
+	#[DataProvider( 'storages' )]
+	public function test_the_box_offers_the_locked_methods_and_the_orders_other_grants_and_marks_each_one( bool $hpos, bool $sync ): void {
+		global $wp_meta_boxes;
+
+		$this->use_storage( $hpos, $sync );
 		$order = $this->create_order();
 		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod', 'cheque' ) );
 		$order->save();
+		wp_set_current_user( self::$admin );
+		$screen = wc_get_page_screen_id( 'shop-order' ); // WooCommerce names the order screen after the menu the current user sees.
+		$edited = $hpos ? $order : get_post( $order->get_id() );
 
-		$form = self::$strategy->get_object_form( self::FORM, $order->get_id() );
+		wp_set_current_user( 0 );
+		do_action( 'add_meta_boxes', $screen, $edited );
+		self::assertNull( $wp_meta_boxes[ $screen ]['side']['default'][ self::FORM ] ?? null );
 
-		self::assertSame( Capabilities::UNLOCK_VIA_ORDERS, $form['capability'] );
-		self::assertSame( '_dws_lpmwc_unlocked_payment_methods', $form['fields'][0]['id'] );
+		wp_set_current_user( self::$admin );
+		do_action( 'add_meta_boxes', $screen, $edited );
+		$box = $wp_meta_boxes[ $screen ]['side']['default'][ self::FORM ] ?? null;
+		self::assertIsArray( $box );
+		\ob_start();
+		\call_user_func( $box['callback'], $edited, $box );
+		$form = self::parse( (string) \ob_get_clean() );
+
+		$choices = array();
+		foreach ( $form->querySelectorAll( 'input[type="checkbox"]' ) as $input ) {
+			$choices[ (string) $input->getAttribute( 'value' ) ] = $input->hasAttribute( 'checked' ) && ! $input->hasAttribute( 'disabled' );
+		}
 		self::assertSame(
 			array(
-				'cod'    => 'Cash on delivery',
-				'bacs'   => 'Direct bank transfer',
-				'cheque' => 'Check payments (not locked)',
+				'cod'    => true,
+				'bacs'   => false,
+				'cheque' => true,
 			),
-			$form['fields'][0]['options']
+			$choices
 		);
-		self::assertArrayNotHasKey( 'custom_attributes', $form['fields'][0] );
+		self::assertStringContainsString( 'Check payments (not locked)', (string) $form->body?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 1, wp_verify_nonce( (string) $form->querySelector( 'input[name="' . self::FORM . '_nonce"]' )?->getAttribute( 'value' ), self::FORM . '_nonce_' . $order->get_id() ) );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -286,9 +305,6 @@ final class OrderStrategyTest extends TestCase {
 		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $order->get_id() ) );
 	}
 
-	protected static function should_lock( string $gateway_id, int $order_id ): mixed {
-		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, 0, $order_id );
-	}
 
 	protected static function save( int $order_id, array|string $methods ): void {
 		$_POST[ self::FORM ]            = array( 'dws_lpmwc_unlocked_payment_methods' => $methods );

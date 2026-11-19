@@ -305,8 +305,30 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertSame( Options::DEFAULTS[ Options::FULL_ACCESS_ROLES ], dws_lpmwc_validate_setting( null, 'full-access-user-roles', 'general' ) );
 	}
 
-	// v1's groups resolved a page-level read at priority 10 inside the page's filter, so a callback before it sees null and one after it sees the group's value.
-	public function test_v1s_page_level_read_resolves_its_group_at_v1s_priority_inside_v1s_filter(): void {
+	public function test_a_page_level_read_inside_another_answers_its_own_setting(): void {
+		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
+		update_option( Options::UNLOCK_VIA_USER_ROLES, 'yes' );
+		$page   = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
+		$nested = null;
+		$read   = static function ( mixed $value, string $field_id ) use ( &$nested ): mixed {
+			if ( 'general/full-access-user-roles' === $field_id ) {
+				$nested = dws_lpmwc_get_validated_setting( 'general/unlock-via-user-role' );
+			}
+			return $value;
+		};
+		add_filter( $page, $read, 11, 2 );
+
+		try {
+			self::assertSame( array( 'shop_manager' ), dws_lpmwc_get_validated_setting( 'general/full-access-user-roles' ) );
+		} finally {
+			remove_filter( $page, $read, 11 );
+		}
+
+		self::assertTrue( $nested );
+	}
+
+	// v1's groups resolved a page-level read inside the page's filter before the callbacks at priority 10 that code loaded later added, so a callback before the resolver sees null and one at 10 sees the group's value.
+	public function test_v1s_page_level_read_resolves_its_group_before_the_callbacks_at_10_inside_v1s_filter(): void {
 		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
 		$page   = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
 		$seen   = array();
@@ -318,23 +340,29 @@ final class DeprecatedApiTest extends TestCase {
 			$seen['after'] = $value;
 			return $value;
 		};
+		$answer = static fn ( mixed $value, string $field_id ): mixed => 'general/unlock-via-user-role' === $field_id ? false : $value;
 		add_filter( $page, $before, 9 );
-		add_filter( $page, $after, 11 );
+		add_filter( $page, $answer, 9, 2 );
+		add_filter( $page, $after );
 
 		try {
 			self::assertSame( array( 'shop_manager' ), dws_lpmwc_get_validated_setting( 'general/full-access-user-roles' ) );
+			self::assertSame(
+				array(
+					'before' => null,
+					'after'  => array( 'shop_manager' ),
+				),
+				$seen
+			);
+			self::assertContains( array( $page, 'option_' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
+
+			update_option( Options::UNLOCK_VIA_USER_ROLES, 'yes' );
+			self::assertFalse( dws_lpmwc_get_validated_setting( 'general/unlock-via-user-role' ) );
 		} finally {
-			remove_filter( $page, $after, 11 );
+			remove_filter( $page, $after );
+			remove_filter( $page, $answer, 9 );
 			remove_filter( $page, $before, 9 );
 		}
-
-		self::assertSame(
-			array(
-				'before' => null,
-				'after'  => array( 'shop_manager' ),
-			),
-			$seen
-		);
 	}
 
 	protected static function read_header(): array {

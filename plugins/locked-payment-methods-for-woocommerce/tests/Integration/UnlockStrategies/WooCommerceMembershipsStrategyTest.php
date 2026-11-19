@@ -10,6 +10,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Settings;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\IsolatesStrategiesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
@@ -27,6 +28,7 @@ use PHPUnit\Framework\TestCase;
 #[Group( 'wc-memberships' )]
 final class WooCommerceMembershipsStrategyTest extends TestCase {
 	use InsertsUsersTrait;
+	use IsolatesStrategiesTrait;
 	use RecordsDeprecationsTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
@@ -36,10 +38,6 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_WC_MEMBERSHIPS, 'wc_memberships_version' );
 
 	protected static WooCommerceMembershipsStrategy $strategy;
-
-	protected static array $hooks = array();
-
-	protected static array $registered = array();
 
 	protected static array $users = array();
 
@@ -51,12 +49,10 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		require_once \dirname( __DIR__, 2 ) . '/Support/memberships-functions.php';
 		register_post_type( 'wc_membership_plan' );
-		$identity         = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
-		self::$strategy   = new WooCommerceMembershipsStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
-		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
-		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
+		$identity       = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
+		self::$strategy = new WooCommerceMembershipsStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
 		self::$strategy->register_hooks();
-		foreach ( array( 'administrator', 'customer', 'subscriber' ) as $role ) {
+		foreach ( array( 'administrator', 'editor', 'customer', 'subscriber' ) as $role ) {
 			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "lpm-memberships-$role",
@@ -74,8 +70,6 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 			wp_delete_user( $user );
 		}
 		unregister_post_type( 'wc_membership_plan' );
-		$GLOBALS['wp_filter'] = self::$hooks;
-		new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->setValue( null, self::$registered );
 	}
 
 	// The form evaluates its definition and saves an object once per request, so every row edits a plan of its own.
@@ -159,7 +153,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 		\ob_start();
 		do_action( 'wc_membership_plan_data_panels' );
-		$panel = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
+		$panel = self::parse( (string) \ob_get_clean() );
 
 		// Memberships' panels print WooCommerce's options-panel rows, whose CSS lays out a group's choices beside its legend only inside a wc-radios list.
 		self::assertSame( 'Unlocked payment methods', \trim( (string) $panel->querySelector( '#dws-lpmwc-membership-plan-data > div.options_group > fieldset.form-field > legend' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
@@ -192,6 +186,18 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		self::assertSame( array( array( 'wc_memberships', $this->plan, array( 'bacs' ), array() ) ), $this->updates );
 	}
 
+	public function test_a_plan_editor_without_the_capability_gets_no_tab_and_saves_nothing_under_a_valid_nonce(): void {
+		$GLOBALS['post'] = get_post( $this->plan );
+		wp_set_current_user( self::$users['editor'] );
+		self::assertTrue( current_user_can( 'edit_post', $this->plan ) );
+
+		self::assertSame( array(), apply_filters( 'wc_membership_plan_data_tabs', array() ) );
+		$_POST[ self::FORM ]            = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
+		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . "_nonce_$this->plan" );
+		do_action( 'wc_memberships_save_meta_box', array(), 'wc-memberships-membership-plan-data', $this->plan, get_post( $this->plan ) );
+		self::assertSame( array(), self::$strategy->get_granted_ids( $this->plan ) );
+	}
+
 	public function test_the_grants_step_moves_v1s_plan_meta_to_the_plugins_key(): void {
 		update_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod', 7 ) );
 		update_post_meta( $this->plan, '_dws_lpmwc_unlocked_payment_methods', array( 'cheque' ) );
@@ -203,7 +209,20 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		self::assertSame( '', get_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
 	}
 
-	protected static function should_lock( string $gateway_id, int $user_id ): mixed {
-		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
+	public function test_the_grants_step_keeps_v1s_plan_meta_when_the_plugins_key_cannot_be_stored(): void {
+		update_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', array( 'cod' ) );
+		$refuse = static fn ( mixed $check, int $object_id, string $key ): mixed => '_dws_lpmwc_unlocked_payment_methods' === $key ? false : $check;
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+
+		try {
+			Migrations::get_steps()[5]();
+			self::fail( 'The step stored nothing and still went on.' );
+		} catch ( \RuntimeException ) {
+			self::assertSame( '', get_post_meta( $this->plan, '_dws_lpmwc_unlocked_payment_methods', true ) );
+		} finally {
+			remove_filter( 'add_post_metadata', $refuse );
+		}
+
+		self::assertSame( array( 'cod' ), get_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
 	}
 }

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Capabilities;
 use DeepWebSolutions\LockedPaymentMethods\Migrations;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
@@ -12,6 +13,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Settings;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\IsolatesStrategiesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
@@ -27,6 +29,7 @@ use PHPUnit\Framework\TestCase;
 #[Group( 'groups' )]
 final class GroupsStrategyTest extends TestCase {
 	use InsertsUsersTrait;
+	use IsolatesStrategiesTrait;
 	use RecordsDeprecationsTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
@@ -37,10 +40,6 @@ final class GroupsStrategyTest extends TestCase {
 
 	protected static AdminNotices $notices;
 
-	protected static array $hooks = array();
-
-	protected static array $registered = array();
-
 	protected static array $users = array();
 
 	protected array $groups = array();
@@ -49,10 +48,8 @@ final class GroupsStrategyTest extends TestCase {
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		self::$notices    = new AdminNotices( new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new PsrNullLogger() );
-		self::$strategy   = new GroupsStrategy( self::$notices );
-		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
-		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
+		self::$notices  = new AdminNotices( new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new PsrNullLogger() );
+		self::$strategy = new GroupsStrategy( self::$notices );
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'shop_manager', 'customer', 'subscriber' ) as $role ) {
 			self::$users[ $role ] = self::insert_user(
@@ -71,8 +68,6 @@ final class GroupsStrategyTest extends TestCase {
 		foreach ( self::$users as $user ) {
 			wp_delete_user( $user );
 		}
-		$GLOBALS['wp_filter'] = self::$hooks;
-		new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->setValue( null, self::$registered );
 	}
 
 	#[Before]
@@ -215,13 +210,66 @@ final class GroupsStrategyTest extends TestCase {
 		);
 	}
 
-	public function test_a_save_without_the_capability_or_without_the_field_stores_nothing(): void {
-		$group = $this->create_group( 'LPM refused' );
+	public function test_groups_own_submissions_store_the_checked_methods_and_one_with_a_bad_nonce_stores_nothing(): void {
+		require_once GROUPS_ADMIN_LIB . '/groups-admin-groups-add.php';
+		require_once GROUPS_ADMIN_LIB . '/groups-admin-groups-edit.php';
+		wp_set_current_user( self::$users['administrator'] );
+		$throw = static function ( mixed $message ): never {
+			throw new \RuntimeException( (string) $message );
+		};
+		$die   = static fn (): \Closure => $throw;
 
-		wp_set_current_user( self::$users['shop_manager'] );
-		$_POST['dws_lpmwc_group'] = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
-		do_action( 'groups_admin_groups_edit_submit_success', $group );
-		self::assertFalse( get_option( self::key( $group ) ) );
+		try {
+			$_POST[ GROUPS_ADMIN_GROUPS_NONCE ] = wp_create_nonce( 'groups-add' );
+			$_POST['name-field']                = 'LPM submitted';
+			$_POST['dws_lpmwc_group']           = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'cod' ) );
+			$group                              = (int) groups_admin_groups_add_submit();
+			$this->groups[]                     = $group;
+			self::assertGreaterThan( 0, $group );
+			self::assertSame( array( 'cod' ), get_option( self::key( $group ) ) );
+
+			$_POST[ GROUPS_ADMIN_GROUPS_NONCE ] = wp_create_nonce( 'groups-add' );
+			$_POST['group-id-field']            = $group;
+			$_POST['dws_lpmwc_group']           = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
+			add_filter( 'wp_die_handler', $die );
+			try {
+				groups_admin_groups_edit_submit();
+				self::fail( 'Groups saved an edit whose nonce is for another action.' );
+			} catch ( \RuntimeException ) {
+				self::assertSame( array( 'cod' ), get_option( self::key( $group ) ) );
+			} finally {
+				remove_filter( 'wp_die_handler', $die );
+			}
+
+			$_POST[ GROUPS_ADMIN_GROUPS_NONCE ] = wp_create_nonce( 'groups-edit' );
+			groups_admin_groups_edit_submit();
+			self::assertSame( array( 'bacs' ), get_option( self::key( $group ) ) );
+		} finally {
+			unset( $_POST[ GROUPS_ADMIN_GROUPS_NONCE ], $_POST['name-field'], $_POST['group-id-field'] );
+		}
+	}
+
+	public function test_a_save_by_a_user_missing_either_capability_or_without_the_field_stores_nothing(): void {
+		$group  = $this->create_group( 'LPM refused' );
+		$grants = array(
+			self::$users['customer']   => Capabilities::UNLOCK_VIA_GROUPS,
+			self::$users['subscriber'] => 'groups_admin_groups',
+		);
+
+		try {
+			foreach ( $grants as $user => $capability ) {
+				get_userdata( $user )->add_cap( $capability );
+				wp_set_current_user( $user );
+				self::assertSame( '', apply_filters( 'groups_admin_groups_edit_form_after_fields', '', $group ), $capability );
+				$_POST['dws_lpmwc_group'] = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
+				do_action( 'groups_admin_groups_edit_submit_success', $group );
+				self::assertFalse( get_option( self::key( $group ) ), $capability );
+			}
+		} finally {
+			foreach ( $grants as $user => $capability ) {
+				get_userdata( $user )->remove_cap( $capability );
+			}
+		}
 
 		wp_set_current_user( self::$users['administrator'] );
 		unset( $_POST['dws_lpmwc_group'] );
@@ -292,13 +340,7 @@ final class GroupsStrategyTest extends TestCase {
 		return "dws_lpmwc_group_{$group_id}_unlocked_payment_methods";
 	}
 
-	protected static function should_lock( string $gateway_id, int $user_id ): mixed {
-		return apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', true, $gateway_id, $user_id, 0 );
-	}
 
-	protected static function parse( string $markup ): \Dom\HTMLDocument {
-		return \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . $markup . '</body></html>', \LIBXML_NOERROR );
-	}
 
 	protected static function choices( \Dom\HTMLDocument $form ): array {
 		$choices = array();
