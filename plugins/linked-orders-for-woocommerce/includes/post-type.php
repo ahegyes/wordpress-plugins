@@ -105,7 +105,7 @@ function dws_lowc_get_valid_statuses_for_new_child( string $order_type = 'shop_o
  */
 function dws_lowc_create_linked_child( int $parent_id, array $args = array() ) {
 	$parent = OrderTypes::get_order( $parent_id );
-	if ( ! $parent instanceof WC_Order || true !== dws_lowc_is_supported_order( $parent ) ) {
+	if ( ! $parent instanceof WC_Order || ! in_array( $parent->get_type(), dws_lowc_get_supported_order_types(), true ) ) {
 		return null;
 	}
 

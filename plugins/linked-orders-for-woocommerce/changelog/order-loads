@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+An order's node and a linked child's creation check an order's type without loading the order again.

@@ -111,7 +111,7 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 	// region HELPERS
 
 	/**
-	 * Returns an order of a supported type with a registered post type, or null, as v1's node loads one.
+	 * Returns an order of a supported type with a registered post type once the plugin has booted, or null.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -121,8 +121,8 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 	 * @return  \WC_Order|null
 	 */
 	protected static function load( mixed $id ): ?\WC_Order {
-		$order = \is_int( $id ) ? wc_get_order( $id ) : false;
-		return $order instanceof \WC_Order && true === dws_lowc_is_supported_order( $order ) && ! \is_null( get_post_type_object( $order->get_type() ) ) ? $order : null;
+		$order = \is_int( $id ) ? OrderTypes::get_order( $id ) : null;
+		return ! \is_null( $order ) && \in_array( $order->get_type(), dws_lowc_get_supported_order_types(), true ) && ! \is_null( get_post_type_object( $order->get_type() ) ) ? $order : null;
 	}
 
 	/**
