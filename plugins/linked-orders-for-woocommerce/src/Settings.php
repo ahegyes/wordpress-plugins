@@ -107,7 +107,7 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 				'title' => $titles[ $group ],
 			);
 			foreach ( $group_fields as $id => $field ) {
-				$fields[] = array( 'id' => \is_string( $field['id'] ?? null ) ? $field['id'] : ( $keys[ $id ] ?? "dws-lowc_{$group}_$id" ) ) + $field; // A field a v1 callback adds keeps the option v1 stored it under, unless it names its own.
+				$fields[] = array( 'id' => $keys[ $id ] ?? "dws-lowc_{$group}_$id" ) + $field; // A field a v1 callback adds keeps the option v1 stored it under, whatever id it names, as v1's settings adapter did.
 			}
 			$fields[] = array(
 				'type' => 'sectionend',

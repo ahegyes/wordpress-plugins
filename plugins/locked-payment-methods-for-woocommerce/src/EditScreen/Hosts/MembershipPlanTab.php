@@ -6,6 +6,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Sett
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormHostInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\Forms;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -76,9 +77,15 @@ final class MembershipPlanTab implements ObjectFormHostInterface {
 	 */
 	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
+		// Memberships' panels print WooCommerce's options-panel rows, whose CSS lays out only a p or fieldset of class form-field inside an options group, and a group's choices beside its legend only inside a wc-radios list.
+		echo '<div class="options_group">';
 		foreach ( $rows as $row ) {
-			echo '<div class="form-field"><p><strong>' . $row['title'] . '</strong></p>' . $row['control'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
+			$markup = \is_null( $row['label_for'] )
+				? '<fieldset class="form-field"><legend>' . $row['title'] . '</legend><ul class="wc-radios" role="presentation"><li>' . $row['control'] . '</li></ul></fieldset>'
+				: '<p class="form-field"><label for="' . Forms::escape_attribute( $row['label_for'] ) . '">' . $row['title'] . '</label>' . $row['control'] . '</p>';
+			echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
 		}
+		echo '</div>';
 	}
 
 	// endregion
