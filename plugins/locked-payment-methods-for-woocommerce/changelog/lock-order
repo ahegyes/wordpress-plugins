@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+v1's lock and per-user filters run before the unlock strategies and receive true, so a callback that re-locked a payment method after a strategy unlocked it moves to locked_payment_methods_for_woocommerce/payment_method/should_lock at a priority after 10 and returns true.

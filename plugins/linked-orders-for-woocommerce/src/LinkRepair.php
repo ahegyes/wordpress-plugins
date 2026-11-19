@@ -11,7 +11,7 @@ use DeepWebSolutions\LinkedOrders\Scoped\DeepWebSolutions\Framework\Core\Migrati
  *
  * Under the linking lock, a child whose parent no longer loads becomes the root of its own tree, a child its parent does not list joins the parent's children, and a child stored at any other depth than one below its parent moves there with its descendants.
  *
- * Children of an order v1 deleted still name it, v1's links could lose a child from its parent's list, and a request killed while a tree's depths are rewritten leaves some unwritten. A repair keeps every order on its page, so the pages hold still while the walk runs, and the option that holds its position is deleted once it ends. A batch that waits five seconds for the lock in vain runs again later.
+ * Children of an order v1 deleted still name it, v1's links could lose a child from its parent's list, and a request killed while a tree's depths are rewritten leaves some unwritten. A repair keeps every order on its page, so the pages hold still while the walk runs, and the option that holds its position is deleted once it ends. A batch that waits five seconds for the lock in vain runs again later. A batch in a request whose boot failed, where the runner's hook stays live but no order loads, throws, so the step runs again rather than finishing with nothing repaired.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -25,10 +25,14 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @throws  \RuntimeException Thrown when a repair does not read back or the walk's position could not be stored.
+	 * @throws  \RuntimeException Thrown when the plugin has not booted, a repair does not read back or the walk's position could not be stored.
 	 */
 	#[\Override]
 	public function process_batch(): bool {
+		if ( 0 === did_action( 'linked_orders_for_woocommerce/boot/succeeded' ) ) {
+			throw new \RuntimeException( 'The repair of the links waits for the plugin to boot.' );
+		}
+
 		$page = \filter_var( get_option( 'dws_lowc_link_repair_page', 1 ), \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 1;
 
 		$ids = wc_get_orders(
@@ -111,7 +115,7 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 	// region HELPERS
 
 	/**
-	 * Returns an order of a supported type with a registered post type, or null, as v1's node loads one.
+	 * Returns an order of a supported type with a registered post type once the plugin has booted, or null.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -121,8 +125,8 @@ final class LinkRepair implements BatchedMigrationStepInterface {
 	 * @return  \WC_Order|null
 	 */
 	protected static function load( mixed $id ): ?\WC_Order {
-		$order = \is_int( $id ) ? wc_get_order( $id ) : false;
-		return $order instanceof \WC_Order && true === dws_lowc_is_supported_order( $order ) && ! \is_null( get_post_type_object( $order->get_type() ) ) ? $order : null;
+		$order = \is_int( $id ) ? OrderTypes::get_order( $id ) : null;
+		return ! \is_null( $order ) && \in_array( $order->get_type(), dws_lowc_get_supported_order_types(), true ) && ! \is_null( get_post_type_object( $order->get_type() ) ) ? $order : null;
 	}
 
 	/**

@@ -209,8 +209,7 @@ final class RestRoutes implements ComponentInterface {
 			return $refused;
 		}
 
-		$parent = 0 === $parent_id ? null : dws_ic_get_comment( $parent_id );
-		if ( 0 !== $parent_id && ( \is_null( $parent ) || Comments::TYPE !== $parent->comment_type || (int) $parent->comment_post_ID !== $post_id || ! current_user_can( 'see_dws_internal_comment', $parent_id ) ) ) {
+		if ( 0 !== $parent_id && ( ! Comments::is_valid_parent( $parent_id, $post_id ) || ! current_user_can( 'see_dws_internal_comment', $parent_id ) ) ) {
 			return new \WP_Error( 'dws_ic_invalid_parent', __( 'The comment you are replying to is not one of this item\'s internal comments.', 'internal-comments' ), array( 'status' => 400 ) );
 		}
 

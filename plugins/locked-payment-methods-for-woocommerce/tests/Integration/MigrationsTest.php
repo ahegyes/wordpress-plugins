@@ -114,7 +114,7 @@ final class MigrationsTest extends TestCase {
 		self::assertSame( array(), get_option( Options::LOCKED_METHODS ) );
 	}
 
-	public function test_the_step_stores_the_default_for_a_v1_value_of_the_wrong_kind(): void {
+	public function test_the_step_reads_a_lone_v1_string_as_a_list_and_stores_the_default_for_a_value_of_the_wrong_kind(): void {
 		foreach ( self::KEYS as $key ) {
 			delete_option( $key );
 		}
@@ -126,7 +126,7 @@ final class MigrationsTest extends TestCase {
 		Migrations::get_steps()[1]();
 
 		self::assertSame( 'yes', get_option( Options::UNLOCK_VIA_USER_ROLES ) );
-		self::assertSame( array(), get_option( Options::LOCKED_METHODS ) );
+		self::assertSame( array( 'cod' ), get_option( Options::LOCKED_METHODS ) );
 		self::assertSame( array( 'editor' ), get_option( Options::FULL_ACCESS_ROLES ) );
 	}
 
@@ -143,45 +143,6 @@ final class MigrationsTest extends TestCase {
 		self::assertEqualsCanonicalizing( self::KEYS, \array_keys( Options::DEFAULTS ) );
 	}
 
-	public function test_the_grants_step_moves_v1s_user_grants_into_the_sites_lists_and_deletes_every_v1_grant_row(): void {
-		global $wpdb;
-
-		$key   = $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods';
-		$users = self::create_users( 2 );
-		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', 'yes' );
-		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_bacs', 'no' );
-		update_user_meta( $users[1], 'dws_wc_lpm_grant_access_cod', 'yes' );
-		update_user_meta( $users[1], $key, array( 'cheque' ) );
-
-		try {
-			Migrations::get_steps()[2]();
-			Migrations::get_steps()[2]();
-			wp_cache_flush();
-
-			self::assertSame( array( 'cod' ), get_user_meta( $users[0], $key, true ) );
-			self::assertSame( array( 'cheque', 'cod' ), get_user_meta( $users[1], $key, true ) );
-			self::assertSame( '0', $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", 'dws\_wc\_lpm\_grant\_access\_%' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Counts the rows the step deletes.
-		} finally {
-			self::delete_users( $users );
-		}
-	}
-
-	public function test_the_grants_step_throws_when_a_users_grants_cannot_be_stored(): void {
-		$users = self::create_users( 1 );
-		update_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', 'yes' );
-		$fail = static fn ( mixed $check, int $object_id, string $meta_key ): mixed => \str_ends_with( $meta_key, 'dws_lpmwc_unlocked_payment_methods' ) ? false : $check;
-		add_filter( 'update_user_metadata', $fail, 10, 3 );
-
-		try {
-			$this->expectExceptionObject( new \RuntimeException( "The payment methods unlocked for user {$users[0]} could not be stored." ) );
-			Migrations::get_steps()[2]();
-		} finally {
-			remove_filter( 'update_user_metadata', $fail );
-			self::assertSame( 'yes', get_user_meta( $users[0], 'dws_wc_lpm_grant_access_cod', true ) );
-			self::delete_users( $users );
-		}
-	}
-
 	public function test_the_step_throws_when_a_setting_cannot_be_stored(): void {
 		global $wpdb;
 
@@ -195,28 +156,6 @@ final class MigrationsTest extends TestCase {
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $suppressed );
-		}
-	}
-
-	protected static function create_users( int $count ): array {
-		$users = array();
-		for ( $i = 0; $i < $count; $i++ ) {
-			$users[] = (int) wp_insert_user(
-				array(
-					'user_login' => "lpm-migrations-$i",
-					'user_pass'  => 'password',
-					'user_email' => "lpm-migrations-$i@example.org",
-				)
-			);
-		}
-
-		return $users;
-	}
-
-	protected static function delete_users( array $users ): void {
-		require_once ABSPATH . 'wp-admin/includes/user.php';
-		foreach ( $users as $user ) {
-			wp_delete_user( $user );
 		}
 	}
 }

@@ -72,7 +72,7 @@ function dws_ic_is_selected_post_type( ?int $post_id = null ): bool {
 }
 
 /**
- * Stores an internal comment by an author, the current user by default, and returns its id, or null when it could not be stored.
+ * Stores an internal comment by an author, the current user by default, and returns its id, or null when it could not be stored or its parent is not an internal comment of its post.
  *
  * @api
  *
@@ -120,6 +120,15 @@ function dws_ic_create_internal_comment( array $args = array(), ?WP_User $author
 	 * @param   array<string, mixed> $data The comment's fields, as wp_insert_comment() takes them unslashed, and its comment_meta.
 	 */
 	$data = apply_filters( 'internal_comments/internal_comment/creation_data', $data );
+
+	// A reply under anything but an internal comment of its own post shows in no thread and takes its privacy from that parent, while '' and false mean no parent.
+	$parent    = $data['comment_parent'] ?? 0;
+	$parent_id = in_array( $parent, array( '', false ), true ) ? 0 : filter_var( $parent, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
+	$post_id   = filter_var( $data['comment_post_ID'] ?? 0, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE );
+	if ( 0 !== $parent_id && ( is_null( $parent_id ) || is_null( $post_id ) || ! Comments::is_valid_parent( $parent_id, $post_id ) ) ) {
+		return null;
+	}
+	$data['comment_parent'] = $parent_id;
 
 	$comment_id = wp_insert_comment( wp_slash( $data ) ); // @phpstan-ignore argument.type (The fields pass through public filters, which wp_insert_comment() accepts in any shape.)
 	if ( false === $comment_id ) {

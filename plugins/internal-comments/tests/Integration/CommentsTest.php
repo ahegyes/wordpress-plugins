@@ -286,6 +286,46 @@ final class CommentsTest extends TestCase {
 		self::assertSame( array( 'Meant public' ), wp_list_pluck( $stored, 'comment_content' ) );
 	}
 
+	// A reply under anything but an internal comment of its own post shows in no thread and takes its privacy from that parent, while '' and false mean no parent.
+	public function test_a_reply_is_stored_only_under_an_internal_comment_of_its_own_post(): void {
+		$parent    = $this->comment();
+		$public    = (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) );
+		$page      = (int) wp_insert_post(
+			array(
+				'post_title'  => 'Elsewhere',
+				'post_status' => 'publish',
+				'post_type'   => 'page',
+			)
+		);
+		$elsewhere = (int) dws_ic_create_internal_comment( array( 'comment_post_ID' => $page ) );
+		$moves     = static fn ( array $data ): array => array( 'comment_parent' => $elsewhere ) + $data;
+
+		try {
+			$replies = array();
+			foreach ( array( $parent, '', false, $public, $elsewhere, \PHP_INT_MAX, 'abc', array() ) as $parent_id ) {
+				$replies[] = $this->comment( array( 'comment_parent' => $parent_id ) );
+			}
+			add_filter( 'internal_comments/internal_comment/creation_data', $moves );
+			$replies[] = $this->comment( array( 'comment_parent' => $parent ) );
+		} finally {
+			remove_filter( 'internal_comments/internal_comment/creation_data', $moves );
+			wp_delete_post( $page, true );
+		}
+
+		self::assertNotContains( 0, \array_slice( $replies, 0, 3 ) );
+		self::assertSame( array( 0, 0, 0, 0, 0, 0 ), \array_slice( $replies, 3 ) );
+		$stored = get_comments(
+			array(
+				'post_id' => $this->post,
+				'type'    => Comments::TYPE,
+				'status'  => 'any',
+				'orderby' => 'comment_ID',
+				'order'   => 'ASC',
+			)
+		);
+		self::assertSame( array( '0', (string) $parent, '0', '0' ), wp_list_pluck( $stored, 'comment_parent' ) );
+	}
+
 	public function test_the_model_returns_a_comments_earlier_versions_newest_first(): void {
 		$comment = $this->comment( array( 'comment_content' => 'First' ) );
 		$model   = new \DWS_Internal_Comment( $comment );
@@ -320,6 +360,18 @@ final class CommentsTest extends TestCase {
 		self::assertSame( "$edit#comment-$comment", get_comment_link( $comment ) );
 		self::assertSame( "$edit#reply-$reply", get_comment_link( $reply ) );
 		self::assertStringStartsWith( (string) get_permalink( $this->post ), get_comment_link( $public ) );
+	}
+
+	public function test_an_internal_comments_link_leads_to_its_posts_edit_screen_after_a_callback_that_returns_nothing(): void {
+		$comment         = $this->comment();
+		$returns_nothing = static function (): void {};
+		add_filter( 'get_comment_link', $returns_nothing, 9 );
+
+		try {
+			self::assertSame( get_edit_post_link( $this->post, 'url' ) . "#comment-$comment", get_comment_link( $comment ) );
+		} finally {
+			remove_filter( 'get_comment_link', $returns_nothing, 9 );
+		}
 	}
 
 	protected function comment( array $args = array() ): int {

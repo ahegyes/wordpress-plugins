@@ -5,6 +5,7 @@ namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 use DeepWebSolutions\LinkedOrders\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LinkedOrders\Tests\Support\RunsRequestsTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
@@ -42,5 +43,29 @@ final class OrderTypesTest extends TestCase {
 
 		self::assertSame( 0, $request['status'], $request['output'] );
 		self::assertSame( '[null,null,null,null,null,null,null,[],null]', $request['last'], $request['output'] );
+	}
+
+	// wc_get_order() rebuilds an order it is handed, which only the posts-table rows show, since WooCommerce's OrderCache, on whenever the order tables are authoritative, answers a second load there.
+	#[DataProvider( 'storages' )]
+	public function test_a_node_loads_its_order_once( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order = $this->create_order();
+		$loads = 0;
+		$count = static function ( mixed $classname, mixed $type, mixed $id ) use ( &$loads, $order ): mixed {
+			if ( $order->get_id() === $id ) {
+				++$loads;
+			}
+			return $classname;
+		};
+		add_filter( 'woocommerce_order_class', $count, 10, 3 );
+
+		try {
+			$node = dws_lowc_get_order_node( $order->get_id() );
+		} finally {
+			remove_filter( 'woocommerce_order_class', $count );
+		}
+
+		self::assertInstanceOf( \DWS_Order_Node::class, $node );
+		self::assertSame( 1, $loads );
 	}
 }

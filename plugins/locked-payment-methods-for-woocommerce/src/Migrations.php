@@ -78,6 +78,7 @@ final class Migrations {
 			}
 
 			if ( 'list' === $kind ) {
+				$v1    = \is_string( $v1 ) && '' !== $v1 ? array( $v1 ) : $v1; // v1 read a list stored as one string as that one id.
 				$value = \is_array( $v1 ) ? \array_values( \array_filter( $v1, 'is_string' ) ) : null;
 			} else {
 				$enabled = \filter_var( $v1, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE );
@@ -112,7 +113,9 @@ final class Migrations {
 	}
 
 	/**
-	 * Moves v1's user grants, one global 'yes' row per payment method, into every site's list beside the grants it holds, so they keep v1's reach across a network, then deletes every v1 grant row; a run that stops part way converges on the next, since each list keeps what an earlier run merged.
+	 * Moves v1's user grants, one global 'yes' row per payment method, into every site's list beside the grants it holds, then deletes every v1 grant row.
+	 *
+	 * Every site receives them, so they keep v1's reach across a network. A run that stops part way converges on the next, since each list keeps what an earlier run merged.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -269,14 +272,14 @@ final class Migrations {
 	}
 
 	/**
-	 * Moves v1's Groups grants, one option per group, into the map of every group's grants beside the grants it holds, then deletes v1's options.
+	 * Moves each v1 Groups option, one per group, to the group's own option beside the grants it holds, then deletes v1's option.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @global  \wpdb $wpdb WordPress's database access.
 	 *
-	 * @throws  \RuntimeException Thrown when v1's options could not be read, the map could not be stored or a v1 option could not be deleted.
+	 * @throws  \RuntimeException Thrown when v1's options could not be read, a group's option could not be stored or a v1 option could not be deleted.
 	 *
 	 * @return  void
 	 */
@@ -290,27 +293,17 @@ final class Migrations {
 			throw new \RuntimeException( 'The v1 Groups grants could not be read.' );
 		}
 
-		$groups = self::get_group_grants();
-		$moved  = array();
 		foreach ( $names as $name ) {
 			if ( ! \is_string( $name ) || ! \str_starts_with( $name, $prefix ) || ! \ctype_digit( \substr( $name, \strlen( $prefix ) ) ) ) {
 				continue;
 			}
 
-			$id            = (int) \substr( $name, \strlen( $prefix ) );
-			$stored        = get_option( $name );
-			$groups[ $id ] = \array_values( \array_unique( \array_merge( $groups[ $id ] ?? array(), \is_array( $stored ) ? \array_filter( $stored, 'is_string' ) : array() ) ) );
-			$moved[]       = $name;
-		}
-		if ( array() === $moved ) {
-			return;
-		}
-
-		$groups = \array_filter( $groups );
-		if ( self::get_group_grants() !== $groups && ! update_option( 'dws_lpmwc_groups_unlocked_payment_methods', $groups, true ) ) {
-			throw new \RuntimeException( 'The payment methods unlocked for Groups groups could not be stored.' );
-		}
-		foreach ( $moved as $name ) {
+			$option  = 'dws_lpmwc_group_' . (int) \substr( $name, \strlen( $prefix ) ) . '_unlocked_payment_methods';
+			$granted = self::get_strings( get_option( $option, array() ) );
+			$merged  = \array_values( \array_unique( \array_merge( $granted, self::get_strings( get_option( $name ) ) ) ) );
+			if ( $granted !== $merged && ! update_option( $option, $merged, true ) ) {
+				throw new \RuntimeException( "The option $option could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			}
 			if ( ! delete_option( $name ) ) {
 				throw new \RuntimeException( "The v1 option $name could not be deleted." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 			}
@@ -318,7 +311,9 @@ final class Migrations {
 	}
 
 	/**
-	 * Moves v1's WooCommerce Memberships grants from each plan's v1 meta to the plugin's key beside the grants it holds, then deletes the v1 meta; it reads the post meta table itself, since Memberships may be inactive and its plan type unregistered.
+	 * Moves v1's WooCommerce Memberships grants from each plan's v1 meta to the plugin's key beside the grants it holds, then deletes the v1 meta.
+	 *
+	 * It reads the post meta table itself, since Memberships may be inactive and its plan type unregistered.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -364,26 +359,6 @@ final class Migrations {
 	 */
 	protected static function get_strings( mixed $stored ): array {
 		return \is_array( $stored ) ? \array_values( \array_filter( $stored, 'is_string' ) ) : array();
-	}
-
-	/**
-	 * Returns the ids of the payment methods unlocked for each Groups group's members, by group id, as the plugin stores them.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  array<int, list<string>>
-	 */
-	protected static function get_group_grants(): array {
-		$stored = get_option( 'dws_lpmwc_groups_unlocked_payment_methods', array() );
-		$groups = array();
-		foreach ( \is_array( $stored ) ? $stored : array() as $group_id => $ids ) {
-			if ( \is_int( $group_id ) && \is_array( $ids ) ) {
-				$groups[ $group_id ] = self::get_strings( $ids );
-			}
-		}
-
-		return $groups;
 	}
 
 	// endregion

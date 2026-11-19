@@ -95,9 +95,11 @@ final class CommentEditScreenTest extends TestCase {
 		self::assertStringContainsString( 'Before', (string) \ob_get_clean() );
 
 		$author = $screens->add_privacy_field( '', get_comment( $comment ) );
+		$null   = $screens->add_privacy_field( null, get_comment( $comment ) );
 		wp_set_current_user( self::$users['editor'] );
 		$other = $screens->add_privacy_field( '', get_comment( $comment ) );
 		self::assertStringContainsString( 'name="comment_meta[dws_ic_is_private]"', $author );
+		self::assertSame( $author, $null, 'An earlier callback that returns nothing leaves the field to print.' );
 		self::assertStringNotContainsString( 'name="comment_meta[dws_ic_is_private]"', $other );
 		self::assertSame( '', $screens->add_privacy_field( '', get_comment( (int) wp_insert_comment( array( 'comment_post_ID' => $this->post ) ) ) ) );
 

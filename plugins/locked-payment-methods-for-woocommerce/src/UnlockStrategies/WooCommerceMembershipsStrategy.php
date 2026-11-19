@@ -4,6 +4,8 @@ namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Capabilities;
 use DeepWebSolutions\LockedPaymentMethods\EditScreen\Hosts\MembershipPlanTab;
+use DeepWebSolutions\LockedPaymentMethods\EditScreen\Stores\GrantsStore;
+use DeepWebSolutions\LockedPaymentMethods\Grants;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
@@ -12,6 +14,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -21,8 +24,18 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Sett
  * @since   2.0.0
  * @version 2.0.0
  */
-final class WooCommerceMembershipsStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface {
+final class WooCommerceMembershipsStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface, \DWS_LPMWC_Unlock_Strategy {
 	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The strategy's id.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string ID = 'wc_memberships';
 
 	/**
 	 * The plan tab's form id.
@@ -33,16 +46,6 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 * @var     string
 	 */
 	protected const string FORM = Plugin::PREFIX . '_membership_plan';
-
-	/**
-	 * The plan meta that holds the ids of the payment methods unlocked for the plan's active members.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	protected const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
 
 	// endregion
 
@@ -85,8 +88,9 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_member_methods' ), 10, 3 );
-		new ObjectForm( $this->identity, self::FORM, $this, new MembershipPlanTab(), $this->notices )->register_hooks();
+		UnlockStrategies::register( $this );
+		$host = new MembershipPlanTab();
+		new ObjectForm( $this->identity, self::FORM, $this, $host, $this->notices, new GrantsStore( self::ID, $host->get_default_store() ) )->register_hooks();
 	}
 
 	/**
@@ -97,20 +101,72 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
-		$options = GrantChoices::get( self::get_unlocked_ids( $object_id ), 0 );
+		$options = GrantChoices::get( $this->get_granted_ids( $object_id ), 0 );
 		return array(
-			'title'      => __( 'Unlocked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
+			'title'      => _x( 'Unlocked Payment Methods', 'wc-memberships-integration', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_WC_MEMBERSHIPS,
 			'fields'     => array() === $options ? array() : array(
 				array(
 					'type'    => 'checkboxes',
-					'id'      => self::META_KEY,
+					'id'      => Grants::FIELD,
 					'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 					'desc'    => __( 'The plan\'s active members may pay with these methods.', 'locked-payment-methods-for-woocommerce' ),
 					'options' => $options,
 				),
 			),
 		);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_id(): string {
+		return self::ID;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_label(): string {
+		return _x( 'WooCommerce Memberships', 'unlock-strategies', 'locked-payment-methods-for-woocommerce' );
+	}
+
+	/**
+	 * Returns whether a plan the user is an active member of unlocks the payment method.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $user_id    The paying user, or 0 for a guest.
+	 * @param   int    $order_id   The order being paid, or 0 off its payment page.
+	 *
+	 * @return  bool
+	 */
+	#[\Override]
+	public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool {
+		// Memberships' loader leaves its functions undefined where its own requirements fail.
+		if ( 0 === $user_id || ! \function_exists( 'wc_memberships_get_user_active_memberships' ) ) {
+			return false;
+		}
+
+		foreach ( (array) wc_memberships_get_user_active_memberships( $user_id ) as $membership ) {
+			// Memberships sometimes returns cancelled memberships among the active ones.
+			$plan_id = \is_object( $membership ) && \method_exists( $membership, 'is_active' ) && \method_exists( $membership, 'get_plan_id' ) && true === $membership->is_active() ? $membership->get_plan_id() : null;
+			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, $this->get_granted_ids( (int) $plan_id ), true ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// endregion
@@ -126,35 +182,9 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 * @return  bool
 	 */
 	public static function is_available(): bool {
+		// Memberships defines its functions on plugins_loaded at priority 15, after the boot, so the loader its main file declares tells that it is active.
 		$version = get_option( 'wc_memberships_version', '0.0.0' );
-		return \function_exists( 'wc_memberships_get_user_active_memberships' ) && \is_string( $version ) && \version_compare( $version, '1.18.0', '>=' );
-	}
-
-	/**
-	 * Returns whether a plan the user is an active member of unlocks the payment method.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The user's id, or 0 for a guest.
-	 *
-	 * @return  bool
-	 */
-	public static function unlocks( string $gateway_id, int $user_id ): bool {
-		if ( 0 === $user_id ) {
-			return false;
-		}
-
-		foreach ( (array) wc_memberships_get_user_active_memberships( $user_id ) as $membership ) {
-			// Memberships sometimes returns cancelled memberships among the active ones.
-			$plan_id = \is_object( $membership ) && \method_exists( $membership, 'is_active' ) && \method_exists( $membership, 'get_plan_id' ) && true === $membership->is_active() ? $membership->get_plan_id() : null;
-			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, self::get_unlocked_ids( (int) $plan_id ), true ) ) {
-				return true;
-			}
-		}
-
-		return false;
+		return \class_exists( \WC_Memberships_Loader::class ) && \is_string( $version ) && \version_compare( $version, '1.18.0', '>=' );
 	}
 
 	/**
@@ -167,29 +197,8 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 *
 	 * @return  string[]
 	 */
-	public static function get_unlocked_ids( int $plan_id ): array {
-		$ids = get_post_meta( $plan_id, self::META_KEY, true );
-		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
-	}
-
-	// endregion
-
-	// region HOOKS
-
-	/**
-	 * Returns false for a payment method a plan the user is an active member of unlocks, and the lock as given otherwise.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed  $lock       Whether the payment method stays locked, as earlier callbacks left it, passed on unchanged since only an explicit false unlocks.
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The paying user, or 0 for a guest.
-	 *
-	 * @return  mixed
-	 */
-	public function unlock_member_methods( mixed $lock, string $gateway_id, int $user_id ): mixed {
-		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
+	public function get_granted_ids( int $plan_id ): array {
+		return Grants::get( self::ID, $plan_id );
 	}
 
 	// endregion

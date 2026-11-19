@@ -36,7 +36,9 @@ add_action(
 add_action(
 	'before_woocommerce_init',
 	static function (): void {
-		FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_IC_FILE, true );
+		if ( class_exists( FeaturesUtil::class ) ) { // WooCommerce fires the hook in releases older than the class, below the floor the boot checks later.
+			FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_IC_FILE, true );
+		}
 	}
 );
 add_action(

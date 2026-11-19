@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\EditScreen\Stores\GrantsStore;
+use DeepWebSolutions\LockedPaymentMethods\Grants;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
@@ -12,6 +14,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooCommerce\EditScreen\Hosts\OrderMetaBox;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -21,8 +24,18 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\WooC
  * @since   2.0.0
  * @version 2.0.0
  */
-final class OrderStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface {
+final class OrderStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface, \DWS_LPMWC_Grant_Strategy {
 	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The strategy's id.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string ID = 'order';
 
 	/**
 	 * The order box's form id.
@@ -33,16 +46,6 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 * @var     string
 	 */
 	protected const string FORM = Plugin::PREFIX . '_order';
-
-	/**
-	 * The order meta that holds the ids of the payment methods unlocked for paying the order.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	protected const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
 
 	// endregion
 
@@ -85,8 +88,9 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_granted_methods' ), 10, 4 );
-		new ObjectForm( $this->identity, self::FORM, $this, new OrderMetaBox( array( 'shop_order' ), 'side' ), $this->notices )->register_hooks();
+		UnlockStrategies::register( $this );
+		$host = new OrderMetaBox( array( 'shop_order' ), 'side' );
+		new ObjectForm( $this->identity, self::FORM, $this, $host, $this->notices, new GrantsStore( self::ID, $host->get_default_store() ) )->register_hooks();
 	}
 
 	/**
@@ -97,24 +101,102 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
+		$form  = array(
+			'title'      => _x( 'Locked Payment Methods', 'settings', 'locked-payment-methods-for-woocommerce' ),
+			'capability' => Capabilities::UNLOCK_VIA_ORDERS,
+			'fields'     => array(),
+		);
 		$order = wc_get_order( $object_id );
+		if ( ! $order instanceof \WC_Order ) {
+			return $form;
+		}
+
 		$field = array(
 			'type'    => 'checkboxes',
-			'id'      => self::META_KEY,
+			'id'      => Grants::FIELD,
 			'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 			'desc'    => __( 'The customer may pay for this order with these methods on its payment page.', 'locked-payment-methods-for-woocommerce' ),
-			'options' => $order instanceof \WC_Order ? GrantChoices::get( self::get_unlocked_ids( $object_id ), $order->get_customer_id() ) : array(),
+			'options' => GrantChoices::get( $this->get_granted_ids( $object_id ), $order->get_customer_id() ),
 		);
-		if ( $order instanceof \WC_Order && $order->is_paid() ) {
+		if ( $order->is_paid() ) {
 			$field['desc']              = __( 'This order is paid, so its unlocked payment methods no longer change.', 'locked-payment-methods-for-woocommerce' );
 			$field['custom_attributes'] = array( 'disabled' => 'disabled' );
 		}
 
-		return array(
-			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
-			'capability' => Capabilities::UNLOCK_VIA_ORDERS,
-			'fields'     => array() === $field['options'] ? array() : array( $field ),
-		);
+		return array( 'fields' => array() === $field['options'] ? array() : array( $field ) ) + $form;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_id(): string {
+		return self::ID;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_label(): string {
+		return _x( 'Orders', 'unlock-strategies', 'locked-payment-methods-for-woocommerce' );
+	}
+
+	/**
+	 * Returns whether the grants list of the order being paid holds the payment method.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $user_id    The paying user, or 0 for a guest.
+	 * @param   int    $order_id   The order being paid, or 0 off its payment page.
+	 *
+	 * @return  bool
+	 */
+	#[\Override]
+	public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool {
+		return \in_array( $gateway_id, $this->get_granted_ids( $order_id ), true );
+	}
+
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_granted_ids( int $subject_id ): array {
+		return Grants::get( self::ID, $subject_id );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function grant( int $subject_id, string ...$gateway_ids ): true|\WP_Error {
+		return Grants::grant( self::ID, $subject_id, $gateway_ids );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function revoke( int $subject_id, string ...$gateway_ids ): true|\WP_Error {
+		return Grants::revoke( self::ID, $subject_id, $gateway_ids );
 	}
 
 	// endregion
@@ -140,57 +222,6 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 
 		$order = wc_get_order( $order_id );
 		return $order instanceof \WC_Order ? $order : null;
-	}
-
-	/**
-	 * Returns whether the order's grants list holds the payment method.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $order_id   The order's id, or 0 for none.
-	 *
-	 * @return  bool
-	 */
-	public static function unlocks( string $gateway_id, int $order_id ): bool {
-		return \in_array( $gateway_id, self::get_unlocked_ids( $order_id ), true );
-	}
-
-	/**
-	 * Returns the ids of the payment methods unlocked for paying an order, none until the plugin has booted.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   int $order_id The order's id.
-	 *
-	 * @return  string[]
-	 */
-	public static function get_unlocked_ids( int $order_id ): array {
-		$ids = self::get_order( $order_id )?->get_meta( self::META_KEY );
-		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
-	}
-
-	// endregion
-
-	// region HOOKS
-
-	/**
-	 * Returns false for a payment method the list of the order being paid holds, and the lock as given otherwise.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed  $lock       Whether the payment method stays locked, as earlier callbacks left it, passed on unchanged since only an explicit false unlocks.
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The paying user, or 0 for a guest.
-	 * @param   int    $order_id   The order being paid, or 0 off the order-pay page.
-	 *
-	 * @return  mixed
-	 */
-	public function unlock_granted_methods( mixed $lock, string $gateway_id, int $user_id, int $order_id ): mixed {
-		return self::unlocks( $gateway_id, $order_id ) ? false : $lock;
 	}
 
 	// endregion

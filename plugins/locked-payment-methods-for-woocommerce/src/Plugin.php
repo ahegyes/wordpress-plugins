@@ -64,6 +64,7 @@ final class Plugin {
 		AdminNotices::class,
 		CapabilityGrants::class,
 		Settings::class,
+		UnlockStrategies::class,
 		UserRoleStrategy::class,
 		UserProfileStrategy::class,
 		OrderStrategy::class,

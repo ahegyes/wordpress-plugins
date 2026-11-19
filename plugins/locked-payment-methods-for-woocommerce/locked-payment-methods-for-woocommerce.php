@@ -4,7 +4,7 @@
  *
  * Plugin Name:          Locked Payment Methods for WooCommerce
  * Plugin URI:           https://github.com/ahegyes/wc-locked-payment-methods
- * Description:          Hides the payment methods you lock from customers at checkout until you unlock them for a user, a role, an order, a group or a membership plan.
+ * Description:          Keeps risky payment methods away from customers a store has not chosen to trust.
  * Version:              2.0.0
  * Requires at least:    7.1
  * Requires PHP:         8.5
@@ -66,7 +66,7 @@ try {
 		'all_admin_notices',
 		static function (): void {
 			if ( current_user_can( 'activate_plugins' ) ) {
-				printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html__( 'Locked Payment Methods for WooCommerce is missing some of its files, so its features stay off until the plugin is reinstalled.', 'locked-payment-methods-for-woocommerce' ) );
+				printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html__( 'Locked Payment Methods for WooCommerce is missing some of its files, so every locked payment method stays hidden from every customer until the plugin is reinstalled.', 'locked-payment-methods-for-woocommerce' ) );
 			}
 		}
 	);

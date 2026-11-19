@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+The grants forms take new ids: the profile, order, Groups and plan forms post under dws_lpmwc_user_profile, dws_lpmwc_order, dws_lpmwc_group and dws_lpmwc_membership_plan, each with its list as dws_lpmwc_unlocked_payment_methods, and the plan tab is dws_lpmwc_membership_plan with the panel dws-lpmwc-membership-plan-data, where v1's were dws_locked_payment_methods and dws-locked-payment-methods-membership-plan-data. The Users column keeps v1's id, dws_lpm_unlocked_for.

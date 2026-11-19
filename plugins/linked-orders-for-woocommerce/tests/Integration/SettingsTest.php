@@ -190,7 +190,8 @@ final class SettingsTest extends TestCase {
 	}
 
 	// A v1 field keyed by its v1 id may name its own option, which the field's id gives.
-	public function test_a_v1_fields_own_id_names_its_option(): void {
+	// v1's WooCommerce settings adapter stored every group field under {group}_{key}, whatever id the field named, where v1's getters read it.
+	public function test_a_field_a_v1_callback_appends_is_stored_under_v1s_name_whatever_id_it_names(): void {
 		$extra = static fn ( array $fields ): array => $fields + array(
 			'extra' => array(
 				'id'    => 'dws_lowc_test_extension_option',
@@ -201,13 +202,17 @@ final class SettingsTest extends TestCase {
 		add_filter( 'linked_orders_for_woocommerce/general_settings/get_group_fields', $extra );
 
 		try {
-			$ids = \array_column( new Settings()->get_section_fields( 'advanced', self::SECTION ), 'id' );
+			$fields = new Settings()->get_section_fields( 'advanced', self::SECTION );
+			\WC_Admin_Settings::save_fields( $fields, array( 'dws-lowc_general_extra' => 'Ship separately.' ) );
+			wp_cache_flush();
+
+			self::assertContains( 'dws-lowc_general_extra', \array_column( $fields, 'id' ) );
+			self::assertNotContains( 'dws_lowc_test_extension_option', \array_column( $fields, 'id' ) );
+			self::assertSame( 'Ship separately.', dws_lowc_get_raw_setting( 'extra', 'general' ) );
 		} finally {
 			remove_filter( 'linked_orders_for_woocommerce/general_settings/get_group_fields', $extra );
+			delete_option( 'dws-lowc_general_extra' );
 		}
-
-		self::assertContains( 'dws_lowc_test_extension_option', $ids );
-		self::assertNotContains( 'dws-lowc_general_extra', $ids );
 	}
 
 	// v1 keyed its row links and named them for screen readers, and other plugins find them by key.

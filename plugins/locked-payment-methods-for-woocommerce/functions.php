@@ -1,6 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Loads the files in includes/, defines the plugin's accessor, boots the plugin on plugins_loaded, declares its WooCommerce feature compatibility, unschedules its jobs on deactivation and fires v1's boot hooks at the earliest priority of the hooks that replace them.
+ * Loads the files in includes/, defines the plugin's accessor and hooks the plugin's boot, deactivation and WooCommerce compatibility.
+ *
+ * It also fires v1's boot hooks at the earliest priority of the hooks that replace them, and adds to a blocked or failed boot's notice that the lock still holds.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -10,6 +12,7 @@
 
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -36,7 +39,9 @@ add_action(
 add_action(
 	'before_woocommerce_init',
 	static function (): void {
-		FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_LPMWC_FILE, true );
+		if ( class_exists( FeaturesUtil::class ) ) { // WooCommerce fires the hook in releases older than the class, below the floor the boot checks later.
+			FeaturesUtil::declare_compatibility( 'custom_order_tables', DWS_LPMWC_FILE, true );
+		}
 	}
 );
 add_action(
@@ -69,6 +74,16 @@ add_action(
 	},
 	PHP_INT_MIN
 );
+$dws_lpmwc_add_lock_notice = static function (): void {
+	add_action(
+		'all_admin_notices',
+		static function (): void {
+			Requirements::print_admin_notice( esc_html__( 'While Locked Payment Methods for WooCommerce is not running, every locked payment method stays hidden from every customer.', 'locked-payment-methods-for-woocommerce' ) );
+		}
+	);
+};
+add_action( 'locked_payment_methods_for_woocommerce/boot/blocked', $dws_lpmwc_add_lock_notice );
+add_action( 'locked_payment_methods_for_woocommerce/boot/failed', $dws_lpmwc_add_lock_notice );
 register_deactivation_hook(
 	DWS_LPMWC_FILE,
 	static function (): void {

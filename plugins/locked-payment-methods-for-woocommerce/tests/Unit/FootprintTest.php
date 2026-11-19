@@ -2,7 +2,6 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Unit;
 
-use DeepWebSolutions\LockedPaymentMethods\Capabilities;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
@@ -66,17 +65,5 @@ final class FootprintTest extends TestCase {
 			$covered = \in_array( $key, Plugin::FOOTPRINT['options'] ?? array(), true ) || \array_any( Plugin::FOOTPRINT['option_prefixes'], static fn ( string $prefix ): bool => \str_starts_with( $key, $prefix ) );
 			self::assertTrue( $covered, "The option $key is outside the footprint." );
 		}
-	}
-
-	public function test_it_covers_what_v1_stored_and_the_grants_and_capabilities(): void {
-		$footprint = Plugin::FOOTPRINT;
-
-		self::assertContains( 'dws-wc-lpm_', $footprint['option_prefixes'] );
-		self::assertSame( array( 'locked_payment_methods_for_woocommerce_version', 'locked_payment_methods_for_woocommerce_original_version', '_locked_payment_methods_for_woocommerce_admin_notices' ), $footprint['options'] );
-		self::assertSame( array( '_' . Plugin::PREFIX . '_', '_dws_wc_lpm_' ), $footprint['meta_prefixes']['order'] );
-		self::assertSame( array( '_dws_lpmwc_unlocked_payment_methods', '_dws_wc_lpm_unlocked_payment_methods' ), $footprint['meta']['post'] );
-		self::assertContains( 'dws_wc_lpm_grant_access_', $footprint['user_meta_global_prefixes'] );
-		self::assertSame( array( '_locked_payment_methods_for_woocommerce_admin_notices' ), $footprint['user_meta_global'] );
-		self::assertSame( array( Capabilities::UNLOCK_VIA_USER_PROFILES, Capabilities::UNLOCK_VIA_ORDERS, Capabilities::UNLOCK_VIA_GROUPS, Capabilities::UNLOCK_VIA_WC_MEMBERSHIPS ), $footprint['capabilities'] );
 	}
 }

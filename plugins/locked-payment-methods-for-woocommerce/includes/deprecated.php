@@ -178,7 +178,7 @@ function dws_lpmwc_min_wp(): string {
  *
  * @api
  *
- * @since       1.0.0
+ * @since       1.2.0
  * @version     2.0.0
  * @deprecated  2.0.0
  *
@@ -193,11 +193,13 @@ function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
 }
 
 /**
- * Returns a hook name under one of v1's components, its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it: the root v1 named the component's hooks under, which is its id with dashes as underscores but for the unlock strategies, which v1 renamed.
+ * Returns a hook name under one of v1's components, as v1 built it.
+ *
+ * Its non-empty parts join with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, under the root v1 named the component's hooks under: its id with dashes as underscores, but for the unlock strategies, which v1 renamed.
  *
  * @api
  *
- * @since       1.0.0
+ * @since       1.2.0
  * @version     2.0.0
  * @deprecated  2.0.0
  *
@@ -254,7 +256,7 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 }
 
 /**
- * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's filter first, and true until the plugin has booted.
+ * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's customer and order filters first, and true until the plugin has booted.
  *
  * @api
  *
@@ -269,7 +271,13 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
  */
 function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_method_id, int $order_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	$order = OrderStrategy::get_order( $order_id );
+	$order    = OrderStrategy::get_order( $order_id );
+	$customer = $order instanceof WC_Order ? $order->get_customer_id() : 0;
+	$lock     = true;
+	if ( 0 < $customer ) {
+		/** This filter is documented in includes/deprecated.php */
+		$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user', array( true, $locked_method_id, $customer ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
+	}
 
 	/**
 	 * Filters whether a payment method stays locked for paying an order.
@@ -282,12 +290,12 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
 	 * @param       string $locked_method_id The payment method's id.
 	 * @param       int    $order_id         The order's id.
 	 */
-	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( true, $locked_method_id, $order_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
-	return Safeguards::should_lock( false !== $lock, $locked_method_id, $order instanceof WC_Order ? $order->get_customer_id() : 0, $order_id );
+	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( false !== $lock, $locked_method_id, $order_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
+	return Safeguards::should_lock( false !== $lock, $locked_method_id, $customer, $order_id );
 }
 
 /**
- * Returns whether the user-profile strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the user-profile strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -302,11 +310,11 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
  */
 function dws_lpmwc_check_payment_method_access_via_user_meta( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( UserProfileStrategy::should_load() && UserProfileStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( UserProfileStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
- * Returns whether the role strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the role strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -321,11 +329,11 @@ function dws_lpmwc_check_payment_method_access_via_user_meta( string $locked_met
  */
 function dws_lpmwc_check_payment_method_access_via_user_roles( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( UserRoleStrategy::should_load() && UserRoleStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( UserRoleStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
- * Returns whether the Groups strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the Groups strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -340,11 +348,11 @@ function dws_lpmwc_check_payment_method_access_via_user_roles( string $locked_me
  */
 function dws_lpmwc_check_payment_method_access_via_groups( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( GroupsStrategy::should_load() && GroupsStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( GroupsStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
- * Returns whether the WooCommerce Memberships strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the WooCommerce Memberships strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -359,7 +367,7 @@ function dws_lpmwc_check_payment_method_access_via_groups( string $locked_method
  */
 function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( WooCommerceMembershipsStrategy::should_load() && WooCommerceMembershipsStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( WooCommerceMembershipsStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
@@ -378,11 +386,11 @@ function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locke
  */
 function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked_method_id, int $order_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( OrderStrategy::should_load() && OrderStrategy::unlocks( $locked_method_id, $order_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( OrderStrategy::ID )?->unlocks( $locked_method_id, 0, $order_id ) ?? false );
 }
 
 /**
- * Returns a setting's stored value, by v1's field id and group, or null for an id v1 had no setting for.
+ * Returns a setting's stored value, by v1's field id and group, or null for a group v1 did not have.
  *
  * @api
  *
@@ -402,7 +410,7 @@ function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
 }
 
 /**
- * Returns a setting's value, of the setting's kind, by v1's field id and group, through v1's value filters, or null for an id v1 had no setting for.
+ * Returns a setting's value, of the setting's kind, by v1's field id and group, through v1's value filters, or null for a group v1 did not have.
  *
  * @api
  *
@@ -425,7 +433,7 @@ function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = nul
  *
  * @api
  *
- * @since       1.0.0
+ * @since       1.3.0
  * @version     2.0.0
  * @deprecated  2.0.0
  *

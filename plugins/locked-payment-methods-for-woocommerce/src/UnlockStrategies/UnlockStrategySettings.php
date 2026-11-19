@@ -31,7 +31,7 @@ final class UnlockStrategySettings {
 	// region METHODS
 
 	/**
-	 * Returns the strategies' settings fields, each under the option it stores; an integration's switch is listed only while its plugin is active.
+	 * Returns the strategies' settings fields, each under the option it stores, an integration's switch only while its plugin is active.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

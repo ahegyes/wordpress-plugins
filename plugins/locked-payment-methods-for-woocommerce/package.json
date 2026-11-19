@@ -1,7 +1,7 @@
 {
 	"name": "@ahegyes/locked-payment-methods-for-woocommerce",
 	"private": true,
-	"description": "Hides the payment methods you lock from customers at checkout until you unlock them for a user, a role, an order, a group or a membership plan.",
+	"description": "Keeps risky payment methods away from customers a store has not chosen to trust.",
 	"license": "GPL-3.0-or-later",
 	"repository": {
 		"type": "git",

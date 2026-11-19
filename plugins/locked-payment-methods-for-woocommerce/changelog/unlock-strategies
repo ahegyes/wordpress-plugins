@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+DWS_LPMWC_Unlock_Strategy, a way of unlocking payment methods that another plugin registers through dws_lpmwc_register_unlock_strategy() on locked_payment_methods_for_woocommerce/boot/succeeded, and dws_lpmwc_get_unlock_strategy() and dws_lpmwc_get_unlock_strategies(), which read the registered ones; the plugin's own register under user_role, user_profile, order, groups and wc_memberships while their checkbox is on, and the Users screen names the one that unlocks each method.

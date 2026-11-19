@@ -10,6 +10,7 @@ parameters:
 		- functions.php
 		- uninstall.php
 		- includes
+		- models
 		- src
 	# phpstan.safeguards.neon analyzes the entry and the safeguards at the oldest runtime they parse on, so this profile only scans them.
 	scanFiles:
@@ -17,7 +18,8 @@ parameters:
 		- Safeguards.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
-		- tests/PHPStan/woocommerce-memberships.php
+		- tests/Support/memberships-functions.php
+		- tests/Support/memberships-loader.php
 	# The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.
 	scanDirectories:
 		- vendor-prefixed

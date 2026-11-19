@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+The order, Groups and WooCommerce Memberships switches and the unlocked payment methods copied from v1 apply whatever v1's license state was, since the premium build's strategies are part of the plugin.
