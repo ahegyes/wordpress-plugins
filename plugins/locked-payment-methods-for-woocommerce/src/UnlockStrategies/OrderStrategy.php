@@ -115,7 +115,7 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 		}
 
 		return array(
-			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
+			'title'      => _x( 'Locked Payment Methods', 'settings', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_ORDERS,
 			'fields'     => array() === $field['options'] ? array() : array( $field ),
 		);

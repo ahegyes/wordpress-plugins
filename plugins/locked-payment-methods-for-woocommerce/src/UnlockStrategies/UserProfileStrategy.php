@@ -130,7 +130,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	public function get_object_form( string $form_id, int $object_id ): array {
 		$options = GrantChoices::get( $this->get_granted_ids( $object_id ), $object_id );
 		return array(
-			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
+			'title'      => _x( 'Locked Payment Methods', 'settings', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_USER_PROFILES,
 			'fields'     => array() === $options ? array() : array(
 				array(

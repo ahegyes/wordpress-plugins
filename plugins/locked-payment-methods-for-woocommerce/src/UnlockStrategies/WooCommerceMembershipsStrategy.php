@@ -103,7 +103,7 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	public function get_object_form( string $form_id, int $object_id ): array {
 		$options = GrantChoices::get( $this->get_granted_ids( $object_id ), 0 );
 		return array(
-			'title'      => __( 'Unlocked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
+			'title'      => _x( 'Unlocked Payment Methods', 'wc-memberships-integration', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_WC_MEMBERSHIPS,
 			'fields'     => array() === $options ? array() : array(
 				array(

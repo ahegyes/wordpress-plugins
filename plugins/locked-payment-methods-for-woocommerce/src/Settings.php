@@ -190,17 +190,17 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 
 		return array(
 			array(
-				'id'       => Options::LOCKED_METHODS,
-				'title'    => __( 'Payment methods which are locked by default', 'locked-payment-methods-for-woocommerce' ),
-				'type'     => 'multiselect',
-				'class'    => 'wc-enhanced-select',
-				'options'  => $choices,
-				'default'  => Options::DEFAULTS[ Options::LOCKED_METHODS ],
-				'desc_tip' => __( 'A disabled payment method stays locked, so it is still locked once it is enabled again.', 'locked-payment-methods-for-woocommerce' ),
+				'id'      => Options::LOCKED_METHODS,
+				'title'   => __( 'Payment methods which are locked by default', 'locked-payment-methods-for-woocommerce' ),
+				'type'    => 'multiselect',
+				'class'   => 'wc-enhanced-select',
+				'options' => $choices,
+				'default' => Options::DEFAULTS[ Options::LOCKED_METHODS ],
+				'desc'    => __( 'A disabled payment method stays locked, so it is still locked once it is enabled again.', 'locked-payment-methods-for-woocommerce' ),
 			),
 			array(
 				'id'      => Options::DELETE_DATA,
-				'title'   => __( 'Remove all data on uninstallation', 'locked-payment-methods-for-woocommerce' ),
+				'title'   => __( 'Remove all data on uninstallation?', 'locked-payment-methods-for-woocommerce' ),
 				'type'    => 'checkbox',
 				'desc'    => __( 'Delete the plugin\'s data when it is uninstalled, so it must be configured again if it is installed later', 'locked-payment-methods-for-woocommerce' ),
 				'default' => Options::DEFAULTS[ Options::DELETE_DATA ],
