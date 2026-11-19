@@ -135,6 +135,10 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		do_action( 'wc_membership_plan_data_panels' );
 		$panel = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 
+		// Memberships' panels print WooCommerce's options-panel rows, whose CSS lays out a group's choices beside its legend only inside a wc-radios list.
+		self::assertSame( 'Unlocked payment methods', \trim( (string) $panel->querySelector( '#dws-lpmwc-membership-plan-data > div.options_group > fieldset.form-field > legend' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertCount( 2, $panel->querySelectorAll( '#dws-lpmwc-membership-plan-data fieldset.form-field > ul.wc-radios[role="presentation"] > li input[type="checkbox"]' ) );
+
 		$choices = array();
 		foreach ( $panel->querySelectorAll( '#dws-lpmwc-membership-plan-data input[type="checkbox"]' ) as $input ) {
 			$choices[ (string) $input->getAttribute( 'value' ) ] = $input->hasAttribute( 'checked' );

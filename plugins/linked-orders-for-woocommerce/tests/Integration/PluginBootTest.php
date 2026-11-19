@@ -94,4 +94,12 @@ final class PluginBootTest extends TestCase {
 
 		self::assertContains( plugin_basename( DWS_LOWC_FILE ), $plugins['compatible'] );
 	}
+
+	// WooCommerce fires before_woocommerce_init in releases older than FeaturesUtil, below the floor the boot checks after this file loads.
+	public function test_the_compatibility_declaration_ends_cleanly_without_features_util(): void {
+		$request = self::request( 'do_action( "before_woocommerce_init" ); echo "ended";', '--skip-plugins=woocommerce' );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( 'ended', $request['last'], $request['output'] );
+	}
 }

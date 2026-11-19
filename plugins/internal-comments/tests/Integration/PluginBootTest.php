@@ -20,6 +20,14 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( array(), $plugin->kernel->skipped );
 	}
 
+	// WooCommerce fires before_woocommerce_init in releases older than FeaturesUtil, which the plugin integrates with only when it is active.
+	public function test_the_compatibility_declaration_ends_cleanly_without_features_util(): void {
+		$request = self::request( 'do_action( "before_woocommerce_init" ); echo "ended";', '--skip-plugins=woocommerce' );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( 'ended', $request['last'], $request['output'] );
+	}
+
 	public function test_the_entry_loads_every_include_but_those_whose_names_start_with_an_underscore(): void {
 		$includes = \dirname( DWS_IC_FILE ) . '/includes/';
 
