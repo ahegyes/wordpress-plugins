@@ -58,14 +58,14 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	protected const string ENTRY = Plugin::PREFIX . '_group';
 
 	/**
-	 * The option that maps each Groups group's id to the ids of the payment methods unlocked for its members.
+	 * The name of a Groups group's option, which holds the ids of the payment methods unlocked for its members, as a format of the group's id.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @var     string
 	 */
-	protected const string OPTION = 'dws_lpmwc_groups_unlocked_payment_methods';
+	protected const string OPTION = 'dws_lpmwc_group_%d_unlocked_payment_methods';
 
 	// endregion
 
@@ -154,9 +154,8 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			return false;
 		}
 
-		$groups = self::get_unlocked_ids();
 		foreach ( (array) new \Groups_User( $user_id )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
-			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
+			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, self::get_unlocked_ids( (int) $group_id ), true ) ) {
 				return true;
 			}
 		}
@@ -182,23 +181,18 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	}
 
 	/**
-	 * Returns the ids of the payment methods unlocked for each Groups group's members, by group id.
+	 * Returns the ids of the payment methods unlocked for a Groups group's members.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @return  array<int, string[]>
+	 * @param   int $group_id The group's id.
+	 *
+	 * @return  string[]
 	 */
-	public static function get_unlocked_ids(): array {
-		$stored = get_option( self::OPTION, array() );
-		$groups = array();
-		foreach ( \is_array( $stored ) ? $stored : array() as $group_id => $ids ) {
-			if ( \is_int( $group_id ) && \is_array( $ids ) ) {
-				$groups[ $group_id ] = \array_values( \array_filter( $ids, 'is_string' ) );
-			}
-		}
-
-		return $groups;
+	public static function get_unlocked_ids( int $group_id ): array {
+		$ids = get_option( \sprintf( self::OPTION, $group_id ), array() );
+		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
 	}
 
 	// endregion
@@ -222,7 +216,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			return $output;
 		}
 
-		$value = self::get_unlocked_ids()[ $group_id ] ?? array();
+		$value = self::get_unlocked_ids( $group_id );
 		return $output . '<div class="field"><p>' . esc_html( $field['title'] ) . '</p>' . Forms::render_control( $field, $value, self::ENTRY . '[' . self::FIELD . ']', self::FIELD ) . '</div>';
 	}
 
@@ -251,9 +245,13 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			return;
 		}
 
-		$groups              = self::get_unlocked_ids();
-		$groups[ $group_id ] = \is_array( $result['values'][ self::FIELD ] ) ? \array_values( \array_filter( $result['values'][ self::FIELD ], 'is_string' ) ) : array();
-		update_option( self::OPTION, \array_filter( $groups ), true );
+		$option = \sprintf( self::OPTION, $group_id );
+		$ids    = \is_array( $result['values'][ self::FIELD ] ) ? \array_values( \array_filter( $result['values'][ self::FIELD ], 'is_string' ) ) : array();
+		if ( array() === $ids ) {
+			delete_option( $option );
+		} else {
+			update_option( $option, $ids, true );
+		}
 	}
 
 	/**
@@ -267,11 +265,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @return  void
 	 */
 	public function forget_group( int $group_id ): void {
-		$groups = self::get_unlocked_ids();
-		if ( isset( $groups[ $group_id ] ) ) {
-			unset( $groups[ $group_id ] );
-			update_option( self::OPTION, $groups, true );
-		}
+		delete_option( \sprintf( self::OPTION, $group_id ) );
 	}
 
 	// endregion
@@ -306,7 +300,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			'id'      => self::FIELD,
 			'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 			'desc'    => __( 'The group\'s members, and the members of its subgroups, may pay with these methods.', 'locked-payment-methods-for-woocommerce' ),
-			'options' => GrantChoices::get( self::get_unlocked_ids()[ $group_id ] ?? array(), 0 ),
+			'options' => GrantChoices::get( self::get_unlocked_ids( $group_id ), 0 ),
 		);
 	}
 
