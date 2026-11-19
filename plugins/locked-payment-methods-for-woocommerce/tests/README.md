@@ -18,7 +18,7 @@ PHPUnit runs both PHP suites in random order, so each row sets up what it needs 
 - `.wp-env.tests.json` is the tests site on <http://localhost:8827>, as `production`, which the Integration and end-to-end suites share. A row whose separate process changes the database flushes the parent's object cache, and the end-to-end specs set their own preconditions, because either suite may run first.
 - `.wp-env.multisite.json` is a network on <http://localhost:8830>, as `production`, with WooCommerce and the plugin network-activated, where the Integration suite's `multisite` group runs and the default run skips it.
 
-Each starts WordPress on PHP 8.5 with WooCommerce from `vendor/` and WooCommerce's order tables on, and the development and tests sites load Groups from `vendor/` too.
+Each starts WordPress on the PHP its file's `phpVersion` names, with WooCommerce from `vendor/` and WooCommerce's order tables on, and the development and tests sites load Groups from `vendor/` too.
 
 ## Running
 

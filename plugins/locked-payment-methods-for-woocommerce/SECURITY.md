@@ -10,7 +10,7 @@ Only the latest 2.x release receives security fixes. 1.x receives none.
 
 ## Scope
 
-In scope: the plugin's PHP, JavaScript and CSS, its prefixing configuration (`scoper.inc.php`) and its CI workflows.
+In scope: the plugin's PHP, its prefixing configuration (`scoper.inc.php`) and its CI workflows.
 
 Out of scope, reported upstream instead:
 - the wp-framework packages, to `ahegyes/wordpress-framework`;
