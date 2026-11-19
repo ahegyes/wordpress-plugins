@@ -287,7 +287,7 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
 }
 
 /**
- * Returns whether the user-profile strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the user-profile strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -302,11 +302,11 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
  */
 function dws_lpmwc_check_payment_method_access_via_user_meta( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( UserProfileStrategy::should_load() && UserProfileStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( UserProfileStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
- * Returns whether the role strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the role strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -321,11 +321,11 @@ function dws_lpmwc_check_payment_method_access_via_user_meta( string $locked_met
  */
 function dws_lpmwc_check_payment_method_access_via_user_roles( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( UserRoleStrategy::should_load() && UserRoleStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( UserRoleStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
- * Returns whether the Groups strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the Groups strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -340,11 +340,11 @@ function dws_lpmwc_check_payment_method_access_via_user_roles( string $locked_me
  */
 function dws_lpmwc_check_payment_method_access_via_groups( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( GroupsStrategy::should_load() && GroupsStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( GroupsStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
- * Returns whether the WooCommerce Memberships strategy leaves a payment method locked for a user, true while the strategy is off.
+ * Returns whether the WooCommerce Memberships strategy leaves a payment method locked for a user, true while the strategy is off or the plugin has not booted.
  *
  * @api
  *
@@ -359,7 +359,7 @@ function dws_lpmwc_check_payment_method_access_via_groups( string $locked_method
  */
 function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locked_method_id, int $user_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( WooCommerceMembershipsStrategy::should_load() && WooCommerceMembershipsStrategy::unlocks( $locked_method_id, $user_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( WooCommerceMembershipsStrategy::ID )?->unlocks( $locked_method_id, $user_id, 0 ) ?? false );
 }
 
 /**
@@ -378,7 +378,7 @@ function dws_lpmwc_check_payment_method_access_via_wc_memberships( string $locke
  */
 function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked_method_id, int $order_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	return ! ( OrderStrategy::should_load() && OrderStrategy::unlocks( $locked_method_id, $order_id ) );
+	return ! ( dws_lpmwc_get_unlock_strategy( OrderStrategy::ID )?->unlocks( $locked_method_id, 0, $order_id ) ?? false );
 }
 
 /**

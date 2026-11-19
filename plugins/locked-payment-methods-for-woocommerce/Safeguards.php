@@ -70,34 +70,7 @@ final class Safeguards {
 
 					$user_id = get_current_user_id();
 					foreach ( $ids as $id ) {
-						if ( ! isset( $gateways[ $id ] ) ) {
-							continue;
-						}
-
-						/**
-						 * Filters whether a payment method stays locked.
-						 *
-						 * @since       1.0.0
-						 * @version     2.0.0
-						 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
-						 *
-						 * @param       bool   $is_locked Whether the payment method stays locked.
-						 * @param       string $id        The payment method's id.
-						 */
-						$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method', array( true, $id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
-
-						/**
-						 * Filters whether a payment method stays locked, under its id with spaces and backslashes as underscores, stripped of control and non-ASCII bytes and lowercased, as v1 named it.
-						 *
-						 * @since       1.0.0
-						 * @version     2.0.0
-						 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
-						 *
-						 * @param       bool $is_locked Whether the payment method stays locked.
-						 */
-						$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/' . \strtolower( (string) \filter_var( \str_replace( array( ' ', '\\' ), '_', $id ), \FILTER_UNSAFE_RAW, \FILTER_FLAG_STRIP_LOW | \FILTER_FLAG_STRIP_HIGH ) ), array( $lock ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
-
-						if ( self::should_lock( false !== $lock, $id, $user_id, $order_id ) ) {
+						if ( isset( $gateways[ $id ] ) && self::should_lock( true, $id, $user_id, $order_id ) ) {
 							unset( $gateways[ $id ] );
 						}
 					}
@@ -169,10 +142,12 @@ final class Safeguards {
 	/**
 	 * Returns whether a payment method stays locked for a user and an order, which only an explicit false from the plugin's filter relaxes, once the plugin has booted.
 	 *
+	 * It runs v1's lock filters first, as v1's checkout did, so a v1 callback's answer reaches every reader of the lock.
+	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   bool   $lock       Whether the payment method is locked before the plugin's filter runs.
+	 * @param   bool   $lock       Whether the payment method is locked before the filters run.
 	 * @param   string $gateway_id The payment method's id.
 	 * @param   int    $user_id    The paying user, or 0 for a guest.
 	 * @param   int    $order_id   The order being paid, or 0 off the order-pay page.
@@ -180,6 +155,29 @@ final class Safeguards {
 	 * @return  bool
 	 */
 	public static function should_lock( bool $lock, string $gateway_id, int $user_id, int $order_id ): bool {
+		/**
+		 * Filters whether a payment method stays locked.
+		 *
+		 * @since       1.0.0
+		 * @version     2.0.0
+		 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
+		 *
+		 * @param       bool   $is_locked Whether the payment method stays locked.
+		 * @param       string $id        The payment method's id.
+		 */
+		$filtered = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method', array( $lock, $gateway_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
+
+		/**
+		 * Filters whether a payment method stays locked, under its id with spaces and backslashes as underscores, stripped of control and non-ASCII bytes and lowercased, as v1 named it.
+		 *
+		 * @since       1.0.0
+		 * @version     2.0.0
+		 * @deprecated  2.0.0 Use locked_payment_methods_for_woocommerce/payment_method/should_lock.
+		 *
+		 * @param       bool $is_locked Whether the payment method stays locked.
+		 */
+		$filtered = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/' . \strtolower( (string) \filter_var( \str_replace( array( ' ', '\\' ), '_', $gateway_id ), \FILTER_UNSAFE_RAW, \FILTER_FLAG_STRIP_LOW | \FILTER_FLAG_STRIP_HIGH ) ), array( $filtered ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
+
 		/**
 		 * Filters whether a payment method stays locked for a user and an order; an explicit false unlocks it once the plugin has booted.
 		 *
@@ -191,7 +189,7 @@ final class Safeguards {
 		 * @param   int    $user_id    The paying user, or 0 for a guest.
 		 * @param   int    $order_id   The order being paid, or 0 off the order-pay page.
 		 */
-		return ! self::is_relaxed( apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', $lock, $gateway_id, $user_id, $order_id ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
+		return ! self::is_relaxed( apply_filters( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', false !== $filtered, $gateway_id, $user_id, $order_id ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
 	}
 
 	// endregion

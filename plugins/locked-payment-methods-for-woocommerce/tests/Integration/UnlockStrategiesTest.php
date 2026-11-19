@@ -127,7 +127,7 @@ final class UnlockStrategiesTest extends TestCase {
 	}
 
 	public function test_a_strategy_that_throws_is_logged_and_unlocks_nothing(): void {
-		$logger = new class() extends PsrAbstractLogger {
+		$logger     = new class() extends PsrAbstractLogger {
 			public array $records = array();
 
 			public function log( $level, string|\Stringable $message, array $context = array() ): void {

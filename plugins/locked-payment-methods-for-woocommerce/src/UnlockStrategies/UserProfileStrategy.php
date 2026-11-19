@@ -13,6 +13,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -22,8 +23,18 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Sett
  * @since   2.0.0
  * @version 2.0.0
  */
-final class UserProfileStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface {
+final class UserProfileStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface, \DWS_LPMWC_Unlock_Strategy {
 	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The strategy's id.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string ID = 'user_profile';
 
 	/**
 	 * The profile form's id.
@@ -65,12 +76,14 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   PluginIdentity $identity The plugin's identity, which the form takes.
-	 * @param   AdminNotices   $notices  The plugin's admin notices, which report the form's rejections.
+	 * @param   PluginIdentity   $identity   The plugin's identity, which the form takes.
+	 * @param   AdminNotices     $notices    The plugin's admin notices, which report the form's rejections.
+	 * @param   UnlockStrategies $strategies The registered strategies, which name the rule that unlocks a method on the Users screen.
 	 */
 	public function __construct(
 		protected PluginIdentity $identity,
-		protected AdminNotices $notices
+		protected AdminNotices $notices,
+		protected UnlockStrategies $strategies
 	) {}
 
 	// endregion
@@ -96,7 +109,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_granted_methods' ), 10, 3 );
+		UnlockStrategies::register( $this );
 		new ObjectForm( $this->identity, self::FORM, $this, new UserProfile(), $this->notices )->register_hooks();
 		add_filter( 'manage_users_columns', array( $this, 'add_users_column' ) );
 		add_filter( 'manage_users_custom_column', array( $this, 'render_users_column' ), 10, 3 );
@@ -128,9 +141,27 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		);
 	}
 
-	// endregion
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_id(): string {
+		return self::ID;
+	}
 
-	// region METHODS
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_label(): string {
+		return _x( 'User profiles', 'unlock-strategies', 'locked-payment-methods-for-woocommerce' );
+	}
 
 	/**
 	 * Returns whether the user's grants list on the current site holds the payment method.
@@ -139,13 +170,19 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @version 2.0.0
 	 *
 	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The user's id, or 0 for a guest.
+	 * @param   int    $user_id    The paying user, or 0 for a guest.
+	 * @param   int    $order_id   The order being paid, or 0 off its payment page.
 	 *
 	 * @return  bool
 	 */
-	public static function unlocks( string $gateway_id, int $user_id ): bool {
+	#[\Override]
+	public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool {
 		return \in_array( $gateway_id, self::get_unlocked_ids( $user_id ), true );
 	}
+
+	// endregion
+
+	// region METHODS
 
 	/**
 	 * Returns the ids of the payment methods unlocked for a user on the current site, read from the site's own key, since get_user_option() falls back to a key every site shares.
@@ -167,22 +204,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	// region HOOKS
 
 	/**
-	 * Returns false for a payment method the user's grants list holds, and the lock as given otherwise.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed  $lock       Whether the payment method stays locked, as earlier callbacks left it, passed on unchanged since only an explicit false unlocks.
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The paying user, or 0 for a guest.
-	 *
-	 * @return  mixed
-	 */
-	public function unlock_granted_methods( mixed $lock, string $gateway_id, int $user_id ): mixed {
-		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
-	}
-
-	/**
 	 * Adds the column of the locked payment methods' states after the Users screen's role column.
 	 *
 	 * @since   2.0.0
@@ -199,7 +220,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	}
 
 	/**
-	 * Returns a user's cell of the column, one line per locked payment method naming its state for the user.
+	 * Returns a user's cell of the column, one line per locked payment method naming its state for the user and the rule that unlocks it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -215,14 +236,16 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 			return $output;
 		}
 
-		$granted = self::get_unlocked_ids( $user_id );
-		$lines   = array();
+		$lines = array();
 		foreach ( Safeguards::get_locked_payment_method_ids() as $id ) {
-			$state = match ( true ) {
-				\in_array( $id, $granted, true )                    => __( 'unlocked on the profile', 'locked-payment-methods-for-woocommerce' ),
-				! Safeguards::should_lock( true, $id, $user_id, 0 ) => __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ),
-				default                                             => __( 'locked', 'locked-payment-methods-for-woocommerce' ),
-			};
+			if ( Safeguards::should_lock( true, $id, $user_id, 0 ) ) {
+				$state = __( 'locked', 'locked-payment-methods-for-woocommerce' );
+			} else {
+				$rule = $this->strategies->find( $id, $user_id, 0 )?->get_label();
+				/* translators: %s: the name of the rule that unlocks the payment method, such as User roles. */
+				$state = \is_null( $rule ) ? __( 'unlocked by another rule', 'locked-payment-methods-for-woocommerce' ) : \sprintf( __( 'unlocked by %s', 'locked-payment-methods-for-woocommerce' ), $rule );
+			}
+
 			/* translators: 1: payment method title, 2: the payment method's state for the user. */
 			$lines[] = esc_html( \sprintf( __( '%1$s: %2$s', 'locked-payment-methods-for-woocommerce' ), GrantChoices::get_payment_method_title( $id ), $state ) );
 		}

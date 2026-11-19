@@ -6,6 +6,7 @@ use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -15,7 +16,21 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
  * @since   2.0.0
  * @version 2.0.0
  */
-final class UserRoleStrategy implements ComponentInterface, ConditionalComponentInterface {
+final class UserRoleStrategy implements ComponentInterface, ConditionalComponentInterface, \DWS_LPMWC_Unlock_Strategy {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The strategy's id.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string ID = 'user_role';
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -37,12 +52,30 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_for_full_access_roles' ), 10, 3 );
+		UnlockStrategies::register( $this );
 	}
 
-	// endregion
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_id(): string {
+		return self::ID;
+	}
 
-	// region METHODS
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_label(): string {
+		return _x( 'User roles', 'unlock-strategies', 'locked-payment-methods-for-woocommerce' );
+	}
 
 	/**
 	 * Returns whether the user holds one of the full-access roles, which unlocks every locked payment method.
@@ -51,11 +84,13 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 	 * @version 2.0.0
 	 *
 	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The user's id, or 0 for a guest.
+	 * @param   int    $user_id    The paying user, or 0 for a guest.
+	 * @param   int    $order_id   The order being paid, or 0 off its payment page.
 	 *
 	 * @return  bool
 	 */
-	public static function unlocks( string $gateway_id, int $user_id ): bool {
+	#[\Override]
+	public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool {
 		$user = get_userdata( $user_id );
 		if ( ! $user instanceof \WP_User ) {
 			return false;
@@ -63,26 +98,6 @@ final class UserRoleStrategy implements ComponentInterface, ConditionalComponent
 
 		$roles = Safeguards::apply_v1_setting_filter( Options::get_list( Options::FULL_ACCESS_ROLES ), 'general', 'full-access-user-roles', 'option_' . Options::FULL_ACCESS_ROLES );
 		return \is_array( $roles ) && array() !== \array_intersect( $user->roles, \array_filter( $roles, 'is_string' ) );
-	}
-
-	// endregion
-
-	// region HOOKS
-
-	/**
-	 * Returns false for a user holding one of the full-access roles, and the lock as given otherwise.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed  $lock       Whether the payment method stays locked, as earlier callbacks left it, passed on unchanged since only an explicit false unlocks.
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The paying user, or 0 for a guest.
-	 *
-	 * @return  mixed
-	 */
-	public function unlock_for_full_access_roles( mixed $lock, string $gateway_id, int $user_id ): mixed {
-		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
 	}
 
 	// endregion

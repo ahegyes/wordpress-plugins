@@ -10,6 +10,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -33,6 +34,8 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	protected static array $hooks = array();
 
+	protected static array $registered = array();
+
 	protected static array $users = array();
 
 	protected int $plan;
@@ -42,9 +45,10 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		register_post_type( 'wc_membership_plan' );
-		$identity       = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
-		self::$strategy = new WooCommerceMembershipsStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
-		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
+		$identity         = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
+		self::$strategy   = new WooCommerceMembershipsStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
+		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
+		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'customer', 'subscriber' ) as $role ) {
 			self::$users[ $role ] = (int) wp_insert_user(
@@ -65,6 +69,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		}
 		unregister_post_type( 'wc_membership_plan' );
 		$GLOBALS['wp_filter'] = self::$hooks;
+		new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->setValue( null, self::$registered );
 	}
 
 	// The form evaluates its definition and saves an object once per request, so every row edits a plan of its own.

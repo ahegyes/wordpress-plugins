@@ -10,6 +10,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Settings\Forms;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -23,8 +24,18 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Sett
  *
  * @phpstan-import-type Field from Forms
  */
-final class GroupsStrategy implements ComponentInterface, ConditionalComponentInterface {
+final class GroupsStrategy implements ComponentInterface, ConditionalComponentInterface, \DWS_LPMWC_Unlock_Strategy {
 	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The strategy's id.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const string ID = 'groups';
 
 	/**
 	 * The field's id, under which it posts inside the plugin's entry of Groups' form.
@@ -95,12 +106,62 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', array( $this, 'unlock_group_methods' ), 10, 3 );
+		UnlockStrategies::register( $this );
 		add_filter( 'groups_admin_groups_add_form_after_fields', array( $this, 'render_group_field' ), 999 );
 		add_filter( 'groups_admin_groups_edit_form_after_fields', array( $this, 'render_group_field' ), 999, 2 );
 		add_action( 'groups_admin_groups_add_submit_success', array( $this, 'save_group_field' ) );
 		add_action( 'groups_admin_groups_edit_submit_success', array( $this, 'save_group_field' ) );
 		add_action( 'groups_deleted_group', array( $this, 'forget_group' ) );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_id(): string {
+		return self::ID;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function get_label(): string {
+		return _x( 'Groups', 'unlock-strategies', 'locked-payment-methods-for-woocommerce' );
+	}
+
+	/**
+	 * Returns whether a group of the user, or a group above one, unlocks the payment method.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $gateway_id The payment method's id.
+	 * @param   int    $user_id    The paying user, or 0 for a guest.
+	 * @param   int    $order_id   The order being paid, or 0 off its payment page.
+	 *
+	 * @return  bool
+	 */
+	#[\Override]
+	public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool {
+		if ( 0 === $user_id ) {
+			return false;
+		}
+
+		$groups = self::get_unlocked_ids();
+		foreach ( (array) new \Groups_User( $user_id )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
+			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// endregion
@@ -118,32 +179,6 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	public static function is_available(): bool {
 		$version = \defined( 'GROUPS_CORE_VERSION' ) ? \constant( 'GROUPS_CORE_VERSION' ) : null;
 		return \is_string( $version ) && \class_exists( \Groups_User::class ) && \version_compare( $version, '2.11.0', '>=' );
-	}
-
-	/**
-	 * Returns whether a group of the user, or a group above one, unlocks the payment method.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The user's id, or 0 for a guest.
-	 *
-	 * @return  bool
-	 */
-	public static function unlocks( string $gateway_id, int $user_id ): bool {
-		if ( 0 === $user_id ) {
-			return false;
-		}
-
-		$groups = self::get_unlocked_ids();
-		foreach ( (array) new \Groups_User( $user_id )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
-			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $groups[ (int) $group_id ] ?? array(), true ) ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/**
@@ -169,22 +204,6 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	// endregion
 
 	// region HOOKS
-
-	/**
-	 * Returns false for a payment method a group of the user, or a group above one, unlocks, and the lock as given otherwise.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed  $lock       Whether the payment method stays locked, as earlier callbacks left it, passed on unchanged since only an explicit false unlocks.
-	 * @param   string $gateway_id The payment method's id.
-	 * @param   int    $user_id    The paying user, or 0 for a guest.
-	 *
-	 * @return  mixed
-	 */
-	public function unlock_group_methods( mixed $lock, string $gateway_id, int $user_id ): mixed {
-		return self::unlocks( $gateway_id, $user_id ) ? false : $lock;
-	}
 
 	/**
 	 * Returns Groups' form markup with the field appended, for a user holding both the plugin's and Groups' capability.

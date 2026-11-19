@@ -12,6 +12,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLo
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -33,15 +34,18 @@ final class OrderStrategyTest extends TestCase {
 
 	protected static array $hooks = array();
 
+	protected static array $registered = array();
+
 	protected static int $admin;
 
 	// Orders are off by default, so the booted plugin runs no order strategy; the class hooks one of its own, as the plugin does with the switch on.
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		$identity       = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
-		self::$strategy = new OrderStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
-		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
+		$identity         = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
+		self::$strategy   = new OrderStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
+		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
+		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
 		self::$strategy->register_hooks();
 		self::$admin = (int) wp_insert_user(
 			array(
@@ -57,6 +61,7 @@ final class OrderStrategyTest extends TestCase {
 	public static function tearDownAfterClass(): void {
 		wp_delete_user( self::$admin );
 		$GLOBALS['wp_filter'] = self::$hooks;
+		new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->setValue( null, self::$registered );
 	}
 
 	#[Before]

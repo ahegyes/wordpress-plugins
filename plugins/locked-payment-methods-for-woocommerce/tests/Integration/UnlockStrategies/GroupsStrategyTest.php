@@ -9,6 +9,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
@@ -27,6 +28,8 @@ final class GroupsStrategyTest extends TestCase {
 
 	protected static array $hooks = array();
 
+	protected static array $registered = array();
+
 	protected static array $users = array();
 
 	protected array $groups = array();
@@ -35,8 +38,9 @@ final class GroupsStrategyTest extends TestCase {
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		self::$strategy = new GroupsStrategy( new AdminNotices( new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new PsrNullLogger() ) );
-		self::$hooks    = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
+		self::$strategy   = new GroupsStrategy( new AdminNotices( new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new PsrNullLogger() ) );
+		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
+		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'shop_manager', 'customer', 'subscriber' ) as $role ) {
 			self::$users[ $role ] = (int) wp_insert_user(
@@ -56,6 +60,7 @@ final class GroupsStrategyTest extends TestCase {
 			wp_delete_user( $user );
 		}
 		$GLOBALS['wp_filter'] = self::$hooks;
+		new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->setValue( null, self::$registered );
 	}
 
 	#[Before]
