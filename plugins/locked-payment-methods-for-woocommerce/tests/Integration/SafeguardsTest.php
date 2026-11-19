@@ -174,11 +174,20 @@ final class SafeguardsTest extends TestCase {
 		$available = self::available();
 		self::assertArrayNotHasKey( 'cod', $available );
 		self::assertArrayHasKey( 'bacs', $available );
+	}
 
+	// v1 locked the gateway a list stored as one string names, so the lock fails closed on it.
+	public function test_a_list_stored_as_one_string_locks_the_method_it_names(): void {
 		update_option( Options::LOCKED_METHODS, 'bacs' );
 		$available = self::available();
-		self::assertArrayHasKey( 'bacs', $available );
+		self::assertArrayNotHasKey( 'bacs', $available );
 		self::assertArrayHasKey( 'cod', $available );
+
+		delete_option( Options::LOCKED_METHODS );
+		update_option( self::V1_KEY, 'cod' );
+		$available = self::available();
+		self::assertArrayNotHasKey( 'cod', $available );
+		self::assertArrayHasKey( 'bacs', $available );
 	}
 
 	public function test_the_locked_ids_filter_locks_more_methods_but_cannot_unlock_the_stored_ones(): void {

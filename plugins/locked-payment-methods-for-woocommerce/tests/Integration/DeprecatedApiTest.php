@@ -188,25 +188,32 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
 	}
 
-	public function test_v1s_order_access_check_judges_the_order_and_its_customer_after_v1s_filter(): void {
+	public function test_v1s_order_access_check_judges_the_order_and_its_customer_after_v1s_customer_and_order_filters(): void {
 		$order    = wc_create_order( array( 'customer_id' => self::$users['shop_manager'] ) );
 		$order_id = $order->get_id();
 		$v1       = 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order';
+		$v1_user  = 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user';
 		$seen     = array();
 		$spy      = static function ( mixed ...$args ) use ( &$seen ): mixed {
 			$seen[] = $args;
 			return $args[0];
 		};
+		$guest    = wc_create_order();
+		$guest_id = $guest->get_id();
 		add_filter( $v1, $spy, 10, 3 );
+		add_filter( $v1_user, $spy, 10, 3 );
 
 		try {
 			self::assertFalse( dws_lpmwc_check_payment_method_access_for_wc_order( 'cod', $order_id ) );
+			self::assertTrue( dws_lpmwc_check_payment_method_access_for_wc_order( 'cod', $guest_id ) );
 		} finally {
+			remove_filter( $v1_user, $spy );
 			remove_filter( $v1, $spy );
 			$order->delete( true );
+			$guest->delete( true );
 		}
 
-		self::assertSame( array( array( true, 'cod', $order_id ) ), $seen );
+		self::assertSame( array( array( true, 'cod', self::$users['shop_manager'] ), array( true, 'cod', $order_id ), array( true, 'cod', $guest_id ) ), $seen );
 		self::assertContains( array( $v1, 'locked_payment_methods_for_woocommerce/payment_method/should_lock' ), $this->deprecated );
 	}
 
@@ -279,7 +286,7 @@ final class DeprecatedApiTest extends TestCase {
 			self::assertSame( 'yes', dws_lpmwc_get_raw_setting( 'unlock-via-user-role', 'general' ) );
 			self::assertFalse( dws_lpmwc_validate_setting( 'maybe-not', 'remove-data-uninstall', 'plugin' ) );
 			self::assertSame( array( 'bacs' ), dws_lpmwc_validate_setting( array( 'bacs', 7 ), 'locked-payment-methods', 'general' ) );
-			self::assertNull( dws_lpmwc_get_validated_setting( 'unknown', 'general' ) );
+			self::assertNull( dws_lpmwc_get_validated_setting( 'unknown', 'unknown' ) );
 		} finally {
 			remove_filter( $group, $through );
 		}
@@ -292,5 +299,60 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option() on ' . Options::FULL_ACCESS_ROLES ), $this->deprecated );
 		self::assertContains( array( 'dws_lpmwc_get_raw_setting', 'get_option() on ' . Options::UNLOCK_VIA_USER_ROLES ), $this->deprecated );
 		self::assertContains( array( 'dws_lpmwc_get_validated_setting', 'get_option()' ), $this->deprecated );
+	}
+
+	public function test_v1s_setting_readers_take_a_group_with_its_settings_suffix_and_read_a_field_an_extension_added(): void {
+		update_option( Options::UNLOCK_VIA_USER_ROLES, 'yes' );
+		update_option( 'dws-wc-lpm_general_acme-note', 'Ask for a deposit.' );
+
+		try {
+			self::assertTrue( dws_lpmwc_get_validated_setting( 'unlock-via-user-role', 'general-settings' ) );
+			self::assertSame( 'yes', dws_lpmwc_get_raw_setting( 'unlock-via-user-role', 'general-settings' ) );
+			self::assertSame( 'Ask for a deposit.', dws_lpmwc_get_raw_setting( 'acme-note', 'general' ) );
+			self::assertSame( 'Ask for a deposit.', dws_lpmwc_get_validated_setting( 'general/acme-note' ) );
+			self::assertNull( dws_lpmwc_get_raw_setting( 'acme-missing', 'general' ) );
+		} finally {
+			delete_option( 'dws-wc-lpm_general_acme-note' );
+		}
+
+		self::assertContains( array( 'dws_lpmwc_get_raw_setting', 'get_option() on dws-wc-lpm_general_acme-note' ), $this->deprecated );
+	}
+
+	public function test_v1s_validator_gives_a_null_value_the_settings_default(): void {
+		self::assertTrue( dws_lpmwc_validate_setting( null, 'unlock-via-user-meta', 'general' ) );
+		self::assertFalse( dws_lpmwc_validate_setting( null, 'remove-data-uninstall', 'plugin' ) );
+		self::assertSame( Options::DEFAULTS[ Options::FULL_ACCESS_ROLES ], dws_lpmwc_validate_setting( null, 'full-access-user-roles', 'general' ) );
+	}
+
+	// v1's groups resolved a page-level read at priority 10 inside the page's filter, so a callback before it sees null and one after it sees the group's value.
+	public function test_v1s_page_level_read_resolves_its_group_at_v1s_priority_inside_v1s_filter(): void {
+		update_option( Options::FULL_ACCESS_ROLES, array( 'shop_manager' ) );
+		$page   = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
+		$seen   = array();
+		$before = static function ( mixed $value ) use ( &$seen ): mixed {
+			$seen['before'] = $value;
+			return $value;
+		};
+		$after  = static function ( mixed $value ) use ( &$seen ): mixed {
+			$seen['after'] = $value;
+			return $value;
+		};
+		add_filter( $page, $before, 9 );
+		add_filter( $page, $after, 11 );
+
+		try {
+			self::assertSame( array( 'shop_manager' ), dws_lpmwc_get_validated_setting( 'general/full-access-user-roles' ) );
+		} finally {
+			remove_filter( $page, $after, 11 );
+			remove_filter( $page, $before, 9 );
+		}
+
+		self::assertSame(
+			array(
+				'before' => null,
+				'after'  => array( 'shop_manager' ),
+			),
+			$seen
+		);
 	}
 }

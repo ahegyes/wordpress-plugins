@@ -114,7 +114,7 @@ final class MigrationsTest extends TestCase {
 		self::assertSame( array(), get_option( Options::LOCKED_METHODS ) );
 	}
 
-	public function test_the_step_stores_the_default_for_a_v1_value_of_the_wrong_kind(): void {
+	public function test_the_step_reads_a_lone_v1_string_as_a_list_and_stores_the_default_for_a_value_of_the_wrong_kind(): void {
 		foreach ( self::KEYS as $key ) {
 			delete_option( $key );
 		}
@@ -126,7 +126,7 @@ final class MigrationsTest extends TestCase {
 		Migrations::get_steps()[1]();
 
 		self::assertSame( 'yes', get_option( Options::UNLOCK_VIA_USER_ROLES ) );
-		self::assertSame( array(), get_option( Options::LOCKED_METHODS ) );
+		self::assertSame( array( 'cod' ), get_option( Options::LOCKED_METHODS ) );
 		self::assertSame( array( 'editor' ), get_option( Options::FULL_ACCESS_ROLES ) );
 	}
 
