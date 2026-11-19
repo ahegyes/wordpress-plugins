@@ -1,0 +1,4 @@
+Significance: patch
+Type: fixed
+
+dws_ic_create_internal_comment() stores a reply only under an internal comment of the same post and returns null otherwise, as the meta box already required, since a reply under any other comment showed in no thread.

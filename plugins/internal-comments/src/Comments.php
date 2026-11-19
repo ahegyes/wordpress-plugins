@@ -260,6 +260,22 @@ final class Comments implements ComponentInterface {
 		return \is_int( $replies ) && 0 < $replies;
 	}
 
+	/**
+	 * Returns whether a comment can parent an internal comment on a post, which only an internal comment of that post can.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $parent_id The parent's id.
+	 * @param   int $post_id   The id of the reply's post.
+	 *
+	 * @return  bool
+	 */
+	public static function is_valid_parent( int $parent_id, int $post_id ): bool {
+		$parent = dws_ic_get_comment( $parent_id );
+		return ! \is_null( $parent ) && self::TYPE === $parent->comment_type && (int) $parent->comment_post_ID === $post_id;
+	}
+
 	// endregion
 
 	// region HOOKS
