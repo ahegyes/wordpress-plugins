@@ -78,6 +78,7 @@ final class Migrations {
 			}
 
 			if ( 'list' === $kind ) {
+				$v1    = \is_string( $v1 ) && '' !== $v1 ? array( $v1 ) : $v1; // v1 read a list stored as one string as that one id.
 				$value = \is_array( $v1 ) ? \array_values( \array_filter( $v1, 'is_string' ) ) : null;
 			} else {
 				$enabled = \filter_var( $v1, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE );

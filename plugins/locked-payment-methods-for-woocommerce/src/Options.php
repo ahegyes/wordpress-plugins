@@ -186,13 +186,15 @@ final class Options {
 	}
 
 	/**
-	 * Returns v1's group and field ids and the plugin's option for one of v1's settings, or null for an id v1 had no setting for.
+	 * Returns v1's group and field ids and the option for one of v1's settings, or null for a group v1 did not have.
+	 *
+	 * As in v1, a read without a group names the group in the field id, such as 'general/locked-payment-methods', and a field an extension adds to a group lives in the option the section stores it in, dws-wc-lpm_{group}_{id}.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   string      $field_id v1's id of the setting, prefixed with its group and a slash when the group is null.
-	 * @param   string|null $group    v1's id of the setting's group.
+	 * @param   string|null $group    v1's id of the setting's group, with or without its '-settings' suffix.
 	 *
 	 * @return  array{group: string, field: string, key: string}|null
 	 */
@@ -205,12 +207,12 @@ final class Options {
 			list( $group, $field_id ) = $parts;
 		}
 
-		$key = self::V1_SETTINGS[ $group ][ $field_id ] ?? null;
-		return \is_null( $key ) ? null : array(
+		$group = \str_ends_with( $group, '-settings' ) ? \substr( $group, 0, -9 ) : $group;
+		return isset( self::V1_SETTINGS[ $group ] ) ? array(
 			'group' => $group,
 			'field' => $field_id,
-			'key'   => $key,
-		);
+			'key'   => self::V1_SETTINGS[ $group ][ $field_id ] ?? "dws-wc-lpm_{$group}_$field_id",
+		) : null;
 	}
 
 	// endregion
@@ -232,7 +234,7 @@ final class Options {
 	}
 
 	/**
-	 * Returns a setting's value as v1's settings read it: through v1's page filter when the group is null, then validated through its group's filter, or null for an id v1 had no setting for.
+	 * Returns a setting's value as v1's settings read it: validated through its group's filter, within v1's page filter when the group is null, or null for a group v1 did not have.
 	 *
 	 * @since       2.0.0
 	 * @version     2.0.0
@@ -249,30 +251,36 @@ final class Options {
 		$replacement = match ( $key ) {
 			null                 => 'get_option',
 			self::LOCKED_METHODS => 'locked_payment_methods_for_woocommerce/payment_method/locked_ids',
-			default              => "option_{$key}",
+			default              => "option_$key",
 		};
-		if ( \is_null( $group ) ) {
+		$read = static fn (): mixed => \is_null( $setting ) ? null : Safeguards::apply_v1_setting_filter( self::validate_setting( get_option( $setting['key'], null ), $setting['key'] ), $setting['group'], $setting['field'], $replacement );
+		$page = 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value';
+		if ( ! \is_null( $group ) || ! has_filter( $page ) ) {
+			return $read();
+		}
+
+		// v1's groups hooked their resolver at priority 10 as the plugin loaded, before the callbacks at 10 that code loaded later adds, and a callback may read another setting inside the filter, so the resolver runs at 9 and answers only its own field.
+		$resolve = static fn ( mixed $value, string $id ): mixed => \is_null( $value ) && $field_id === $id ? $read() : $value;
+		add_filter( $page, $resolve, 9, 2 );
+		try {
 			/**
-			 * Filters a setting's value, by its group-prefixed v1 id, before its group reads it.
+			 * Filters a setting's value, by its group-prefixed v1 id, as v1's settings page read it.
 			 *
 			 * @since       1.0.0
 			 * @version     2.0.0
 			 * @deprecated  2.0.0 Use the hook the deprecation notice names.
 			 *
-			 * @param       mixed  $value    Null, or the value a callback answers.
+			 * @param       mixed  $value    Null, or the value a callback answers, which the setting's group resolves at priority 9.
 			 * @param       string $field_id v1's id of the setting, prefixed with its group and a slash.
 			 */
-			$value = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value', array( null, $field_id ), '2.0.0', $replacement );
-			if ( ! \is_null( $value ) ) {
-				return $value;
-			}
+			return apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/settings/get_validated_option_value', array( null, $field_id ), '2.0.0', $replacement );
+		} finally {
+			remove_filter( $page, $resolve, 9 );
 		}
-
-		return \is_null( $setting ) ? null : Safeguards::apply_v1_setting_filter( self::validate_setting( get_option( $setting['key'], null ), $setting['key'] ), $setting['group'], $setting['field'], $replacement );
 	}
 
 	/**
-	 * Returns a value as a setting's kind, a boolean for a switch and a list of strings for a list, or the setting's default.
+	 * Returns a value as a setting's kind, a boolean for a switch and a list of strings for a list, or the setting's default, and an extension's field's value as given.
 	 *
 	 * @since       2.0.0
 	 * @version     2.0.0
@@ -284,9 +292,13 @@ final class Options {
 	 * @return      mixed
 	 */
 	public static function validate_setting( mixed $value, string $key ): mixed {
-		$default = self::DEFAULTS[ $key ] ?? null;
+		if ( ! \array_key_exists( $key, self::DEFAULTS ) ) {
+			return $value;
+		}
+
+		$default = self::DEFAULTS[ $key ];
 		if ( ! \is_array( $default ) ) {
-			return \filter_var( $value, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ?? \filter_var( $default, \FILTER_VALIDATE_BOOL );
+			return \filter_var( $value ?? $default, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE ) ?? \filter_var( $default, \FILTER_VALIDATE_BOOL );
 		}
 
 		return \is_array( $value ) ? \array_values( \array_filter( $value, 'is_string' ) ) : $default;

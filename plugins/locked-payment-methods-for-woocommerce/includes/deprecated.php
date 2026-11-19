@@ -254,7 +254,7 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
 }
 
 /**
- * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's filter first, and true until the plugin has booted.
+ * Returns whether a payment method stays locked for paying an order, as the plugin's strategies judge it for the order and its customer, firing v1's customer and order filters first, and true until the plugin has booted.
  *
  * @api
  *
@@ -269,7 +269,13 @@ function dws_lpmwc_check_payment_method_access_for_user( string $locked_method_i
  */
 function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_method_id, int $order_id ): bool {
 	_deprecated_function( __FUNCTION__, '2.0.0', 'dws_lpmwc_is_payment_method_locked()' );
-	$order = OrderStrategy::get_order( $order_id );
+	$order    = OrderStrategy::get_order( $order_id );
+	$customer = $order instanceof WC_Order ? $order->get_customer_id() : 0;
+	$lock     = true;
+	if ( 0 < $customer ) {
+		/** This filter is documented in includes/deprecated.php */
+		$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_user', array( true, $locked_method_id, $customer ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
+	}
 
 	/**
 	 * Filters whether a payment method stays locked for paying an order.
@@ -282,8 +288,8 @@ function dws_lpmwc_check_payment_method_access_for_wc_order( string $locked_meth
 	 * @param       string $locked_method_id The payment method's id.
 	 * @param       int    $order_id         The order's id.
 	 */
-	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( true, $locked_method_id, $order_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
-	return Safeguards::should_lock( false !== $lock, $locked_method_id, $order instanceof WC_Order ? $order->get_customer_id() : 0, $order_id );
+	$lock = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/check_payment_method_access_for_wc_order', array( false !== $lock, $locked_method_id, $order_id ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
+	return Safeguards::should_lock( false !== $lock, $locked_method_id, $customer, $order_id );
 }
 
 /**
@@ -382,7 +388,7 @@ function dws_lpmwc_check_payment_method_access_via_wc_order_meta( string $locked
 }
 
 /**
- * Returns a setting's stored value, by v1's field id and group, or null for an id v1 had no setting for.
+ * Returns a setting's stored value, by v1's field id and group, or null for a group v1 did not have.
  *
  * @api
  *
@@ -402,7 +408,7 @@ function dws_lpmwc_get_raw_setting( string $field_id, ?string $group = null ) {
 }
 
 /**
- * Returns a setting's value, of the setting's kind, by v1's field id and group, through v1's value filters, or null for an id v1 had no setting for.
+ * Returns a setting's value, of the setting's kind, by v1's field id and group, through v1's value filters, or null for a group v1 did not have.
  *
  * @api
  *

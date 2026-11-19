@@ -98,7 +98,8 @@ final class Safeguards {
 	 */
 	public static function get_locked_payment_method_ids(): array {
 		$stored = get_option( 'dws_lpmwc_locked_payment_methods' );
-		$ids    = self::add_locked_ids( array(), false === $stored ? get_option( 'dws-wc-lpm_general_locked-payment-methods' ) : $stored );
+		$stored = false === $stored ? get_option( 'dws-wc-lpm_general_locked-payment-methods' ) : $stored;
+		$ids    = self::add_locked_ids( array(), \is_string( $stored ) && '' !== $stored ? array( $stored ) : $stored ); // v1 locked the gateway a list stored as one string names, so the lock fails closed on it.
 		$ids    = self::add_locked_ids( $ids, self::apply_v1_setting_filter( $ids, 'general', 'locked-payment-methods', 'locked_payment_methods_for_woocommerce/payment_method/locked_ids' ) );
 
 		/**
