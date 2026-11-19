@@ -49,14 +49,24 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	protected const string FORM = Plugin::PREFIX . '_user_profile';
 
 	/**
-	 * The Users screen's column, whose id also names the filter's dropdowns.
+	 * The Users screen's column of each user's locked payment methods, under v1's id, which keeps the column's screen options.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @var     string
 	 */
-	protected const string COLUMN = Plugin::PREFIX . '_unlocked_for';
+	protected const string COLUMN = 'dws_lpm_unlocked_for';
+
+	/**
+	 * The Users screen's filter by unlocked payment method, whose two dropdowns post it with a _top or _bottom suffix.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	protected const string FILTER = Plugin::PREFIX . '_unlocked_for';
 
 	// endregion
 
@@ -233,13 +243,13 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $output  The cell's markup so far.
+	 * @param   mixed  $output  The cell's markup so far, which an earlier callback that only echoes its own leaves null.
 	 * @param   string $column  The column's id.
 	 * @param   int    $user_id The user's id.
 	 *
-	 * @return  string
+	 * @return  mixed
 	 */
-	public function render_users_column( string $output, string $column, int $user_id ): string {
+	public function render_users_column( mixed $output, string $column, int $user_id ): mixed {
 		if ( self::COLUMN !== $column ) {
 			return $output;
 		}
@@ -277,14 +287,16 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 			return;
 		}
 
-		$name   = self::COLUMN . "_$which";
+		$name   = self::FILTER . "_$which";
 		$active = $this->get_active_filter();
-		\printf( '<label class="screen-reader-text" for="%1$s">%2$s</label><select name="%1$s" id="%1$s"><option value="">%3$s</option>', esc_attr( $name ), esc_html__( 'Filter by unlocked payment method', 'locked-payment-methods-for-woocommerce' ), esc_html__( 'Unlocked for…', 'locked-payment-methods-for-woocommerce' ) );
+		// Core floats the list table's controls, so one inline block keeps the label, the select and the button together after its role changer.
+		\printf( '<span style="display: inline-block;"><label class="screen-reader-text" for="%1$s">%2$s</label><select name="%1$s" id="%1$s"><option value="">%3$s</option>', esc_attr( $name ), esc_html__( 'Filter by unlocked payment method', 'locked-payment-methods-for-woocommerce' ), esc_html__( 'Unlocked for...', 'locked-payment-methods-for-woocommerce' ) );
 		foreach ( $locked as $id ) {
 			\printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $id ), selected( $active, $id, false ), esc_html( GrantChoices::get_payment_method_title( $id ) ) );
 		}
 		echo '</select>';
-		submit_button( _x( 'Filter', 'users screen', 'locked-payment-methods-for-woocommerce' ), '', $which, false, array( 'id' => "{$name}_submit" ) );
+		submit_button( _x( 'Filter', 'users table', 'locked-payment-methods-for-woocommerce' ), '', $which, false, array( 'id' => "{$name}_submit" ) );
+		echo '</span>';
 	}
 
 	/**
@@ -303,14 +315,21 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 			return $args;
 		}
 
-		$meta_query         = $args['meta_query'] ?? array();
-		$meta_query         = \is_array( $meta_query ) ? $meta_query : array();
-		$meta_query[]       = array(
+		$clause             = array(
 			'key'     => Grants::get_user_key(),
 			'value'   => '"' . $active . '"', // Matches the id as one element of the stored, serialized list.
 			'compare' => 'LIKE',
 		);
-		$args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filter matches a user meta value, which only a meta query reaches.
+		$existing           = $args['meta_query'] ?? array();
+		$args['meta_query'] = array( $clause ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The filter matches a user meta value, which only a meta query reaches.
+		if ( \is_array( $existing ) && array() !== $existing ) {
+			// Another plugin's clauses may join by OR, so they nest whole beside the plugin's own.
+			$args['meta_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The same query, nested.
+				'relation' => 'AND',
+				$existing,
+				$clause,
+			);
+		}
 		return $args;
 	}
 
@@ -328,7 +347,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	protected function get_active_filter(): string {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
-		$name  = self::COLUMN . ( isset( $_GET['bottom'] ) ? '_bottom' : '_top' );
+		$name  = self::FILTER . ( isset( $_GET['bottom'] ) ? '_bottom' : '_top' );
 		$value = isset( $_GET[ $name ] ) && \is_string( $_GET[ $name ] ) ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 

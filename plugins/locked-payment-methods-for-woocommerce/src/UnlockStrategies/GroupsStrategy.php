@@ -185,19 +185,23 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $output   The markup Groups prints after its own fields.
-	 * @param   int    $group_id Optional. The edited group's id. Default 0, on the add form.
+	 * @param   mixed $output   The markup Groups prints after its own fields, which an earlier callback that returns nothing leaves null.
+	 * @param   int   $group_id Optional. The edited group's id. Default 0, on the add form.
 	 *
-	 * @return  string
+	 * @return  mixed
 	 */
-	public function render_group_field( string $output, int $group_id = 0 ): string {
-		$field = $this->get_field( $group_id );
-		if ( ! $this->can_edit() || array() === $field['options'] ) {
+	public function render_group_field( mixed $output, int $group_id = 0 ): mixed {
+		if ( ! $this->can_edit() ) {
 			return $output;
 		}
 
-		$value = $this->get_granted_ids( $group_id );
-		return $output . '<div class="field"><p>' . esc_html( $field['title'] ) . '</p>' . Forms::render_control( $field, $value, self::ENTRY . '[' . Grants::FIELD . ']', Grants::FIELD ) . '</div>';
+		$granted = $this->get_granted_ids( $group_id );
+		$field   = $this->get_field( $granted );
+		if ( array() === $field['options'] ) {
+			return $output;
+		}
+
+		return ( \is_string( $output ) ? $output : '' ) . '<div class="field"><span class="field-label">' . esc_html( $field['title'] ) . '</span>' . Forms::render_control( $field, $granted, self::ENTRY . '[' . Grants::FIELD . ']', Grants::FIELD ) . '</div>';
 	}
 
 	/**
@@ -216,10 +220,14 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		}
 
 		$submitted = isset( $_POST[ self::ENTRY ] ) && \is_array( $_POST[ self::ENTRY ] ) ? wp_unslash( $_POST[ self::ENTRY ] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Groups verified its form's nonce, and Forms::sanitize_fields() sanitizes the field.
-		$field     = $this->get_field( $group_id );
+		$field     = $this->get_field( $this->get_granted_ids( $group_id ) );
 		$result    = Forms::sanitize_fields( array( $field ), $submitted );
 		if ( isset( $result['errors'][ Grants::FIELD ] ) ) {
-			$this->notices->add( new Notice( 'rejection-' . \md5( self::ENTRY . '|' . Grants::FIELD ), esc_html( Forms::get_rejection_message( $field['title'], $result['errors'][ Grants::FIELD ] ) ) ) );
+			// The notice shows on the screen after Groups' own, so it names the group.
+			$group = \Groups_Group::read( $group_id );
+			/* translators: 1: the field's title, 2: the Groups group's name. */
+			$title = \sprintf( __( '%1$s of the group %2$s', 'locked-payment-methods-for-woocommerce' ), $field['title'], \is_object( $group ) && isset( $group->name ) && \is_string( $group->name ) ? $group->name : (string) $group_id );
+			$this->notices->add( new Notice( 'rejection-' . Grants::FIELD, esc_html( Forms::get_rejection_message( $title, $result['errors'][ Grants::FIELD ] ) ) ) );
 		}
 		if ( ! isset( $result['values'][ Grants::FIELD ] ) ) {
 			return;
@@ -264,17 +272,17 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   int $group_id The group's id, or 0 on the add form.
+	 * @param   string[] $granted The ids of the payment methods granted to the group.
 	 *
 	 * @return  array{type: string, id: string, title: string, desc: string, options: array<string, string>}
 	 */
-	protected function get_field( int $group_id ): array {
+	protected function get_field( array $granted ): array {
 		return array(
 			'type'    => 'checkboxes',
 			'id'      => Grants::FIELD,
 			'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 			'desc'    => __( 'The group\'s members, and the members of its subgroups, may pay with these methods.', 'locked-payment-methods-for-woocommerce' ),
-			'options' => GrantChoices::get( $this->get_granted_ids( $group_id ), 0 ),
+			'options' => GrantChoices::get( $granted, 0 ),
 		);
 	}
 

@@ -175,19 +175,26 @@ final class Settings implements ComponentInterface, SectionFieldsDefinitionInter
 	 * @return  list<Field>
 	 */
 	protected function get_fields(): array {
+		$choices = \array_map(
+			static fn ( \WC_Payment_Gateway $gateway ): string => 'yes' === $gateway->enabled // @phpstan-ignore argument.type (WooCommerce's registry holds only WC_Payment_Gateway instances, which its stubs leave untyped.)
+				? $gateway->get_title()
+				/* translators: %s: payment method title. */
+				: \sprintf( __( '%s (disabled)', 'locked-payment-methods-for-woocommerce' ), $gateway->get_title() ),
+			WC()->payment_gateways()->payment_gateways()
+		);
+		// WooCommerce saves only the choices it renders, so a locked method whose plugin is inactive stays a choice, or a save would unlock it.
+		foreach ( Options::get_list( Options::LOCKED_METHODS ) as $id ) {
+			/* translators: %s: payment method id. */
+			$choices[ $id ] ??= \sprintf( __( '%s (not available)', 'locked-payment-methods-for-woocommerce' ), $id );
+		}
+
 		return array(
 			array(
 				'id'       => Options::LOCKED_METHODS,
 				'title'    => __( 'Payment methods which are locked by default', 'locked-payment-methods-for-woocommerce' ),
 				'type'     => 'multiselect',
 				'class'    => 'wc-enhanced-select',
-				'options'  => \array_map(
-					static fn ( \WC_Payment_Gateway $gateway ): string => 'yes' === $gateway->enabled // @phpstan-ignore argument.type (WooCommerce's registry holds only WC_Payment_Gateway instances, which its stubs leave untyped.)
-						? $gateway->get_title()
-						/* translators: %s: payment method title. */
-						: \sprintf( __( '%s (disabled)', 'locked-payment-methods-for-woocommerce' ), $gateway->get_title() ),
-					WC()->payment_gateways()->payment_gateways()
-				),
+				'options'  => $choices,
 				'default'  => Options::DEFAULTS[ Options::LOCKED_METHODS ],
 				'desc_tip' => __( 'A disabled payment method stays locked, so it is still locked once it is enabled again.', 'locked-payment-methods-for-woocommerce' ),
 			),

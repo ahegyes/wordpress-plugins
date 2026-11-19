@@ -121,12 +121,12 @@ final class CommentEditScreen implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string      $html    The status box's further markup.
+	 * @param   mixed       $html    The status box's further markup, which an earlier callback that returns nothing leaves null.
 	 * @param   \WP_Comment $comment The edited comment.
 	 *
-	 * @return  string
+	 * @return  mixed
 	 */
-	public function add_privacy_field( string $html, \WP_Comment $comment ): string {
+	public function add_privacy_field( mixed $html, \WP_Comment $comment ): mixed {
 		$is_private = dws_ic_is_private_comment( $comment );
 		if ( \is_null( $is_private ) || ( ! $is_private && ! Options::get_bool( Options::PRIVATE_COMMENTS ) ) ) {
 			return $html;
@@ -148,7 +148,7 @@ final class CommentEditScreen implements ComponentInterface {
 			<?php endif; ?>
 		</div>
 		<?php
-		return $html . \ob_get_clean();
+		return ( \is_string( $html ) ? $html : '' ) . \ob_get_clean();
 	}
 
 	// endregion

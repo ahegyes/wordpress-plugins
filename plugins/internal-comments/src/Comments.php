@@ -345,12 +345,12 @@ final class Comments implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string      $link    The comment's link.
+	 * @param   mixed       $link    The comment's link, which an earlier callback that returns nothing leaves null.
 	 * @param   \WP_Comment $comment The comment.
 	 *
-	 * @return  string
+	 * @return  mixed
 	 */
-	public function link_to_edit_screen( string $link, \WP_Comment $comment ): string {
+	public function link_to_edit_screen( mixed $link, \WP_Comment $comment ): mixed {
 		if ( self::TYPE !== $comment->comment_type ) {
 			return $link;
 		}
