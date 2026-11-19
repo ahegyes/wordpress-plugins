@@ -153,7 +153,8 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	#[\Override]
 	public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool {
-		if ( 0 === $user_id ) {
+		// Memberships' loader leaves its functions undefined where its own requirements fail.
+		if ( 0 === $user_id || ! \function_exists( 'wc_memberships_get_user_active_memberships' ) ) {
 			return false;
 		}
 
@@ -181,8 +182,9 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 * @return  bool
 	 */
 	public static function is_available(): bool {
+		// Memberships defines its functions on plugins_loaded at priority 15, after the boot, so the loader its main file declares tells that it is active.
 		$version = get_option( 'wc_memberships_version', '0.0.0' );
-		return \function_exists( 'wc_memberships_get_user_active_memberships' ) && \is_string( $version ) && \version_compare( $version, '1.18.0', '>=' );
+		return \class_exists( \WC_Memberships_Loader::class ) && \is_string( $version ) && \version_compare( $version, '1.18.0', '>=' );
 	}
 
 	/**

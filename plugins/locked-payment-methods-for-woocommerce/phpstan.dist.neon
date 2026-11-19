@@ -19,6 +19,7 @@ parameters:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
 		- tests/PHPStan/woocommerce-memberships.php
+		- tests/Support/memberships-loader.php
 	# The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.
 	scanDirectories:
 		- vendor-prefixed
