@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+The Users screen's filter by unlocked payment method narrows only the users list, where v1's narrowed every user query on that screen, and its dropdowns post dws_lpmwc_unlocked_for_top and dws_lpmwc_unlocked_for_bottom, where v1's posted dws_wc_lpm_filter_top and dws_wc_lpm_filter_bottom.

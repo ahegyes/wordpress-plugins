@@ -8,7 +8,7 @@ Requires PHP: 8.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Hides the payment methods you lock from customers at checkout until you unlock them for a user, a role, an order, a group or a membership plan.
+Keeps risky payment methods away from customers a store has not chosen to trust.
 
 == Description ==
 
@@ -64,7 +64,7 @@ Any payment method registered with WooCommerce, disabled ones included. A locked
 
 = Are unlocked payment methods shared across a multisite network? =
 
-No. A customer's unlocked payment methods are kept per site, so unlocking a payment method for a customer on one store of a network leaves it locked on the others. Payment methods unlocked before version 2.0.0 keep applying on every site.
+No. A customer's unlocked payment methods are kept per site, so unlocking a payment method for a customer on one store of a network leaves it locked on the others. Payment methods unlocked before version 2.0.0 keep applying on every site the network had when it updated to 2.0.0.
 
 = How can I get help if I'm stuck? =
 
@@ -79,7 +79,7 @@ You can open a community support ticket here at [wordpress.org](https://wordpres
 == Upgrade Notice ==
 
 = 2.0.0 =
-Requires PHP 8.5, WordPress 7.1 and WooCommerce 11.3. Settings move to WooCommerce → Settings → Advanced, and a customer's unlocked payment methods become per site. Only an explicit false unlocks a payment method. Read the changelog before updating.
+Requires PHP 8.5 and WordPress 7.1. Update WooCommerce first: below 11.3, locked payment methods stay hidden from every customer. Settings move to WooCommerce → Settings → Advanced, and unlocked payment methods become per site. Code that re-locked a method moves to should_lock after priority 10.
 
 == Changelog ==
 

@@ -1,8 +1,6 @@
 # Changelog
 
-All notable changes to this plugin are documented in this file. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-Pending entries live in [`changelog/`](./changelog) — add via `composer changelog:add`. Aggregate them into a release as the monorepo's [`CONTRIBUTING.md`](https://github.com/ahegyes/wordpress-plugins/blob/trunk/CONTRIBUTING.md) describes.
+All notable changes to this plugin are documented here, in the format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and under [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 <!-- Start changelog -->
 
@@ -64,7 +62,7 @@ Pending entries live in [`changelog/`](./changelog) — add via `composer change
 ## 1.2.1 - 2021-09-26
 
 ### Fixed
-- Language domain inside the dependencies folder.
+- Text domain inside the dependencies folder.
 - PHP 8 error on the settings page.
 
 ## 1.2.0 - 2021-09-24

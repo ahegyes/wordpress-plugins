@@ -1,0 +1,4 @@
+Significance: minor
+Type: changed
+
+v1's locked_payment_methods_for_woocommerce/plugin_settings/get_validated_option_value filter no longer decides whether uninstalling removes the plugin's data; option_dws_lpmwc_delete_data, which WordPress applies on each site, replaces it.
