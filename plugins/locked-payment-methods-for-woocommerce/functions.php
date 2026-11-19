@@ -1,6 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Loads the files in includes/, defines the plugin's accessor, boots the plugin on plugins_loaded, declares its WooCommerce feature compatibility, fires v1's boot hooks at the earliest priority of the hooks that replace them, adds to a blocked or failed boot's notice that the lock still holds, and unschedules the plugin's jobs on deactivation.
+ * Loads the files in includes/, defines the plugin's accessor and hooks the plugin's boot, deactivation and WooCommerce compatibility.
+ *
+ * It also fires v1's boot hooks at the earliest priority of the hooks that replace them, and adds to a blocked or failed boot's notice that the lock still holds.
  *
  * @since   2.0.0
  * @version 2.0.0

@@ -22,8 +22,6 @@ use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
  *
  * @since   2.0.0
  * @version 2.0.0
- *
- * @phpstan-import-type Field from Forms
  */
 final class GroupsStrategy implements ComponentInterface, ConditionalComponentInterface, \DWS_LPMWC_Unlock_Strategy {
 	// region FIELDS AND CONSTANTS

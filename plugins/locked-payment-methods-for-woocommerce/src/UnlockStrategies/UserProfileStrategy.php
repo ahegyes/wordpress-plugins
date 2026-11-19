@@ -346,10 +346,8 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @return  string
 	 */
 	protected function get_active_filter(): string {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
-		$name  = self::FILTER . ( isset( $_GET['bottom'] ) ? '_bottom' : '_top' );
-		$value = isset( $_GET[ $name ] ) && \is_string( $_GET[ $name ] ) ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$name  = self::FILTER . ( isset( $_GET['bottom'] ) ? '_bottom' : '_top' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
+		$value = isset( $_GET[ $name ] ) && \is_string( $_GET[ $name ] ) ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A list filter, which changes nothing.
 
 		return \in_array( $value, Safeguards::get_locked_payment_method_ids(), true ) ? $value : '';
 	}

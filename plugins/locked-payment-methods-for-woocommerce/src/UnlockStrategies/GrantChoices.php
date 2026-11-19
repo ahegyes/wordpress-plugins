@@ -43,7 +43,9 @@ final class GrantChoices {
 	}
 
 	/**
-	 * Returns the choices of a grants field by payment method id: the locked methods and the subject's other grants, since a save keeps only the choices a field offers, each marked when it is not locked or when another rule already unlocks it for the user.
+	 * Returns the choices of a grants field by payment method id, the locked methods and the subject's other grants, each marked when it is not locked or when another rule already unlocks it for the user.
+	 *
+	 * A save keeps only the choices a field offers, so the subject's other grants stay choices.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

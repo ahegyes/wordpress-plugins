@@ -178,7 +178,7 @@ function dws_lpmwc_min_wp(): string {
  *
  * @api
  *
- * @since       1.0.0
+ * @since       1.2.0
  * @version     2.0.0
  * @deprecated  2.0.0
  *
@@ -193,11 +193,13 @@ function dws_lpmwc_get_hook_tag( string $name, $extra = array() ): string {
 }
 
 /**
- * Returns a hook name under one of v1's components, its non-empty parts joined with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, as v1 built it: the root v1 named the component's hooks under, which is its id with dashes as underscores but for the unlock strategies, which v1 renamed.
+ * Returns a hook name under one of v1's components, as v1 built it.
+ *
+ * Its non-empty parts join with slashes, with spaces and backslashes as underscores, control and non-ASCII bytes stripped and lowercased, under the root v1 named the component's hooks under: its id with dashes as underscores, but for the unlock strategies, which v1 renamed.
  *
  * @api
  *
- * @since       1.0.0
+ * @since       1.2.0
  * @version     2.0.0
  * @deprecated  2.0.0
  *
@@ -431,7 +433,7 @@ function dws_lpmwc_get_validated_setting( string $field_id, ?string $group = nul
  *
  * @api
  *
- * @since       1.0.0
+ * @since       1.3.0
  * @version     2.0.0
  * @deprecated  2.0.0
  *

@@ -101,24 +101,29 @@ final class OrderStrategy implements ComponentInterface, ConditionalComponentInt
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
+		$form  = array(
+			'title'      => _x( 'Locked Payment Methods', 'settings', 'locked-payment-methods-for-woocommerce' ),
+			'capability' => Capabilities::UNLOCK_VIA_ORDERS,
+			'fields'     => array(),
+		);
 		$order = wc_get_order( $object_id );
+		if ( ! $order instanceof \WC_Order ) {
+			return $form;
+		}
+
 		$field = array(
 			'type'    => 'checkboxes',
 			'id'      => Grants::FIELD,
 			'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 			'desc'    => __( 'The customer may pay for this order with these methods on its payment page.', 'locked-payment-methods-for-woocommerce' ),
-			'options' => $order instanceof \WC_Order ? GrantChoices::get( $this->get_granted_ids( $object_id ), $order->get_customer_id() ) : array(),
+			'options' => GrantChoices::get( $this->get_granted_ids( $object_id ), $order->get_customer_id() ),
 		);
-		if ( $order instanceof \WC_Order && $order->is_paid() ) {
+		if ( $order->is_paid() ) {
 			$field['desc']              = __( 'This order is paid, so its unlocked payment methods no longer change.', 'locked-payment-methods-for-woocommerce' );
 			$field['custom_attributes'] = array( 'disabled' => 'disabled' );
 		}
 
-		return array(
-			'title'      => _x( 'Locked Payment Methods', 'settings', 'locked-payment-methods-for-woocommerce' ),
-			'capability' => Capabilities::UNLOCK_VIA_ORDERS,
-			'fields'     => array() === $field['options'] ? array() : array( $field ),
-		);
+		return array( 'fields' => array() === $field['options'] ? array() : array( $field ) ) + $form;
 	}
 
 	/**

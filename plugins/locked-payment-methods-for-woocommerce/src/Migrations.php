@@ -113,7 +113,9 @@ final class Migrations {
 	}
 
 	/**
-	 * Moves v1's user grants, one global 'yes' row per payment method, into every site's list beside the grants it holds, so they keep v1's reach across a network, then deletes every v1 grant row; a run that stops part way converges on the next, since each list keeps what an earlier run merged.
+	 * Moves v1's user grants, one global 'yes' row per payment method, into every site's list beside the grants it holds, then deletes every v1 grant row.
+	 *
+	 * Every site receives them, so they keep v1's reach across a network. A run that stops part way converges on the next, since each list keeps what an earlier run merged.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -309,7 +311,9 @@ final class Migrations {
 	}
 
 	/**
-	 * Moves v1's WooCommerce Memberships grants from each plan's v1 meta to the plugin's key beside the grants it holds, then deletes the v1 meta; it reads the post meta table itself, since Memberships may be inactive and its plan type unregistered.
+	 * Moves v1's WooCommerce Memberships grants from each plan's v1 meta to the plugin's key beside the grants it holds, then deletes the v1 meta.
+	 *
+	 * It reads the post meta table itself, since Memberships may be inactive and its plan type unregistered.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

@@ -319,7 +319,7 @@ final class Options {
 		return match ( $key ) {
 			null                 => 'get_option()',
 			self::LOCKED_METHODS => 'dws_lpmwc_get_locked_payment_method_ids(), the locked_payment_methods_for_woocommerce/payment_method/locked_ids filter or dws_lpmwc_is_payment_method_locked()',
-			default              => "get_option() on {$key}",
+			default              => "get_option() on $key",
 		};
 	}
 

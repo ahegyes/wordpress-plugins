@@ -58,7 +58,7 @@ final class Safeguards {
 					 */
 					$ids = self::add_locked_ids( $ids, apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods', array( $ids, $gateways ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/locked_ids' ) );
 
-					// The order-pay page pays the order its key names, which WooCommerce requires before it takes the payment, so a request naming another order's id gains none of its grants; AJAX and REST checkouts pay a new order from the cart whatever order the URL names.
+					// The order-pay page pays the order its key names, which WooCommerce requires before it takes the payment, so a request naming another order's id gains none of its grants. The classic AJAX checkout pays a new order from the cart, and the Store API's pay-for-order route, which WooCommerce's own screens do not use, stays locked, as in v1.
 					$order_id = 0;
 					if ( ! wp_doing_ajax() && ! ( \defined( 'REST_REQUEST' ) && true === REST_REQUEST ) && \function_exists( 'is_checkout_pay_page' ) && is_checkout_pay_page() ) {
 						$order = wc_get_order( $GLOBALS['wp'] instanceof \WP ? ( $GLOBALS['wp']->query_vars['order-pay'] ?? 0 ) : 0 );
@@ -103,7 +103,9 @@ final class Safeguards {
 		$ids    = self::add_locked_ids( $ids, self::apply_v1_setting_filter( $ids, 'general', 'locked-payment-methods', 'locked_payment_methods_for_woocommerce/payment_method/locked_ids' ) );
 
 		/**
-		 * Filters the locked payment methods' ids wherever the plugin reads them, at checkout, in the lock check and on the grants forms; a callback adds the ids it locks, and an id it leaves out stays locked.
+		 * Filters the locked payment methods' ids wherever the plugin reads them, at checkout, in the lock check and on the grants forms.
+		 *
+		 * A callback adds the ids it locks, and an id it leaves out stays locked.
 		 *
 		 * @since   2.0.0
 		 * @version 2.0.0
@@ -180,7 +182,9 @@ final class Safeguards {
 		$filtered = apply_filters_deprecated( 'locked_payment_methods_for_woocommerce/lock_manager/is_locked_payment_method/' . \strtolower( (string) \filter_var( \str_replace( array( ' ', '\\' ), '_', $gateway_id ), \FILTER_UNSAFE_RAW, \FILTER_FLAG_STRIP_LOW | \FILTER_FLAG_STRIP_HIGH ) ), array( $filtered ), '2.0.0', 'locked_payment_methods_for_woocommerce/payment_method/should_lock' );
 
 		/**
-		 * Filters whether a payment method stays locked for a user and an order; an explicit false unlocks it once the plugin has booted.
+		 * Filters whether a payment method stays locked for a user and an order.
+		 *
+		 * Only an explicit false unlocks it, and only once the plugin has booted.
 		 *
 		 * @since   2.0.0
 		 * @version 2.0.0

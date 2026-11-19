@@ -13,9 +13,9 @@ use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Returns the ids of the locked payment methods, the list the lock check reads: the plugin's list, or v1's while the plugin has stored none, with the ids v1's value filter and locked_payment_methods_for_woocommerce/payment_method/locked_ids add.
+ * Returns the ids of the locked payment methods, the list the lock check reads.
  *
- * At checkout, v1's deprecated locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods filter can lock more of the offered methods.
+ * The list is the plugin's, or v1's while the plugin has stored none, with the ids v1's value filter and locked_payment_methods_for_woocommerce/payment_method/locked_ids add. At checkout, v1's deprecated locked_payment_methods_for_woocommerce/lock_manager/locked_payment_methods filter can lock more of the offered methods.
  *
  * @api
  *
