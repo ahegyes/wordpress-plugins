@@ -40,4 +40,39 @@ final class MultisiteTest extends TestCase {
 			wp_delete_site( $site_id );
 		}
 	}
+
+	public function test_a_users_grants_live_on_the_site_that_granted_them(): void {
+		global $wpdb;
+
+		$site_id = wp_insert_site(
+			array(
+				'domain' => get_network()?->domain,
+				'path'   => get_network()?->path . \str_replace( '_', '-', Plugin::PREFIX ) . '-grants/',
+			)
+		);
+		self::assertIsInt( $site_id );
+		$user     = (int) wp_insert_user(
+			array(
+				'user_login' => 'lpm-multisite-grants',
+				'user_pass'  => 'password',
+				'user_email' => 'lpm-multisite-grants@example.org',
+			)
+		);
+		$strategy = dws_lpmwc_get_unlock_strategy( 'user_profile' );
+		self::assertInstanceOf( \DWS_LPMWC_Grant_Strategy::class, $strategy );
+
+		try {
+			switch_to_blog( $site_id );
+			self::assertTrue( $strategy->grant( $user, 'cod' ) );
+			self::assertSame( array( 'cod' ), $strategy->get_granted_ids( $user ) );
+			restore_current_blog();
+
+			self::assertSame( array(), $strategy->get_granted_ids( $user ) );
+			self::assertSame( array( 'cod' ), get_user_meta( $user, $wpdb->get_blog_prefix( $site_id ) . 'dws_lpmwc_unlocked_payment_methods', true ) );
+			self::assertSame( '', get_user_meta( $user, $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods', true ) );
+		} finally {
+			wpmu_delete_user( $user );
+			wp_delete_site( $site_id );
+		}
+	}
 }

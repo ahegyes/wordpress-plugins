@@ -8,6 +8,7 @@ use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( GroupsStrategy::class )]
 #[Group( 'groups' )]
 final class GroupsStrategyTest extends TestCase {
+	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
 
 	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::UNLOCK_VIA_GROUPS );
@@ -155,6 +157,13 @@ final class GroupsStrategyTest extends TestCase {
 		$_POST['dws_lpmwc_group'] = array( 'dws_lpmwc_unlocked_payment_methods' => '' );
 		do_action( 'groups_admin_groups_edit_submit_success', $group );
 		self::assertFalse( get_option( self::key( $group ) ) );
+		self::assertSame(
+			array(
+				array( 'groups', $group, array( 'bacs' ), array() ),
+				array( 'groups', $group, array(), array( 'bacs' ) ),
+			),
+			$this->updates
+		);
 	}
 
 	public function test_a_save_without_the_capability_or_without_the_field_stores_nothing(): void {
@@ -181,6 +190,7 @@ final class GroupsStrategyTest extends TestCase {
 
 		self::assertSame( array( 'cod' ), get_option( self::key( $kept ) ) );
 		self::assertFalse( get_option( self::key( $deleted ) ) );
+		self::assertSame( array( array( 'groups', $deleted, array(), array( 'bacs' ) ) ), $this->updates );
 	}
 
 	public function test_the_grants_step_moves_each_v1_group_option_to_the_groups_own_option(): void {

@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Options;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use PHPUnit\Framework\Attributes\After;
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( UserProfileStrategy::class )]
 final class UserProfileStrategyTest extends TestCase {
+	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
 
 	protected const string FORM = 'dws_lpmwc_user_profile';
@@ -73,7 +75,7 @@ final class UserProfileStrategyTest extends TestCase {
 		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
 		update_user_meta( self::$users['editor'], 'dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 
-		self::assertSame( array( 'cod' ), UserProfileStrategy::get_unlocked_ids( self::$users['customer'] ) );
+		self::assertSame( array( 'cod' ), self::strategy()->get_granted_ids( self::$users['customer'] ) );
 		self::assertFalse( self::should_lock( 'cod', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'cod', self::$users['editor'] ) );
@@ -83,7 +85,7 @@ final class UserProfileStrategyTest extends TestCase {
 	public function test_a_stored_grants_value_that_is_not_a_list_unlocks_nothing(): void {
 		update_user_meta( self::$users['customer'], self::key(), 'cod' );
 
-		self::assertSame( array(), UserProfileStrategy::get_unlocked_ids( self::$users['customer'] ) );
+		self::assertSame( array(), self::strategy()->get_granted_ids( self::$users['customer'] ) );
 	}
 
 	public function test_at_checkout_a_customer_may_use_the_methods_granted_to_them(): void {
@@ -166,6 +168,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 		self::assertSame( array( 'bacs' ), get_user_meta( self::$users['customer'], self::key(), true ) );
 		self::assertSame( '', get_user_meta( self::$users['customer'], 'dws_lpmwc_unlocked_payment_methods', true ) );
+		self::assertSame( array( array( 'user_profile', self::$users['customer'], array( 'bacs' ), array() ) ), $this->updates );
 	}
 
 	public function test_saving_the_profile_with_nothing_checked_stores_an_empty_list(): void {
@@ -184,6 +187,37 @@ final class UserProfileStrategyTest extends TestCase {
 		self::save( self::$users['customer'], array( 'bacs', 'paypal' ) );
 
 		self::assertSame( array( 'cod' ), get_user_meta( self::$users['customer'], self::key(), true ) );
+		self::assertSame( array(), $this->updates );
+	}
+
+	public function test_the_strategy_grants_and_revokes_a_users_methods_and_announces_each_change(): void {
+		$user = self::$users['customer'];
+
+		self::assertTrue( self::strategy()->grant( $user, 'cod', 'bacs' ) );
+		self::assertTrue( self::strategy()->grant( $user, 'cod' ) );
+		self::assertTrue( self::strategy()->revoke( $user, 'bacs', 'cheque' ) );
+		self::assertTrue( self::strategy()->revoke( $user, 'bacs' ) );
+
+		self::assertSame( array( 'cod' ), self::strategy()->get_granted_ids( $user ) );
+		self::assertSame( array( 'cod' ), get_user_meta( $user, self::key(), true ) );
+		self::assertSame(
+			array(
+				array( 'user_profile', $user, array( 'cod', 'bacs' ), array() ),
+				array( 'user_profile', $user, array( 'cod' ), array( 'cod', 'bacs' ) ),
+			),
+			$this->updates
+		);
+	}
+
+	public function test_the_strategy_refuses_grants_for_a_user_that_does_not_exist(): void {
+		$granted = self::strategy()->grant( 0, 'cod' );
+		$revoked = self::strategy()->revoke( self::$users['customer'] + 1000, 'cod' );
+
+		self::assertInstanceOf( \WP_Error::class, $granted );
+		self::assertSame( 'dws_lpmwc_subject_not_found', $granted->get_error_code() );
+		self::assertInstanceOf( \WP_Error::class, $revoked );
+		self::assertSame( 'dws_lpmwc_subject_not_found', $revoked->get_error_code() );
+		self::assertSame( array(), $this->updates );
 	}
 
 	public function test_a_save_without_the_capability_stores_nothing(): void {
@@ -265,6 +299,12 @@ final class UserProfileStrategyTest extends TestCase {
 		);
 	}
 
+	protected static function strategy(): \DWS_LPMWC_Grant_Strategy {
+		$strategy = dws_lpmwc_get_unlock_strategy( UserProfileStrategy::ID );
+		self::assertInstanceOf( \DWS_LPMWC_Grant_Strategy::class, $strategy );
+		return $strategy;
+	}
+
 	protected static function key(): string {
 		global $wpdb;
 		return $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods';
@@ -290,7 +330,7 @@ final class UserProfileStrategyTest extends TestCase {
 	}
 
 	protected static function save( int $user_id, array|string $methods ): void {
-		$_POST[ self::FORM ]            = array( self::key() => $methods );
+		$_POST[ self::FORM ]            = array( 'dws_lpmwc_unlocked_payment_methods' => $methods );
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . "_nonce_$user_id" );
 		do_action( 'edit_user_profile_update', $user_id );
 		wp_cache_flush();

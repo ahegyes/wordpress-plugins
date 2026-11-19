@@ -9,6 +9,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
@@ -24,6 +25,7 @@ require_once \dirname( __DIR__, 2 ) . '/Support/memberships-functions.php';
 #[CoversClass( WooCommerceMembershipsStrategy::class )]
 #[Group( 'wc-memberships' )]
 final class WooCommerceMembershipsStrategyTest extends TestCase {
+	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
 
 	protected const string FORM = 'dws_lpmwc_membership_plan';
@@ -112,7 +114,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		MembershipsDouble::add( self::$users['customer'], $this->plan );
 		MembershipsDouble::add( self::$users['subscriber'], $this->plan, false );
 
-		self::assertSame( array( 'cod' ), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
+		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $this->plan ) );
 		self::assertFalse( self::should_lock( 'cod', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'cod', self::$users['subscriber'] ) );
@@ -148,15 +150,16 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 
 	public function test_saving_the_plan_stores_the_checked_methods_under_its_own_nonce(): void {
 		wp_set_current_user( self::$users['administrator'] );
-		$_POST[ self::FORM ] = array( '_dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
+		$_POST[ self::FORM ] = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
 
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . '_nonce_' . ( $this->plan + 1 ) );
 		do_action( 'wc_memberships_save_meta_box', array(), 'wc-memberships-membership-plan-data', $this->plan, get_post( $this->plan ) );
-		self::assertSame( array(), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
+		self::assertSame( array(), self::$strategy->get_granted_ids( $this->plan ) );
 
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . "_nonce_$this->plan" );
 		do_action( 'wc_memberships_save_meta_box', array(), 'wc-memberships-membership-plan-data', $this->plan, get_post( $this->plan ) );
-		self::assertSame( array( 'bacs' ), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
+		self::assertSame( array( 'bacs' ), self::$strategy->get_granted_ids( $this->plan ) );
+		self::assertSame( array( array( 'wc_memberships', $this->plan, array( 'bacs' ), array() ) ), $this->updates );
 	}
 
 	public function test_the_grants_step_moves_v1s_plan_meta_to_the_plugins_key(): void {
@@ -166,7 +169,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		Migrations::get_steps()[5]();
 		Migrations::get_steps()[5]();
 
-		self::assertSame( array( 'cheque', 'cod' ), WooCommerceMembershipsStrategy::get_unlocked_ids( $this->plan ) );
+		self::assertSame( array( 'cheque', 'cod' ), self::$strategy->get_granted_ids( $this->plan ) );
 		self::assertSame( '', get_post_meta( $this->plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
 	}
 

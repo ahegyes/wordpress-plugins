@@ -10,6 +10,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorageTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( OrderStrategy::class )]
 final class OrderStrategyTest extends TestCase {
 	use OrderStorageTrait;
+	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
 
@@ -100,7 +102,7 @@ final class OrderStrategyTest extends TestCase {
 		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->save();
 
-		self::assertSame( array( 'cod' ), OrderStrategy::get_unlocked_ids( $order->get_id() ) );
+		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $order->get_id() ) );
 		self::assertFalse( self::should_lock( 'cod', $order->get_id() ) );
 		self::assertTrue( self::should_lock( 'bacs', $order->get_id() ) );
 		self::assertTrue( self::should_lock( 'cod', 0 ) );
@@ -135,7 +137,7 @@ final class OrderStrategyTest extends TestCase {
 		self::assertSame( array( 'disabled' => 'disabled' ), self::$strategy->get_object_form( self::FORM, $order->get_id() )['fields'][0]['custom_attributes'] ?? null );
 
 		self::save( $order->get_id(), array() );
-		self::assertSame( array( 'cod' ), OrderStrategy::get_unlocked_ids( $order->get_id() ) );
+		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $order->get_id() ) );
 	}
 
 	#[DataProvider( 'storages' )]
@@ -146,7 +148,65 @@ final class OrderStrategyTest extends TestCase {
 
 		self::save( $order->get_id(), array( 'bacs' ) );
 
-		self::assertSame( array( 'bacs' ), OrderStrategy::get_unlocked_ids( $order->get_id() ) );
+		self::assertSame( array( 'bacs' ), self::$strategy->get_granted_ids( $order->get_id() ) );
+		self::assertSame( array( array( 'order', $order->get_id(), array( 'bacs' ), array() ) ), $this->updates );
+	}
+
+	#[DataProvider( 'storages' )]
+	public function test_the_strategy_grants_and_revokes_an_unpaid_orders_methods_and_announces_each_change( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
+		$order = $this->create_order()->get_id();
+
+		self::assertInstanceOf( \DWS_LPMWC_Grant_Strategy::class, self::$strategy );
+		self::assertTrue( self::$strategy->grant( $order, 'cod', 'bacs' ) );
+		self::assertTrue( self::$strategy->grant( $order, 'bacs' ) );
+		self::assertTrue( self::$strategy->revoke( $order, 'cod', 'cheque' ) );
+
+		self::assertSame( array( 'bacs' ), self::$strategy->get_granted_ids( $order ) );
+		self::assertSame( array( 'bacs' ), wc_get_order( $order )?->get_meta( '_dws_lpmwc_unlocked_payment_methods' ) );
+		self::assertSame(
+			array(
+				array( 'order', $order, array( 'cod', 'bacs' ), array() ),
+				array( 'order', $order, array( 'bacs' ), array( 'cod', 'bacs' ) ),
+			),
+			$this->updates
+		);
+	}
+
+	public function test_the_strategy_refuses_grants_for_a_paid_or_missing_order(): void {
+		$order = $this->create_order( array( 'status' => 'processing' ) );
+		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
+		$order->save();
+
+		$granted = self::$strategy->grant( $order->get_id(), 'bacs' );
+		$revoked = self::$strategy->revoke( $order->get_id(), 'cod' );
+		$missing = self::$strategy->grant( $order->get_id() + 1000, 'cod' );
+
+		self::assertInstanceOf( \WP_Error::class, $granted );
+		self::assertSame( 'dws_lpmwc_order_paid', $granted->get_error_code() );
+		self::assertInstanceOf( \WP_Error::class, $revoked );
+		self::assertSame( 'dws_lpmwc_order_paid', $revoked->get_error_code() );
+		self::assertInstanceOf( \WP_Error::class, $missing );
+		self::assertSame( 'dws_lpmwc_subject_not_found', $missing->get_error_code() );
+		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $order->get_id() ) );
+		self::assertSame( array(), $this->updates );
+	}
+
+	public function test_a_grant_whose_write_fails_returns_an_error_and_announces_nothing(): void {
+		$this->use_storage( false, false );
+		$order  = $this->create_order()->get_id();
+		$refuse = static fn ( mixed $check, int $object_id, string $key ): mixed => '_dws_lpmwc_unlocked_payment_methods' === $key ? false : $check;
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+
+		try {
+			$granted = self::$strategy->grant( $order, 'cod' );
+		} finally {
+			remove_filter( 'add_post_metadata', $refuse );
+		}
+
+		self::assertInstanceOf( \WP_Error::class, $granted );
+		self::assertSame( 'dws_lpmwc_grants_not_stored', $granted->get_error_code() );
+		self::assertSame( array(), $this->updates );
 	}
 
 	public function test_on_its_order_pay_page_an_order_unlocks_its_methods_given_its_key(): void {
@@ -183,8 +243,8 @@ final class OrderStrategyTest extends TestCase {
 		Migrations::get_steps()[3]();
 		Migrations::get_steps()[3]();
 
-		self::assertSame( array( 'cod' ), OrderStrategy::get_unlocked_ids( $moved->get_id() ) );
-		self::assertSame( array( 'cheque', 'cod' ), OrderStrategy::get_unlocked_ids( $merged->get_id() ) );
+		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $moved->get_id() ) );
+		self::assertSame( array( 'cheque', 'cod' ), self::$strategy->get_granted_ids( $merged->get_id() ) );
 		foreach ( array( $moved, $merged ) as $order ) {
 			$keys = \array_map( static fn ( \WC_Meta_Data $meta ): string => (string) $meta->get_data()['key'], wc_get_order( $order->get_id() )->get_meta_data() );
 			self::assertSame( array(), \array_values( \array_filter( $keys, static fn ( string $key ): bool => \str_starts_with( $key, '_dws_wc_lpm_' ) ) ) );
@@ -226,7 +286,7 @@ final class OrderStrategyTest extends TestCase {
 		self::assertTrue( $failed );
 		self::assertSame( 'yes', wc_get_order( $order->get_id() )->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
 		Migrations::get_steps()[3]();
-		self::assertSame( array( 'cod' ), OrderStrategy::get_unlocked_ids( $order->get_id() ) );
+		self::assertSame( array( 'cod' ), self::$strategy->get_granted_ids( $order->get_id() ) );
 	}
 
 	protected static function should_lock( string $gateway_id, int $order_id ): mixed {
@@ -234,7 +294,7 @@ final class OrderStrategyTest extends TestCase {
 	}
 
 	protected static function save( int $order_id, array|string $methods ): void {
-		$_POST[ self::FORM ]            = array( '_dws_lpmwc_unlocked_payment_methods' => $methods );
+		$_POST[ self::FORM ]            = array( 'dws_lpmwc_unlocked_payment_methods' => $methods );
 		$_POST[ self::FORM . '_nonce' ] = wp_create_nonce( self::FORM . "_nonce_$order_id" );
 		do_action( 'woocommerce_process_shop_order_meta', $order_id, wc_get_order( $order_id ) );
 	}
