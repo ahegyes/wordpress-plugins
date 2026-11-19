@@ -8,10 +8,12 @@ use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
+use DeepWebSolutions\LockedPaymentMethods\Settings;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
-use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 use PHPUnit\Framework\Attributes\After;
@@ -20,15 +22,14 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
-require_once \dirname( __DIR__, 2 ) . '/Support/memberships-functions.php';
-
-// Memberships is a paid plugin absent from WP Packages, so these rows run against a double of its one function and its three hooks, unverified against a licensed copy.
+// Memberships is a paid plugin absent from WP Packages, so these rows run against a double of its loader, its one function and its three hooks.
 #[CoversClass( WooCommerceMembershipsStrategy::class )]
 #[Group( 'wc-memberships' )]
 final class WooCommerceMembershipsStrategyTest extends TestCase {
+	use InsertsUsersTrait;
+	use RecordsDeprecationsTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
-	use RunsRequestsTrait;
 
 	protected const string FORM = 'dws_lpmwc_membership_plan';
 
@@ -48,6 +49,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
+		require_once \dirname( __DIR__, 2 ) . '/Support/memberships-functions.php';
 		register_post_type( 'wc_membership_plan' );
 		$identity         = new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX );
 		self::$strategy   = new WooCommerceMembershipsStrategy( $identity, new AdminNotices( $identity, new PsrNullLogger() ) );
@@ -55,7 +57,7 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'customer', 'subscriber' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "lpm-memberships-$role",
 					'user_pass'  => 'password',
@@ -112,14 +114,13 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 	}
 
 	// Memberships declares its loader as WordPress includes it but defines its functions only on plugins_loaded at priority 15, after the plugin's boot.
-	public function test_the_booted_plugin_runs_the_strategy_once_memberships_has_declared_its_loader(): void {
-		update_option( Options::UNLOCK_VIA_WC_MEMBERSHIPS, 'yes' );
-		update_option( 'wc_memberships_version', '1.30.3' );
+	public function test_the_settings_show_the_memberships_switch_while_memberships_is_active(): void {
+		$fields = new Settings()->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
+		$switch = \array_values( \array_filter( $fields, static fn ( array $field ): bool => Options::UNLOCK_VIA_WC_MEMBERSHIPS === ( $field['id'] ?? null ) ) );
 
-		$request = self::request( 'echo wp_json_encode( array( dws_lpmwc_get_unlock_strategy( "wc_memberships" ) instanceof DWS_LPMWC_Unlock_Strategy, dws_lpmwc_is_payment_method_locked( "cod", ' . self::$users['customer'] . ' ) ) );', '--require=' . \dirname( __DIR__, 2 ) . '/Support/memberships-loader.php' );
-
-		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( '[true,true]', $request['last'], $request['output'] );
+		self::assertSame( 'checkbox', $switch[0]['type'] ?? null );
+		self::assertSame( 'no', $switch[0]['default'] ?? null );
+		self::assertContains( 'dws-wc-lpm_integrations', \array_column( $fields, 'id' ) );
 	}
 
 	public function test_an_active_member_of_a_plan_is_unlocked_for_the_plans_methods(): void {
@@ -132,6 +133,18 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'cod', self::$users['subscriber'] ) );
 		self::assertTrue( self::should_lock( 'cod', 0 ) );
+
+		self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_memberships( 'cod', self::$users['customer'] ) );
+		self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_memberships( 'cod', self::$users['subscriber'] ) );
+		$holder = new \ReflectionProperty( UnlockStrategies::class, 'strategies' );
+		$on     = $holder->getValue();
+		$holder->setValue( null, self::$registered );
+		try {
+			self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_memberships( 'cod', self::$users['customer'] ) );
+		} finally {
+			$holder->setValue( null, $on );
+		}
+		self::assertContains( array( 'dws_lpmwc_check_payment_method_access_via_wc_memberships', 'dws_lpmwc_is_payment_method_locked()' ), $this->deprecated );
 	}
 
 	public function test_the_plan_data_offers_a_tab_and_its_panel_to_a_user_with_the_capability(): void {

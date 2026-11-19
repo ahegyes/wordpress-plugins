@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
+use DeepWebSolutions\LockedPaymentMethods\Migrations;
 use DeepWebSolutions\LockedPaymentMethods\Options;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
@@ -13,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( UserProfileStrategy::class )]
 final class UserProfileStrategyTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
 
@@ -325,7 +328,7 @@ final class UserProfileStrategyTest extends TestCase {
 
 	protected static function create_user( string $role ): int {
 		$login = \uniqid( "lpm-profiles-$role-" );
-		return (int) wp_insert_user(
+		return self::insert_user(
 			array(
 				'user_login' => $login,
 				'user_pass'  => 'password',
@@ -333,6 +336,41 @@ final class UserProfileStrategyTest extends TestCase {
 				'role'       => $role,
 			)
 		);
+	}
+
+	public function test_the_grants_step_moves_v1s_user_grants_into_the_sites_lists_and_deletes_every_v1_grant_row(): void {
+		global $wpdb;
+
+		$moved  = self::$users['customer'];
+		$merged = self::$users['editor'];
+		update_user_meta( $moved, 'dws_wc_lpm_grant_access_cod', 'yes' );
+		update_user_meta( $moved, 'dws_wc_lpm_grant_access_bacs', 'no' );
+		update_user_meta( $merged, 'dws_wc_lpm_grant_access_cod', 'yes' );
+		update_user_meta( $merged, self::key(), array( 'cheque' ) );
+
+		Migrations::get_steps()[2]();
+		Migrations::get_steps()[2]();
+		wp_cache_flush();
+
+		self::assertSame( array( 'cod' ), get_user_meta( $moved, self::key(), true ) );
+		self::assertSame( array( 'cheque', 'cod' ), get_user_meta( $merged, self::key(), true ) );
+		self::assertSame( '0', $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", 'dws\_wc\_lpm\_grant\_access\_%' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Counts the rows the step deletes.
+	}
+
+	public function test_the_grants_step_throws_when_a_users_grants_cannot_be_stored(): void {
+		$user = self::$users['customer'];
+		update_user_meta( $user, 'dws_wc_lpm_grant_access_cod', 'yes' );
+		$fail = static fn ( mixed $check, int $object_id, string $meta_key ): mixed => \str_ends_with( $meta_key, 'dws_lpmwc_unlocked_payment_methods' ) ? false : $check;
+		add_filter( 'update_user_metadata', $fail, 10, 3 );
+
+		try {
+			$this->expectExceptionObject( new \RuntimeException( "The payment methods unlocked for user $user could not be stored." ) );
+			Migrations::get_steps()[2]();
+		} finally {
+			remove_filter( 'update_user_metadata', $fail );
+			self::assertSame( 'yes', get_user_meta( $user, 'dws_wc_lpm_grant_access_cod', true ) );
+			delete_user_meta( $user, 'dws_wc_lpm_grant_access_cod' );
+		}
 	}
 
 	protected static function strategy(): \DWS_LPMWC_Grant_Strategy {

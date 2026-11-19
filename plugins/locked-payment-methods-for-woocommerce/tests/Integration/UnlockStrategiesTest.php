@@ -5,10 +5,12 @@ namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\AbstractLogger as PsrAbstractLogger;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
+use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -16,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( UnlockStrategies::class )]
 final class UnlockStrategiesTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
@@ -32,7 +35,7 @@ final class UnlockStrategiesTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		foreach ( array( 'shop_manager', 'customer' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "lpm-strategies-$role",
 					'user_pass'  => 'password',
@@ -40,7 +43,6 @@ final class UnlockStrategiesTest extends TestCase {
 					'role'       => $role,
 				)
 			);
-			self::assertGreaterThan( 0, self::$users[ $role ] );
 		}
 	}
 
@@ -72,6 +74,7 @@ final class UnlockStrategiesTest extends TestCase {
 		$this->wrong[] = $function_name;
 	}
 
+	// WooCommerce Memberships defines its functions only after the plugin's boot, so the request declares its loader alone.
 	public function test_each_built_in_strategy_whose_switch_is_on_registers_under_its_id_once_the_plugin_boots(): void {
 		foreach ( array( Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_USER_PROFILES, Options::UNLOCK_VIA_ORDERS, Options::UNLOCK_VIA_GROUPS, Options::UNLOCK_VIA_WC_MEMBERSHIPS ) as $switch ) {
 			update_option( $switch, 'yes' );
@@ -79,17 +82,19 @@ final class UnlockStrategiesTest extends TestCase {
 		update_option( 'wc_memberships_version', '1.27.0' );
 		$list = 'echo wp_json_encode( array_map( static fn ( DWS_LPMWC_Unlock_Strategy $strategy ): string => $strategy->get_id(), dws_lpmwc_get_unlock_strategies() ) );';
 
-		$request = self::request( $list, '--require=' . \dirname( __DIR__ ) . '/Support/memberships-functions.php' );
-		self::assertSame(
-			array(
-				'user_role'      => 'user_role',
-				'user_profile'   => 'user_profile',
-				'order'          => 'order',
-				'groups'         => 'groups',
-				'wc_memberships' => 'wc_memberships',
-			),
-			\json_decode( $request['last'], true )
+		$expected = array(
+			'user_role'      => 'user_role',
+			'user_profile'   => 'user_profile',
+			'order'          => 'order',
+			'groups'         => 'groups',
+			'wc_memberships' => 'wc_memberships',
 		);
+		if ( ! GroupsStrategy::is_available() ) {
+			unset( $expected['groups'] ); // The monorepo's shared site runs without Groups, whose own rows require it.
+		}
+
+		$request = self::request( $list, '--require=' . \dirname( __DIR__ ) . '/Support/memberships-loader.php' );
+		self::assertSame( $expected, \json_decode( $request['last'], true ), $request['output'] );
 
 		foreach ( array( Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_USER_PROFILES, Options::UNLOCK_VIA_ORDERS, Options::UNLOCK_VIA_GROUPS, Options::UNLOCK_VIA_WC_MEMBERSHIPS ) as $switch ) {
 			update_option( $switch, 'no' );
@@ -101,6 +106,21 @@ final class UnlockStrategiesTest extends TestCase {
 		$request = self::request( 'echo wp_json_encode( array( dws_lpmwc_get_unlock_strategies(), dws_lpmwc_get_unlock_strategy( "user_role" ), dws_lpmwc_is_payment_method_locked( "cod", ' . self::$users['shop_manager'] . ' ) ) );', '--skip-plugins=woocommerce' );
 
 		self::assertSame( array( array(), null, true ), \json_decode( $request['last'], true ) );
+	}
+
+	public function test_after_a_failed_boot_a_registered_strategy_is_not_answered(): void {
+		$register = 'dws_lpmwc_register_unlock_strategy( new class() implements DWS_LPMWC_Unlock_Strategy { public function get_id(): string { return "acme"; } public function get_label(): string { return "Acme"; } public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool { return true; } } );';
+
+		$request = self::request( $register . ' echo wp_json_encode( array( did_action( "locked_payment_methods_for_woocommerce/boot/failed" ), dws_lpmwc_get_unlock_strategies(), dws_lpmwc_get_unlock_strategy( "acme" ) ) );', '--require=' . \dirname( __DIR__ ) . '/Support/fails-the-boot.php' );
+
+		self::assertSame( array( 1, array(), null ), \json_decode( $request['last'], true ), $request['output'] );
+	}
+
+	public function test_a_payment_method_is_locked_for_a_user_when_it_is_listed_and_no_strategy_unlocks_it(): void {
+		self::assertTrue( dws_lpmwc_is_payment_method_locked( 'cod', self::$users['customer'] ) );
+		self::assertFalse( dws_lpmwc_is_payment_method_locked( 'cod', self::$users['shop_manager'] ) );
+		self::assertFalse( dws_lpmwc_is_payment_method_locked( 'cheque', self::$users['customer'] ) );
+		self::assertSame( array(), $this->deprecated );
 	}
 
 	public function test_a_strategy_registered_once_the_plugin_has_booted_unlocks_at_checkout_and_in_the_lock_check(): void {

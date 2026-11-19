@@ -23,7 +23,7 @@ final class SettingsTest extends TestCase {
 
 	protected const array CHECKBOXES = array( Options::UNLOCK_VIA_USER_ROLES, Options::UNLOCK_VIA_USER_PROFILES, Options::UNLOCK_VIA_ORDERS, Options::DELETE_DATA );
 
-	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::FULL_ACCESS_ROLES, ...self::CHECKBOXES );
+	protected const array OPTIONS = array( Options::LOCKED_METHODS, Options::FULL_ACCESS_ROLES, Options::UNLOCK_VIA_GROUPS, Options::UNLOCK_VIA_WC_MEMBERSHIPS, ...self::CHECKBOXES );
 
 	protected static \WC_Settings_Page $advanced;
 

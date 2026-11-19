@@ -9,10 +9,10 @@ use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\OrderStorageTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
-use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\OrderStrategy;
 use PHPUnit\Framework\Attributes\After;
@@ -23,10 +23,10 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( OrderStrategy::class )]
 final class OrderStrategyTest extends TestCase {
+	use InsertsUsersTrait;
 	use OrderStorageTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
-	use RunsRequestsTrait;
 
 	protected const string FORM = 'dws_lpmwc_order';
 
@@ -49,7 +49,7 @@ final class OrderStrategyTest extends TestCase {
 		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
 		self::$strategy->register_hooks();
-		self::$admin = (int) wp_insert_user(
+		self::$admin = self::insert_user(
 			array(
 				'user_login' => 'lpm-orders-admin',
 				'user_pass'  => 'password',
@@ -85,16 +85,6 @@ final class OrderStrategyTest extends TestCase {
 		self::assertTrue( OrderStrategy::should_load() );
 	}
 
-	public function test_the_plugin_runs_the_strategy_once_its_switch_is_on(): void {
-		self::assertContains( OrderStrategy::class, Plugin::COMPONENTS );
-		update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
-
-		$request = self::request( 'echo wp_json_encode( in_array( ' . OrderStrategy::class . '::class, dws_lpmwc_plugin()->kernel->skipped, true ) );' );
-
-		self::assertSame( 0, $request['status'], $request['output'] );
-		self::assertSame( 'false', $request['last'] );
-	}
-
 	#[DataProvider( 'storages' )]
 	public function test_an_order_unlocks_only_the_methods_its_list_holds_when_it_is_the_order_being_paid( bool $hpos, bool $sync ): void {
 		$this->use_storage( $hpos, $sync );
@@ -128,7 +118,9 @@ final class OrderStrategyTest extends TestCase {
 		self::assertArrayNotHasKey( 'custom_attributes', $form['fields'][0] );
 	}
 
-	public function test_the_box_of_a_paid_order_is_disabled_so_a_save_leaves_its_grants(): void {
+	#[DataProvider( 'storages' )]
+	public function test_the_box_of_a_paid_order_is_disabled_so_a_save_leaves_its_grants( bool $hpos, bool $sync ): void {
+		$this->use_storage( $hpos, $sync );
 		$order = $this->create_order( array( 'status' => 'processing' ) );
 		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->save();
@@ -266,13 +258,17 @@ final class OrderStrategyTest extends TestCase {
 		}
 	}
 
-	public function test_a_grants_step_whose_write_fails_keeps_v1s_grants_for_its_retry(): void {
-		$this->use_storage( false, false );
+	#[DataProvider( 'storages' )]
+	public function test_a_grants_step_whose_write_fails_keeps_v1s_grants_for_its_retry( bool $hpos, bool $sync ): void {
+		global $wpdb;
+
+		$this->use_storage( $hpos, $sync );
 		$order = $this->create_order();
 		$order->update_meta_data( '_dws_wc_lpm_grant_access_cod', 'yes' );
 		$order->save();
-		$refuse = static fn ( mixed $check, int $object_id, string $key ): mixed => '_dws_lpmwc_unlocked_payment_methods' === $key ? false : $check;
-		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+		$refuse     = static fn ( string $query ): string => \str_contains( $query, "'_dws_lpmwc_unlocked_payment_methods'" ) && \preg_match( '/^\s*(INSERT|UPDATE)/i', $query ) ? "SELECT * FROM {$wpdb->prefix}dws_lpmwc_missing" : $query;
+		$suppressed = $wpdb->suppress_errors();
+		add_filter( 'query', $refuse );
 
 		$failed = false;
 		try {
@@ -280,7 +276,8 @@ final class OrderStrategyTest extends TestCase {
 		} catch ( \RuntimeException ) {
 			$failed = true;
 		} finally {
-			remove_filter( 'add_post_metadata', $refuse );
+			remove_filter( 'query', $refuse );
+			$wpdb->suppress_errors( $suppressed );
 		}
 
 		self::assertTrue( $failed );

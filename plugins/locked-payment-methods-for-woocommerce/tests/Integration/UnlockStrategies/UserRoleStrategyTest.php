@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Options;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( UserRoleStrategy::class )]
 final class UserRoleStrategyTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 
@@ -26,7 +28,7 @@ final class UserRoleStrategyTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		foreach ( array( 'shop_manager', 'customer' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "lpm-roles-$role",
 					'user_pass'  => 'password',

@@ -97,8 +97,9 @@ final class PartialDeployTest extends TestCase {
 
 	#[RunInSeparateProcess]
 	public function test_an_uninstall_whose_engine_is_missing_keeps_the_data_and_lets_the_web_delete_the_files(): void {
+		$consent = get_option( Options::DELETE_DATA );
 		update_option( Options::DELETE_DATA, 'yes' );
-		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
+		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-lpmwc-uninstall-' );
 		\ini_set( 'error_log', $log );
 		\spl_autoload_register(
 			static function ( string $class_name ): void {
@@ -110,11 +111,13 @@ final class PartialDeployTest extends TestCase {
 			true
 		);
 
-		self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
-		self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
-		self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
-
-		\unlink( $log );
-		update_option( Options::DELETE_DATA, 'no' );
+		try {
+			self::assertTrue( uninstall_plugin( plugin_basename( DWS_LPMWC_FILE ) ) );
+			self::assertSame( 'yes', get_option( Options::DELETE_DATA ) );
+			self::assertStringContainsString( 'kept its data on uninstall', (string) \file_get_contents( $log ) );
+		} finally {
+			\unlink( $log );
+			update_option( Options::DELETE_DATA, $consent );
+		}
 	}
 }

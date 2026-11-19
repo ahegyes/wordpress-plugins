@@ -19,7 +19,7 @@ final class UninstallTest extends TestCase {
 
 	#[AfterClass]
 	public static function forget_the_rows_the_uninstall_deleted(): void {
-		wp_cache_flush(); // The uninstall ran in a child process, so this process still caches the rows it deleted, such as a setting the tab saved.
+		wp_cache_flush(); // The uninstall ran in a child process, so this process still caches the rows it deleted, such as a setting the section saved.
 	}
 
 	#[RunInSeparateProcess]
@@ -27,7 +27,7 @@ final class UninstallTest extends TestCase {
 		\define( 'WP_UNINSTALL_PLUGIN', 'another-plugin/another-plugin.php' ); // A bulk uninstall keeps the first plugin's value for every later one.
 		$source = (string) \file_get_contents( DWS_LPMWC_FILE );
 		\file_put_contents( DWS_LPMWC_FILE, (string) \preg_replace( '/^(\s*\*\s*Requires PHP:\s*).*$/m', '${1}99.0', $source ) );
-		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-tpl-uninstall-' );
+		$log = (string) \tempnam( \sys_get_temp_dir(), 'dws-lpmwc-uninstall-' );
 		\ini_set( 'error_log', $log );
 
 		try {
@@ -127,7 +127,7 @@ final class UninstallTest extends TestCase {
 	}
 
 	#[RunInSeparateProcess]
-	public function test_a_consenting_uninstall_removes_the_grants_v1s_rows_and_the_capabilities(): void {
+	public function test_a_consenting_uninstall_removes_the_grants_on_both_order_storages_v1s_rows_and_the_capabilities(): void {
 		global $wpdb;
 
 		update_option( Options::DELETE_DATA, 'yes' );
@@ -138,10 +138,19 @@ final class UninstallTest extends TestCase {
 		update_user_meta( self::USER, $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		update_user_meta( self::USER, 'dws_wc_lpm_grant_access_cod', 'yes' );
 		update_user_meta( self::USER, '_locked_payment_methods_for_woocommerce_admin_notices', array( 'seeded' ) );
-		$order = wc_create_order();
-		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
-		$order->update_meta_data( '_dws_wc_lpm_grant_access_cod', 'yes' );
-		$order->save();
+		$orders = array();
+		foreach ( array( 'yes', 'no' ) as $hpos ) {
+			$storage = static fn (): string => $hpos;
+			add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+			add_filter( 'pre_option_woocommerce_custom_orders_table_data_sync_enabled', '__return_empty_string' );
+			$order = wc_create_order();
+			$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
+			$order->update_meta_data( '_dws_wc_lpm_grant_access_cod', 'yes' );
+			$order->save();
+			$orders[ $order->get_id() ] = $hpos;
+			remove_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+			remove_filter( 'pre_option_woocommerce_custom_orders_table_data_sync_enabled', '__return_empty_string' );
+		}
 		$plan = (int) wp_insert_post(
 			array(
 				'post_type'   => 'post',
@@ -165,13 +174,19 @@ final class UninstallTest extends TestCase {
 			self::assertSame( '', get_user_meta( self::USER, $wpdb->get_blog_prefix() . 'dws_lpmwc_unlocked_payment_methods', true ) );
 			self::assertSame( '', get_user_meta( self::USER, 'dws_wc_lpm_grant_access_cod', true ) );
 			self::assertSame( '', get_user_meta( self::USER, '_locked_payment_methods_for_woocommerce_admin_notices', true ) );
-			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( '_dws_lpmwc_unlocked_payment_methods' ) );
-			self::assertSame( '', wc_get_order( $order->get_id() )?->get_meta( '_dws_wc_lpm_grant_access_cod' ) );
+			$ids = \implode( ',', \array_map( 'intval', \array_keys( $orders ) ) );
+			self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id IN ($ids) AND ( meta_key LIKE '\\_dws\\_lpmwc\\_%' OR meta_key LIKE '\\_dws\\_wc\\_lpm\\_%' )" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
+			self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}wc_orders_meta WHERE order_id IN ($ids) AND ( meta_key LIKE '\\_dws\\_lpmwc\\_%' OR meta_key LIKE '\\_dws\\_wc\\_lpm\\_%' )" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads both storages' rows directly; the ids are cast to integers.
 			self::assertSame( '', get_post_meta( $plan, '_dws_lpmwc_unlocked_payment_methods', true ) );
 			self::assertSame( '', get_post_meta( $plan, '_dws_wc_lpm_unlocked_payment_methods', true ) );
 			self::assertFalse( get_role( 'administrator' )?->has_cap( Capabilities::UNLOCK_VIA_GROUPS ) );
 		} finally {
-			$order->delete( true );
+			foreach ( $orders as $id => $hpos ) {
+				$storage = static fn (): string => $hpos;
+				add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+				wc_get_order( $id )?->delete( true );
+				remove_filter( 'pre_option_woocommerce_custom_orders_table_enabled', $storage );
+			}
 			wp_delete_post( $plan, true );
 			// The other tests share the database, so the runner stores again what a new site starts with, and the grants act again.
 			dws_lpmwc_plugin()->migrations?->run();

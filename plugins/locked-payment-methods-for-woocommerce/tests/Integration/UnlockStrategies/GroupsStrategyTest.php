@@ -10,6 +10,9 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
+use DeepWebSolutions\LockedPaymentMethods\Settings;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
@@ -23,6 +26,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( GroupsStrategy::class )]
 #[Group( 'groups' )]
 final class GroupsStrategyTest extends TestCase {
+	use InsertsUsersTrait;
+	use RecordsDeprecationsTrait;
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
 
@@ -50,7 +55,7 @@ final class GroupsStrategyTest extends TestCase {
 		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
 		self::$strategy->register_hooks();
 		foreach ( array( 'administrator', 'shop_manager', 'customer', 'subscriber' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "lpm-groups-$role",
 					'user_pass'  => 'password',
@@ -96,7 +101,7 @@ final class GroupsStrategyTest extends TestCase {
 	}
 
 	public function test_the_settings_show_the_groups_switch_while_groups_is_active(): void {
-		$fields = new \DeepWebSolutions\LockedPaymentMethods\Settings()->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
+		$fields = new Settings()->get_section_fields( 'advanced', 'dws-locked-payment-methods' );
 		$switch = \array_values( \array_filter( $fields, static fn ( array $field ): bool => Options::UNLOCK_VIA_GROUPS === ( $field['id'] ?? null ) ) );
 
 		self::assertSame( 'checkbox', $switch[0]['type'] ?? null );
@@ -119,6 +124,18 @@ final class GroupsStrategyTest extends TestCase {
 		self::assertTrue( self::should_lock( 'bacs', self::$users['customer'] ) );
 		self::assertTrue( self::should_lock( 'cod', self::$users['subscriber'] ) );
 		self::assertTrue( self::should_lock( 'cod', 0 ) );
+
+		self::assertFalse( dws_lpmwc_check_payment_method_access_via_groups( 'cod', self::$users['customer'] ) );
+		self::assertTrue( dws_lpmwc_check_payment_method_access_via_groups( 'cod', self::$users['subscriber'] ) );
+		$holder = new \ReflectionProperty( UnlockStrategies::class, 'strategies' );
+		$on     = $holder->getValue();
+		$holder->setValue( null, self::$registered );
+		try {
+			self::assertTrue( dws_lpmwc_check_payment_method_access_via_groups( 'cod', self::$users['customer'] ) );
+		} finally {
+			$holder->setValue( null, $on );
+		}
+		self::assertContains( array( 'dws_lpmwc_check_payment_method_access_via_groups', 'dws_lpmwc_is_payment_method_locked()' ), $this->deprecated );
 	}
 
 	public function test_the_group_forms_offer_the_locked_methods_to_a_user_with_both_capabilities(): void {

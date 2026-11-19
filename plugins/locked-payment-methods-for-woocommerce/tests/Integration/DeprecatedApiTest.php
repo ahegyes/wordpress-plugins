@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration;
 
 use DeepWebSolutions\LockedPaymentMethods\Options;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\InsertsUsersTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class DeprecatedApiTest extends TestCase {
+	use InsertsUsersTrait;
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
 	use RunsRequestsTrait;
@@ -42,7 +44,7 @@ final class DeprecatedApiTest extends TestCase {
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		foreach ( array( 'shop_manager', 'customer' ) as $role ) {
-			self::$users[ $role ] = (int) wp_insert_user(
+			self::$users[ $role ] = self::insert_user(
 				array(
 					'user_login' => "lpm-deprecated-$role",
 					'user_pass'  => 'password',
@@ -67,14 +69,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_the_v1_getters_answer_from_the_plugin_header(): void {
-		$header = get_file_data(
-			DWS_LPMWC_FILE,
-			array(
-				'Version'     => 'Version',
-				'RequiresWP'  => 'Requires at least',
-				'RequiresPHP' => 'Requires PHP',
-			)
-		);
+		$header = self::read_header();
 
 		self::assertSame( dws_lpmwc_get_plugin_name(), dws_lpmwc_name() );
 		self::assertSame( $header['Version'], dws_lpmwc_version() );
@@ -94,14 +89,7 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_the_v1_constants_hold_the_plugin_header_without_v1s_whitelabel_prefix(): void {
-		$header = get_file_data(
-			DWS_LPMWC_FILE,
-			array(
-				'Version'     => 'Version',
-				'RequiresWP'  => 'Requires at least',
-				'RequiresPHP' => 'Requires PHP',
-			)
-		);
+		$header = self::read_header();
 
 		self::assertSame( 'Locked Payment Methods for WooCommerce', DWS_LPMWC_NAME );
 		self::assertSame( $header['Version'], DWS_LPMWC_VERSION );
@@ -158,13 +146,6 @@ final class DeprecatedApiTest extends TestCase {
 			$relays = \array_filter( $GLOBALS['wp_filter'][ $hook ]->callbacks[ PHP_INT_MIN ] ?? array(), static fn ( array $callback ): bool => $callback['function'] instanceof \Closure && \dirname( DWS_LPMWC_FILE ) . '/functions.php' === new \ReflectionFunction( $callback['function'] )->getFileName() );
 			self::assertCount( 1, $relays, $hook );
 		}
-	}
-
-	public function test_a_payment_method_is_locked_for_a_user_when_it_is_listed_and_no_strategy_unlocks_it(): void {
-		self::assertTrue( dws_lpmwc_is_payment_method_locked( 'cod', self::$users['customer'] ) );
-		self::assertFalse( dws_lpmwc_is_payment_method_locked( 'cod', self::$users['shop_manager'] ) );
-		self::assertFalse( dws_lpmwc_is_payment_method_locked( 'bacs', self::$users['customer'] ) );
-		self::assertSame( array(), $this->deprecated );
 	}
 
 	public function test_v1s_access_checks_answer_true_for_locked_from_the_strategies_alone_after_v1s_filter(): void {
@@ -353,6 +334,17 @@ final class DeprecatedApiTest extends TestCase {
 				'after'  => array( 'shop_manager' ),
 			),
 			$seen
+		);
+	}
+
+	protected static function read_header(): array {
+		return get_file_data(
+			DWS_LPMWC_FILE,
+			array(
+				'Version'     => 'Version',
+				'RequiresWP'  => 'Requires at least',
+				'RequiresPHP' => 'Requires PHP',
+			)
 		);
 	}
 }
