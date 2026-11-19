@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Options;
-use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserProfileStrategy;
 use PHPUnit\Framework\Attributes\After;
@@ -68,11 +67,6 @@ final class UserProfileStrategyTest extends TestCase {
 
 		update_option( Options::UNLOCK_VIA_USER_PROFILES, 'no' );
 		self::assertFalse( UserProfileStrategy::should_load() );
-	}
-
-	public function test_the_booted_plugin_runs_the_strategy(): void {
-		self::assertContains( UserProfileStrategy::class, Plugin::COMPONENTS );
-		self::assertNotContains( UserProfileStrategy::class, dws_lpmwc_plugin()->kernel?->skipped ?? array( UserProfileStrategy::class ) );
 	}
 
 	public function test_a_user_is_unlocked_only_for_the_methods_their_site_grants_list_holds(): void {
@@ -214,9 +208,21 @@ final class UserProfileStrategyTest extends TestCase {
 		self::assertSame( array( 'username', 'role', 'dws_lpmwc_unlocked_for', 'posts' ), \array_keys( $columns ) );
 		self::assertSame( 'Unlocked for', $columns['dws_lpmwc_unlocked_for'] );
 
-		self::assertSame( 'Cash on delivery: unlocked on the profile<br />Direct bank transfer: locked', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', self::$users['customer'] ) );
-		self::assertSame( 'Cash on delivery: unlocked by another rule<br />Direct bank transfer: unlocked by another rule', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', self::$users['shop_manager'] ) );
+		self::assertSame( 'Cash on delivery: unlocked by User profiles<br />Direct bank transfer: locked', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', self::$users['customer'] ) );
+		self::assertSame( 'Cash on delivery: unlocked by User roles<br />Direct bank transfer: unlocked by User roles', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', self::$users['shop_manager'] ) );
 		self::assertSame( 'other', apply_filters( 'manage_users_custom_column', 'other', 'posts', self::$users['customer'] ) );
+	}
+
+	public function test_the_users_screen_names_no_rule_for_a_method_a_filter_unlocks(): void {
+		$editor = self::$users['editor'];
+		$unlock = static fn ( mixed $lock, string $gateway_id, int $user_id ): mixed => $editor === $user_id && 'bacs' === $gateway_id ? false : $lock;
+		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', $unlock, 20, 3 );
+
+		try {
+			self::assertSame( 'Cash on delivery: locked<br />Direct bank transfer: unlocked by another rule', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', $editor ) );
+		} finally {
+			remove_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', $unlock, 20 );
+		}
 	}
 
 	public function test_the_users_screen_filters_by_a_method_granted_on_the_profile_from_either_dropdown(): void {

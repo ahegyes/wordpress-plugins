@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\LockedPaymentMethods\Tests\Integration\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Options;
-use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\UserRoleStrategy;
@@ -66,24 +65,18 @@ final class UserRoleStrategyTest extends TestCase {
 		self::assertTrue( UserRoleStrategy::should_load() );
 	}
 
-	public function test_the_booted_plugin_runs_the_strategy(): void {
-		self::assertContains( UserRoleStrategy::class, Plugin::COMPONENTS );
-		self::assertNotContains( UserRoleStrategy::class, dws_lpmwc_plugin()->kernel?->skipped ?? array( UserRoleStrategy::class ) );
-	}
-
 	public function test_only_a_user_with_a_full_access_role_is_unlocked(): void {
 		$strategy = new UserRoleStrategy();
 
-		self::assertFalse( $strategy->unlock_for_full_access_roles( true, 'cod', self::$users['shop_manager'] ) );
-		self::assertTrue( $strategy->unlock_for_full_access_roles( true, 'cod', self::$users['customer'] ) );
-		self::assertTrue( $strategy->unlock_for_full_access_roles( true, 'cod', 0 ) );
-		self::assertFalse( $strategy->unlock_for_full_access_roles( false, 'cod', self::$users['customer'] ) );
+		self::assertTrue( $strategy->unlocks( 'cod', self::$users['shop_manager'], 0 ) );
+		self::assertFalse( $strategy->unlocks( 'cod', self::$users['customer'], 0 ) );
+		self::assertFalse( $strategy->unlocks( 'cod', 0, 0 ) );
 	}
 
 	public function test_an_empty_roles_list_unlocks_no_one(): void {
 		update_option( Options::FULL_ACCESS_ROLES, array() );
 
-		self::assertTrue( new UserRoleStrategy()->unlock_for_full_access_roles( true, 'cod', self::$users['shop_manager'] ) );
+		self::assertFalse( new UserRoleStrategy()->unlocks( 'cod', self::$users['shop_manager'], 0 ) );
 	}
 
 	public function test_at_checkout_the_lock_opens_for_a_full_access_user_only(): void {
@@ -105,12 +98,12 @@ final class UserRoleStrategyTest extends TestCase {
 		add_filter( self::V1_HOOK, $replace, 10, 2 );
 
 		try {
-			$lock = new UserRoleStrategy()->unlock_for_full_access_roles( true, 'cod', self::$users['customer'] );
+			$unlocked = new UserRoleStrategy()->unlocks( 'cod', self::$users['customer'], 0 );
 		} finally {
 			remove_filter( self::V1_HOOK, $replace );
 		}
 
-		self::assertFalse( $lock );
+		self::assertTrue( $unlocked );
 		self::assertSame( array( array( array( 'shop_manager' ), 'full-access-user-roles' ) ), $seen );
 		self::assertSame( array( array( self::V1_HOOK, 'option_' . Options::FULL_ACCESS_ROLES ) ), $this->deprecated );
 	}

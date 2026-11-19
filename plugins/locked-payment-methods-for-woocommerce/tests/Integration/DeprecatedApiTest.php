@@ -211,24 +211,19 @@ final class DeprecatedApiTest extends TestCase {
 	}
 
 	public function test_v1s_order_checks_answer_locked_until_the_plugin_has_booted(): void {
-		global $wp_actions;
-
 		update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
 		$order = wc_create_order( array( 'customer_id' => self::$users['shop_manager'] ) );
 		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->save();
-		self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
-		self::assertGreaterThan( 0, did_action( 'locked_payment_methods_for_woocommerce/boot/succeeded' ) );
-		$fired = $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'];
-		unset( $wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] );
+		$checks = 'array( dws_lpmwc_check_payment_method_access_via_wc_order_meta( "cod", ' . $order->get_id() . ' ), dws_lpmwc_check_payment_method_access_for_wc_order( "cod", ' . $order->get_id() . ' ) )';
 
 		try {
-			self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
-			self::assertTrue( dws_lpmwc_check_payment_method_access_for_wc_order( 'cod', $order->get_id() ) );
+			$request = self::request( 'add_filter( "deprecated_function_trigger_error", "__return_false" ); $booted = ' . $checks . '; unset( $GLOBALS["wp_actions"]["locked_payment_methods_for_woocommerce/boot/succeeded"] ); echo wp_json_encode( array( $booted, ' . $checks . ' ) );' );
 		} finally {
-			$wp_actions['locked_payment_methods_for_woocommerce/boot/succeeded'] = $fired;
 			$order->delete( true );
 		}
+
+		self::assertSame( array( array( false, false ), array( true, true ) ), \json_decode( $request['last'], true ), $request['output'] );
 	}
 
 	public function test_with_woocommerce_inactive_v1s_order_checks_answer_locked(): void {
@@ -238,26 +233,35 @@ final class DeprecatedApiTest extends TestCase {
 		self::assertSame( '[true,true]', $request['last'], $request['output'] );
 	}
 
+	public function test_with_woocommerce_inactive_v1s_role_check_answers_locked_for_a_full_access_user(): void {
+		$request = self::request( 'add_filter( "deprecated_function_trigger_error", "__return_false" ); add_filter( "pre_option_' . Options::UNLOCK_VIA_USER_ROLES . '", static fn (): string => "yes" ); echo wp_json_encode( dws_lpmwc_check_payment_method_access_via_user_roles( "cod", ' . self::$users['shop_manager'] . ' ) );', '--skip-plugins=woocommerce' );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( 'true', $request['last'], $request['output'] );
+	}
+
 	public function test_v1s_per_strategy_checks_answer_from_their_strategy_alone_and_true_while_it_is_off(): void {
 		$order = wc_create_order();
 		$order->update_meta_data( '_dws_lpmwc_unlocked_payment_methods', array( 'cod' ) );
 		$order->save();
+		$checks = 'add_filter( "deprecated_function_trigger_error", "__return_false" ); echo wp_json_encode( array( dws_lpmwc_check_payment_method_access_via_user_roles( "cod", ' . self::$users['shop_manager'] . ' ), dws_lpmwc_check_payment_method_access_via_user_roles( "cod", ' . self::$users['customer'] . ' ), dws_lpmwc_check_payment_method_access_via_user_meta( "cod", ' . self::$users['shop_manager'] . ' ), dws_lpmwc_check_payment_method_access_via_wc_order_meta( "cod", ' . $order->get_id() . ' ) ) );';
 
 		try {
-			self::assertFalse( dws_lpmwc_check_payment_method_access_via_user_roles( 'cod', self::$users['shop_manager'] ) );
-			self::assertTrue( dws_lpmwc_check_payment_method_access_via_user_roles( 'cod', self::$users['customer'] ) );
-			self::assertTrue( dws_lpmwc_check_payment_method_access_via_user_meta( 'cod', self::$users['shop_manager'] ) );
-			self::assertTrue( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
-
+			update_option( Options::UNLOCK_VIA_USER_ROLES, 'yes' );
 			update_option( Options::UNLOCK_VIA_ORDERS, 'yes' );
-			self::assertFalse( dws_lpmwc_check_payment_method_access_via_wc_order_meta( 'cod', $order->get_id() ) );
+			$on = self::request( $checks );
 
 			update_option( Options::UNLOCK_VIA_USER_ROLES, 'no' );
-			self::assertTrue( dws_lpmwc_check_payment_method_access_via_user_roles( 'cod', self::$users['shop_manager'] ) );
+			update_option( Options::UNLOCK_VIA_ORDERS, 'no' );
+			$off = self::request( $checks );
+
+			dws_lpmwc_check_payment_method_access_via_user_roles( 'cod', self::$users['customer'] );
 		} finally {
 			$order->delete( true );
 		}
 
+		self::assertSame( '[false,true,true,false]', $on['last'], $on['output'] );
+		self::assertSame( '[true,true,true,true]', $off['last'], $off['output'] );
 		self::assertContains( array( 'dws_lpmwc_check_payment_method_access_via_user_roles', 'dws_lpmwc_is_payment_method_locked()' ), $this->deprecated );
 	}
 
