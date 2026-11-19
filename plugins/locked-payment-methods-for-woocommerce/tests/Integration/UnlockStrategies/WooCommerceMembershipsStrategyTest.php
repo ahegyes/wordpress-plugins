@@ -11,6 +11,7 @@ use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLo
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\MembershipsDouble;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\WooCommerceMembershipsStrategy;
 use PHPUnit\Framework\Attributes\After;
@@ -27,6 +28,7 @@ require_once \dirname( __DIR__, 2 ) . '/Support/memberships-functions.php';
 final class WooCommerceMembershipsStrategyTest extends TestCase {
 	use RecordsGrantUpdatesTrait;
 	use RestoresOptionsTrait;
+	use RunsRequestsTrait;
 
 	protected const string FORM = 'dws_lpmwc_membership_plan';
 
@@ -107,6 +109,17 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		update_option( 'wc_memberships_version', '1.27.0' );
 		delete_option( Options::UNLOCK_VIA_WC_MEMBERSHIPS );
 		self::assertFalse( WooCommerceMembershipsStrategy::should_load() );
+	}
+
+	// Memberships declares its loader as WordPress includes it but defines its functions only on plugins_loaded at priority 15, after the plugin's boot.
+	public function test_the_booted_plugin_runs_the_strategy_once_memberships_has_declared_its_loader(): void {
+		update_option( Options::UNLOCK_VIA_WC_MEMBERSHIPS, 'yes' );
+		update_option( 'wc_memberships_version', '1.30.3' );
+
+		$request = self::request( 'echo wp_json_encode( array( dws_lpmwc_get_unlock_strategy( "wc_memberships" ) instanceof DWS_LPMWC_Unlock_Strategy, dws_lpmwc_is_payment_method_locked( "cod", ' . self::$users['customer'] . ' ) ) );', '--require=' . \dirname( __DIR__, 2 ) . '/Support/memberships-loader.php' );
+
+		self::assertSame( 0, $request['status'], $request['output'] );
+		self::assertSame( '[true,true]', $request['last'], $request['output'] );
 	}
 
 	public function test_an_active_member_of_a_plan_is_unlocked_for_the_plans_methods(): void {
