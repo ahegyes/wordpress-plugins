@@ -6,6 +6,7 @@ use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Settings;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsDeprecationsTrait;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RestoresOptionsTrait;
+use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RunsRequestsTrait;
 use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies\GroupsStrategy;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 final class SettingsTest extends TestCase {
 	use RecordsDeprecationsTrait;
 	use RestoresOptionsTrait;
+	use RunsRequestsTrait;
 
 	protected const string SECTION = 'dws-locked-payment-methods';
 
@@ -107,6 +109,17 @@ final class SettingsTest extends TestCase {
 		$this->save( array( Options::LOCKED_METHODS => array( $disabled ) ) );
 
 		self::assertSame( array( $disabled ), get_option( Options::LOCKED_METHODS ) );
+	}
+
+	// The section builds its choices once per request, so the row renders and saves in a request of its own, as the settings screen does.
+	public function test_a_locked_method_no_gateway_registers_is_offered_as_not_available_and_stays_locked_through_a_save(): void {
+		update_option( Options::LOCKED_METHODS, array( 'cod', 'acme_invoice' ) );
+
+		$request = self::request( 'require_once WC_ABSPATH . "includes/admin/class-wc-admin-settings.php"; foreach ( WC_Admin_Settings::get_settings_pages() as $page ) { if ( "advanced" === $page->get_id() ) { $fields = $page->get_settings_for_section( "' . self::SECTION . '" ); } } $locked = array_values( array_filter( $fields, static fn ( array $field ): bool => "' . Options::LOCKED_METHODS . '" === ( $field["id"] ?? null ) ) )[0]; WC_Admin_Settings::save_fields( $fields, array( "' . Options::LOCKED_METHODS . '" => array( "cod", "acme_invoice" ), "save" => "Save changes" ) ); echo wp_json_encode( $locked["options"]["acme_invoice"] ?? null );' );
+		wp_cache_flush();
+
+		self::assertSame( '"acme_invoice (not available)"', $request['last'], $request['output'] );
+		self::assertSame( array( 'cod', 'acme_invoice' ), get_option( Options::LOCKED_METHODS ) );
 	}
 
 	public function test_the_roles_field_offers_every_role_and_shows_while_the_role_strategy_is_off(): void {

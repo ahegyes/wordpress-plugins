@@ -322,6 +322,18 @@ final class CommentsTest extends TestCase {
 		self::assertStringStartsWith( (string) get_permalink( $this->post ), get_comment_link( $public ) );
 	}
 
+	public function test_an_internal_comments_link_leads_to_its_posts_edit_screen_after_a_callback_that_returns_nothing(): void {
+		$comment         = $this->comment();
+		$returns_nothing = static function (): void {};
+		add_filter( 'get_comment_link', $returns_nothing, 9 );
+
+		try {
+			self::assertSame( get_edit_post_link( $this->post, 'url' ) . "#comment-$comment", get_comment_link( $comment ) );
+		} finally {
+			remove_filter( 'get_comment_link', $returns_nothing, 9 );
+		}
+	}
+
 	protected function comment( array $args = array() ): int {
 		return (int) dws_ic_create_internal_comment( $args + array( 'comment_post_ID' => $this->post ) );
 	}

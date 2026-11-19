@@ -239,12 +239,25 @@ final class UserProfileStrategyTest extends TestCase {
 				'posts'    => 'Posts',
 			)
 		);
-		self::assertSame( array( 'username', 'role', 'dws_lpmwc_unlocked_for', 'posts' ), \array_keys( $columns ) );
-		self::assertSame( 'Unlocked for', $columns['dws_lpmwc_unlocked_for'] );
+		self::assertSame( array( 'username', 'role', 'dws_lpm_unlocked_for', 'posts' ), \array_keys( $columns ) );
+		self::assertSame( 'Unlocked for', $columns['dws_lpm_unlocked_for'] );
 
-		self::assertSame( 'Cash on delivery: unlocked by User profiles<br />Direct bank transfer: locked', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', self::$users['customer'] ) );
-		self::assertSame( 'Cash on delivery: unlocked by User roles<br />Direct bank transfer: unlocked by User roles', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', self::$users['shop_manager'] ) );
+		self::assertSame( 'Cash on delivery: unlocked by User profiles<br />Direct bank transfer: locked', apply_filters( 'manage_users_custom_column', '', 'dws_lpm_unlocked_for', self::$users['customer'] ) );
+		self::assertSame( 'Cash on delivery: unlocked by User roles<br />Direct bank transfer: unlocked by User roles', apply_filters( 'manage_users_custom_column', '', 'dws_lpm_unlocked_for', self::$users['shop_manager'] ) );
 		self::assertSame( 'other', apply_filters( 'manage_users_custom_column', 'other', 'posts', self::$users['customer'] ) );
+	}
+
+	public function test_the_users_screen_renders_the_cell_after_a_callback_that_echoes_its_own_and_returns_nothing(): void {
+		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
+		$echoes = static function (): void {};
+		add_filter( 'manage_users_custom_column', $echoes, 9 );
+
+		try {
+			self::assertSame( 'Cash on delivery: unlocked by User profiles<br />Direct bank transfer: locked', apply_filters( 'manage_users_custom_column', '', 'dws_lpm_unlocked_for', self::$users['customer'] ) );
+			self::assertNull( apply_filters( 'manage_users_custom_column', '', 'posts', self::$users['customer'] ) );
+		} finally {
+			remove_filter( 'manage_users_custom_column', $echoes, 9 );
+		}
 	}
 
 	public function test_the_users_screen_names_no_rule_for_a_method_a_filter_unlocks(): void {
@@ -253,7 +266,7 @@ final class UserProfileStrategyTest extends TestCase {
 		add_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', $unlock, 20, 3 );
 
 		try {
-			self::assertSame( 'Cash on delivery: locked<br />Direct bank transfer: unlocked by another rule', apply_filters( 'manage_users_custom_column', '', 'dws_lpmwc_unlocked_for', $editor ) );
+			self::assertSame( 'Cash on delivery: locked<br />Direct bank transfer: unlocked by another rule', apply_filters( 'manage_users_custom_column', '', 'dws_lpm_unlocked_for', $editor ) );
 		} finally {
 			remove_filter( 'locked_payment_methods_for_woocommerce/payment_method/should_lock', $unlock, 20 );
 		}
@@ -269,6 +282,7 @@ final class UserProfileStrategyTest extends TestCase {
 		do_action( 'restrict_manage_users', 'top' );
 		$select = \Dom\HTMLDocument::createFromString( '<!DOCTYPE html><html><body>' . \ob_get_clean() . '</body></html>', \LIBXML_NOERROR );
 		self::assertSame( array( '', 'cod', 'bacs' ), \array_map( static fn ( \Dom\Element $option ): string => (string) $option->getAttribute( 'value' ), \iterator_to_array( $select->querySelectorAll( 'select[name="dws_lpmwc_unlocked_for_top"] option' ) ) ) );
+		self::assertNotNull( $select->querySelector( 'span > label[for="dws_lpmwc_unlocked_for_top"] + select + input[type="submit"]' ), 'The label, the select and the button share one span, so core\'s floats never split them.' );
 
 		$_GET['dws_lpmwc_unlocked_for_top'] = 'cod';
 		self::assertSame( array( self::$users['customer'] ), self::listed_users() );
@@ -276,6 +290,28 @@ final class UserProfileStrategyTest extends TestCase {
 		$_GET['dws_lpmwc_unlocked_for_bottom'] = 'bacs';
 		$_GET['bottom']                        = 'Filter';
 		self::assertSame( array( self::$users['editor'] ), self::listed_users() );
+	}
+
+	public function test_the_users_screen_filter_narrows_a_list_another_plugin_widened_with_or(): void {
+		update_user_meta( self::$users['customer'], self::key(), array( 'cod' ) );
+		$GLOBALS['pagenow']                 = 'users.php';
+		$_GET['dws_lpmwc_unlocked_for_top'] = 'cod';
+		set_current_screen( 'users' );
+		$args = self::query_args() + array(
+			'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Another plugin's list query, which the filter narrows.
+				'relation' => 'OR',
+				array(
+					'key'     => 'acme_vip',
+					'compare' => 'EXISTS',
+				),
+				array(
+					'key'     => 'acme_vip',
+					'compare' => 'NOT EXISTS',
+				),
+			),
+		);
+
+		self::assertSame( array( self::$users['customer'] ), self::queried_users( apply_filters( 'users_list_table_query_args', $args ) ) );
 	}
 
 	public function test_the_users_screen_filter_leaves_other_user_queries_alone(): void {

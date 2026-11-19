@@ -6,6 +6,8 @@ use DeepWebSolutions\LockedPaymentMethods\Migrations;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\Notice;
+use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\Psr\Log\NullLogger as PsrNullLogger;
 use DeepWebSolutions\LockedPaymentMethods\Tests\Support\RecordsGrantUpdatesTrait;
@@ -28,6 +30,8 @@ final class GroupsStrategyTest extends TestCase {
 
 	protected static GroupsStrategy $strategy;
 
+	protected static AdminNotices $notices;
+
 	protected static array $hooks = array();
 
 	protected static array $registered = array();
@@ -40,7 +44,8 @@ final class GroupsStrategyTest extends TestCase {
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
-		self::$strategy   = new GroupsStrategy( new AdminNotices( new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new PsrNullLogger() ) );
+		self::$notices    = new AdminNotices( new PluginIdentity( DWS_LPMWC_FILE, Plugin::SLUG, Plugin::PREFIX ), new PsrNullLogger() );
+		self::$strategy   = new GroupsStrategy( self::$notices );
 		self::$hooks      = \array_map( static fn ( \WP_Hook $hook ): \WP_Hook => clone $hook, $GLOBALS['wp_filter'] );
 		self::$registered = new \ReflectionProperty( UnlockStrategies::class, 'strategies' )->getValue();
 		self::$strategy->register_hooks();
@@ -137,8 +142,31 @@ final class GroupsStrategyTest extends TestCase {
 			self::choices( self::parse( apply_filters( 'groups_admin_groups_add_form_after_fields', '' ) ) )
 		);
 
+		self::assertSame( 'Unlocked payment methods', \trim( (string) $edit->querySelector( 'div.field > span.field-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+
 		wp_set_current_user( self::$users['shop_manager'] );
 		self::assertSame( '', apply_filters( 'groups_admin_groups_edit_form_after_fields', '', $group ) );
+	}
+
+	public function test_the_group_form_renders_the_field_after_a_callback_that_returns_nothing(): void {
+		$group = $this->create_group( 'LPM after null' );
+		wp_set_current_user( self::$users['administrator'] );
+		$returns_nothing = static function (): void {};
+		add_filter( 'groups_admin_groups_edit_form_after_fields', $returns_nothing, 9 );
+
+		try {
+			$markup = apply_filters( 'groups_admin_groups_edit_form_after_fields', '', $group );
+		} finally {
+			remove_filter( 'groups_admin_groups_edit_form_after_fields', $returns_nothing, 9 );
+		}
+
+		self::assertSame(
+			array(
+				'cod'  => false,
+				'bacs' => false,
+			),
+			self::choices( self::parse( $markup ) )
+		);
 	}
 
 	public function test_a_group_form_save_stores_the_checked_methods_under_the_group(): void {
@@ -153,6 +181,10 @@ final class GroupsStrategyTest extends TestCase {
 		$_POST['dws_lpmwc_group'] = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'paypal' ) );
 		do_action( 'groups_admin_groups_edit_submit_success', $group );
 		self::assertSame( array( 'bacs' ), get_option( self::key( $group ) ) );
+		$rejections = \array_values( \array_filter( self::$notices->get_notices( NoticeScope::User ), static fn ( Notice $notice ): bool => 'rejection-dws_lpmwc_unlocked_payment_methods' === $notice->id ) );
+		self::assertCount( 1, $rejections );
+		self::assertStringContainsString( (string) \Groups_Group::read( $group )->name, $rejections[0]->message );
+		self::$notices->remove( 'rejection-dws_lpmwc_unlocked_payment_methods', NoticeScope::User );
 
 		$_POST['dws_lpmwc_group'] = array( 'dws_lpmwc_unlocked_payment_methods' => '' );
 		do_action( 'groups_admin_groups_edit_submit_success', $group );
