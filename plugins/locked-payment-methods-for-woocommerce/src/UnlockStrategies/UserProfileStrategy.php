@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\EditScreen\Stores\GrantsStore;
+use DeepWebSolutions\LockedPaymentMethods\Grants;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Safeguards;
@@ -23,7 +25,7 @@ use DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class UserProfileStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface, \DWS_LPMWC_Unlock_Strategy {
+final class UserProfileStrategy implements ComponentInterface, ConditionalComponentInterface, ObjectFormDefinitionInterface, \DWS_LPMWC_Grant_Strategy {
 	// region FIELDS AND CONSTANTS
 
 	/**
@@ -55,16 +57,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 * @var     string
 	 */
 	protected const string COLUMN = Plugin::PREFIX . '_unlocked_for';
-
-	/**
-	 * The user option, under each site's table prefix, that holds the ids of the payment methods unlocked for the user on that site.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	protected const string USER_OPTION = 'dws_lpmwc_unlocked_payment_methods';
 
 	// endregion
 
@@ -110,7 +102,8 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	#[\Override]
 	public function register_hooks(): void {
 		UnlockStrategies::register( $this );
-		new ObjectForm( $this->identity, self::FORM, $this, new UserProfile(), $this->notices )->register_hooks();
+		$host = new UserProfile();
+		new ObjectForm( $this->identity, self::FORM, $this, $host, $this->notices, new GrantsStore( self::ID, $host->get_default_store() ) )->register_hooks();
 		add_filter( 'manage_users_columns', array( $this, 'add_users_column' ) );
 		add_filter( 'manage_users_custom_column', array( $this, 'render_users_column' ), 10, 3 );
 		add_action( 'restrict_manage_users', array( $this, 'render_users_filter' ) );
@@ -125,14 +118,14 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
-		$options = GrantChoices::get( self::get_unlocked_ids( $object_id ), $object_id );
+		$options = GrantChoices::get( $this->get_granted_ids( $object_id ), $object_id );
 		return array(
 			'title'      => __( 'Locked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_USER_PROFILES,
 			'fields'     => array() === $options ? array() : array(
 				array(
 					'type'    => 'checkboxes',
-					'id'      => self::get_grants_key(),
+					'id'      => Grants::FIELD,
 					'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 					'desc'    => __( 'The user may pay with these methods for all their future orders and their unpaid orders.', 'locked-payment-methods-for-woocommerce' ),
 					'options' => $options,
@@ -177,26 +170,41 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 	 */
 	#[\Override]
 	public function unlocks( string $gateway_id, int $user_id, int $order_id ): bool {
-		return \in_array( $gateway_id, self::get_unlocked_ids( $user_id ), true );
+		return \in_array( $gateway_id, $this->get_granted_ids( $user_id ), true );
 	}
 
-	// endregion
-
-	// region METHODS
 
 	/**
-	 * Returns the ids of the payment methods unlocked for a user on the current site, read from the site's own key, since get_user_option() falls back to a key every site shares.
+	 * {@inheritDoc}
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @param   int $user_id The user's id.
-	 *
-	 * @return  string[]
 	 */
-	public static function get_unlocked_ids( int $user_id ): array {
-		$ids = get_user_meta( $user_id, self::get_grants_key(), true );
-		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
+	#[\Override]
+	public function get_granted_ids( int $subject_id ): array {
+		return Grants::get( self::ID, $subject_id );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function grant( int $subject_id, string ...$gateway_ids ): true|\WP_Error {
+		return Grants::grant( self::ID, $subject_id, $gateway_ids );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function revoke( int $subject_id, string ...$gateway_ids ): true|\WP_Error {
+		return Grants::revoke( self::ID, $subject_id, $gateway_ids );
 	}
 
 	// endregion
@@ -298,7 +306,7 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		$meta_query         = $args['meta_query'] ?? array();
 		$meta_query         = \is_array( $meta_query ) ? $meta_query : array();
 		$meta_query[]       = array(
-			'key'     => self::get_grants_key(),
+			'key'     => Grants::get_user_key(),
 			'value'   => '"' . $active . '"', // Matches the id as one element of the stored, serialized list.
 			'compare' => 'LIKE',
 		);
@@ -325,21 +333,6 @@ final class UserProfileStrategy implements ComponentInterface, ConditionalCompon
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		return \in_array( $value, Safeguards::get_locked_payment_method_ids(), true ) ? $value : '';
-	}
-
-	/**
-	 * Returns the current site's user meta key for the payment methods unlocked for a user.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @global  \wpdb $wpdb WordPress's database access.
-	 *
-	 * @return  string
-	 */
-	protected static function get_grants_key(): string {
-		global $wpdb;
-		return $wpdb->get_blog_prefix() . self::USER_OPTION;
 	}
 
 	// endregion

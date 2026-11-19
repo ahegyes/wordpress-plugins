@@ -4,6 +4,8 @@ namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Capabilities;
 use DeepWebSolutions\LockedPaymentMethods\EditScreen\Hosts\MembershipPlanTab;
+use DeepWebSolutions\LockedPaymentMethods\EditScreen\Stores\GrantsStore;
+use DeepWebSolutions\LockedPaymentMethods\Grants;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
@@ -44,16 +46,6 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 * @var     string
 	 */
 	protected const string FORM = Plugin::PREFIX . '_membership_plan';
-
-	/**
-	 * The plan meta that holds the ids of the payment methods unlocked for the plan's active members.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	protected const string META_KEY = '_dws_lpmwc_unlocked_payment_methods';
 
 	// endregion
 
@@ -97,7 +89,8 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	#[\Override]
 	public function register_hooks(): void {
 		UnlockStrategies::register( $this );
-		new ObjectForm( $this->identity, self::FORM, $this, new MembershipPlanTab(), $this->notices )->register_hooks();
+		$host = new MembershipPlanTab();
+		new ObjectForm( $this->identity, self::FORM, $this, $host, $this->notices, new GrantsStore( self::ID, $host->get_default_store() ) )->register_hooks();
 	}
 
 	/**
@@ -108,14 +101,14 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 */
 	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
-		$options = GrantChoices::get( self::get_unlocked_ids( $object_id ), 0 );
+		$options = GrantChoices::get( $this->get_granted_ids( $object_id ), 0 );
 		return array(
 			'title'      => __( 'Unlocked Payment Methods', 'locked-payment-methods-for-woocommerce' ),
 			'capability' => Capabilities::UNLOCK_VIA_WC_MEMBERSHIPS,
 			'fields'     => array() === $options ? array() : array(
 				array(
 					'type'    => 'checkboxes',
-					'id'      => self::META_KEY,
+					'id'      => Grants::FIELD,
 					'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 					'desc'    => __( 'The plan\'s active members may pay with these methods.', 'locked-payment-methods-for-woocommerce' ),
 					'options' => $options,
@@ -167,7 +160,7 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 		foreach ( (array) wc_memberships_get_user_active_memberships( $user_id ) as $membership ) {
 			// Memberships sometimes returns cancelled memberships among the active ones.
 			$plan_id = \is_object( $membership ) && \method_exists( $membership, 'is_active' ) && \method_exists( $membership, 'get_plan_id' ) && true === $membership->is_active() ? $membership->get_plan_id() : null;
-			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, self::get_unlocked_ids( (int) $plan_id ), true ) ) {
+			if ( \is_numeric( $plan_id ) && \in_array( $gateway_id, $this->get_granted_ids( (int) $plan_id ), true ) ) {
 				return true;
 			}
 		}
@@ -202,9 +195,8 @@ final class WooCommerceMembershipsStrategy implements ComponentInterface, Condit
 	 *
 	 * @return  string[]
 	 */
-	public static function get_unlocked_ids( int $plan_id ): array {
-		$ids = get_post_meta( $plan_id, self::META_KEY, true );
-		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
+	public function get_granted_ids( int $plan_id ): array {
+		return Grants::get( self::ID, $plan_id );
 	}
 
 	// endregion

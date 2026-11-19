@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\LockedPaymentMethods\UnlockStrategies;
 
 use DeepWebSolutions\LockedPaymentMethods\Capabilities;
+use DeepWebSolutions\LockedPaymentMethods\Grants;
 use DeepWebSolutions\LockedPaymentMethods\Options;
 use DeepWebSolutions\LockedPaymentMethods\Plugin;
 use DeepWebSolutions\LockedPaymentMethods\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
@@ -38,16 +39,6 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	public const string ID = 'groups';
 
 	/**
-	 * The field's id, under which it posts inside the plugin's entry of Groups' form.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	protected const string FIELD = Plugin::PREFIX . '_unlocked_payment_methods';
-
-	/**
 	 * The plugin's entry of Groups' form.
 	 *
 	 * @since   2.0.0
@@ -56,16 +47,6 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @var     string
 	 */
 	protected const string ENTRY = Plugin::PREFIX . '_group';
-
-	/**
-	 * The name of a Groups group's option, which holds the ids of the payment methods unlocked for its members, as a format of the group's id.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	protected const string OPTION = 'dws_lpmwc_group_%d_unlocked_payment_methods';
 
 	// endregion
 
@@ -155,7 +136,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		}
 
 		foreach ( (array) new \Groups_User( $user_id )->group_ids_deep as $group_id ) { // @phpstan-ignore property.notFound (Groups_User resolves its group ids through __get, as at v1's oldest Groups.)
-			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, self::get_unlocked_ids( (int) $group_id ), true ) ) {
+			if ( \is_numeric( $group_id ) && \in_array( $gateway_id, $this->get_granted_ids( (int) $group_id ), true ) ) {
 				return true;
 			}
 		}
@@ -190,9 +171,8 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 *
 	 * @return  string[]
 	 */
-	public static function get_unlocked_ids( int $group_id ): array {
-		$ids = get_option( \sprintf( self::OPTION, $group_id ), array() );
-		return \is_array( $ids ) ? \array_values( \array_filter( $ids, 'is_string' ) ) : array();
+	public function get_granted_ids( int $group_id ): array {
+		return Grants::get( self::ID, $group_id );
 	}
 
 	// endregion
@@ -216,8 +196,8 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 			return $output;
 		}
 
-		$value = self::get_unlocked_ids( $group_id );
-		return $output . '<div class="field"><p>' . esc_html( $field['title'] ) . '</p>' . Forms::render_control( $field, $value, self::ENTRY . '[' . self::FIELD . ']', self::FIELD ) . '</div>';
+		$value = $this->get_granted_ids( $group_id );
+		return $output . '<div class="field"><p>' . esc_html( $field['title'] ) . '</p>' . Forms::render_control( $field, $value, self::ENTRY . '[' . Grants::FIELD . ']', Grants::FIELD ) . '</div>';
 	}
 
 	/**
@@ -238,20 +218,14 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 		$submitted = isset( $_POST[ self::ENTRY ] ) && \is_array( $_POST[ self::ENTRY ] ) ? wp_unslash( $_POST[ self::ENTRY ] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Groups verified its form's nonce, and Forms::sanitize_fields() sanitizes the field.
 		$field     = $this->get_field( $group_id );
 		$result    = Forms::sanitize_fields( array( $field ), $submitted );
-		if ( isset( $result['errors'][ self::FIELD ] ) ) {
-			$this->notices->add( new Notice( 'rejection-' . \md5( self::ENTRY . '|' . self::FIELD ), esc_html( Forms::get_rejection_message( $field['title'], $result['errors'][ self::FIELD ] ) ) ) );
+		if ( isset( $result['errors'][ Grants::FIELD ] ) ) {
+			$this->notices->add( new Notice( 'rejection-' . \md5( self::ENTRY . '|' . Grants::FIELD ), esc_html( Forms::get_rejection_message( $field['title'], $result['errors'][ Grants::FIELD ] ) ) ) );
 		}
-		if ( ! isset( $result['values'][ self::FIELD ] ) ) {
+		if ( ! isset( $result['values'][ Grants::FIELD ] ) ) {
 			return;
 		}
 
-		$option = \sprintf( self::OPTION, $group_id );
-		$ids    = \is_array( $result['values'][ self::FIELD ] ) ? \array_values( \array_filter( $result['values'][ self::FIELD ], 'is_string' ) ) : array();
-		if ( array() === $ids ) {
-			delete_option( $option );
-		} else {
-			update_option( $option, $ids, true );
-		}
+		Grants::update( self::ID, $group_id, \is_array( $result['values'][ Grants::FIELD ] ) ? $result['values'][ Grants::FIELD ] : array() );
 	}
 
 	/**
@@ -265,7 +239,7 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	 * @return  void
 	 */
 	public function forget_group( int $group_id ): void {
-		delete_option( \sprintf( self::OPTION, $group_id ) );
+		Grants::update( self::ID, $group_id, array() );
 	}
 
 	// endregion
@@ -297,10 +271,10 @@ final class GroupsStrategy implements ComponentInterface, ConditionalComponentIn
 	protected function get_field( int $group_id ): array {
 		return array(
 			'type'    => 'checkboxes',
-			'id'      => self::FIELD,
+			'id'      => Grants::FIELD,
 			'title'   => __( 'Unlocked payment methods', 'locked-payment-methods-for-woocommerce' ),
 			'desc'    => __( 'The group\'s members, and the members of its subgroups, may pay with these methods.', 'locked-payment-methods-for-woocommerce' ),
-			'options' => GrantChoices::get( self::get_unlocked_ids( $group_id ), 0 ),
+			'options' => GrantChoices::get( $this->get_granted_ids( $group_id ), 0 ),
 		);
 	}
 
