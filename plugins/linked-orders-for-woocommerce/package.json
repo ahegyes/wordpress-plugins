@@ -15,12 +15,12 @@
 	"devDependencies": {
 		"@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#b107001cce9f2960495d9d50481c8540d228f60c",
 		"@axe-core/playwright": "^4.14.0",
-		"@playwright/test": "^1.65.0",
+		"@playwright/test": "^1.65.1",
 		"@types/node": "^26.6.6",
 		"@wordpress/e2e-test-utils-playwright": "^3.2.0",
 		"@wordpress/env": "^12.1.0",
 		"@wordpress/scripts": "^37.1.0",
-		"typescript": "^6.0.3"
+		"typescript": "^7.0.2"
 	},
 	"scripts": {
 		"setup": "npm run packages-install:all && npm run build && npm run wp-env:start",
