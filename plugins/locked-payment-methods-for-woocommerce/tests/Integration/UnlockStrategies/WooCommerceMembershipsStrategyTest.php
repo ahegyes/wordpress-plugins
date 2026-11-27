@@ -172,6 +172,27 @@ final class WooCommerceMembershipsStrategyTest extends TestCase {
 		);
 	}
 
+	// The row's own fieldset and legend name the group, so the choices carry none of their own, which would name the group twice to assistive technology.
+	public function test_the_plan_tab_names_its_group_once_and_describes_it_inside_the_row(): void {
+		$GLOBALS['post'] = get_post( $this->plan );
+		wp_set_current_user( self::$users['administrator'] );
+
+		\ob_start();
+		do_action( 'wc_membership_plan_data_panels' );
+		$panel = self::parse( (string) \ob_get_clean() );
+
+		self::assertCount( 1, $panel->querySelectorAll( '#dws-lpmwc-membership-plan-data fieldset' ) );
+		self::assertCount( 1, $panel->querySelectorAll( '#dws-lpmwc-membership-plan-data legend' ) );
+		$help = $panel->querySelector( '#dws-lpmwc-membership-plan-data fieldset.form-field > ul.wc-radios > li > span.description' );
+		self::assertSame( 'The plan\'s active members may pay with these methods.', \trim( (string) $help?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+
+		$described = array();
+		foreach ( $panel->querySelectorAll( '#dws-lpmwc-membership-plan-data input[type="checkbox"]' ) as $input ) {
+			$described[] = $input->getAttribute( 'aria-describedby' );
+		}
+		self::assertSame( \array_fill( 0, 2, $help?->getAttribute( 'id' ) ), $described );
+	}
+
 	public function test_saving_the_plan_stores_the_checked_methods_under_its_own_nonce(): void {
 		wp_set_current_user( self::$users['administrator'] );
 		$_POST[ self::FORM ] = array( 'dws_lpmwc_unlocked_payment_methods' => array( 'bacs' ) );
