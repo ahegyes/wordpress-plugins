@@ -13,16 +13,16 @@
 		"npm": ">=11"
 	},
 	"devDependencies": {
-		"@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#b107001cce9f2960495d9d50481c8540d228f60c",
+		"@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#67dfdca82b80b511dc4dfe561b98a053a2226d1d",
 		"@axe-core/playwright": "^4.14.0",
-		"@playwright/test": "^1.65.0",
+		"@playwright/test": "^1.65.1",
 		"@types/node": "^26.6.6",
-		"@wordpress/a11y": "^5.1.0",
-		"@wordpress/api-fetch": "^8.1.0",
-		"@wordpress/e2e-test-utils-playwright": "^3.2.0",
-		"@wordpress/env": "^12.1.0",
-		"@wordpress/i18n": "^7.1.0",
-		"@wordpress/scripts": "^37.1.0",
+		"@wordpress/a11y": "^5.2.0",
+		"@wordpress/api-fetch": "^8.2.0",
+		"@wordpress/e2e-test-utils-playwright": "^3.3.0",
+		"@wordpress/env": "^12.2.0",
+		"@wordpress/i18n": "^7.2.0",
+		"@wordpress/scripts": "^37.2.0",
 		"typescript": "^6.0.3"
 	},
 	"scripts": {

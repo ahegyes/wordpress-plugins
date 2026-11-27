@@ -28,6 +28,6 @@ jobs:
       matrix:
         project: ${{ fromJSON(needs.plugins.outputs.projects) }}
     # Only production npm packages gate the audit, since a release ships none of the development tooling.
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-supply-chain-audit.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-supply-chain-audit.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: ${{ matrix.project }}

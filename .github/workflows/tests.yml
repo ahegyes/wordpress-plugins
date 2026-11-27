@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-version: '8.5'
@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.plugins.outputs.wordpress) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-version: '8.5'
@@ -56,7 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.plugins.outputs.wordpress) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: plugins/${{ matrix.plugin }}
       artifact-slug: ${{ matrix.plugin }}-wp-${{ matrix.wp }}
@@ -68,7 +68,7 @@ jobs:
   shared-integration:
     name: Integration (shared environment)
     needs: plugins
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: '.'
       php-version: '8.5'
@@ -79,7 +79,7 @@ jobs:
   multisite-integration:
     name: Integration (multisite)
     needs: plugins
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: '.'
       php-version: '8.5'
@@ -90,7 +90,7 @@ jobs:
   shared-e2e:
     name: E2E (shared environment)
     needs: plugins
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: '.'
       artifact-slug: shared-environment
