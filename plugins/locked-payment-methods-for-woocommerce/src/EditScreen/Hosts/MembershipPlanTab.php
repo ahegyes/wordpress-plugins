@@ -77,7 +77,7 @@ final class MembershipPlanTab implements ObjectFormHostInterface {
 	 */
 	#[\Override]
 	public function has_paragraph_rows(): bool {
-		return false;
+		return true;
 	}
 
 	/**
