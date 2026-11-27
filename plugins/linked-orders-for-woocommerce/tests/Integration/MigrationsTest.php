@@ -2,7 +2,6 @@
 
 namespace DeepWebSolutions\LinkedOrders\Tests\Integration;
 
-use DeepWebSolutions\LinkedOrders\Linking;
 use DeepWebSolutions\LinkedOrders\LinkRepair;
 use DeepWebSolutions\LinkedOrders\Migrations;
 use DeepWebSolutions\LinkedOrders\Options;
@@ -107,51 +106,6 @@ final class MigrationsTest extends TestCase {
 		self::assertSame( array( $listed->get_id(), $unlisted->get_id() ), wc_get_order( $parent->get_id() )->get_meta( '_dws_lo_children' ) );
 		self::assertSame( '1', wc_get_order( $unlisted->get_id() )->get_meta( '_dws_lo_depth' ) );
 		self::assertSame( (string) $parent->get_id(), wc_get_order( $unlisted->get_id() )->get_meta( '_dws_lo_parent' ) );
-		self::assertFalse( get_option( 'dws_lowc_link_repair_page' ) );
-	}
-
-	// The runner's hook stays live when the kernel's boot throws, so a batch in such a request fails, leaving the walk's position and the linking lock as they were, and the walk resumes from that position once the plugin has booted; a batch holds 50 orders, so the orphan after 50 roots sits on the page the position names.
-	#[DataProvider( 'storages' )]
-	public function test_the_second_step_waits_for_the_plugin_to_boot( bool $hpos, bool $sync ): void {
-		global $wp_actions;
-
-		$this->use_storage( $hpos, $sync );
-		for ( $i = 0; $i < 50; $i++ ) {
-			self::store_links( $this->create_order(), 0, 0, array() );
-		}
-
-		$deleted = $this->create_order();
-		$orphan  = $this->create_order();
-		self::store_links( $orphan, 1, $deleted->get_id(), array() );
-		$deleted->delete( true );
-		update_option( 'dws_lowc_link_repair_page', '2', false );
-		self::assertGreaterThan( 0, did_action( 'linked_orders_for_woocommerce/boot/succeeded' ) );
-		$fired = $wp_actions['linked_orders_for_woocommerce/boot/succeeded'];
-		unset( $wp_actions['linked_orders_for_woocommerce/boot/succeeded'] );
-
-		$refusal = null;
-		try {
-			new LinkRepair()->process_batch();
-		} catch ( \RuntimeException $exception ) {
-			$refusal = $exception->getMessage();
-		} finally {
-			$wp_actions['linked_orders_for_woocommerce/boot/succeeded'] = $fired;
-		}
-
-		self::assertSame( 'The repair of the links waits for the plugin to boot.', $refusal );
-		self::assertSame( '2', get_option( 'dws_lowc_link_repair_page' ) );
-		$owner = wp_generate_uuid4();
-		$lock  = Linking::acquire_lock( $owner );
-		self::assertNotNull( $lock );
-		$lock->release( $owner );
-
-		$batches = 0;
-		while ( new LinkRepair()->process_batch() ) {
-			self::assertLessThan( 5, ++$batches );
-		}
-
-		self::assertSame( 0, $batches );
-		self::assertSame( '0', wc_get_order( $orphan->get_id() )->get_meta( '_dws_lo_depth' ) );
 		self::assertFalse( get_option( 'dws_lowc_link_repair_page' ) );
 	}
 

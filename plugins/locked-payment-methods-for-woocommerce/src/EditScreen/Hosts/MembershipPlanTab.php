@@ -76,6 +76,17 @@ final class MembershipPlanTab implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	public function has_paragraph_rows(): bool {
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
 		// Memberships' panels print WooCommerce's options-panel rows, whose CSS lays out only a p or fieldset of class form-field inside an options group, and a group's choices beside its legend only inside a wc-radios list.
 		echo '<div class="options_group">';

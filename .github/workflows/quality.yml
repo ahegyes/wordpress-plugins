@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-version: '8.5'
@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         project: ${{ fromJSON(needs.plugins.outputs.projects) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: ${{ matrix.project }}
       # The root holds only the shared environment's spec and configs, so it has no styles to lint.
@@ -50,7 +50,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-block-json-check.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: plugins/${{ matrix.plugin }}
 
@@ -61,7 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         plugin: ${{ fromJSON(needs.plugins.outputs.plugins) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@67dfdca82b80b511dc4dfe561b98a053a2226d1d
     with:
       project-path: plugins/${{ matrix.plugin }}
       php-versions: '["7.4"]'

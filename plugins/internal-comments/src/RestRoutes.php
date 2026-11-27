@@ -23,7 +23,7 @@ final class RestRoutes implements ComponentInterface {
 	 *
 	 * @var     string
 	 */
-	protected const string NAMESPACE = 'internal-comments/v1';
+	protected const string REST_NAMESPACE = 'internal-comments/v1';
 
 	// endregion
 
@@ -65,7 +65,7 @@ final class RestRoutes implements ComponentInterface {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/posts/(?P<post>\d+)/comments',
 			array(
 				array(
@@ -91,7 +91,7 @@ final class RestRoutes implements ComponentInterface {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/comments/(?P<id>\d+)',
 			array(
 				array(
